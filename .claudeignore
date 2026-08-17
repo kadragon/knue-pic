@@ -1,0 +1,34 @@
+# Logs & temp
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# Editor / OS
+.vscode/
+.idea/
+
+# Maps & archives
+*.map
+*.zip
+*.tar.gz
+
+# Node / Vite
+node_modules/
+dist/
+coverage/
+.cache/
+*.lock
+
+# Python collector
+__pycache__/
+.venv/
+venv/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Collector intermediates and downloaded source files
+collector/out/
+collector/downloads/

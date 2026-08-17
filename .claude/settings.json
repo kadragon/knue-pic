@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(git push --force*)",
+      "Bash(git push*--force*)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.*.local)",
+      "Grep(./.env)",
+      "Grep(./.env.local)",
+      "Grep(./.env.*.local)",
+      "Write(./.env)",
+      "Edit(./.env)",
+      "Write(./data/places.json)",
+      "Edit(./data/places.json)",
+      "MultiEdit(./data/places.json)"
+    ]
+  }
+}
