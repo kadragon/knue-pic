@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+.DS_Store
+*.log
+
+# Collector intermediates — only data/places.json is published
+collector/out/
+collector/downloads/
+__pycache__/
+.venv/
