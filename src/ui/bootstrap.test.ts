@@ -3,6 +3,7 @@ import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { bootstrap } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-selector';
+import { DETAIL_EMPTY_MESSAGE, periodStatsHeading } from './place-detail';
 import { DISCLAIMER, SOURCE_LINE } from './shell';
 import { TOP_PLACES_HEADING } from './top-places';
 
@@ -141,7 +142,8 @@ describe('bootstrap period switching', () => {
     expect(pressedPeriod(root)?.textContent).toBe(PERIOD_LABELS['1m']);
     // 1m ranks five of the six fixture places — 000003 has no visit in that window.
     expect(root.querySelectorAll('.top-place')).toHaveLength(5);
-    expect(root.textContent).not.toContain('황새울분식');
+    // Scoped to the ranked list: the search results below it list every place regardless of period.
+    expect(root.querySelector('.top-places-slot')?.textContent).not.toContain('황새울분식');
   });
 
   it('keeps focus on the period button that was pressed', async () => {
@@ -155,6 +157,64 @@ describe('bootstrap period switching', () => {
 
     // Rebuilding the selector on every change would drop focus to the document body.
     expect(document.activeElement).toBe(button);
+    root.remove();
+  });
+});
+
+describe('bootstrap place selection', () => {
+  function selectFirstTopPlace(root: HTMLElement): void {
+    root.querySelector<HTMLButtonElement>('.top-places-slot .top-place-body')?.click();
+  }
+
+  it('fills the detail card from whichever list the place was picked in', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    expect(root.querySelector('.detail-slot')?.textContent).toContain(DETAIL_EMPTY_MESSAGE);
+
+    root
+      .querySelector<HTMLButtonElement>('.place-search-list .place-select[data-place-id="restaurant_000003"]')
+      ?.click();
+
+    expect(root.querySelector('.detail-slot')?.textContent).toContain('황새울분식');
+    expect(root.querySelector<HTMLAnchorElement>('.place-detail-link')?.rel).toBe(
+      'noopener noreferrer',
+    );
+  });
+
+  it('re-derives the selected place\'s figures when the period changes', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    selectFirstTopPlace(root);
+    const detail = () => root.querySelector('.detail-slot')?.textContent ?? '';
+
+    // 한밭식당 tops the default 1y window with 4 visits; the 1m window holds 2 of them.
+    expect(detail()).toContain(periodStatsHeading('1y'));
+    expect(detail()).toContain('4회');
+
+    periodButton(root, PERIOD_LABELS['1m'])?.click();
+
+    expect(detail()).toContain(periodStatsHeading('1m'));
+    expect(detail()).toContain('2회');
+  });
+
+  it('leaves the lists untouched when a place is selected', async () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    const searchInput = root.querySelector<HTMLInputElement>('.place-search-input');
+    const trendingList = root.querySelector('.trending-slot .discovery-list');
+    const button = root.querySelector<HTMLButtonElement>('.top-places-slot .top-place-body');
+    button?.focus();
+    button?.click();
+
+    // Only the detail container is replaced, so focus stays on the button that was pressed and
+    // an in-progress search query survives the selection.
+    expect(document.activeElement).toBe(button);
+    expect(root.querySelector('.place-search-input')).toBe(searchInput);
+    expect(root.querySelector('.trending-slot .discovery-list')).toBe(trendingList);
     root.remove();
   });
 });

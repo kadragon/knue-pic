@@ -1,8 +1,15 @@
 import { loadPlacesDataset } from '../data/load';
 import type { Period, PlacesDataset } from '../data/types';
+import { computeNewlySeenPlaces, computeTrendingPlaces } from '../stats/discovery';
+import { computeMonthlyHistogram } from '../stats/histogram';
+import { computePlaceStats } from '../stats/place-stats';
+import { resolvePeriodWindow } from '../stats/period';
 import { computeTopPlaces } from '../stats/top-places';
 import { renderLoadFailure, renderLoading } from './data-state';
+import { renderNewlySeenPlaces, renderTrendingPlaces } from './discovery';
 import { markSelectedPeriod, renderPeriodSelector } from './period-selector';
+import { renderPlaceDetail } from './place-detail';
+import { renderPlaceSearch } from './search';
 import { renderShell } from './shell';
 import { renderTopPlaces } from './top-places';
 
@@ -55,6 +62,15 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   /**
    * Changing the period swaps the list container's contents and flips `aria-pressed` in place. The
    * selector element itself is never rebuilt, so the button the user just pressed keeps focus.
+   *
+   * Each view owns its own container, and only the containers whose contents actually changed are
+   * replaced. That is what keeps focus where the user left it: selecting a place rebuilds the
+   * detail card alone, and the trending / newly-seen sections — whose windows are fixed by
+   * `docs/conventions.md` → Statistics Rules and do not follow the selector — are rendered once.
+   *
+   * Order follows `docs/conventions.md` → Accessibility & Responsive: TOP 10, then search, then
+   * the detail card. The two discovery sections sit with the TOP 10 because they answer the same
+   * question; the map, once it exists, goes between search and detail.
    */
   function renderDataset(dataset: PlacesDataset): void {
     const slot = renderFrame(dataset.updatedAt);
@@ -63,14 +79,50 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     controls.className = 'period-controls';
     const list = document.createElement('div');
     list.className = 'top-places-slot';
-    slot.replaceChildren(controls, list);
+    const trending = document.createElement('div');
+    trending.className = 'trending-slot';
+    const newlySeen = document.createElement('div');
+    newlySeen.className = 'newly-seen-slot';
+    const search = document.createElement('div');
+    search.className = 'search-slot';
+    const detail = document.createElement('div');
+    detail.className = 'detail-slot';
+    slot.replaceChildren(controls, list, trending, newlySeen, search, detail);
+
+    let selectedPlaceId: string | null = null;
+    let currentPeriod: Period = DEFAULT_PERIOD;
+
+    function showDetail(): void {
+      const place = dataset.places.find((candidate) => candidate.id === selectedPlaceId);
+      if (!place) {
+        renderPlaceDetail(detail, null);
+        return;
+      }
+
+      renderPlaceDetail(detail, {
+        place,
+        period: currentPeriod,
+        stats: computePlaceStats(place, resolvePeriodWindow(currentPeriod, dataset.updatedAt)),
+        histogram: computeMonthlyHistogram(place, dataset.updatedAt),
+      });
+    }
+
+    function selectPlace(placeId: string): void {
+      selectedPlaceId = placeId;
+      showDetail();
+    }
 
     function show(period: Period): void {
+      currentPeriod = period;
       markSelectedPeriod(controls, period);
-      renderTopPlaces(list, computeTopPlaces(dataset, period));
+      renderTopPlaces(list, computeTopPlaces(dataset, period), selectPlace);
+      showDetail();
     }
 
     renderPeriodSelector(controls, DEFAULT_PERIOD, show);
+    renderTrendingPlaces(trending, computeTrendingPlaces(dataset), selectPlace);
+    renderNewlySeenPlaces(newlySeen, computeNewlySeenPlaces(dataset), selectPlace);
+    renderPlaceSearch(search, dataset, selectPlace);
     show(DEFAULT_PERIOD);
   }
 

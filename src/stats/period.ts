@@ -42,6 +42,20 @@ function subtractMonths(date: CalendarDate, months: number): CalendarDate {
   return { year, month, day: Math.min(date.day, daysInMonth(year, month)) };
 }
 
+/**
+ * The window covering the `months` calendar months up to (and including) `anchor`.
+ *
+ * The period selector is not the only consumer of a month window: trending reads one month, newly
+ * seen reads two, and the histogram spans the retained twelve. Exposing the month count directly
+ * keeps all of them on the same clamping rule as `resolvePeriodWindow`, which delegates here — a
+ * second hand-rolled subtraction is exactly how a window ends up one day off from the one a
+ * statistic is compared against.
+ */
+export function resolveMonthsWindow(months: number, anchor: string): PeriodWindow {
+  const end = parseIsoDate(anchor);
+  return { start: formatIsoDate(subtractMonths(end, months)), end: formatIsoDate(end) };
+}
+
 export function resolvePeriodWindow(period: Period, anchor: string): PeriodWindow {
   // `period` is typed, but it reaches here from a URL param or persisted state at runtime. An
   // unknown value would make `MONTHS_BACK[period]` undefined and the arithmetic NaN, and a
@@ -52,8 +66,7 @@ export function resolvePeriodWindow(period: Period, anchor: string): PeriodWindo
     throw new RangeError(`Unknown period: "${period}"`);
   }
 
-  const end = parseIsoDate(anchor);
-  return { start: formatIsoDate(subtractMonths(end, monthsBack)), end: formatIsoDate(end) };
+  return resolveMonthsWindow(monthsBack, anchor);
 }
 
 /**
@@ -70,7 +83,7 @@ export function isWithinWindow(date: string, periodWindow: PeriodWindow): boolea
  * Anything before that floor is simply absent from the dataset, so a window reaching past it is
  * incomplete no matter how many transactions happen to fall inside it.
  */
-const RETAINED_MONTHS = 12;
+export const RETAINED_MONTHS = 12;
 
 /**
  * The window immediately preceding `period`'s own.
