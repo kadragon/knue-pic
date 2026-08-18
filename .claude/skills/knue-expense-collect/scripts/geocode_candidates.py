@@ -12,8 +12,9 @@ Every row is written with status=pending. The geocoder never promotes a place:
 docs/architecture.md makes review_candidates.csv the human gate, and a
 plausible-looking single hit is exactly the case that gate exists to catch.
 
-Rows whose canonical_name is already in the CSV are left alone, so the file can
-be re-run for a month without discarding review decisions already made.
+A row already in the CSV keeps its status and any reviewer edits; only its
+visit count and month list are refreshed, so re-running a month never discards
+a review decision but recurring venues still show real totals.
 """
 
 from __future__ import annotations
@@ -85,6 +86,9 @@ def credentials() -> tuple[str, str]:
     return client_id, secret
 
 
+MAX_RATE_LIMIT_RETRIES = 5
+
+
 def _call(backend: str, query: str, client_id: str, secret: str, display: int) -> list[dict]:
     spec = BACKENDS[backend]
     params = {"query": query, "display": display, **spec["extra"]}
@@ -99,7 +103,8 @@ def _call(backend: str, query: str, client_id: str, secret: str, display: int) -
     return payload.get("items", [])
 
 
-def search(query: str, client_id: str, secret: str, display: int = 5) -> list[dict]:
+def search(query: str, client_id: str, secret: str, display: int = 5,
+           rate_limit_tries: int = 0, network_tries: int = 0) -> list[dict]:
     """Query the active backend, picking one on the first call."""
     global _active
     order = [_active] if _active else list(BACKENDS)
@@ -109,8 +114,13 @@ def search(query: str, client_id: str, secret: str, display: int = 5) -> list[di
             items = _call(backend, query, client_id, secret, display)
         except urllib.error.HTTPError as exc:
             if exc.code == 429:
-                time.sleep(2.0)
-                return search(query, client_id, secret, display)
+                # Bounded: an endpoint that answers 429 forever would otherwise
+                # recurse until RecursionError, losing the whole run's work.
+                if rate_limit_tries >= MAX_RATE_LIMIT_RETRIES:
+                    raise
+                time.sleep(2.0 * (rate_limit_tries + 1))
+                return search(query, client_id, secret, display,
+                              rate_limit_tries + 1, network_tries)
             # 401/403/404 means these credentials belong to the other gateway.
             if exc.code in (401, 403, 404) and _active is None:
                 last = exc
@@ -120,7 +130,11 @@ def search(query: str, client_id: str, secret: str, display: int = 5) -> list[di
             if _active is None:
                 last = exc
                 continue
-            raise
+            if network_tries >= 2:
+                raise
+            time.sleep(1.0 + network_tries)
+            return search(query, client_id, secret, display,
+                          rate_limit_tries, network_tries + 1)
         _active = backend
         return items
     raise SystemExit(
@@ -152,10 +166,16 @@ def to_degrees(value) -> float | None:
     return None
 
 
-def region_of(item: dict) -> tuple[bool, str]:
+def region_of(item: dict, only: str | None = None) -> tuple[bool, str]:
+    """Which of the in-scope regions this hit sits in.
+
+    `only` narrows the test to one region. Accepting any of the four when the
+    query named 청주 lets a 대전 shop of the same name win, which is the very
+    mislocation the region-qualified query exists to prevent.
+    """
     text = f"{item.get('address', '')} {item.get('roadAddress', '')}"
-    for region in REGIONS:
-        if region in text:
+    for region in ((only,) if only else REGIONS):
+        if region and region in text:
             return True, region
     return False, ""
 
@@ -176,7 +196,7 @@ def lookup(name: str, client_id: str, secret: str) -> tuple[list[dict], str]:
     for region in REGIONS:
         query = f"{region} {name}"
         items = search(query, client_id, secret)
-        in_region = [item for item in items if region_of(item)[0]]
+        in_region = [item for item in items if region_of(item, region)[0]]
         if in_region:
             return in_region, query
     items = search(name, client_id, secret)
@@ -206,12 +226,20 @@ def selftest() -> int:
     return 0
 
 
-def load_existing(path: str) -> tuple[list[dict], set[str]]:
+def load_existing(path: str) -> tuple[list[dict], list[str]]:
+    """Return the existing rows and the full column list, ours plus theirs.
+
+    Reviewers annotate this file by hand. Projecting it back through FIELDS
+    alone would silently delete any column they added.
+    """
     if not os.path.exists(path):
-        return [], set()
+        return [], list(FIELDS)
     with open(path, encoding="utf-8", newline="") as fh:
-        rows = list(csv.DictReader(fh))
-    return rows, {row.get("canonical_name", "") for row in rows}
+        reader = csv.DictReader(fh)
+        rows = list(reader)
+        found = list(reader.fieldnames or [])
+    columns = list(FIELDS) + [name for name in found if name not in FIELDS]
+    return rows, columns
 
 
 def main() -> int:
@@ -234,15 +262,31 @@ def main() -> int:
     with open(os.path.join(root, "normalized_places.json"), encoding="utf-8") as fh:
         places = json.load(fh)["places"]
 
-    existing_rows, known = load_existing(args.csv)
+    existing_rows, columns = load_existing(args.csv)
+    by_name = {row.get("canonical_name", ""): row for row in existing_rows}
     new_rows: list[dict] = []
-    counts = {"already_queued": 0, "no_hit": 0, "out_of_region": 0, "non_food": 0}
+    failures: list[str] = []
+    counts = {"updated": 0, "no_hit": 0, "out_of_region": 0, "non_food": 0}
 
     for place in places:
-        if place["canonicalName"] in known:
-            counts["already_queued"] += 1
+        seen = by_name.get(place["canonicalName"])
+        if seen is not None:
+            # Refresh the counts a reviewer uses to judge, but never re-geocode
+            # and never touch status or any column they filled in.
+            months = [m for m in (seen.get("months") or "").split(";") if m]
+            if args.month not in months:
+                months.append(args.month)
+                seen["months"] = ";".join(sorted(months))
+                seen["visits"] = str(int(seen.get("visits") or 0) + place["visits"])
+                counts["updated"] += 1
             continue
-        items, query = lookup(place["canonicalName"], client_id, secret)
+        try:
+            items, query = lookup(place["canonicalName"], client_id, secret)
+        except Exception as exc:  # noqa: BLE001
+            # One venue's network failure must not throw away the whole run:
+            # the CSV is written once, at the end, after ~400 API calls.
+            failures.append(f"{place['canonicalName']}: {exc}")
+            continue
         notes: list[str] = []
         row = {
             "status": "pending",
@@ -291,22 +335,30 @@ def main() -> int:
         row["note"] = "; ".join(notes)
         new_rows.append(row)
 
-    with open(args.csv, "w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=FIELDS)
+    # Write beside the target and rename: truncating the committed review queue
+    # in place would destroy approved/rejected decisions if this crashed midway.
+    temp = args.csv + ".tmp"
+    with open(temp, "w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=columns, extrasaction="ignore")
         writer.writeheader()
         for row in existing_rows:
-            writer.writerow({key: row.get(key, "") for key in FIELDS})
+            writer.writerow({key: row.get(key, "") for key in columns})
         for row in new_rows:
             writer.writerow(row)
+    os.replace(temp, args.csv)
 
     print(f"{args.month}: {len(new_rows)} new pending rows -> {args.csv}")
-    print(f"  already in the queue        : {counts['already_queued']}")
+    print(f"  existing rows updated       : {counts['updated']}")
     print(f"  no geocoding hit            : {counts['no_hit']}")
     print(f"  outside {'/'.join(REGIONS)} : {counts['out_of_region']}")
     print(f"  non-food category           : {counts['non_food']}")
-    print("\nEvery row is pending. Set status to approved or rejected by hand before"
+    if failures:
+        print(f"  LOOKUP FAILED, not queued   : {len(failures)}")
+        for line in failures:
+            print(f"      {line}")
+    print("\nNew rows are pending. Set status to approved or rejected by hand before"
           "\nbuilding data/places.json — nothing publishes without that pass.")
-    return 0
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":

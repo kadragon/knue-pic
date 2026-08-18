@@ -77,10 +77,19 @@ def collect_posts(month: int, max_pages: int, quiet_pages: int) -> list[dict]:
 
 
 def drop_superseded(posts: list[dict]) -> tuple[list[dict], list[dict]]:
-    """Keep the highest nttNo per department; a re-post is a correction."""
-    best: dict[str, dict] = {}
+    """Keep the highest nttNo per department *for the same declared months*.
+
+    Keying on department alone was wrong: posts with unparseable titles are kept
+    on purpose ("the attachment decides"), and such a post from a later month
+    carries a higher nttNo, so it would silently supersede the real target-month
+    post and that department would contribute nothing — logged as `superseded:`,
+    which reads like intended behaviour. Including the title months in the key
+    means only a genuine re-post of the same month can supersede, and stage 2's
+    date filter still throws out anything off-month.
+    """
+    best: dict[tuple, dict] = {}
     for post in posts:
-        key = post["department"]
+        key = (post["department"], tuple(post["titleMonths"]) or (post["nttNo"],))
         if key not in best or int(post["nttNo"]) > int(best[key]["nttNo"]):
             best[key] = post
     kept_ids = {p["nttNo"] for p in best.values()}
@@ -141,7 +150,9 @@ def main() -> int:
     for post in skipped:
         print(f"  skipped (no 사용처 column): {post['nttNo']} {post['title']}")
     if not posts:
-        print("no posts matched — widen --max-pages or check the month", file=sys.stderr)
+        print("no posts matched. The plain-listing scan stops after --quiet-pages"
+              f" ({args.quiet_pages}) pages with no hit, so raise that first if the month is"
+              " more than a few pages down; --max-pages only caps the total.", file=sys.stderr)
         return 1
     return 0
 

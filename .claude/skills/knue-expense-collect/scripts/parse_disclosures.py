@@ -154,7 +154,8 @@ def rows_from_sheet(rows: list[list], mapping: dict[str, int], header_row: int,
         venue = _clean(cell("venue"))
         if venue.lower() in NON_ROWS:
             continue
-        date = parse_date(cell("date"), year)
+        stated = parse_date(cell("date"), year)
+        date = stated
         amount = parse_amount(cell("amount"))
         if date is None and previous is not None and amount is not None:
             # A blank 사용일자 above a filled venue/amount is a merged cell:
@@ -177,7 +178,9 @@ def rows_from_sheet(rows: list[list], mapping: dict[str, int], header_row: int,
             "method": _clean(cell("method")),
             "address": _clean(cell("address")),
             "row": offset,
-            "dateCarriedFromPreviousRow": date == previous and not _clean(cell("date")),
+            # True whenever the row's own date cell did not yield a date, whether
+            # it was blank (a merged cell) or text this parser could not read.
+            "dateCarriedFromPreviousRow": stated is None,
         })
     return out, off_month, carried
 
@@ -246,8 +249,24 @@ def main() -> int:
 
     transactions: list[dict] = []
     report: list[dict] = []
+    duplicates = 0
 
     for post in manifest["posts"]:
+        # A department that attaches the same table twice (an .xlsx and a .pdf of
+        # it, or a workbook repeating a month in two sheets) would otherwise
+        # double every visit. Identical rows *within* one sheet are left alone:
+        # there, two same-amount payments on one day are plausibly real.
+        seen_in_post: set[tuple] = set()
+
+        def keep(row: dict) -> bool:
+            nonlocal duplicates
+            key = (row["date"], row["venue"], row["amount"])
+            if key in seen_in_post:
+                duplicates += 1
+                return False
+            seen_in_post.add(key)
+            return True
+
         for entry in post["files"]:
             path = os.path.join(root, entry["path"])
             ext = os.path.splitext(path)[1].lower()
@@ -260,7 +279,8 @@ def main() -> int:
                     report.append({**source, "sheet": "(pdf)", "status": f"error: {exc}"})
                     continue
                 for row in rows:
-                    transactions.append({**row, **source, "sheet": "(pdf)"})
+                    if keep(row):
+                        transactions.append({**row, **source, "sheet": "(pdf)"})
                 report.append({**source, "sheet": "(pdf)", "rows": len(rows),
                                "unparsedLines": len(unparsed),
                                "status": "ok" if rows else "no rows"})
@@ -281,7 +301,8 @@ def main() -> int:
                 parsed, off_month, carried = rows_from_sheet(
                     rows, mapping, header_row, year, month)
                 for row in parsed:
-                    transactions.append({**row, **source, "sheet": name})
+                    if keep(row):
+                        transactions.append({**row, **source, "sheet": name})
                 report.append({**source, "sheet": name, "rows": len(parsed),
                                "offMonthRows": off_month, "carriedDates": carried,
                                "status": "ok" if parsed else "no rows for target month"})
@@ -296,9 +317,17 @@ def main() -> int:
     print(f"{args.month}: {len(transactions)} transactions from {len(departments)} departments"
           f" -> {out_path}")
     for item in report:
+        if item.get("unparsedLines"):
+            # Regex PDF parsing is where silent partial loss is most likely, so
+            # say so even when the sheet did produce rows.
+            print(f"  {item['department']} / {item['sheet']}: {item['rows']} rows,"
+                  f" {item['unparsedLines']} unparsed lines")
+            continue
         if item.get("rows"):
             continue
         print(f"  {item['department']} / {item['sheet']}: {item['status']}")
+    if duplicates:
+        print(f"  dropped {duplicates} rows duplicated across a post's attachments/sheets")
     return 0 if transactions else 1
 
 

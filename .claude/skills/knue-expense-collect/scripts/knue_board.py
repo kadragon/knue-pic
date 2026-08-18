@@ -79,17 +79,39 @@ def attachments(ntt_no: str) -> list[str]:
     return list(dict.fromkeys(found))
 
 
-def download_attachment(atch_no: str) -> tuple[str, bytes]:
+def _filename_from(disposition: str) -> str:
+    """Read the filename from Content-Disposition, RFC 5987 form included.
+
+    Government boards send either `filename=...` or `filename*=UTF-8''...`.
+    Missing the starred form saves the file as .bin, and stage 2 then rejects a
+    perfectly good spreadsheet as an unsupported type.
+    """
+    star = re.search(r"filename\*\s*=\s*([^']*)'[^']*'([^;]+)", disposition)
+    if star:
+        charset = star.group(1).strip() or "utf-8"
+        return urllib.parse.unquote(star.group(2).strip().strip('"'), encoding=charset,
+                                    errors="replace")
+    plain = re.search(r"filename\s*=\s*([^;]+)", disposition)
+    if plain:
+        return urllib.parse.unquote(plain.group(1).strip().strip('"'))
+    return ""
+
+
+def download_attachment(atch_no: str, retries: int = 3) -> tuple[str, bytes]:
     """Return (original filename, bytes) for an attachment."""
-    req = urllib.request.Request(download_url(atch_no), headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        disposition = resp.headers.get("Content-Disposition", "")
-        data = resp.read()
-    name = ""
-    if "filename=" in disposition:
-        name = urllib.parse.unquote(disposition.split("filename=", 1)[1].strip().strip('"'))
-    time.sleep(0.3)
-    return (name or f"{atch_no}.bin"), data
+    last: Exception | None = None
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(download_url(atch_no), headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                disposition = resp.headers.get("Content-Disposition", "")
+                data = resp.read()
+            time.sleep(0.3)
+            return (_filename_from(disposition) or f"{atch_no}.bin"), data
+        except Exception as exc:  # noqa: BLE001 - network flake, retry
+            last = exc
+            time.sleep(1.0 + attempt)
+    raise RuntimeError(f"attachment download failed: {atch_no}") from last
 
 
 # --- title parsing -----------------------------------------------------------

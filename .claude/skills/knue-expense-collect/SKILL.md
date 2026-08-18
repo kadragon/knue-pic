@@ -30,6 +30,10 @@ python3 $SKILL/geocode_candidates.py --month 2026-07         # 4. append to the 
 Intermediate output lands in `collector/out/<month>/` (gitignored). Only
 `review_candidates.csv` is committed.
 
+Re-running a month is safe. A venue already in the queue keeps its `status`, its notes, and any
+column a reviewer added by hand; only its visit count and month list grow. The file is written
+via a temp file and renamed, so an interrupted run cannot leave the queue truncated.
+
 Stage 4 needs `NAVER_SEARCH_CLIENT_ID` and `NAVER_SEARCH_CLIENT_SECRET` in the environment —
 검색 API keys, not the Maps browser Client ID the web app uses.
 
