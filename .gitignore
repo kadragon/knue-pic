@@ -11,3 +11,6 @@ collector/out/
 collector/downloads/
 __pycache__/
 .venv/
+
+# Local agent-harness maintenance state
+.agents/.maintenance-stamp
