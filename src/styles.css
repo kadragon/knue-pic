@@ -64,3 +64,18 @@ a[role='button'] {
   min-height: 44px;
   min-width: 44px;
 }
+
+.data-state {
+  margin: 2rem 0 1rem;
+  color: var(--muted);
+}
+
+.data-state-retry {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
