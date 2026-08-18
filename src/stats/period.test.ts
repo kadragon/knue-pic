@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { Period } from '../data/types';
-import { isWithinWindow, resolvePeriodWindow } from './period';
+import {
+  isPriorWindowComplete,
+  isWithinWindow,
+  resolvePeriodWindow,
+  resolvePriorWindow,
+} from './period';
 
 describe('resolvePeriodWindow', () => {
   it('anchors every window on the dataset updatedAt', () => {
@@ -82,5 +87,44 @@ describe('isWithinWindow', () => {
     );
 
     expect(days).toEqual([false, true, true, false]);
+  });
+});
+
+describe('resolvePriorWindow', () => {
+  it('tiles immediately before the current window with no shared day', () => {
+    const anchor = SAMPLE_DATASET.updatedAt;
+
+    expect(resolvePriorWindow('1m', anchor)).toEqual({ start: '2026-06-01', end: '2026-07-01' });
+    expect(resolvePriorWindow('6m', anchor)).toEqual({ start: '2025-08-01', end: '2026-02-01' });
+    expect(resolvePriorWindow('1y', anchor)).toEqual({ start: '2024-08-01', end: '2025-08-01' });
+  });
+
+  it('makes the prior end the current start, so a boundary day is counted once', () => {
+    const anchor = SAMPLE_DATASET.updatedAt;
+    const boundary = resolvePeriodWindow('1m', anchor).start;
+
+    expect(resolvePriorWindow('1m', anchor).end).toBe(boundary);
+    // Half-open: the shared date belongs to the prior window alone.
+    expect(isWithinWindow(boundary, resolvePriorWindow('1m', anchor))).toBe(true);
+    expect(isWithinWindow(boundary, resolvePeriodWindow('1m', anchor))).toBe(false);
+  });
+
+  it('rejects an unknown period rather than widening the window', () => {
+    expect(() => resolvePriorWindow('2y' as Period, '2026-08-01')).toThrow(RangeError);
+  });
+});
+
+describe('isPriorWindowComplete', () => {
+  it('accepts the windows the 12-month retained file can cover', () => {
+    const anchor = SAMPLE_DATASET.updatedAt;
+
+    expect(isPriorWindowComplete('1m', anchor)).toBe(true);
+    // Prior 6m starts exactly on the retention floor — the whole window is retained.
+    expect(isPriorWindowComplete('6m', anchor)).toBe(true);
+  });
+
+  it('rejects the 1y prior window, which lies entirely before the retention floor', () => {
+    expect(isPriorWindowComplete('1y', SAMPLE_DATASET.updatedAt)).toBe(false);
+    expect(isPriorWindowComplete('1y', '2030-01-15')).toBe(false);
   });
 });

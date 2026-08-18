@@ -79,3 +79,84 @@ a[role='button'] {
   font: inherit;
   cursor: pointer;
 }
+
+/* Period selector — wraps rather than overflowing at the 360px minimum width (PRD §36). */
+.period-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.period-option {
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* The active period is marked by weight and border as well as colour, never colour alone. */
+.period-option[aria-pressed='true'] {
+  border-color: var(--fg);
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.top-places h2 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.125rem;
+}
+
+.top-places-empty {
+  margin: 1rem 0;
+  color: var(--muted);
+}
+
+.top-places-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.top-place {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Fixed width so the rank column stays aligned from 1 to 10. */
+.top-place-rank {
+  flex: 0 0 2rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.top-place-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.top-place-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.top-place-meta {
+  margin: 0.125rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* The arrow glyph carries the direction; colour only reinforces it. */
+.top-place-delta {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}

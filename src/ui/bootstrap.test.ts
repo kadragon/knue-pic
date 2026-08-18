@@ -2,10 +2,24 @@ import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { bootstrap } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
+import { PERIOD_LABELS } from './period-selector';
 import { DISCLAIMER, SOURCE_LINE } from './shell';
+import { TOP_PLACES_HEADING } from './top-places';
 
 function retryButton(root: HTMLElement): HTMLButtonElement | null {
   return root.querySelector<HTMLButtonElement>('.data-state-retry');
+}
+
+function periodButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
+  return [...root.querySelectorAll<HTMLButtonElement>('.period-option')].find(
+    (button) => button.textContent === label,
+  );
+}
+
+function pressedPeriod(root: HTMLElement): HTMLButtonElement | undefined {
+  return [...root.querySelectorAll<HTMLButtonElement>('.period-option')].find(
+    (button) => button.getAttribute('aria-pressed') === 'true',
+  );
 }
 
 describe('bootstrap', () => {
@@ -21,14 +35,24 @@ describe('bootstrap', () => {
     await pending;
   });
 
-  it('shows the dataset update date and an empty content slot once loaded', async () => {
+  it('shows the dataset update date and the ranked list once loaded', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
     expect(root.textContent).toContain(`최근 데이터 업데이트: ${SAMPLE_DATASET.updatedAt}`);
     expect(root.textContent).not.toContain(LOADING_MESSAGE);
-    expect(root.querySelector('#content')?.childElementCount).toBe(0);
+    expect(root.querySelector('#content')?.textContent).toContain(TOP_PLACES_HEADING);
+  });
+
+  it('opens on the 1y period', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+
+    expect(pressedPeriod(root)?.textContent).toBe(PERIOD_LABELS['1y']);
+    // 1y ranks all six fixture places; a shorter window would rank fewer.
+    expect(root.querySelectorAll('.top-place')).toHaveLength(6);
   });
 
   it('shows a plain Korean failure state, not a raw error, when the dataset is missing', async () => {
@@ -103,6 +127,34 @@ describe('bootstrap accessibility', () => {
     await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2));
 
     expect(document.activeElement).toBe(retryButton(root));
+    root.remove();
+  });
+});
+
+describe('bootstrap period switching', () => {
+  it('re-derives the list from the newly selected period', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    periodButton(root, PERIOD_LABELS['1m'])?.click();
+
+    expect(pressedPeriod(root)?.textContent).toBe(PERIOD_LABELS['1m']);
+    // 1m ranks five of the six fixture places — 000003 has no visit in that window.
+    expect(root.querySelectorAll('.top-place')).toHaveLength(5);
+    expect(root.textContent).not.toContain('황새울분식');
+  });
+
+  it('keeps focus on the period button that was pressed', async () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    const button = periodButton(root, PERIOD_LABELS['6m']);
+    button?.focus();
+    button?.click();
+
+    // Rebuilding the selector on every change would drop focus to the document body.
+    expect(document.activeElement).toBe(button);
     root.remove();
   });
 });

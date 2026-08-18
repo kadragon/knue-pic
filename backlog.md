@@ -2,7 +2,6 @@
 
 ## Next
 
-- [ ] TOP 10 list with tie-breaking and rank delta vs the previous window (omit when incomplete)
 - [ ] 요즘 많이 가는 곳 (≥2 recent visits, `NEW` when the prior count is 0) and 새로 발견된 곳
 - [ ] Naver map with markers, TOP 10 number badges, and the PRD §38 fallback when the API fails
 - [ ] Search, category filter, empty-result reset control
