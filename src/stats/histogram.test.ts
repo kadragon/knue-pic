@@ -56,6 +56,22 @@ describe('computeMonthlyHistogram', () => {
     expect(new Set(buckets.map((bucket) => bucket.month)).size).toBe(12);
   });
 
+  it('leaves out a visit later in the anchor month than the anchor itself', () => {
+    const place: PlaceRecord = {
+      ...findPlace('restaurant_000002'),
+      transactions: [
+        { date: '2026-08-10', amount: 1000 }, // on or before the anchor
+        { date: '2026-08-20', amount: 1000 }, // after it — outside every other window on the page
+      ],
+    };
+
+    const buckets = computeMonthlyHistogram(place, '2026-08-15');
+    const byMonth = new Map(buckets.map((bucket) => [bucket.month, bucket.visitCount]));
+
+    expect(byMonth.get('2026-08')).toBe(1);
+    expect(buckets.reduce((total, bucket) => total + bucket.visitCount, 0)).toBe(1);
+  });
+
   it('rejects a malformed transaction date instead of bucketing it as NaN', () => {
     const broken: PlaceRecord = { ...findPlace('restaurant_000002'), transactions: [
       { date: '2026-13-01', amount: 1000 },

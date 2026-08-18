@@ -68,9 +68,10 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    * detail card alone, and the trending / newly-seen sections — whose windows are fixed by
    * `docs/conventions.md` → Statistics Rules and do not follow the selector — are rendered once.
    *
-   * Order follows `docs/conventions.md` → Accessibility & Responsive: TOP 10, then search, then
-   * the detail card. The two discovery sections sit with the TOP 10 because they answer the same
-   * question; the map, once it exists, goes between search and detail.
+   * Order follows `docs/conventions.md` → Accessibility & Responsive verbatim: TOP 10, then search,
+   * then the detail card. The two discovery sections take the gap the map will occupy — the four
+   * documented sections keep their relative order either way, and putting discovery ahead of search
+   * would break the one ordering the doc actually states.
    */
   function renderDataset(dataset: PlacesDataset): void {
     const slot = renderFrame(dataset.updatedAt);
@@ -87,7 +88,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     search.className = 'search-slot';
     const detail = document.createElement('div');
     detail.className = 'detail-slot';
-    slot.replaceChildren(controls, list, trending, newlySeen, search, detail);
+    slot.replaceChildren(controls, list, search, trending, newlySeen, detail);
 
     let selectedPlaceId: string | null = null;
     let currentPeriod: Period = DEFAULT_PERIOD;
@@ -107,9 +108,18 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
       });
     }
 
+    /**
+     * Moves focus into the card after rendering it.
+     *
+     * The card is the last section on the page, so on a 360px screen a selection made from a list
+     * above it changes nothing the user can see. Focusing it scrolls it into view and announces it,
+     * which is the difference between a working control and one that reads as a no-op. Focus moves
+     * only here — `show()` must leave it on the period button the user just pressed.
+     */
     function selectPlace(placeId: string): void {
       selectedPlaceId = placeId;
       showDetail();
+      detail.querySelector<HTMLElement>('.place-detail')?.focus();
     }
 
     function show(period: Period): void {

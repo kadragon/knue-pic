@@ -143,11 +143,13 @@ a[role='button'] {
 }
 
 .top-place-name {
+  display: block;
   margin: 0;
   font-weight: 600;
 }
 
 .top-place-meta {
+  display: block;
   margin: 0.125rem 0 0;
   color: var(--muted);
   font-size: 0.8125rem;
@@ -423,4 +425,10 @@ button.top-place-body,
   display: inline-block;
   margin-top: 1rem;
   color: inherit;
+}
+
+/* Focused programmatically after a list selection, so the ring is the only cue it moved. */
+.place-detail:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 4px;
 }

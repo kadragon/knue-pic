@@ -69,11 +69,14 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
     });
   }
 
-  const name = document.createElement('p');
+  // `<span>`, not `<p>`: when `onSelect` is supplied the body is a `<button>`, whose content model
+  // admits phrasing content only. `styles.css` gives both spans `display: block` so the row looks
+  // identical either way — the same shape `.place-select` uses in `discovery.ts` and `search.ts`.
+  const name = document.createElement('span');
   name.className = 'top-place-name';
   name.textContent = entry.place.name;
 
-  const meta = document.createElement('p');
+  const meta = document.createElement('span');
   meta.className = 'top-place-meta';
   // `mostRecentVisit` is non-null for every ranked place: a place with no in-window visit is not
   // ranked at all. The fallback keeps the type honest without inventing a date.

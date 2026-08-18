@@ -210,11 +210,14 @@ describe('bootstrap place selection', () => {
     button?.focus();
     button?.click();
 
-    // Only the detail container is replaced, so focus stays on the button that was pressed and
-    // an in-progress search query survives the selection.
-    expect(document.activeElement).toBe(button);
+    // Only the detail container is replaced — an in-progress search query and the discovery list
+    // survive the selection, asserted by node identity rather than by where focus ended up.
     expect(root.querySelector('.place-search-input')).toBe(searchInput);
     expect(root.querySelector('.trending-slot .discovery-list')).toBe(trendingList);
+    // Focus moves into the card on purpose: it is the last section on the page, so a selection
+    // that left focus on the button would be invisible at 360px.
+    expect(document.activeElement).toBe(root.querySelector('.place-detail'));
+    expect(button).not.toBe(null);
     root.remove();
   });
 });

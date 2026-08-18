@@ -1,5 +1,5 @@
 import type { PlaceRecord } from '../data/types';
-import { parseIsoDate } from '../data/iso-date';
+import { formatIsoDate, parseIsoDate } from '../data/iso-date';
 import { RETAINED_MONTHS } from './period';
 
 /**
@@ -44,10 +44,18 @@ export function computeMonthlyHistogram(place: PlaceRecord, anchor: string): His
     byMonth.set(bucket.month, bucket);
   }
 
+  const anchorIso = formatIsoDate(end);
+
   for (const transaction of place.transactions) {
     // Parsed rather than sliced so a malformed date fails here the same way it fails everywhere
     // else in `src/stats/`, instead of quietly landing in a `NaN-NaN` bucket nothing renders.
     const date = parseIsoDate(transaction.date);
+
+    // A visit later in the anchor's own month is past the end of every other window on the page,
+    // so charting it would make the last bar disagree with the figures printed beside it. ISO
+    // dates sort lexicographically, so no further parsing is needed for the comparison.
+    if (formatIsoDate(date) > anchorIso) continue;
+
     const bucket = byMonth.get(monthKey(date.year, date.month));
     if (bucket) bucket.visitCount += 1;
   }

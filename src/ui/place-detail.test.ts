@@ -101,6 +101,21 @@ describe('renderPlaceDetail', () => {
     }
   });
 
+  it('renders no link at all when the dataset URL is not https', () => {
+    // `src/data/load.ts` accepts `naverUrl` as any non-empty string, so the scheme is checked here.
+    for (const naverUrl of ['javascript:alert(1)', 'http://map.naver.com/x', 'not a url']) {
+      const container = document.createElement('div');
+      const detail = detailFor(0, '1y');
+
+      renderPlaceDetail(container, { ...detail, place: { ...detail.place, naverUrl } });
+
+      expect(container.querySelector('.place-detail-link')).toBeNull();
+      expect(container.textContent).not.toContain(NAVER_LINK_LABEL);
+      // The rest of the card still renders — one bad field does not blank the whole view.
+      expect(container.textContent).toContain(detail.place.name);
+    }
+  });
+
   it('links out to Naver Maps without handing the new tab a window handle', () => {
     const container = document.createElement('div');
 

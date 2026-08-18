@@ -56,6 +56,15 @@ export function monthLabel(month: string): string {
   return `${year}년 ${Number(index)}월`;
 }
 
+/** `new URL` throws on anything it cannot parse, which is itself a rejection. */
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function renderFigure(term: string, value: string): HTMLElement {
   const row = document.createElement('div');
   row.className = 'place-detail-figure';
@@ -127,6 +136,9 @@ export interface PlaceDetail {
 export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | null): void {
   const section = document.createElement('section');
   section.className = 'place-detail';
+  // Not in the tab order, but focusable programmatically: `bootstrap.ts` moves focus here after a
+  // list selection so the change is announced and scrolled to instead of happening off-screen.
+  section.tabIndex = -1;
 
   const heading = document.createElement('h2');
   heading.textContent = DETAIL_HEADING;
@@ -179,16 +191,22 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
 
   section.append(renderHistogram(histogram));
 
-  const link = document.createElement('a');
-  link.className = 'place-detail-link';
-  link.href = place.naverUrl;
-  link.target = '_blank';
-  // `noopener` denies the opened tab a handle back to this window; `noreferrer` keeps the
-  // referrer off the outbound request. Neither costs anything here and both are the default
-  // expectation for a `target="_blank"` link.
-  link.rel = 'noopener noreferrer';
-  link.textContent = NAVER_LINK_LABEL;
-  section.append(link);
+  // The only place a dataset string reaches an executable position in this app. `src/data/load.ts`
+  // accepts `naverUrl` as any non-empty string, so a `javascript:` value would run in the page
+  // origin on click; the scheme is therefore checked here, at the sink, and a URL that is not
+  // `https:` renders no link at all rather than an inert-looking one.
+  if (isHttpsUrl(place.naverUrl)) {
+    const link = document.createElement('a');
+    link.className = 'place-detail-link';
+    link.href = place.naverUrl;
+    link.target = '_blank';
+    // `noopener` denies the opened tab a handle back to this window; `noreferrer` keeps the
+    // referrer off the outbound request. Neither costs anything here and both are the default
+    // expectation for a `target="_blank"` link.
+    link.rel = 'noopener noreferrer';
+    link.textContent = NAVER_LINK_LABEL;
+    section.append(link);
+  }
 
   container.replaceChildren(section);
 }
