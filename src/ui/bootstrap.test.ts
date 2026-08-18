@@ -69,3 +69,40 @@ describe('bootstrap', () => {
     expect(root.textContent).toContain(`최근 데이터 업데이트: ${SAMPLE_DATASET.updatedAt}`);
   });
 });
+
+describe('bootstrap accessibility', () => {
+  it('keeps one live region across states so the failure is announced', async () => {
+    const root = document.createElement('div');
+    let reject!: (reason: Error) => void;
+    const load = vi.fn(
+      () => new Promise<typeof SAMPLE_DATASET>((_resolve, r) => (reject = r)),
+    );
+
+    const pending = bootstrap(root, { load });
+    const region = root.querySelector('.data-state');
+    expect(region?.getAttribute('role')).toBe('status');
+
+    reject(new Error('offline'));
+    await pending;
+
+    // Same node, new text — a replaced region would never announce to a screen reader.
+    expect(root.querySelector('.data-state')).toBe(region);
+    expect(region?.textContent).toBe(LOAD_ERROR_MESSAGE);
+  });
+
+  it('returns focus to the retry control when a retry fails again', async () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const load = vi
+      .fn<() => Promise<typeof SAMPLE_DATASET>>()
+      .mockRejectedValue(new Error('offline'));
+
+    await bootstrap(root, { load });
+    retryButton(root)?.focus();
+    retryButton(root)?.click();
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2));
+
+    expect(document.activeElement).toBe(retryButton(root));
+    root.remove();
+  });
+});

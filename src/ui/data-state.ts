@@ -18,22 +18,37 @@ export const LOAD_ERROR_MESSAGE = '데이터를 불러오지 못했습니다. �
 
 export const RETRY_LABEL = '다시 시도';
 
-export function renderLoading(content: HTMLElement): void {
-  const message = document.createElement('p');
-  message.className = 'data-state';
-  message.textContent = LOADING_MESSAGE;
-  // Announced to assistive tech when the state later swaps to the failure message.
-  message.setAttribute('role', 'status');
+/**
+ * One live region, reused across states.
+ *
+ * A `role="status"` element only announces content that changes *while it is already in the
+ * accessibility tree*. Creating a fresh region that already holds its text — the obvious way to
+ * write this — announces nothing at all, so a screen-reader user whose load fails hears silence.
+ * The region is therefore created once and only its `textContent` is swapped afterwards.
+ */
+function ensureRegion(content: HTMLElement): HTMLElement {
+  const existing = content.querySelector<HTMLElement>('.data-state');
+  if (existing) return existing;
 
-  content.replaceChildren(message);
+  const region = document.createElement('p');
+  region.className = 'data-state';
+  region.setAttribute('role', 'status');
+  content.replaceChildren(region);
+  return region;
 }
 
-/** A native `<button>`, so the retry control is focusable and keyboard-operable with no ARIA. */
-export function renderLoadFailure(content: HTMLElement, onRetry: () => void): void {
-  const message = document.createElement('p');
-  message.className = 'data-state';
-  message.textContent = LOAD_ERROR_MESSAGE;
-  message.setAttribute('role', 'status');
+export function renderLoading(content: HTMLElement): void {
+  ensureRegion(content).textContent = LOADING_MESSAGE;
+  content.querySelector('.data-state-retry')?.remove();
+}
+
+/**
+ * A native `<button>`, so the retry control is focusable and keyboard-operable with no ARIA.
+ * Returns it so the caller can restore focus after a retry that failed again — re-rendering
+ * silently drops the user back to the top of the document otherwise.
+ */
+export function renderLoadFailure(content: HTMLElement, onRetry: () => void): HTMLButtonElement {
+  ensureRegion(content).textContent = LOAD_ERROR_MESSAGE;
 
   const retry = document.createElement('button');
   retry.type = 'button';
@@ -41,5 +56,7 @@ export function renderLoadFailure(content: HTMLElement, onRetry: () => void): vo
   retry.textContent = RETRY_LABEL;
   retry.addEventListener('click', onRetry);
 
-  content.replaceChildren(message, retry);
+  content.querySelector('.data-state-retry')?.remove();
+  content.append(retry);
+  return retry;
 }

@@ -121,7 +121,7 @@ describe('loadPlacesDataset', () => {
     await expect(loadPlacesDataset({ baseUrl: '/knue-pic/', fetchImpl })).resolves.toEqual(
       SAMPLE_DATASET,
     );
-    expect(fetchImpl).toHaveBeenCalledWith('/knue-pic/places.json');
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe('/knue-pic/places.json');
   });
 
   it('reports an HTTP failure — the state before the collector publishes a file', async () => {
@@ -146,6 +146,21 @@ describe('loadPlacesDataset', () => {
     await expect(loadPlacesDataset({ fetchImpl })).rejects.toThrow(/not valid JSON/);
   });
 
+  it('gives up on a request that hangs instead of failing', async () => {
+    // A stalled connection is the one failure with no natural end: without the timeout the page
+    // would sit on the loading message forever, with no retry control to escape it.
+    const fetchImpl = vi.fn<typeof fetch>(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+        }),
+    );
+
+    await expect(loadPlacesDataset({ fetchImpl, timeoutMs: 1 })).rejects.toThrow(
+      /did not respond within 1ms/,
+    );
+  });
+
   it('reports a schema violation as a load failure, not a partial dataset', async () => {
     const payload = validPayload();
     firstPlace(payload)['lat'] = 'unknown';
@@ -161,5 +176,22 @@ describe('rejection messages', () => {
     (firstPlace(payload)['transactions'] as Record<string, unknown>[])[0]!['amount'] = Number.NaN;
 
     expect(() => parseDataset(payload)).toThrow(/got NaN/);
+  });
+});
+
+describe('text normalisation', () => {
+  it('stores trimmed text so padding cannot smuggle a duplicate id past the guard', () => {
+    const payload = validPayload();
+    const places = payload['places'] as Record<string, unknown>[];
+    places[1]!['id'] = `${places[0]!['id'] as string} `;
+
+    expect(() => parseDataset(payload)).toThrow(/places\[1\]\.id is a duplicate/);
+  });
+
+  it('trims surrounding whitespace off displayed fields', () => {
+    const payload = validPayload();
+    firstPlace(payload)['name'] = '  한밭식당  ';
+
+    expect(parseDataset(payload).places[0]?.name).toBe('한밭식당');
   });
 });

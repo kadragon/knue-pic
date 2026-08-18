@@ -31,20 +31,32 @@ export function placesUrl(baseUrl: string = import.meta.env.BASE_URL): string {
   return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}${PLACES_FILE}`;
 }
 
+/**
+ * A request that hangs rather than failing — captive portal, stalled connection — would never
+ * reject, so the page would sit on the loading message with no retry control and no way out short
+ * of a reload. That is the one failure this slice exists to surface, so the fetch is timed out.
+ */
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export interface LoadOptions {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
+  timeoutMs?: number;
 }
 
 export async function loadPlacesDataset(options: LoadOptions = {}): Promise<PlacesDataset> {
-  const { baseUrl, fetchImpl = fetch } = options;
+  const { baseUrl, fetchImpl = fetch, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
   const url = placesUrl(baseUrl);
 
   let response: Response;
   try {
-    response = await fetchImpl(url);
+    response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
   } catch (cause) {
-    throw new DatasetLoadError(`Could not reach ${url}`, { cause });
+    const timedOut = cause instanceof Error && cause.name === 'TimeoutError';
+    throw new DatasetLoadError(
+      timedOut ? `${url} did not respond within ${timeoutMs}ms` : `Could not reach ${url}`,
+      { cause },
+    );
   }
 
   if (!response.ok) {
@@ -134,11 +146,16 @@ function asRecord(raw: unknown, path: string): Record<string, unknown> {
   return raw as Record<string, unknown>;
 }
 
+/**
+ * Returns the *trimmed* value, not the input. Storing the padded original would make
+ * `"restaurant_000001 "` and `"restaurant_000001"` two distinct ids, so the duplicate-id guard
+ * below would wave through a real duplicate — and the padding would reach the UI besides.
+ */
 function requireText(raw: unknown, path: string): string {
   if (typeof raw !== 'string' || raw.trim() === '') {
     throw new DatasetLoadError(`${path} must be a non-empty string, got ${describe(raw)}`);
   }
-  return raw;
+  return raw.trim();
 }
 
 function requireCoordinate(raw: unknown, path: string, limit: number): number {

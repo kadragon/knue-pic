@@ -72,7 +72,12 @@ in range; `amount >= 0`; ISO `date`; dates within the rolling window; non-empty 
 **Serving.** `data/` is Vite's `publicDir` (`vite.config.ts`), so the file is copied verbatim into
 `dist/` and the browser fetches it at `${BASE_URL}places.json` — `/knue-pic/places.json` in
 production. The repo path stays `data/places.json`; only the URL drops the directory. Any other
-static asset the site needs (favicon, `robots.txt`) therefore also belongs in `data/`.
+static asset the site needs (favicon, `robots.txt`) therefore also belongs in `data/` — and the
+converse is the constraint that matters: **everything in `data/` is published verbatim, unreviewed**.
+A collector intermediate, a backup, or a CSV dropped there ships to the public site, which is how
+the "unapproved places never publish" invariant would be lost without a single bad row ever entering
+`places.json`. Collector intermediates belong in `collector/out/` (gitignored); `data/` holds the
+published dataset and nothing else.
 `src/data/load.ts` is the only module that fetches it, and it rejects the whole file rather than
 dropping a row: `src/stats/` throws on a malformed transaction date, so validation has to happen
 before places reach it.

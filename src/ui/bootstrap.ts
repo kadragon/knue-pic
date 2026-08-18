@@ -17,8 +17,17 @@ export interface BootstrapOptions {
 export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {}): Promise<void> {
   const { load = () => loadPlacesDataset() } = options;
 
+  // Rendered once. A retry re-renders `#content` alone: re-rendering the shell would destroy the
+  // button the user just pressed and drop keyboard focus to the top of the document.
+  const content = renderFrame();
+  let retriedByUser = false;
+
+  function onRetry(): void {
+    retriedByUser = true;
+    void attempt();
+  }
+
   async function attempt(): Promise<void> {
-    const content = renderFrame();
     renderLoading(content);
 
     try {
@@ -28,18 +37,19 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
       // The reason is deliberately dropped: every failure reads the same to the user, and
       // `data-state.ts` owns the wording. Retry re-runs the whole attempt, so a transient
       // network failure is recoverable without a reload.
-      renderLoadFailure(content, () => void attempt());
+      const retry = renderLoadFailure(content, onRetry);
+      if (retriedByUser) retry.focus();
     }
   }
 
   function renderFrame(updatedAt?: string): HTMLElement {
     renderShell(root, updatedAt === undefined ? {} : { updatedAt });
 
-    const content = root.querySelector<HTMLElement>('#content');
-    if (!content) {
+    const slot = root.querySelector<HTMLElement>('#content');
+    if (!slot) {
       throw new Error('renderShell did not produce a #content slot');
     }
-    return content;
+    return slot;
   }
 
   await attempt();
