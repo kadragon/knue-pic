@@ -4,7 +4,11 @@
  * This module is the only place in `src/` that knows the published file's shape; every other
  * module consumes these types instead of re-describing the JSON. Types only: the invariants
  * (unique id, lat/lng in range, amount >= 0, dates inside the rolling window) are enforced by
- * the collector's validator before publication, not at runtime in the browser.
+ * the collector's validator before publication.
+ *
+ * One of those invariants must also be re-checked in the browser: `src/stats/` throws on a
+ * malformed transaction date rather than dropping the row, so whatever loads this file has to
+ * validate dates before handing places to the stats layer.
  */
 
 /** One disclosed payment. One transaction is one visit — payments are never merged. */

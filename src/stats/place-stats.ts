@@ -5,6 +5,11 @@ import { isWithinWindow, type PeriodWindow } from './period';
  * Per-place figures for one period window. Pure: places in, numbers out — no DOM, no fetch,
  * no map. Amount is aggregated for display only; ranking is by visit count alone
  * (`docs/conventions.md` → Statistics Rules) and no ordering happens here.
+ *
+ * A malformed transaction date is a hard failure, not a skipped row: `isWithinWindow` throws and
+ * this function does not catch, because silently dropping a visit would understate a place's
+ * count with nothing on screen to say so. Whatever loads `places.json` must validate every date
+ * before calling in, so the throw can never reach the render path.
  */
 export interface PlaceStats {
   /** One transaction is one visit; payments in a single sitting are not merged. */

@@ -100,25 +100,25 @@ describe('computePlaceStats', () => {
     expect(bunsik.totalAmount).not.toBe(jungsik.totalAmount);
   });
 
-  it('includes transactions landing exactly on a window boundary (새터말칼국수)', () => {
-    // 2026-08-01 15,000 (window end) · 2026-07-01 13,000 (1m start) ·
-    // 2026-06-30 11,000 (one day earlier) · 2025-08-01 9,000 (1y start)
+  it('counts the window end day but not the window start day (새터말칼국수)', () => {
+    // 2026-08-01 15,000 (window end) · 2026-07-02 14,000 (day after the 1m start) ·
+    // 2026-07-01 13,000 (the 1m start itself) · 2025-08-01 9,000 (the 1y start itself)
     expect(statsFor('restaurant_000006', '1m')).toEqual({
-      visitCount: 2,
-      totalAmount: 28000,
-      averageAmount: 14000,
+      visitCount: 2, // 2026-07-01 excluded as the start day
+      totalAmount: 29000,
+      averageAmount: 14500,
       mostRecentVisit: '2026-08-01',
     });
     expect(statsFor('restaurant_000006', '6m')).toEqual({
-      visitCount: 3,
-      totalAmount: 39000,
-      averageAmount: 13000,
+      visitCount: 3, // 2026-07-01 is well inside the 6m window
+      totalAmount: 42000,
+      averageAmount: 14000,
       mostRecentVisit: '2026-08-01',
     });
     expect(statsFor('restaurant_000006', '1y')).toEqual({
-      visitCount: 4,
-      totalAmount: 48000,
-      averageAmount: 12000,
+      visitCount: 3, // 2025-08-01 excluded as the 1y start day
+      totalAmount: 42000,
+      averageAmount: 14000,
       mostRecentVisit: '2026-08-01',
     });
   });

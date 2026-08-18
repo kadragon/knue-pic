@@ -7,10 +7,11 @@ import type { PlacesDataset } from '../types';
  * `docs/conventions.md` → Statistics Rules. Anchored on a fixed `updatedAt` so period windows —
  * and therefore every expected value in the stats tests — are deterministic.
  *
- * With `updatedAt` at 2026-08-01 the windows are:
- *   1m → 2026-07-01 … 2026-08-01
- *   6m → 2026-02-01 … 2026-08-01
- *   1y → 2025-08-01 … 2026-08-01
+ * Windows are half-open — the start day is excluded, the end day included (see
+ * `src/stats/period.ts`). With `updatedAt` at 2026-08-01 that gives:
+ *   1m → after 2026-07-01, through 2026-08-01
+ *   6m → after 2026-02-01, through 2026-08-01
+ *   1y → after 2025-08-01, through 2026-08-01
  *
  * Coverage by place:
  *   000001 visits spread across all three window boundaries; 6m average is fractional (rounding)
@@ -18,7 +19,7 @@ import type { PlacesDataset } from '../types';
  *   000003 no visits in the 1m or 6m window (divide-by-zero guard) and one zero-amount payment
  *   000004 ties 000005 on visit count and most recent date; only total amount separates them
  *   000005 the other half of that tie
- *   000006 transactions landing exactly on a window's first and last day, plus one a day outside
+ *   000006 transactions on the excluded start day, the day after it, and the included end day
  *
  * Every date sits inside the 12-month rolling window the published file is trimmed to.
  */
@@ -98,10 +99,10 @@ export const SAMPLE_DATASET: PlacesDataset = {
       lng: 127.3052,
       naverUrl: 'https://map.naver.com/p/search/새터말칼국수',
       transactions: [
-        { date: '2026-08-01', amount: 15000 },
-        { date: '2026-07-01', amount: 13000 },
-        { date: '2026-06-30', amount: 11000 },
-        { date: '2025-08-01', amount: 9000 },
+        { date: '2026-08-01', amount: 15000 }, // window end — included
+        { date: '2026-07-02', amount: 14000 }, // day after the 1m start — included
+        { date: '2026-07-01', amount: 13000 }, // exactly the 1m start — excluded from 1m
+        { date: '2025-08-01', amount: 9000 }, // exactly the 1y start — excluded from 1y
       ],
     },
   ],
