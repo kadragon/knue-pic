@@ -1,5 +1,5 @@
 import './styles.css';
-import { renderShell } from './ui/shell';
+import { bootstrap } from './ui/bootstrap';
 
 const root = document.querySelector<HTMLElement>('#app');
 
@@ -7,4 +7,4 @@ if (!root) {
   throw new Error('#app container is missing from index.html');
 }
 
-renderShell(root);
+void bootstrap(root);

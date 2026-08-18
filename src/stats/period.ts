@@ -1,4 +1,5 @@
 import type { Period } from '../data/types';
+import { daysInMonth, formatIsoDate, parseIsoDate, type CalendarDate } from '../data/iso-date';
 
 /**
  * Turns a period selector into a concrete date range.
@@ -8,7 +9,8 @@ import type { Period } from '../data/types';
  * the JSON regardless of when the page is opened. Nothing here reads `Date.now()`.
  *
  * All arithmetic runs in UTC on `YYYY-MM-DD` strings, so a viewer's timezone cannot shift a
- * transaction across a window boundary.
+ * transaction across a window boundary. Date validity itself lives in `src/data/iso-date.ts`,
+ * shared with the loader so both agree on what a usable date is.
  */
 
 /**
@@ -28,49 +30,6 @@ export interface PeriodWindow {
 }
 
 const MONTHS_BACK: Record<Period, number> = { '1m': 1, '6m': 6, '1y': 12 };
-
-const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-interface CalendarDate {
-  year: number;
-  month: number;
-  day: number;
-}
-
-/**
- * Shape *and* calendar validity. A date like `2026-02-30` matches the pattern but does not exist;
- * letting it through would yield a plausible-looking window computed from a day that never
- * happened, which is exactly the "wrong but reasonable" failure no test catches.
- */
-function parseIsoDate(iso: string): CalendarDate {
-  const match = ISO_DATE.exec(iso);
-  const [, rawYear, rawMonth, rawDay] = match ?? [];
-  if (rawYear === undefined || rawMonth === undefined || rawDay === undefined) {
-    throw new RangeError(`Expected an ISO YYYY-MM-DD date, got "${iso}"`);
-  }
-
-  const year = Number(rawYear);
-  const month = Number(rawMonth);
-  const day = Number(rawDay);
-  if (month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) {
-    throw new RangeError(`Not a real calendar date: "${iso}"`);
-  }
-
-  return { year, month, day };
-}
-
-/** Last calendar day of a 1-based month, leap years included. */
-function daysInMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-
-function formatIsoDate({ year, month, day }: CalendarDate): string {
-  return [
-    String(year).padStart(4, '0'),
-    String(month).padStart(2, '0'),
-    String(day).padStart(2, '0'),
-  ].join('-');
-}
 
 /**
  * Steps back whole calendar months, clamping the day to the target month's length so that

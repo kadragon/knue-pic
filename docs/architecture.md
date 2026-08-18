@@ -38,7 +38,7 @@ src/                  # web app; browser-only code
   stats/              # period aggregation: top-10, rank delta, trending, newly seen
   map/                # Naver map, markers, bounds re-search
   ui/                 # views, Korean strings
-data/places.json      # published dataset (generated — see below)
+data/places.json      # published dataset (generated — see below); also Vite's publicDir
 collector/            # Python collector skill; never imported by src/
   out/                # raw_transactions.json, normalized_places.json (intermediate, gitignored)
 review_candidates.csv # manual location approval queue (committed)
@@ -68,6 +68,14 @@ review_candidates.csv # manual location approval queue (committed)
 Invariants the validator enforces before any deploy (PRD §32): unique `id`; `lat`/`lng` present and
 in range; `amount >= 0`; ISO `date`; dates within the rolling window; non-empty `name` and
 `address`; no place whose review status is `rejected`.
+
+**Serving.** `data/` is Vite's `publicDir` (`vite.config.ts`), so the file is copied verbatim into
+`dist/` and the browser fetches it at `${BASE_URL}places.json` — `/knue-pic/places.json` in
+production. The repo path stays `data/places.json`; only the URL drops the directory. Any other
+static asset the site needs (favicon, `robots.txt`) therefore also belongs in `data/`.
+`src/data/load.ts` is the only module that fetches it, and it rejects the whole file rather than
+dropping a row: `src/stats/` throws on a malformed transaction date, so validation has to happen
+before places reach it.
 
 **Rolling window.** The published file keeps the most recent 12 months. The collector may retain up
 to 13 months internally so that the 12-month trend and the previous-period rank comparison have a
