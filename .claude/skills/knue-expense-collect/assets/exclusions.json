@@ -1,0 +1,18 @@
+{
+  "_comment": "Names worth skipping before spending a geocoder call on them. Food-vs-not is decided by the geocoder's category, not by this file — keep it small. Substring keywords are dangerous: '서점' matched the branch suffix in '우공뭉티기(수서점)', so only keep words that cannot appear inside a shop or branch name.",
+  "excludeKeywords": [
+    "유통",
+    "주유소",
+    "오피스프린트"
+  ],
+  "excludeExact": [
+    "금관유통",
+    "금관유통본점",
+    "이마트청주점",
+    "금관마트",
+    "오피스프린트센터",
+    "드림오피스",
+    "드림디포산남점"
+  ],
+  "includeExact": []
+}
