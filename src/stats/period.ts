@@ -73,17 +73,23 @@ export function isWithinWindow(date: string, periodWindow: PeriodWindow): boolea
 const RETAINED_MONTHS = 12;
 
 /**
- * The window immediately preceding `period`'s own, same length.
+ * The window immediately preceding `period`'s own.
  *
  * Because windows are half-open, the prior window's inclusive `end` **is** the current window's
  * exclusive `start`: the two tile with neither a shared day nor a gap, which is what makes a rank
  * comparison between them honest.
+ *
+ * `start` is stepped back from the **anchor**, twice the period's length, rather than from the
+ * current window's start. Both spellings look equivalent, but day clamping is not associative:
+ * stepping 6 months twice from 2026-08-31 lands on 2025-08-28 (clamped to February on the way),
+ * while stepping 12 months once lands on 2025-08-31. Only the second agrees with the retention
+ * floor below, which is likewise one step from the anchor — and a three-day disagreement there is
+ * enough to declare a fully retained window incomplete and silently drop every rank delta.
  */
 export function resolvePriorWindow(period: Period, anchor: string): PeriodWindow {
   // Delegated so the unknown-period guard lives in one place.
   const current = resolvePeriodWindow(period, anchor);
-  const monthsBack = MONTHS_BACK[period];
-  const start = subtractMonths(parseIsoDate(current.start), monthsBack);
+  const start = subtractMonths(parseIsoDate(anchor), MONTHS_BACK[period] * 2);
   return { start: formatIsoDate(start), end: current.start };
 }
 

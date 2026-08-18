@@ -3,7 +3,13 @@ import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlacesDataset } from '../data/types';
 import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_GROUP_LABEL, PERIOD_LABELS } from './period-selector';
-import { EMPTY_MESSAGE, rankDeltaLabel, renderTopPlaces, TOP_PLACES_HEADING } from './top-places';
+import {
+  EMPTY_MESSAGE,
+  NO_COMPARISON_MESSAGE,
+  rankDeltaLabel,
+  renderTopPlaces,
+  TOP_PLACES_HEADING,
+} from './top-places';
 
 function render(result: TopPlacesResult): HTMLElement {
   const container = document.createElement('div');
@@ -75,6 +81,63 @@ describe('rank delta rendering', () => {
     expect(container.querySelectorAll('.top-place-delta')).toHaveLength(0);
   });
 
+  it('explains the absence when there is no prior window to compare against', () => {
+    // 1y is the default view and can never have deltas; silence would read as "nothing moved".
+    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
+
+    expect(container.textContent).toContain(NO_COMPARISON_MESSAGE);
+  });
+
+  it('stays quiet when the prior window is available', () => {
+    const container = render(computeTopPlaces(SAMPLE_DATASET, '1m'));
+
+    expect(container.textContent).not.toContain(NO_COMPARISON_MESSAGE);
+  });
+
+  it('marks the movement direction for styling as well as text', () => {
+    const dataset: PlacesDataset = {
+      updatedAt: '2026-08-01',
+      places: [
+        // 000001 leads the prior window, 000002 overtakes it in the current one.
+        {
+          id: 'restaurant_000001',
+          name: '가나',
+          category: '기타',
+          address: '충북 청주시',
+          lat: 36.6,
+          lng: 127.3,
+          naverUrl: 'https://map.naver.com/p/search/x',
+          transactions: [
+            { date: '2026-06-10', amount: 1000 },
+            { date: '2026-06-11', amount: 1000 },
+            { date: '2026-07-10', amount: 1000 },
+          ],
+        },
+        {
+          id: 'restaurant_000002',
+          name: '다라',
+          category: '기타',
+          address: '충북 청주시',
+          lat: 36.6,
+          lng: 127.3,
+          naverUrl: 'https://map.naver.com/p/search/y',
+          transactions: [
+            { date: '2026-06-12', amount: 1000 },
+            { date: '2026-07-11', amount: 1000 },
+            { date: '2026-07-12', amount: 1000 },
+          ],
+        },
+      ],
+    };
+
+    const container = render(computeTopPlaces(dataset, '1m'));
+    const directions = [...container.querySelectorAll('.top-place-delta')].map((el) =>
+      el.getAttribute('data-direction'),
+    );
+
+    expect(directions).toEqual(['up', 'down']);
+  });
+
   it('renders a direction glyph plus a spoken label when the delta is known', () => {
     // 1m: only 000006 was in the prior window, unchanged at rank 1.
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1m'));
@@ -84,6 +147,9 @@ describe('rank delta rendering', () => {
     expect(deltas[0]?.textContent).toBe('–');
     expect(deltas[0]?.getAttribute('aria-label')).toBe(rankDeltaLabel(0));
     expect(deltas[0]?.getAttribute('data-direction')).toBe('same');
+    // Without a role that permits name-from-author, the aria-label above is name-prohibited on a
+    // bare span and may never be announced.
+    expect(deltas[0]?.getAttribute('role')).toBe('img');
   });
 
   it('labels movement in both directions', () => {
@@ -111,6 +177,7 @@ describe('framing', () => {
     // scanning rendered output alone would leave them unguarded.
     const strings = [
       EMPTY_MESSAGE,
+      NO_COMPARISON_MESSAGE,
       PERIOD_GROUP_LABEL,
       ...Object.values(PERIOD_LABELS),
       ...[3, 0, -2].map(rankDeltaLabel),

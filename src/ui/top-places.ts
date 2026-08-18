@@ -14,6 +14,13 @@ export const TOP_PLACES_HEADING = '많이 이용한 곳 TOP 10';
 
 export const EMPTY_MESSAGE = '이 기간에는 이용 기록이 없습니다.';
 
+/**
+ * Shown when `priorWindowComplete` is false. Without it the default 1y view — the one window whose
+ * prior period is never retained — would show no movement indicators at all, and the absence would
+ * read as "nothing moved" rather than "there is nothing to compare against".
+ */
+export const NO_COMPARISON_MESSAGE = '이전 기간 자료가 없어 변동은 표시하지 않습니다.';
+
 export function visitCountLabel(visitCount: number): string {
   return `이용횟수 ${visitCount}회`;
 }
@@ -77,6 +84,12 @@ function renderEntry(entry: RankedPlace): HTMLLIElement {
     delta.className = 'top-place-delta';
     delta.dataset['direction'] = entry.rankDelta > 0 ? 'up' : entry.rankDelta < 0 ? 'down' : 'same';
     delta.textContent = rankDeltaText(entry.rankDelta);
+    // `role="img"` is what makes the label reach a screen reader: WAI-ARIA 1.2 prohibits naming a
+    // bare `<span>` (implicit role `generic`), so `aria-label` alone is nonconforming and browse
+    // mode may announce only the glyph — `▲3`, or a bare `–` that says nothing. `img` permits
+    // name-from-author and replaces the glyph in the accessibility tree. The movement is carried
+    // nowhere else, so losing the label loses the fact.
+    delta.setAttribute('role', 'img');
     delta.setAttribute('aria-label', rankDeltaLabel(entry.rankDelta));
     item.append(delta);
   }
@@ -98,6 +111,13 @@ export function renderTopPlaces(container: HTMLElement, result: TopPlacesResult)
     empty.textContent = EMPTY_MESSAGE;
     section.append(empty);
   } else {
+    if (!result.priorWindowComplete) {
+      const note = document.createElement('p');
+      note.className = 'top-places-note';
+      note.textContent = NO_COMPARISON_MESSAGE;
+      section.append(note);
+    }
+
     const list = document.createElement('ol');
     list.className = 'top-places-list';
     list.append(...result.entries.map(renderEntry));

@@ -128,3 +128,33 @@ describe('isPriorWindowComplete', () => {
     expect(isPriorWindowComplete('1y', '2030-01-15')).toBe(false);
   });
 });
+
+describe('month-end anchors', () => {
+  // Day clamping is not associative, so a prior window derived by two steps instead of one drifts
+  // away from the retention floor and reports a fully retained window as incomplete.
+  it('keeps the prior window aligned with the retention floor at a month-end anchor', () => {
+    for (const anchor of ['2026-08-31', '2026-05-31', '2026-03-31', '2026-07-31', '2026-01-31']) {
+      expect(isPriorWindowComplete('1m', anchor)).toBe(true);
+      expect(isPriorWindowComplete('6m', anchor)).toBe(true);
+      expect(isPriorWindowComplete('1y', anchor)).toBe(false);
+    }
+  });
+
+  it('steps the prior start back from the anchor, not from the current start', () => {
+    // Two 6-month steps from 2026-08-31 would clamp through February and land on 2025-08-28.
+    expect(resolvePriorWindow('6m', '2026-08-31')).toEqual({
+      start: '2025-08-31',
+      end: '2026-02-28',
+    });
+  });
+
+  it('still leaves the prior end on the current start, so no day is counted twice', () => {
+    for (const anchor of ['2026-08-31', '2026-03-31']) {
+      for (const period of ['1m', '6m', '1y'] as Period[]) {
+        expect(resolvePriorWindow(period, anchor).end).toBe(
+          resolvePeriodWindow(period, anchor).start,
+        );
+      }
+    }
+  });
+});
