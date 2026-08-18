@@ -35,7 +35,8 @@ config the web app imports, a build step that calls the collector) breaks the co
 index.html
 src/                  # web app; browser-only code
   data/               # places.json loading + schema types
-  stats/              # period aggregation: top-10, rank delta, trending, newly seen
+  stats/              # pure computation: top-10, rank delta, trending, newly seen,
+                      #   monthly histogram, text/category filtering
   map/                # Naver map, markers, bounds re-search
   ui/                 # views, Korean strings
 data/places.json      # published dataset (generated — see below); also Vite's publicDir

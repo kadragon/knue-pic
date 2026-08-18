@@ -49,7 +49,7 @@ function rankDeltaText(rankDelta: number): string {
  * The rank badge carries the number as text, not as a colour or a size — marker and list importance
  * must never be conveyed by colour alone (`docs/conventions.md` → Accessibility).
  */
-function renderEntry(entry: RankedPlace): HTMLLIElement {
+function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): HTMLLIElement {
   const item = document.createElement('li');
   item.className = 'top-place';
 
@@ -57,14 +57,26 @@ function renderEntry(entry: RankedPlace): HTMLLIElement {
   badge.className = 'top-place-rank';
   badge.textContent = String(entry.rank);
 
-  const body = document.createElement('div');
+  // A native `<button>` when the list is wired to the detail card, a plain `<div>` when it is not:
+  // a control that does nothing is worse than no control, and it would still take a tab stop.
+  const body = document.createElement(onSelect ? 'button' : 'div');
   body.className = 'top-place-body';
+  if (body instanceof HTMLButtonElement && onSelect) {
+    body.type = 'button';
+    body.dataset['placeId'] = entry.place.id;
+    body.addEventListener('click', () => {
+      onSelect(entry.place.id);
+    });
+  }
 
-  const name = document.createElement('p');
+  // `<span>`, not `<p>`: when `onSelect` is supplied the body is a `<button>`, whose content model
+  // admits phrasing content only. `styles.css` gives both spans `display: block` so the row looks
+  // identical either way — the same shape `.place-select` uses in `discovery.ts` and `search.ts`.
+  const name = document.createElement('span');
   name.className = 'top-place-name';
   name.textContent = entry.place.name;
 
-  const meta = document.createElement('p');
+  const meta = document.createElement('span');
   meta.className = 'top-place-meta';
   // `mostRecentVisit` is non-null for every ranked place: a place with no in-window visit is not
   // ranked at all. The fallback keeps the type honest without inventing a date.
@@ -97,7 +109,12 @@ function renderEntry(entry: RankedPlace): HTMLLIElement {
   return item;
 }
 
-export function renderTopPlaces(container: HTMLElement, result: TopPlacesResult): void {
+/** `onSelect` is optional: without it the list renders exactly as before, with no controls. */
+export function renderTopPlaces(
+  container: HTMLElement,
+  result: TopPlacesResult,
+  onSelect?: (placeId: string) => void,
+): void {
   const section = document.createElement('section');
   section.className = 'top-places';
 
@@ -120,7 +137,7 @@ export function renderTopPlaces(container: HTMLElement, result: TopPlacesResult)
 
     const list = document.createElement('ol');
     list.className = 'top-places-list';
-    list.append(...result.entries.map(renderEntry));
+    list.append(...result.entries.map((entry) => renderEntry(entry, onSelect)));
     section.append(list);
   }
 

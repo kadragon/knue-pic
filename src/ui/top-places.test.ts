@@ -190,3 +190,28 @@ describe('framing', () => {
     }
   });
 });
+
+describe('renderTopPlaces selection', () => {
+  it('makes each entry a button whose children are phrasing content', () => {
+    const container = document.createElement('div');
+    const selected: string[] = [];
+
+    renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'), (id) => selected.push(id));
+    const body = container.querySelector('.top-place-body');
+    body?.dispatchEvent(new MouseEvent('click'));
+
+    expect(body).toBeInstanceOf(HTMLButtonElement);
+    // `<button>` admits phrasing content only — a `<p>` child would be an invalid content model.
+    expect([...(body?.children ?? [])].map((child) => child.tagName)).toEqual(['SPAN', 'SPAN']);
+    expect(selected).toEqual(['restaurant_000001']);
+  });
+
+  it('renders no control when the list is not wired to a handler', () => {
+    const container = document.createElement('div');
+
+    renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'));
+
+    expect(container.querySelector('button')).toBeNull();
+    expect(container.querySelector('.top-place-body')).toBeInstanceOf(HTMLDivElement);
+  });
+});

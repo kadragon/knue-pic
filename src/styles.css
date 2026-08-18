@@ -143,11 +143,13 @@ a[role='button'] {
 }
 
 .top-place-name {
+  display: block;
   margin: 0;
   font-weight: 600;
 }
 
 .top-place-meta {
+  display: block;
   margin: 0.125rem 0 0;
   color: var(--muted);
   font-size: 0.8125rem;
@@ -184,4 +186,249 @@ a[role='button'] {
   .top-place-delta[data-direction='down'] {
     color: #e08a6d;
   }
+}
+
+/*
+ * `.top-place-body` is a `<button>` when the list is wired to the detail card and a `<div>` when
+ * it is not, so the button case is stripped back to the text it already was — the row must not
+ * change shape depending on whether it is interactive.
+ */
+button.top-place-body,
+.place-select {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.place-select {
+  padding: 0.5rem 0;
+}
+
+.place-select-name {
+  display: block;
+  font-weight: 600;
+}
+
+.place-select-meta {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  /* Addresses are long; the row wraps rather than pushing the layout past 360px. */
+  overflow-wrap: anywhere;
+}
+
+.discovery h2,
+.place-search h2,
+.place-detail h2 {
+  margin: 1.5rem 0 0.25rem;
+  font-size: 1.125rem;
+}
+
+.discovery-note {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.discovery-empty,
+.place-search-empty,
+.place-detail-empty,
+.place-detail-empty-period {
+  margin: 0.75rem 0;
+  color: var(--muted);
+}
+
+.discovery-list,
+.place-search-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.discovery-place,
+.place-search-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.discovery-new,
+.discovery-delta {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* A bordered pill, so the badge is not carried by colour alone. */
+.discovery-new {
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--fg);
+  border-radius: 999px;
+  color: var(--fg);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.discovery-delta[data-direction='up'] {
+  color: #1f7a4d;
+}
+
+.discovery-delta[data-direction='down'] {
+  color: #a8442a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .discovery-delta[data-direction='up'] {
+    color: #5cc48c;
+  }
+
+  .discovery-delta[data-direction='down'] {
+    color: #e08a6d;
+  }
+}
+
+/* One column at 360px, two once there is room for them. */
+.place-search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.place-search-field {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.place-search-input,
+.place-search-category {
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+
+.place-search-count {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.place-search-reset {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.place-detail {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.place-detail-name {
+  margin: 0.5rem 0 0.125rem;
+  font-size: 1.0625rem;
+}
+
+.place-detail-meta,
+.place-detail-period {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.place-detail-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0.75rem 0;
+}
+
+.place-detail-figure dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.place-detail-figure dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.place-histogram h4 {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.875rem;
+}
+
+.place-histogram-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.place-histogram-entry {
+  display: grid;
+  /* The month and count columns are fixed so the bars share one baseline at any width. */
+  grid-template-columns: 5.5rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.place-histogram-month,
+.place-histogram-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.place-histogram-count {
+  text-align: end;
+}
+
+.place-histogram-track {
+  max-width: 100%;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+/* The bar restates the count beside it; it is never the only place the number appears. */
+.place-histogram-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.place-detail-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: inherit;
+}
+
+/* Focused programmatically after a list selection, so the ring is the only cue it moved. */
+.place-detail:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 4px;
 }
