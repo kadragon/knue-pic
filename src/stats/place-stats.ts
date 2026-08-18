@@ -1,0 +1,38 @@
+import type { PlaceRecord } from '../data/types';
+import { isWithinWindow, type PeriodWindow } from './period';
+
+/**
+ * Per-place figures for one period window. Pure: places in, numbers out — no DOM, no fetch,
+ * no map. Amount is aggregated for display only; ranking is by visit count alone
+ * (`docs/conventions.md` → Statistics Rules) and no ordering happens here.
+ */
+export interface PlaceStats {
+  /** One transaction is one visit; payments in a single sitting are not merged. */
+  visitCount: number;
+  totalAmount: number;
+  /** `totalAmount / visitCount` rounded to whole won; `0` when there were no visits. */
+  averageAmount: number;
+  /** Latest in-window visit date, or `null` when the place has no visits in the window. */
+  mostRecentVisit: string | null;
+}
+
+export function computePlaceStats(place: PlaceRecord, periodWindow: PeriodWindow): PlaceStats {
+  let visitCount = 0;
+  let totalAmount = 0;
+  let mostRecentVisit: string | null = null;
+
+  for (const transaction of place.transactions) {
+    if (!isWithinWindow(transaction.date, periodWindow)) continue;
+
+    visitCount += 1;
+    totalAmount += transaction.amount;
+    if (mostRecentVisit === null || transaction.date > mostRecentVisit) {
+      mostRecentVisit = transaction.date;
+    }
+  }
+
+  // Guarding the empty window here is what keeps an average from surfacing as NaN in the UI.
+  const averageAmount = visitCount === 0 ? 0 : Math.round(totalAmount / visitCount);
+
+  return { visitCount, totalAmount, averageAmount, mostRecentVisit };
+}
