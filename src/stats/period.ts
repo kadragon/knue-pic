@@ -64,3 +64,45 @@ export function isWithinWindow(date: string, periodWindow: PeriodWindow): boolea
   const iso = formatIsoDate(parseIsoDate(date));
   return iso > periodWindow.start && iso <= periodWindow.end;
 }
+
+/**
+ * The published file keeps the most recent 12 months (`docs/architecture.md` → Rolling window).
+ * Anything before that floor is simply absent from the dataset, so a window reaching past it is
+ * incomplete no matter how many transactions happen to fall inside it.
+ */
+const RETAINED_MONTHS = 12;
+
+/**
+ * The window immediately preceding `period`'s own.
+ *
+ * Because windows are half-open, the prior window's inclusive `end` **is** the current window's
+ * exclusive `start`: the two tile with neither a shared day nor a gap, which is what makes a rank
+ * comparison between them honest.
+ *
+ * `start` is stepped back from the **anchor**, twice the period's length, rather than from the
+ * current window's start. Both spellings look equivalent, but day clamping is not associative:
+ * stepping 6 months twice from 2026-08-31 lands on 2025-08-28 (clamped to February on the way),
+ * while stepping 12 months once lands on 2025-08-31. Only the second agrees with the retention
+ * floor below, which is likewise one step from the anchor — and a three-day disagreement there is
+ * enough to declare a fully retained window incomplete and silently drop every rank delta.
+ */
+export function resolvePriorWindow(period: Period, anchor: string): PeriodWindow {
+  // Delegated so the unknown-period guard lives in one place.
+  const current = resolvePeriodWindow(period, anchor);
+  const start = subtractMonths(parseIsoDate(anchor), MONTHS_BACK[period] * 2);
+  return { start: formatIsoDate(start), end: current.start };
+}
+
+/**
+ * Whether the prior window lies entirely inside the dataset's retained range.
+ *
+ * `docs/conventions.md` → Statistics Rules: a rank delta is *omitted*, never zero, when the prior
+ * window's data is incomplete. Judged from the retention floor rather than from the earliest date
+ * present, so the answer is a property of the period and the anchor alone — one place's stale
+ * transaction cannot make an under-covered window look complete. In practice `1m` and `6m` compare
+ * against retained data and `1y` never can.
+ */
+export function isPriorWindowComplete(period: Period, anchor: string): boolean {
+  const floor = subtractMonths(parseIsoDate(anchor), RETAINED_MONTHS);
+  return resolvePriorWindow(period, anchor).start >= formatIsoDate(floor);
+}
