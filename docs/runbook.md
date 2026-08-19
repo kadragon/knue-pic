@@ -25,7 +25,9 @@ npm run dev
 ### Verify
 
 - Open the dev URL Vite prints — expect the app shell with the source line and the §21 disclaimer.
-- Once the list ships: block the Naver script in devtools — the list must still render (PRD §38).
+- Without a client ID in `.env.local` the map slot shows `지도를 불러오지 못했습니다.` and everything
+  else works — that is the PRD §38 path, not a broken setup.
+- Block the Naver script in devtools — the list, search, and detail must still render (PRD §38).
 
 Note the Pages subpath: `npm run preview` serves at `/knue-pic/`, not `/`.
 

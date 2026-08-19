@@ -2,7 +2,6 @@
 
 ## Next
 
-- [ ] Naver map with markers, TOP 10 number badges, and the PRD §38 fallback when the API fails
 - [ ] `[CONSTRAINT]` Banned-phrase test over UI strings (`docs/conventions.md` → Framing Vocabulary)
 - [ ] `[CONSTRAINT]` `collector/validate.py` implementing the nine PRD §32 checks; non-zero exit blocks deploy
 - [ ] `[CONSTRAINT]` GitHub Actions: validate → build → deploy to Pages, plus a secret-scan step over `src/`

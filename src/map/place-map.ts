@@ -1,0 +1,206 @@
+import type { PlaceRecord, PlacesDataset } from '../data/types';
+import type { TopPlacesResult } from '../stats/top-places';
+import { loadNaverMaps } from './loader';
+import type { HtmlIcon, NaverMap, NaverMapsApi, NaverMarker } from './naver-api';
+
+/**
+ * The map view: one marker per located place, a rank number on the ones currently in the TOP 10,
+ * and the documented fallback when the map script never arrives.
+ *
+ * This module reads what `src/stats/` already computed and never derives a statistic of its own —
+ * the rank on a badge is `entry.rank` from `computeTopPlaces`, not a second ordering.
+ * `docs/architecture.md` → Layers: `src/map/` may read `src/stats/` output; the reverse never holds.
+ *
+ * Every user-facing string is exported so the banned-phrase test can assert over it, matching the
+ * idiom in `src/ui/*.ts`.
+ */
+
+export const MAP_HEADING = '지도에서 보기';
+
+/**
+ * Verbatim from `docs/runbook.md` → Failure modes, which names this exact sentence as the intended
+ * degraded state (PRD §38). The cause is deliberately unsaid: a missing client ID and an origin
+ * outside the key's allowed-URL list read identically to the user, and neither is actionable from
+ * the page. No retry control either — unlike the data load, nothing about this failure changes on a
+ * second attempt.
+ */
+export const MAP_ERROR_MESSAGE = '지도를 불러오지 못했습니다.';
+
+export const MAP_EMPTY_MESSAGE = '표시할 장소가 없습니다.';
+
+/**
+ * Spoken form of a marker. The badge shows a bare numeral, which says nothing on its own — the
+ * title is where the number is named as a position in the ranked list.
+ */
+export function markerLabel(place: PlaceRecord, rank: number | null): string {
+  return rank === null ? place.name : `${place.name} · 많이 이용한 곳 ${rank}위`;
+}
+
+/** Only the initial value: `fitBounds` immediately replaces it with the extent of every marker. */
+const INITIAL_ZOOM = 13;
+
+const MARKER_SIZE = 28;
+
+export interface PlaceMapHandle {
+  /** Re-badges the existing markers for a new period. The map instance is never rebuilt. */
+  update(result: TopPlacesResult): void;
+  /** Highlights the marker for a place selected elsewhere on the page. */
+  select(placeId: string | null): void;
+}
+
+export interface RenderPlaceMapOptions {
+  /** Injectable so tests can supply a fake API; production loads the real script. */
+  loadApi?: () => Promise<NaverMapsApi>;
+}
+
+/**
+ * The badge carries the rank as text inside the marker, never as colour or size alone
+ * (`docs/conventions.md` → Accessibility). An unranked place gets a plain dot: the absence of a
+ * number is the distinction, so the two read apart in greyscale.
+ */
+function markerContent(rank: number | null, selected: boolean): string {
+  const classes = ['place-map-marker'];
+  if (rank !== null) classes.push('place-map-marker-ranked');
+  const selectedAttribute = selected ? ' data-selected="true"' : '';
+  return `<span class="${classes.join(' ')}"${selectedAttribute}>${rank === null ? '' : rank}</span>`;
+}
+
+function markerIcon(api: NaverMapsApi, rank: number | null, selected: boolean): HtmlIcon {
+  return {
+    content: markerContent(rank, selected),
+    size: new api.Size(MARKER_SIZE, MARKER_SIZE),
+    anchor: new api.Point(MARKER_SIZE / 2, MARKER_SIZE / 2),
+  };
+}
+
+function rankByPlaceId(result: TopPlacesResult): Map<string, number> {
+  return new Map(result.entries.map((entry) => [entry.place.id, entry.rank]));
+}
+
+function heading(): HTMLHeadingElement {
+  const element = document.createElement('h2');
+  element.textContent = MAP_HEADING;
+  return element;
+}
+
+/**
+ * A `role="status"` paragraph rather than a bare one: the map arrives asynchronously, so its
+ * failure lands after the page has settled and would otherwise pass silently for a screen-reader
+ * user.
+ */
+function message(text: string, className: string): HTMLParagraphElement {
+  const element = document.createElement('p');
+  element.className = className;
+  element.setAttribute('role', 'status');
+  element.textContent = text;
+  return element;
+}
+
+/** A handle that answers every call with nothing — used on the empty and failed paths. */
+const INERT_HANDLE: PlaceMapHandle = {
+  update: () => {},
+  select: () => {},
+};
+
+/**
+ * Renders synchronously into `container`, then fills the canvas once the script resolves.
+ *
+ * Always resolves — a rejected loader becomes the fallback message, not a rejection. The caller is
+ * `bootstrap`, where an unhandled rejection would surface as the *data* load failing, which is a
+ * different and much louder screen than the one this failure is supposed to produce.
+ */
+export async function renderPlaceMap(
+  container: HTMLElement,
+  dataset: PlacesDataset,
+  result: TopPlacesResult,
+  onSelect: (placeId: string) => void,
+  options: RenderPlaceMapOptions = {},
+): Promise<PlaceMapHandle> {
+  const { loadApi = () => loadNaverMaps() } = options;
+
+  const section = document.createElement('section');
+  section.className = 'place-map';
+  section.append(heading());
+
+  const canvas = document.createElement('div');
+  canvas.className = 'place-map-canvas';
+  section.append(canvas);
+  container.replaceChildren(section);
+
+  if (dataset.places.length === 0) {
+    canvas.remove();
+    section.append(message(MAP_EMPTY_MESSAGE, 'place-map-empty'));
+    return INERT_HANDLE;
+  }
+
+  let api: NaverMapsApi;
+  try {
+    api = await loadApi();
+  } catch {
+    // The reason is dropped on purpose — see MAP_ERROR_MESSAGE.
+    canvas.remove();
+    section.append(message(MAP_ERROR_MESSAGE, 'place-map-fallback'));
+    return INERT_HANDLE;
+  }
+
+  return mountMarkers(api, canvas, dataset.places, result, onSelect);
+}
+
+/** Called only with a non-empty `places` — `renderPlaceMap` returns early otherwise. */
+function mountMarkers(
+  api: NaverMapsApi,
+  canvas: HTMLElement,
+  places: readonly PlaceRecord[],
+  result: TopPlacesResult,
+  onSelect: (placeId: string) => void,
+): PlaceMapHandle {
+  const center = new api.LatLng(places[0]!.lat, places[0]!.lng);
+  const map: NaverMap = new api.Map(canvas, { center, zoom: INITIAL_ZOOM });
+
+  let ranks = rankByPlaceId(result);
+  let selectedPlaceId: string | null = null;
+
+  const markers = new Map<string, { place: PlaceRecord; marker: NaverMarker }>();
+  const bounds = new api.LatLngBounds(center, center);
+
+  for (const place of places) {
+    const position = new api.LatLng(place.lat, place.lng);
+    const rank = ranks.get(place.id) ?? null;
+    const marker: NaverMarker = new api.Marker({
+      position,
+      map,
+      title: markerLabel(place, rank),
+      icon: markerIcon(api, rank, false),
+      // Ranked markers sit above the rest so a badge is never hidden under a plain dot.
+      zIndex: rank === null ? 1 : 100,
+    });
+
+    api.Event.addListener(marker, 'click', () => onSelect(place.id));
+    markers.set(place.id, { place, marker });
+    bounds.extend(position);
+  }
+
+  // Fits every place on screen once. Later updates deliberately leave the viewport alone: the user
+  // may have panned or zoomed, and a period change must not yank the map back.
+  map.fitBounds(bounds);
+
+  function paint(): void {
+    for (const [placeId, entry] of markers) {
+      const rank = ranks.get(placeId) ?? null;
+      entry.marker.setIcon(markerIcon(api, rank, placeId === selectedPlaceId));
+      entry.marker.setTitle(markerLabel(entry.place, rank));
+      entry.marker.setZIndex(rank === null ? 1 : 100);
+    }
+  }
+
+  return {
+    update(next: TopPlacesResult): void {
+      ranks = rankByPlaceId(next);
+      paint();
+    },
+    select(placeId: string | null): void {
+      selectedPlaceId = placeId;
+      paint();
+    },
+  };
+}
