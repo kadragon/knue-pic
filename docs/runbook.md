@@ -1,7 +1,8 @@
 # Runbook
 
-The web-app commands below are verified against the scaffolded repo. The collector commands are
-still the agreed target — `collector/` does not exist yet, so do not cite them as fact.
+The web-app commands below are verified against the scaffolded repo. Of the collector commands,
+only `collector.validate` and its test run exist and are verified; `collector.run` and
+`collector.build_places` are still the agreed target, so do not cite those two as fact.
 
 ## Quick Start
 
@@ -10,6 +11,8 @@ still the agreed target — `collector/` does not exist yet, so do not cite them
 - Node.js — verified on v26.5.0; no `engines` floor is declared yet (`node -v`)
 - npm (bundled with Node)
 - Python 3.11+ for the collector only (`python3 -V`)
+- `pytest` for the collector tests — declared in no manifest yet, so install it yourself
+  (`python3 -m pip install pytest`); see `backlog.md`
 - A Naver Maps **browser Client ID** for local map rendering
 
 ### Setup
@@ -41,6 +44,7 @@ Note the Pages subpath: `npm run preview` serves at `/knue-pic/`, not `/`.
 | `npm run typecheck` | TypeScript, no emit |
 | `npm test` | Unit tests (stat logic, framing-vocabulary check) |
 | `npm run lint` | Lint check |
+| `python3 -m pytest collector` | Collector unit tests (the PRD §32 validator) |
 
 `src/stats/` is the part that must be tested: every number the UI shows comes from there.
 

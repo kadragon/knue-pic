@@ -2,10 +2,11 @@
 
 ## Next
 
-- [ ] `[CONSTRAINT]` `collector/validate.py` implementing the nine PRD §32 checks; non-zero exit blocks deploy
 - [ ] `[CONSTRAINT]` GitHub Actions: validate → build → deploy to Pages, plus a secret-scan step over `src/`
+- [ ] `[HARNESS]` Declare the collector's `pytest` dependency (a minimal `pyproject.toml` or `collector/requirements-dev.txt`) — `docs/runbook.md` documents `python3 -m pytest collector` but nothing in the repo names the dependency, so the queued CI job hits `No module named pytest`
 - [ ] Collector (Python): download, extract XLS/XLSX/CSV/PDF, normalize, merge, classify, geocode, emit `review_candidates.csv`
 - [ ] Collector: canonical ID map persisted across runs; rolling-window trim on `places.json` build
+- [ ] `[CONSTRAINT]` `collector/validate.py` check 9 joins on `display_name` because `review_candidates.csv` has no `id` column — move the join onto the canonical ID so a renamed business cannot lose its approval *(blocked by: canonical-id-map)*
 
 ## Review Backlog
 
