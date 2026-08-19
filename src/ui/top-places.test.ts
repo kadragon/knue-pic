@@ -8,7 +8,7 @@ import {
   NO_COMPARISON_MESSAGE,
   rankDeltaLabel,
   renderTopPlaces,
-  TOP_PLACES_HEADING,
+  topPlacesHeading,
 } from './top-places';
 
 function render(result: TopPlacesResult): HTMLElement {
@@ -23,8 +23,23 @@ describe('renderTopPlaces', () => {
   it('renders one ordered list item per ranked place', () => {
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
 
-    expect(container.querySelector('h2')?.textContent).toBe(TOP_PLACES_HEADING);
+    // The fixture's 1y window ranks six places, and the heading names that six — not the limit.
+    expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳 TOP 6');
     expect(container.querySelectorAll('ol.top-places-list > li')).toHaveLength(6);
+  });
+
+  it('names the rendered count in the heading, not a fixed limit', () => {
+    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y', 3));
+
+    expect(container.querySelector('h2')?.textContent).toBe(topPlacesHeading(3));
+    expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳 TOP 3');
+    expect(container.querySelectorAll('ol.top-places-list > li')).toHaveLength(3);
+  });
+
+  it('names no count when nothing is ranked', () => {
+    const container = render(computeTopPlaces(EMPTY_DATASET, '1y'));
+
+    expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳');
   });
 
   it('shows the rank as a number, not by colour alone', () => {

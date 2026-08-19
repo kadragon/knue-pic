@@ -433,6 +433,13 @@ button.top-place-body,
   outline-offset: 4px;
 }
 
+/* `#content` takes focus after a keyboard-driven retry succeeds. Without this the browser draws its
+   default ring around the whole region; an inset outline keeps the cue on screen at 360px. */
+#content:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: -2px;
+}
+
 /* map — the last documented section before the detail card (`docs/conventions.md` → Accessibility &
    Responsive: TOP 10 → search → map → detail). */
 

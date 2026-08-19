@@ -20,7 +20,7 @@ Invariants. A violation is a defect, not a style opinion.
 
 1. **No backend, no runtime credentials.** The deployed site loads `data/places.json` and the Naver
    Maps JS API and nothing else — no server, no DB, no fetch to a private endpoint. Only the browser
-   Client ID may appear in `src/`. *Enforced by:* CI secret-scan (not yet built — see `backlog.md`).
+   Client ID may appear in `src/`. *Enforced by:* the `secret-scan` job in `.github/workflows/ci.yml` (credential-shaped strings in `src/`).
 2. **Unapproved places never publish.** A place enters `data/places.json` only with
    `status=approved` in `review_candidates.csv` plus non-empty `name`, `address`, and in-range
    `lat`/`lng`; never auto-pick a geocoding candidate. *Enforced by:* the validator (PRD §27–§32).

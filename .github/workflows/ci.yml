@@ -1,0 +1,138 @@
+# The publication gate. `docs/runbook.md` -> Deploy states the order this file implements:
+# validate -> build -> deploy, with a validator failure aborting before deploy.
+#
+# Golden Principle 1 forbids runtime credentials: the web build reads no secret, and the only key
+# the app may carry is the public browser Client ID. The `secret-scan` job enforces that over
+# `src/`, so a leaked server key fails the run instead of shipping to Pages.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A superseded PR run has nothing to add, so it is cancelled. A `main` run is not: cancelling one
+# mid-`deploy-pages` can leave the published site half-updated, which is why GitHub's own Pages
+# workflow never cancels that group.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Fails the run when a Naver server/search credential — or any non-public Vite variable — appears
+  # under `src/`. `grep -r` exits 1 when it matches nothing, which is the passing case here, so the
+  # exit code is inverted deliberately.
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan src/ for credentials
+        run: |
+          set -uo pipefail
+          # A missing `src/` makes `grep -r` exit 2, which the `if` below would read as "clean" —
+          # a vacuous pass is the one outcome this job must never produce.
+          test -d src || { echo "::error::src/ not found — the secret scan had nothing to scan"; exit 1; }
+          # Identifier forms (`clientSecret`, `NAVER_*_SECRET`) and the two header forms the Naver
+          # APIs use: the gateway's `X-NCP-APIGW-API-KEY` and the Open API's `X-Naver-Client-Secret`,
+          # which no identifier pattern matches because it is hyphenated.
+          patterns='X-NCP-APIGW-API-KEY|NCP_APIGW|[Xx]-[Nn]aver-[Cc]lient-[Ss]ecret|client_secret|clientSecret|CLIENT_SECRET|NAVER_[A-Z_]*SECRET|VITE_NAVER_MAP_CLIENT_SECRET'
+          if grep -rInE "$patterns" src/; then
+            echo "::error::credential-shaped string found in src/ — only the public browser Client ID may appear there (AGENTS.md Golden Principle 1)"
+            exit 1
+          fi
+          echo "no credential-shaped strings in src/"
+
+  web-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  collector-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python3 -m pip install -r collector/requirements-dev.txt
+      - run: python3 -m pytest collector
+
+  # The PRD §32 gate over the file that actually ships.
+  #
+  # `data/places.json` is generated output that no monthly cycle has published yet, so its absence
+  # cannot fail the run — CI would be permanently red. Absence is not waved through either: this job
+  # reports whether it actually validated a dataset, and `build`/`deploy` publish nothing unless it
+  # did. A revert or a bad merge that drops the file therefore stops at "not published" instead of
+  # shipping a dataless site on a green run — an Actions warning annotation neither fails a run nor
+  # blocks a merge, so the warning alone would enforce nothing
+  # (AGENTS.md Golden Principle 3: the gate blocks deploy, it does not warn).
+  validate-dataset:
+    runs-on: ubuntu-latest
+    outputs:
+      validated: ${{ steps.gate.outputs.validated }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate data/places.json
+        id: gate
+        run: |
+          set -euo pipefail
+          if [ ! -f data/places.json ]; then
+            echo "::warning::no dataset in this checkout — nothing to validate, so nothing is published"
+            echo "validated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Non-zero exit fails this job, so `build` and `deploy` never start.
+          python3 -m collector.validate data/places.json
+          echo "validated=true" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: [secret-scan, web-checks, collector-checks, validate-dataset]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # `VITE_NAVER_MAP_CLIENT_ID` is the public browser key; Vite inlines it into the bundle by
+      # design (`docs/runbook.md` -> Environment Variables). An empty value builds fine and the map
+      # falls back per PRD §38, so a repo without the variable set still deploys.
+      - name: Build
+        env:
+          VITE_NAVER_MAP_CLIENT_ID: ${{ vars.VITE_NAVER_MAP_CLIENT_ID }}
+        run: npm run build
+      # No artifact unless a dataset was validated: without one there is nothing to publish, and
+      # `deploy` below carries the identical condition so it never looks for a missing artifact.
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.validate-dataset.outputs.validated == 'true'
+        with:
+          path: dist
+
+  deploy:
+    needs: [build, validate-dataset]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.validate-dataset.outputs.validated == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

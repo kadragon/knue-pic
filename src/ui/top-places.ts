@@ -10,7 +10,15 @@ import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
  * strings it can import.
  */
 
-export const TOP_PLACES_HEADING = '많이 이용한 곳 TOP 10';
+/**
+ * The heading counts what the list actually renders. `computeTopPlaces` takes a `limit`, and a
+ * short window routinely ranks fewer places than that limit, so a fixed "TOP 10" would name a
+ * number the page does not show. With nothing ranked there is no number to name and the empty
+ * message carries the explanation.
+ */
+export function topPlacesHeading(renderedCount: number): string {
+  return renderedCount === 0 ? '많이 이용한 곳' : `많이 이용한 곳 TOP ${renderedCount}`;
+}
 
 export const EMPTY_MESSAGE = '이 기간에는 이용 기록이 없습니다.';
 
@@ -119,7 +127,7 @@ export function renderTopPlaces(
   section.className = 'top-places';
 
   const heading = document.createElement('h2');
-  heading.textContent = TOP_PLACES_HEADING;
+  heading.textContent = topPlacesHeading(result.entries.length);
   section.append(heading);
 
   if (result.entries.length === 0) {
