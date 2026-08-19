@@ -10,6 +10,11 @@
 
 ## Review Backlog
 
+### PR #6 — Naver map with ranked markers and the documented API-failure fallback (2026-08-19)
+
+- [ ] [debt] An origin missing from the Naver key's allowed-URL list is not covered by the §38 fallback: the v3 script serves its full bundle regardless, so the load resolves and a map mounts; the API nulls `naver.maps` and calls a `window.navermap_authFailure` global about a second later. A real fallback has to register that hook and swap the mounted map for `MAP_ERROR_MESSAGE` after the fact (source: code-review, contest-confirmed) — `src/map/place-map.ts`
+- [ ] [debt] `paint()` rebuilds the icon, title and z-index of every marker on each `select()`/`update()`, though a selection changes at most two. With the real API `setIcon` tears down and rebuilds the overlay DOM, so one click repaints the whole dataset (source: code-review) — `src/map/place-map.ts:187`
+
 ### PR #4 (TOP 10 list)
 
 - [ ] `renderDataset` re-renders the whole shell on a successful load, so a load that succeeds after a user-clicked retry drops focus off the retry button (`src/ui/bootstrap.ts` — `renderFrame` replaces `root`, detaching the captured `content` node). Pre-existing since the load-state slice; the period selector's own focus handling is correct.

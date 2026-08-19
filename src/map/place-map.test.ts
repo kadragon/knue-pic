@@ -125,6 +125,27 @@ describe('renderPlaceMap', () => {
     expect(api.markers[0]?.icon?.content).not.toContain('data-selected="true"');
     expect(api.markers[1]?.icon?.content).toContain('data-selected="true"');
   });
+
+  it('lifts the selected marker above the ranked ones so its ring is never covered', async () => {
+    const api = createFakeNaverApi();
+    const { handle } = await render(api);
+
+    // An unranked place: only the top three are badged at this limit, and search or the detail card
+    // routinely selects one outside them.
+    const unranked = SAMPLE_DATASET.places.find(
+      (place) =>
+        !computeTopPlaces(SAMPLE_DATASET, '1y', RANKED_LIMIT).entries.some(
+          (entry) => entry.place.id === place.id,
+        ),
+    );
+    const marker = api.markers.find((candidate) => candidate.options.title?.includes(unranked!.name));
+    expect(marker?.zIndex).toBe(1);
+
+    handle.select(unranked!.id);
+
+    const ranked = api.markers.filter((candidate) => candidate !== marker).map((c) => c.zIndex ?? 0);
+    expect(marker?.zIndex).toBeGreaterThan(Math.max(...ranked));
+  });
 });
 
 describe('renderPlaceMap degradation', () => {
@@ -153,6 +174,26 @@ describe('renderPlaceMap degradation', () => {
       handle.update(computeTopPlaces(SAMPLE_DATASET, '1m'));
       handle.select('restaurant_000001');
     }).not.toThrow();
+  });
+
+  it('falls back when the script loads but the API throws while mounting', async () => {
+    const root = container();
+    const api = createFakeNaverApi();
+    // What a rejected key or a moved API version looks like: the global is there, and using it
+    // throws.
+    const broken = { ...api, Map: class { constructor() { throw new Error('auth'); } } };
+
+    const handle = await renderPlaceMap(
+      root,
+      SAMPLE_DATASET,
+      computeTopPlaces(SAMPLE_DATASET, '1y'),
+      () => {},
+      { loadApi: () => Promise.resolve(broken as unknown as FakeNaverApi) },
+    );
+
+    expect(root.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
+    expect(root.querySelector('.place-map-canvas')).toBeNull();
+    expect(handle).toBeDefined();
   });
 
   it('never asks for the script when there is nothing to plot', async () => {

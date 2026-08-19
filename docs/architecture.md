@@ -54,9 +54,12 @@ review_candidates.csv # manual location approval queue (committed)
   Every statistic in PRD §10–§13, §19, §22–§24 is computed here so it stays unit-testable.
 - `src/map/` may read stats output; `src/stats/` must never import from `src/map/` or `src/ui/`.
 - The map script is the app's only third-party runtime input, and it is optional: `loadNaverMaps`
-  rejects (never throws) when the client ID is unset, the origin is not on the key's allowed-URL
-  list, or the script is blocked, and `renderPlaceMap` turns that into the PRD §38 fallback message.
-  `bootstrap` renders the map fire-and-forget, so no other view waits on it or fails with it.
+  rejects (never throws) when the client ID is unset or the script is blocked, offline or unusable,
+  and `renderPlaceMap` turns that — and any throw from the API while mounting — into the PRD §38
+  fallback message. `bootstrap` renders the map fire-and-forget, so no other view waits on it or
+  fails with it. An origin missing from the key's allowed-URL list is *not* covered: the v3 script
+  serves its full bundle regardless, so the load succeeds and the API signals the rejection later
+  through a `window.navermap_authFailure` global (queued in `backlog.md`).
 - `src/data/` is the only module that knows the `places.json` wire format. Everything else uses its
   exported types.
 - `collector/` is never imported by `src/`, and `src/` is never imported by `collector/`.

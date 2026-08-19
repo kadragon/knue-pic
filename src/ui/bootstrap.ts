@@ -132,10 +132,14 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
       detail.querySelector<HTMLElement>('.place-detail')?.focus();
     }
 
+    // Ranking the default period is the most expensive thing the initial render does; the map, the
+    // list and the detail card all want the same result, so it is computed once and passed around.
+    const initialTop = computeTopPlaces(dataset, DEFAULT_PERIOD);
+
     function show(period: Period): void {
       currentPeriod = period;
       markSelectedPeriod(controls, period);
-      const top = computeTopPlaces(dataset, period);
+      const top = period === DEFAULT_PERIOD ? initialTop : computeTopPlaces(dataset, period);
       renderTopPlaces(list, top, selectPlace);
       // Re-badges the existing markers; the map instance and the user's viewport survive.
       mapHandle?.update(top);
@@ -148,17 +152,12 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
      * fallback instead). Awaiting it here would hold the rest of the page behind a network round
      * trip for no gain.
      */
-    void renderPlaceMap(
-      map,
-      dataset,
-      computeTopPlaces(dataset, DEFAULT_PERIOD),
-      selectPlace,
-      mapOptions,
-    )
+    void renderPlaceMap(map, dataset, initialTop, selectPlace, mapOptions)
       .then((handle) => {
         mapHandle = handle;
-        // The period or the selection may have moved while the script was in flight.
-        handle.update(computeTopPlaces(dataset, currentPeriod));
+        // The period or the selection may have moved while the script was in flight; only then is
+        // a second aggregation worth paying for.
+        if (currentPeriod !== DEFAULT_PERIOD) handle.update(computeTopPlaces(dataset, currentPeriod));
         handle.select(selectedPlaceId);
       })
       // `renderPlaceMap` resolves on every failure it knows about; this catches the ones it does

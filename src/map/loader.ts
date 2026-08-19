@@ -4,10 +4,17 @@ import type { NaverMapsApi } from './naver-api';
  * Injects the Naver Maps script tag and resolves once `naver.maps` is usable.
  *
  * The app has no npm dependency for the map — the API ships only as a hosted script, so loading it
- * is a DOM operation, not an import. Every failure mode this can hit (no client ID configured, the
- * current origin missing from the key's allowed-URL list, the script blocked or offline) is a
- * *rejected promise*, never a throw: `docs/runbook.md` → the map failing while the list still
- * renders is intended behaviour, and a synchronous throw here would take the whole page with it.
+ * is a DOM operation, not an import. The failure modes this module owns — no client ID configured,
+ * the script blocked or offline — are *rejected promises*, never throws: `docs/runbook.md` → the map
+ * failing while the list still renders is intended behaviour, and a synchronous throw here would
+ * take the whole page with it.
+ *
+ * One failure mode is deliberately NOT covered here: an origin missing from the key's allowed-URL
+ * list. The v3 script serves the full API bundle whatever the key says, so it loads, `naver.maps`
+ * exists, and this promise resolves; the API only nulls the global and calls a
+ * `window.navermap_authFailure` hook about a second later, after a map has already been
+ * constructed. Catching that means reacting *after* the map mounted, which is a different mechanism
+ * from this loader — see `backlog.md`.
  */
 
 /** `docs/conventions.md` → Naming. Vite inlines it; it is a browser key, public by design. */
@@ -79,14 +86,19 @@ export function loadNaverMaps(options: LoadNaverMapsOptions = {}): Promise<Naver
       clearTimeout(timer);
       script.onload = null;
       script.onerror = null;
+      // Removing the tag matters on the failure paths: a later call injects a fresh one, and two
+      // tags with the same src would each define the global. On the timeout path it also drops a
+      // request that is still in flight rather than letting it land after the promise rejected.
+      script.remove();
       pending = null;
       finish();
     }
 
     script.onload = (): void => {
       const api = readApi();
-      // `load` fires for a body the API never populated — a rejected key answers 200 with an error
-      // payload — so the global is what decides success, not the event.
+      // The event says the response arrived, not that it was usable — a proxy or an error page can
+      // fire `load` with nothing defined. The global is what decides success. (Note this does not
+      // catch a rejected origin: that response *is* the real bundle. See the module comment.)
       settle(() => (api ? resolve(api) : reject(new Error('Naver Maps script loaded without an API'))));
     };
 

@@ -496,9 +496,3 @@ button.top-place-body,
   outline: 3px solid var(--fg);
   outline-offset: 1px;
 }
-
-@media (prefers-color-scheme: dark) {
-  .place-map-marker {
-    border-color: var(--bg);
-  }
-}

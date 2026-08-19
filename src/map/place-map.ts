@@ -133,17 +133,18 @@ export async function renderPlaceMap(
     return INERT_HANDLE;
   }
 
-  let api: NaverMapsApi;
   try {
-    api = await loadApi();
+    const api = await loadApi();
+    // Mounting is inside the try as well: a script that loaded can still throw from a constructor
+    // (a rejected key, an API version that moved). Leaving that outside would reject the promise
+    // and leave an empty canvas where the fallback message belongs.
+    return mountMarkers(api, canvas, dataset.places, result, onSelect);
   } catch {
     // The reason is dropped on purpose — see MAP_ERROR_MESSAGE.
     canvas.remove();
     section.append(message(MAP_ERROR_MESSAGE, 'place-map-fallback'));
     return INERT_HANDLE;
   }
-
-  return mountMarkers(api, canvas, dataset.places, result, onSelect);
 }
 
 /** Called only with a non-empty `places` — `renderPlaceMap` returns early otherwise. */
@@ -184,12 +185,23 @@ function mountMarkers(
   // may have panned or zoomed, and a period change must not yank the map back.
   map.fitBounds(bounds);
 
+  /**
+   * Stacking order: the selection on top, then the ranked badges, then everything else. Only 10
+   * places are ever ranked, so a selection made from search or the detail card is usually an
+   * unranked marker — leaving it at the bottom would draw its ring underneath a neighbouring
+   * badge and make the selection look like a no-op.
+   */
+  function zIndexFor(placeId: string, rank: number | null): number {
+    if (placeId === selectedPlaceId) return 200;
+    return rank === null ? 1 : 100;
+  }
+
   function paint(): void {
     for (const [placeId, entry] of markers) {
       const rank = ranks.get(placeId) ?? null;
       entry.marker.setIcon(markerIcon(api, rank, placeId === selectedPlaceId));
       entry.marker.setTitle(markerLabel(entry.place, rank));
-      entry.marker.setZIndex(rank === null ? 1 : 100);
+      entry.marker.setZIndex(zIndexFor(placeId, rank));
     }
   }
 
