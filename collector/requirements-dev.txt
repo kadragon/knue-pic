@@ -1,0 +1,4 @@
+# Test-only dependencies for the collector. `collector/` itself is standard library only
+# (see collector/validate.py); this file exists so `python3 -m pytest collector` has a declared
+# dependency instead of an assumed one — the CI job installs from here.
+pytest>=8,<9

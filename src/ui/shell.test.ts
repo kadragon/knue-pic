@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DISCLAIMER, SOURCE_LINE, renderShell } from './shell';
+import { DISCLAIMER, SOURCE_LINE, renderShell, setShellUpdatedAt } from './shell';
 
 describe('renderShell', () => {
   it('always shows the data source line and the usage disclaimer', () => {
@@ -19,6 +19,23 @@ describe('renderShell', () => {
     const withoutDate = document.createElement('div');
     renderShell(withoutDate);
     expect(withoutDate.textContent).not.toContain('최근 데이터 업데이트');
+  });
+
+  it('rewrites the update date in place instead of adding a second line', () => {
+    const root = document.createElement('div');
+    renderShell(root, { updatedAt: '2026-07-01' });
+    const line = root.querySelector('.shell-updated');
+
+    setShellUpdatedAt(root, '2026-08-01');
+
+    // Same node, new text: a dataset arriving after the frame is up must not stack provenance
+    // lines, and the footer order source → updated → disclaimer has to survive the rewrite.
+    expect(root.querySelector('.shell-updated')).toBe(line);
+    expect(root.querySelectorAll('.shell-updated')).toHaveLength(1);
+    expect(root.textContent).toContain('최근 데이터 업데이트: 2026-08-01');
+    expect(root.textContent).not.toContain('2026-07-01');
+    const footerText = [...root.querySelectorAll('.shell-footer p')].map((p) => p.className);
+    expect(footerText[footerText.length - 1]).toBe('shell-disclaimer');
   });
 
   it('leaves an empty content slot for feature views', () => {

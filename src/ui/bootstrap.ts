@@ -12,7 +12,7 @@ import { renderNewlySeenPlaces, renderTrendingPlaces } from './discovery';
 import { markSelectedPeriod, renderPeriodSelector } from './period-selector';
 import { renderPlaceDetail } from './place-detail';
 import { renderPlaceSearch } from './search';
-import { renderShell } from './shell';
+import { renderShell, setShellUpdatedAt } from './shell';
 import { renderTopPlaces } from './top-places';
 
 /**
@@ -55,6 +55,11 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     try {
       const dataset = await load();
       renderDataset(dataset);
+      // The retry button lived in `#content` and the successful render replaced it, so the focus
+      // the user was holding has nowhere to return to. Moving it to the content region — the
+      // failure branch's `retry.focus()` in the other direction — announces the loaded page
+      // instead of silently dropping the caret to the top of the document.
+      if (retriedByUser) content.focus();
     } catch {
       // The reason is deliberately dropped: every failure reads the same to the user, and
       // `data-state.ts` owns the wording. Retry re-runs the whole attempt, so a transient
@@ -78,7 +83,10 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    * all four documented sections in their stated relative order.
    */
   function renderDataset(dataset: PlacesDataset): void {
-    const slot = renderFrame(dataset.updatedAt);
+    // The frame is never rebuilt here: `renderShell` would replace `root` and detach the `content`
+    // node captured above, taking whatever held focus with it. Only the provenance date changes,
+    // and `setShellUpdatedAt` writes it in place.
+    setShellUpdatedAt(root, dataset.updatedAt);
 
     const controls = document.createElement('div');
     controls.className = 'period-controls';
@@ -94,7 +102,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     map.className = 'map-slot';
     const detail = document.createElement('div');
     detail.className = 'detail-slot';
-    slot.replaceChildren(controls, list, search, map, trending, newlySeen, detail);
+    content.replaceChildren(controls, list, search, map, trending, newlySeen, detail);
 
     let selectedPlaceId: string | null = null;
     let currentPeriod: Period = DEFAULT_PERIOD;
@@ -172,13 +180,16 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     show(DEFAULT_PERIOD);
   }
 
-  function renderFrame(updatedAt?: string): HTMLElement {
-    renderShell(root, updatedAt === undefined ? {} : { updatedAt });
+  function renderFrame(): HTMLElement {
+    renderShell(root);
 
     const slot = root.querySelector<HTMLElement>('#content');
     if (!slot) {
       throw new Error('renderShell did not produce a #content slot');
     }
+    // `-1` so only script can move focus here: the region is a landing spot after a retry, never
+    // an extra tab stop on the way through the page.
+    slot.tabIndex = -1;
     return slot;
   }
 

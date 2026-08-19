@@ -7,7 +7,7 @@ import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-selector';
 import { DETAIL_EMPTY_MESSAGE, periodStatsHeading } from './place-detail';
 import { DISCLAIMER, SOURCE_LINE } from './shell';
-import { TOP_PLACES_HEADING } from './top-places';
+import { topPlacesHeading } from './top-places';
 
 function retryButton(root: HTMLElement): HTMLButtonElement | null {
   return root.querySelector<HTMLButtonElement>('.data-state-retry');
@@ -45,7 +45,7 @@ describe('bootstrap', () => {
 
     expect(root.textContent).toContain(`최근 데이터 업데이트: ${SAMPLE_DATASET.updatedAt}`);
     expect(root.textContent).not.toContain(LOADING_MESSAGE);
-    expect(root.querySelector('#content')?.textContent).toContain(TOP_PLACES_HEADING);
+    expect(root.querySelector('#content')?.textContent).toContain(topPlacesHeading(6));
   });
 
   it('opens on the 1y period', async () => {
@@ -115,6 +115,46 @@ describe('bootstrap accessibility', () => {
     // Same node, new text — a replaced region would never announce to a screen reader.
     expect(root.querySelector('.data-state')).toBe(region);
     expect(region?.textContent).toBe(LOAD_ERROR_MESSAGE);
+  });
+
+  it('moves focus into the content region when a retry finally succeeds', async () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const load = vi
+      .fn<() => Promise<typeof SAMPLE_DATASET>>()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(SAMPLE_DATASET);
+
+    await bootstrap(root, { load });
+    retryButton(root)?.focus();
+    retryButton(root)?.click();
+    await vi.waitFor(() => expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE));
+
+    // The retry button is gone with the failure state; focus must land on the loaded content, not
+    // fall back to the document body.
+    expect(document.activeElement).toBe(root.querySelector('#content'));
+    root.remove();
+  });
+
+  it('keeps the shell and the content node identical across a retry', async () => {
+    const root = document.createElement('div');
+    const load = vi
+      .fn<() => Promise<typeof SAMPLE_DATASET>>()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(SAMPLE_DATASET);
+
+    await bootstrap(root, { load });
+    const content = root.querySelector('#content');
+    const header = root.querySelector('.shell-header');
+
+    retryButton(root)?.click();
+    await vi.waitFor(() => expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE));
+
+    expect(root.querySelector('#content')).toBe(content);
+    expect(root.querySelector('.shell-header')).toBe(header);
+    // The provenance line is written into the existing footer exactly once.
+    expect(root.querySelectorAll('.shell-updated')).toHaveLength(1);
+    expect(root.textContent).toContain(`최근 데이터 업데이트: ${SAMPLE_DATASET.updatedAt}`);
   });
 
   it('returns focus to the retry control when a retry fails again', async () => {
@@ -292,7 +332,7 @@ describe('bootstrap map wiring', () => {
     await flush();
 
     expect(root.querySelector('.map-slot')?.textContent).toContain(MAP_ERROR_MESSAGE);
-    expect(root.textContent).toContain(TOP_PLACES_HEADING);
+    expect(root.textContent).toContain(topPlacesHeading(6));
     expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE);
     expect(root.querySelector('.search-slot')).not.toBeNull();
     // A period change must still work with no map behind it.

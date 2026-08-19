@@ -35,16 +35,38 @@ export function renderShell(root: HTMLElement, options: ShellOptions = {}): void
   source.textContent = SOURCE_LINE;
   footer.append(source);
 
-  if (options.updatedAt) {
-    const updated = document.createElement('p');
-    updated.textContent = `최근 데이터 업데이트: ${options.updatedAt}`;
-    footer.append(updated);
-  }
-
   const disclaimer = document.createElement('p');
   disclaimer.className = 'shell-disclaimer';
   disclaimer.textContent = DISCLAIMER;
   footer.append(disclaimer);
 
   root.replaceChildren(header, content, footer);
+
+  if (options.updatedAt) setShellUpdatedAt(root, options.updatedAt);
+}
+
+/**
+ * Writes the provenance date into an already-rendered shell, creating the line on first call and
+ * rewriting it after that.
+ *
+ * It exists so a dataset arriving after the frame is up does not cost a second `renderShell`:
+ * rebuilding the frame detaches `#content`, and any element inside it that holds focus — the retry
+ * button the user just pressed — goes with it, dropping focus to the top of the document.
+ */
+export function setShellUpdatedAt(root: HTMLElement, updatedAt: string): void {
+  const footer = root.querySelector<HTMLElement>('.shell-footer');
+  if (!footer) return;
+
+  const text = `최근 데이터 업데이트: ${updatedAt}`;
+  const existing = footer.querySelector<HTMLParagraphElement>('.shell-updated');
+  if (existing) {
+    existing.textContent = text;
+    return;
+  }
+
+  const updated = document.createElement('p');
+  updated.className = 'shell-updated';
+  updated.textContent = text;
+  // Before the disclaimer: PRD §21 keeps the denial last on the screen, and the source line first.
+  footer.insertBefore(updated, footer.querySelector('.shell-disclaimer'));
 }
