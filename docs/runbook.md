@@ -83,7 +83,7 @@ the sample.
 
 | Variable | Required | Where | Description |
 |----------|----------|-------|-------------|
-| `VITE_NAVER_MAP_CLIENT_ID` | yes, for the map | `.env.local` (gitignored) | Naver Maps **browser** Client ID. Vite inlines it into the bundle — it is public by design, and it is protected by the key's allowed-URL list, not by secrecy. |
+| `VITE_NAVER_MAP_CLIENT_ID` | yes, for the map | `.env.local` (gitignored) locally; a repository **variable** (`Settings → Secrets and variables → Actions → Variables`) for the Pages build | Naver Maps **browser** Client ID. Vite inlines it into the bundle — it is public by design, and it is protected by the key's allowed-URL list, not by secrecy. That is why CI reads it from `vars.`, never `secrets.`. Leave it unset and the deploy still succeeds, but the published site renders the PRD §38 map fallback; the `build` job logs a warning saying so. |
 
 The collector's server/search credentials are never Vite variables and never live in this file.
 

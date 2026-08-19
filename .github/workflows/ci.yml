@@ -22,28 +22,44 @@ permissions:
   contents: read
 
 jobs:
-  # Fails the run when a Naver server/search credential — or any non-public Vite variable — appears
-  # under `src/`. `grep -r` exits 1 when it matches nothing, which is the passing case here, so the
-  # exit code is inverted deliberately.
+  # Fails the run when a known Naver credential form — or the search Client ID, which is not the
+  # browser key this app is allowed to carry — appears in the sources that reach the bundle. It
+  # matches named forms, not arbitrary high-entropy literals: a bare key assigned to an
+  # innocuously named constant still gets past it.
   secret-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Scan src/ for credentials
+      - name: Scan bundled sources for credentials
         run: |
           set -uo pipefail
-          # A missing `src/` makes `grep -r` exit 2, which the `if` below would read as "clean" —
-          # a vacuous pass is the one outcome this job must never produce.
-          test -d src || { echo "::error::src/ not found — the secret scan had nothing to scan"; exit 1; }
-          # Identifier forms (`clientSecret`, `NAVER_*_SECRET`) and the two header forms the Naver
+          # Everything Vite can inline, not just `src/`: `vite.config.ts` can `define:` a value into
+          # the bundle and `index.html` is the entry template, so a key in either ships just as a
+          # key in `src/` does. Golden Principle 1 is about the deployed artifact.
+          targets='src vite.config.ts index.html'
+          for target in $targets; do
+            test -e "$target" || { echo "::error::$target not found — the secret scan had nothing to scan"; exit 1; }
+          done
+          # Identifier forms (`clientSecret`, `NAVER_*_SECRET`) plus the two header forms the Naver
           # APIs use: the gateway's `X-NCP-APIGW-API-KEY` and the Open API's `X-Naver-Client-Secret`,
-          # which no identifier pattern matches because it is hyphenated.
-          patterns='X-NCP-APIGW-API-KEY|NCP_APIGW|[Xx]-[Nn]aver-[Cc]lient-[Ss]ecret|client_secret|clientSecret|CLIENT_SECRET|NAVER_[A-Z_]*SECRET|VITE_NAVER_MAP_CLIENT_SECRET'
-          if grep -rInE "$patterns" src/; then
-            echo "::error::credential-shaped string found in src/ — only the public browser Client ID may appear there (AGENTS.md Golden Principle 1)"
+          # which no identifier pattern matches because it is hyphenated. `NAVER_SEARCH_CLIENT_ID`
+          # is not itself a secret — the docs guard only its paired secret — but the browser key is
+          # the one Naver identifier allowed here, and the `VITE_`-prefixed variant is caught as a
+          # substring of the same alternative.
+          patterns='X-NCP-APIGW-API-KEY|NCP_APIGW|[Xx]-[Nn]aver-[Cc]lient-[Ss]ecret|client_secret|clientSecret|CLIENT_SECRET|NAVER_[A-Z_]*SECRET|VITE_NAVER_MAP_CLIENT_SECRET|NAVER_SEARCH_CLIENT_ID'
+          # Exit status is read explicitly: `grep` answers 0 for a match, 1 for a clean scan and 2+
+          # for a read error it could not complete. Only 1 is a pass — treating 2 as "clean" would
+          # turn an unreadable file into a silent green.
+          grep -rInE "$patterns" $targets
+          status=$?
+          if [ "$status" -eq 0 ]; then
+            echo "::error::credential-shaped string found — only the public browser Client ID may appear in the bundled sources (AGENTS.md Golden Principle 1)"
+            exit 1
+          elif [ "$status" -ne 1 ]; then
+            echo "::error::grep could not complete the scan (exit $status)"
             exit 1
           fi
-          echo "no credential-shaped strings in src/"
+          echo "no credential-shaped strings in $targets"
 
   web-checks:
     runs-on: ubuntu-latest
@@ -110,8 +126,18 @@ jobs:
           cache: npm
       - run: npm ci
       # `VITE_NAVER_MAP_CLIENT_ID` is the public browser key; Vite inlines it into the bundle by
-      # design (`docs/runbook.md` -> Environment Variables). An empty value builds fine and the map
-      # falls back per PRD §38, so a repo without the variable set still deploys.
+      # design (`docs/runbook.md` -> Environment Variables), which is why it is an Actions *variable*
+      # and never a secret. An empty value still builds and the map falls back per PRD §38 — a
+      # deliberate degradation, but one that would otherwise ship on a fully green run with nothing
+      # said, so the deploy path announces it.
+      - name: Check the browser Client ID is configured
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          VITE_NAVER_MAP_CLIENT_ID: ${{ vars.VITE_NAVER_MAP_CLIENT_ID }}
+        run: |
+          if [ -z "${VITE_NAVER_MAP_CLIENT_ID}" ]; then
+            echo "::warning::repository variable VITE_NAVER_MAP_CLIENT_ID is unset — the deployed site will render the PRD §38 map fallback (docs/runbook.md -> Environment Variables)"
+          fi
       - name: Build
         env:
           VITE_NAVER_MAP_CLIENT_ID: ${{ vars.VITE_NAVER_MAP_CLIENT_ID }}
