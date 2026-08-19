@@ -57,9 +57,11 @@ review_candidates.csv # manual location approval queue (committed)
   rejects (never throws) when the client ID is unset or the script is blocked, offline or unusable,
   and `renderPlaceMap` turns that — and any throw from the API while mounting — into the PRD §38
   fallback message. `bootstrap` renders the map fire-and-forget, so no other view waits on it or
-  fails with it. An origin missing from the key's allowed-URL list is *not* covered: the v3 script
-  serves its full bundle regardless, so the load succeeds and the API signals the rejection later
-  through a `window.navermap_authFailure` global (queued in `backlog.md`).
+  fails with it. An origin missing from the key's allowed-URL list takes a second route: the v3
+  script serves its full bundle regardless, so the load succeeds, a map mounts, and the API signals
+  the rejection afterwards through a `window.navermap_authFailure` global. `renderPlaceMap`
+  registers that hook after mounting and swaps the map for the same fallback, which is why the two
+  degraded states are indistinguishable on screen.
 - `src/data/` is the only module that knows the `places.json` wire format. Everything else uses its
   exported types.
 - `collector/` is never imported by `src/`, and `src/` is never imported by `collector/`.

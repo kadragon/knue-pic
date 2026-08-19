@@ -163,6 +163,12 @@ export async function renderPlaceMap(
 
     // The mounted map is swapped for the same fallback the loader failures produce, so the two
     // degraded states are indistinguishable to the user and to the tests.
+    //
+    // Registered *after* the mount, which assumes the API calls this hook after constructing a map
+    // rather than during script init. That ordering is the repo's own assertion, not a sourced
+    // vendor guarantee — `backlog.md` carries the real-browser check that would settle it. Moving
+    // the registration earlier is not the cheap fix it looks like: the `catch` below has already
+    // appended the fallback, so a pre-installed handler would append a second one.
     let live = true;
     setAuthFailureHandler(() => {
       // Idempotent: nothing documents how many times the API calls this, and a second call would
