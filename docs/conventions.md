@@ -14,8 +14,10 @@ This is the rule most easily broken by a well-meaning edit, so it is written dow
 | 평점, 별점, 순위가 높은 좋은 집 | 이용횟수, 최근 이용 |
 
 Every screen carries the source line ("데이터 기준: 한국교원대학교 업무추진비 공개자료") and the
-PRD §21 disclaimer that usage count is not an endorsement. A banned-phrase unit test over the UI
-string modules is what keeps this from decaying — add the phrase to the test whenever the list grows.
+PRD §21 disclaimer that usage count is not an endorsement. A banned-phrase unit test over every
+shipped source — `src/ui/framing-vocabulary.test.ts` reads each non-test `src/` file plus
+`index.html` — is what keeps this from decaying; add the phrase to its `BANNED` list whenever the
+table grows.
 
 ## Statistics Rules
 
