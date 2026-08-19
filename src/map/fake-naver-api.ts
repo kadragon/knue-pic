@@ -22,6 +22,9 @@ export interface FakeMarker extends NaverMarker {
   icon: HtmlIcon | undefined;
   title: string | undefined;
   zIndex: number | undefined;
+  /** How often `setIcon` ran: the real API rebuilds the overlay DOM on each call, so the count is
+   * the cost the map module is supposed to keep proportional to what actually changed. */
+  setIconCalls: number;
   click(): void;
 }
 
@@ -97,6 +100,7 @@ export function createFakeNaverApi(): FakeNaverApi {
       icon: HtmlIcon | undefined;
       title: string | undefined;
       zIndex: number | undefined;
+      setIconCalls = 0;
       constructor(readonly options: MarkerOptions) {
         this.icon = options.icon;
         this.title = options.title;
@@ -105,6 +109,7 @@ export function createFakeNaverApi(): FakeNaverApi {
       }
       setIcon(icon: HtmlIcon): void {
         this.icon = icon;
+        this.setIconCalls += 1;
       }
       setTitle(title: string): void {
         this.title = title;

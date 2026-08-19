@@ -14,7 +14,7 @@ import type { NaverMapsApi } from './naver-api';
  * exists, and this promise resolves; the API only nulls the global and calls a
  * `window.navermap_authFailure` hook about a second later, after a map has already been
  * constructed. Catching that means reacting *after* the map mounted, which is a different mechanism
- * from this loader — see `backlog.md`.
+ * from this loader — `renderPlaceMap` in `./place-map.ts` owns it.
  */
 
 /** `docs/conventions.md` → Naming. Vite inlines it; it is a browser key, public by design. */
