@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import { createFakeNaverApi } from '../map/fake-naver-api';
+import { MAP_ERROR_MESSAGE } from '../map/place-map';
 import { bootstrap } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-selector';
@@ -219,5 +221,81 @@ describe('bootstrap place selection', () => {
     expect(document.activeElement).toBe(root.querySelector('.place-detail'));
     expect(button).not.toBe(null);
     root.remove();
+  });
+});
+
+describe('bootstrap map wiring', () => {
+  /** Lets the fire-and-forget map render settle before the assertions run. */
+  const flush = (): Promise<void> => Promise.resolve().then(() => {});
+
+  it('places the map between search and the discovery sections', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      map: { loadApi: () => Promise.resolve(api) },
+    });
+    await flush();
+
+    const slots = [...(root.querySelector('#content')?.children ?? [])].map(
+      (child) => child.className,
+    );
+    expect(slots.indexOf('map-slot')).toBeGreaterThan(slots.indexOf('search-slot'));
+    expect(slots.indexOf('map-slot')).toBeLessThan(slots.indexOf('trending-slot'));
+    expect(api.markers).toHaveLength(SAMPLE_DATASET.places.length);
+  });
+
+  it('re-badges the markers when the period changes', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      map: { loadApi: () => Promise.resolve(api) },
+    });
+    await flush();
+
+    const before = api.markers.map((marker) => marker.icon?.content);
+    periodButton(root, PERIOD_LABELS['1m'])?.click();
+
+    expect(api.markers.map((marker) => marker.icon?.content)).not.toEqual(before);
+    // The map instance survives a period change; only the icons are swapped.
+    expect(api.maps).toHaveLength(1);
+  });
+
+  it('marks the map selection when a place is picked from the list', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      map: { loadApi: () => Promise.resolve(api) },
+    });
+    await flush();
+
+    root.querySelector<HTMLButtonElement>('.top-places-slot .top-place-body')?.click();
+
+    const selected = api.markers.filter((marker) =>
+      marker.icon?.content.includes('data-selected="true"'),
+    );
+    expect(selected).toHaveLength(1);
+  });
+
+  it('keeps the rest of the page working when the map script never loads', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      map: { loadApi: () => Promise.reject(new Error('blocked')) },
+    });
+    await flush();
+
+    expect(root.querySelector('.map-slot')?.textContent).toContain(MAP_ERROR_MESSAGE);
+    expect(root.textContent).toContain(TOP_PLACES_HEADING);
+    expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE);
+    expect(root.querySelector('.search-slot')).not.toBeNull();
+    // A period change must still work with no map behind it.
+    expect(() => periodButton(root, PERIOD_LABELS['1m'])?.click()).not.toThrow();
   });
 });

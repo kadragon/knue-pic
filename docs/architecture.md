@@ -37,7 +37,9 @@ src/                  # web app; browser-only code
   data/               # places.json loading + schema types
   stats/              # pure computation: top-10, rank delta, trending, newly seen,
                       #   monthly histogram, text/category filtering
-  map/                # Naver map, markers, bounds re-search
+  map/                # loader.ts (script injection), naver-api.ts (hand-written API types),
+                      #   place-map.ts (markers + TOP 10 badges + §38 fallback);
+                      #   bounds re-search still to come
   ui/                 # views, Korean strings
 data/places.json      # published dataset (generated — see below); also Vite's publicDir
 collector/            # Python collector skill; never imported by src/
@@ -51,6 +53,13 @@ review_candidates.csv # manual location approval queue (committed)
 - `src/stats/` is pure: it takes places + a period and returns numbers. No DOM, no map, no fetch.
   Every statistic in PRD §10–§13, §19, §22–§24 is computed here so it stays unit-testable.
 - `src/map/` may read stats output; `src/stats/` must never import from `src/map/` or `src/ui/`.
+- The map script is the app's only third-party runtime input, and it is optional: `loadNaverMaps`
+  rejects (never throws) when the client ID is unset or the script is blocked, offline or unusable,
+  and `renderPlaceMap` turns that — and any throw from the API while mounting — into the PRD §38
+  fallback message. `bootstrap` renders the map fire-and-forget, so no other view waits on it or
+  fails with it. An origin missing from the key's allowed-URL list is *not* covered: the v3 script
+  serves its full bundle regardless, so the load succeeds and the API signals the rejection later
+  through a `window.navermap_authFailure` global (queued in `backlog.md`).
 - `src/data/` is the only module that knows the `places.json` wire format. Everything else uses its
   exported types.
 - `collector/` is never imported by `src/`, and `src/` is never imported by `collector/`.

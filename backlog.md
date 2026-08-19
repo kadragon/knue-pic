@@ -2,7 +2,6 @@
 
 ## Next
 
-- [ ] Naver map with markers, TOP 10 number badges, and the PRD §38 fallback when the API fails
 - [ ] `[CONSTRAINT]` Banned-phrase test over UI strings (`docs/conventions.md` → Framing Vocabulary)
 - [ ] `[CONSTRAINT]` `collector/validate.py` implementing the nine PRD §32 checks; non-zero exit blocks deploy
 - [ ] `[CONSTRAINT]` GitHub Actions: validate → build → deploy to Pages, plus a secret-scan step over `src/`
@@ -10,6 +9,11 @@
 - [ ] Collector: canonical ID map persisted across runs; rolling-window trim on `places.json` build
 
 ## Review Backlog
+
+### PR #6 — Naver map with ranked markers and the documented API-failure fallback (2026-08-19)
+
+- [ ] [debt] An origin missing from the Naver key's allowed-URL list is not covered by the §38 fallback: the v3 script serves its full bundle regardless, so the load resolves and a map mounts; the API nulls `naver.maps` and calls a `window.navermap_authFailure` global about a second later. A real fallback has to register that hook and swap the mounted map for `MAP_ERROR_MESSAGE` after the fact (source: code-review, contest-confirmed) — `src/map/place-map.ts`
+- [ ] [debt] `paint()` rebuilds the icon, title and z-index of every marker on each `select()`/`update()`, though a selection changes at most two. With the real API `setIcon` tears down and rebuilds the overlay DOM, so one click repaints the whole dataset (source: code-review) — `src/map/place-map.ts:187`
 
 ### PR #4 (TOP 10 list)
 
