@@ -11,6 +11,8 @@ only `collector.validate` and its test run exist and are verified; `collector.ru
 - Node.js — verified on v26.5.0; no `engines` floor is declared yet (`node -v`)
 - npm (bundled with Node)
 - Python 3.11+ for the collector only (`python3 -V`)
+- `pytest` for the collector tests — declared in no manifest yet, so install it yourself
+  (`python3 -m pip install pytest`); see `backlog.md`
 - A Naver Maps **browser Client ID** for local map rendering
 
 ### Setup

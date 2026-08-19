@@ -22,8 +22,8 @@ from collector.validate import (
     ROLLING_WINDOW_MONTHS,
     load_approvals,
     main,
-    shift_months,
     validate,
+    window_floor,
 )
 
 from datetime import date
@@ -160,7 +160,7 @@ def test_non_iso_transaction_date_is_reported(bad: Any) -> None:
 
 def test_transaction_older_than_the_window_is_reported() -> None:
     violations = validate(
-        dataset(place(transactions=[{"date": "2025-07-31", "amount": 1000}])), approvals()
+        dataset(place(transactions=[{"date": "2025-08-15", "amount": 1000}])), approvals()
     )
     assert checks_reported(violations) == {6}
     assert f"{ROLLING_WINDOW_MONTHS}-month window" in details(violations)
@@ -174,18 +174,59 @@ def test_transaction_after_updated_at_is_reported() -> None:
 
 
 def test_window_edges_pass() -> None:
-    edge = shift_months(date.fromisoformat(UPDATED_AT), ROLLING_WINDOW_MONTHS).isoformat()
+    """Both ends inclusive: the first day of the oldest bucketed month, and `updatedAt` itself."""
+    floor = window_floor(date.fromisoformat(UPDATED_AT))
+    assert floor.isoformat() == "2025-09-01"
     assert validate(
         dataset(
             place(
                 transactions=[
-                    {"date": edge, "amount": 1000},
+                    {"date": floor.isoformat(), "amount": 1000},
                     {"date": UPDATED_AT, "amount": 1000},
                 ]
             )
         ),
         approvals(),
     ) == []
+
+
+def test_day_anchored_boundary_is_rejected() -> None:
+    """`updatedAt` minus 12 months is a month the app never buckets — the gate must not admit it.
+
+    `src/stats/histogram.ts` renders the 12 calendar months ending with the anchor's own month, so
+    for updatedAt 2026-08-01 anything in 2025-08 has no bar. Accepting it would let the bars sum to
+    fewer visits than the 1년 count printed beside them.
+    """
+    violations = validate(
+        dataset(place(transactions=[{"date": "2025-08-31", "amount": 1000}])), approvals()
+    )
+    assert checks_reported(violations) == {6}
+
+
+def test_loader_parity_fields_are_reported() -> None:
+    """`src/data/load.ts` rejects the whole file on these, so passing them here would ship a dead site."""
+    for key in ("category", "naverUrl"):
+        violations = validate(dataset(place(**{key: ""})), approvals())
+        assert checks_reported(violations) == {10}, key
+
+
+def test_nan_and_infinity_are_not_valid_json(tmp_path: Path, approved_csv: Path) -> None:
+    """Python's json accepts them; RFC 8259 and the browser's `Response.json()` do not."""
+    for literal in ("NaN", "Infinity", "-Infinity"):
+        json_path = tmp_path / "places.json"
+        json_path.write_text(
+            '{"updatedAt":"2026-08-01","places":[],"stray":' + literal + "}", encoding="utf-8"
+        )
+        assert main([str(json_path), "--candidates", str(approved_csv)]) == EXIT_UNUSABLE, literal
+
+
+def test_integer_beyond_float_range_is_reported_not_raised() -> None:
+    """`math.isfinite` converts before testing, so a huge JSON integer raises instead of answering."""
+    huge = 10**400
+    assert checks_reported(validate(dataset(place(lat=huge)), approvals())) == {2}
+    assert checks_reported(
+        validate(dataset(place(transactions=[{"date": "2026-07-18", "amount": huge}])), approvals())
+    ) == {4}
 
 
 def test_bad_updated_at_is_reported_once_and_does_not_suppress_other_checks() -> None:

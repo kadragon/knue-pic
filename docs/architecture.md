@@ -84,14 +84,28 @@ in range; `amount >= 0`; ISO `date`; dates within the rolling window; non-empty 
 `collector/validate.py` implements those nine as numbered checks and reports **every** violation in
 one pass, so the operator fixes the month's data once instead of re-running per defect. Exit 1 means
 the data is bad; exit 2 means the validator could not run (missing file, unreadable CSV, root not a
-JSON object). Both stop publication — a future CI step needs to tell the two apart, nothing else
-does. Two of the nine need a concrete value the invariant list does not carry:
+JSON object, or a file carrying `NaN`/`Infinity` — Python's parser accepts those, RFC 8259 and the
+browser's `Response.json()` do not). Both stop publication — a future CI step needs to tell the two
+apart, nothing else does.
+
+It also runs a tenth, `loader-parity` check, because the nine are not sufficient on their own:
+`parsePlace` in `src/data/load.ts` rejects the *whole file* when `category` or `naverUrl` is empty,
+so a dataset passing only the nine could still leave every visitor on the load-error screen. A gate
+weaker than the loader it guards is not a gate.
+
+Two of the nine need a concrete value the invariant list does not carry:
 
 - **In range** means the Korea bounding box — `lat` 33.0–39.0, `lng` 124.0–132.0 — not the global
   ±90/±180 that `src/data/load.ts` accepts. The loader is a wire-format parser and would wave a
   geocoding mis-hit in Tokyo straight through; the validator is the quality gate, so it uses the
   bounds that make `region_ok` in `review_candidates.csv` mean something. The constants live at the
   top of `collector/validate.py`.
+- **The rolling window** is floored on the *calendar month*, not on `updatedAt`'s day: the oldest
+  accepted date is the first day of the month 11 months before `updatedAt`'s own month. That is the
+  span `src/stats/histogram.ts` renders and it sits inside the half-open window
+  `src/stats/period.ts` -> `isWithinWindow` applies. A day-anchored floor would admit transactions
+  that every 1y view then ignores, so the histogram bars would sum to fewer visits than the count
+  printed beside them, with nothing reporting the gap.
 - **Review status** is joined on the place `name` against the CSV's `display_name`, because
   `review_candidates.csv` has no `id` column and the canonical ID map is not built yet. The join
   fails closed in three directions: a matched row that is not `approved`, *no* matched row at all

@@ -22,7 +22,6 @@ from __future__ import annotations
 # use a newer stdlib name. That is why the helpers below return parsed values instead of booleans:
 # `typing.TypeIs`, which would give a type checker the same narrowing, is 3.13+.
 import argparse
-import calendar
 import csv
 import json
 import math
@@ -61,6 +60,10 @@ CHECK_NAMES = {
     7: "name-present",
     8: "address-present",
     9: "review-approved",
+    # Beyond the nine: `src/data/load.ts` rejects the *whole file* when `category` or `naverUrl` is
+    # unusable, so a dataset this gate passes could still leave the site with zero places rendered.
+    # A gate weaker than the loader it guards is not a gate.
+    10: "loader-parity",
 }
 
 
@@ -122,15 +125,26 @@ def as_number(value: Any) -> float | None:
     """
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    return float(value) if math.isfinite(value) else None
+    try:
+        # A syntactically valid JSON integer can exceed the float range (`10**400`); `math.isfinite`
+        # converts before testing, so it raises rather than answering.
+        return float(value) if math.isfinite(value) else None
+    except OverflowError:
+        return None
 
 
-def shift_months(anchor: date, months: int) -> date:
-    """``anchor`` moved back ``months`` months, clamped to the target month's last day."""
-    total = anchor.year * 12 + (anchor.month - 1) - months
+def window_floor(anchor: date) -> date:
+    """First day of the oldest month the published window covers.
+
+    Anchored on the calendar month, not on ``anchor``'s day, because that is what the app does with
+    the data: `src/stats/histogram.ts` buckets the ``ROLLING_WINDOW_MONTHS`` calendar months ending
+    with the anchor's own month, and `src/stats/period.ts` -> ``isWithinWindow`` is half-open at the
+    start. A day-anchored floor would admit transactions that every 1y view then ignores — the
+    histogram bars would sum to less than the count printed beside them, with nothing reporting it.
+    """
+    total = anchor.year * 12 + (anchor.month - 1) - (ROLLING_WINDOW_MONTHS - 1)
     year, month = divmod(total, 12)
-    month += 1
-    return date(year, month, min(anchor.day, calendar.monthrange(year, month)[1]))
+    return date(year, month + 1, 1)
 
 
 def text_or_none(value: Any) -> str | None:
@@ -146,6 +160,15 @@ def text_or_none(value: Any) -> str | None:
     return trimmed or None
 
 
+def _reject_json_constant(constant: str) -> Any:
+    """Python's ``json`` accepts ``NaN``/``Infinity``; RFC 8259 and the browser do not.
+
+    Without this the gate can certify a file that `Response.json()` refuses outright
+    (`src/data/load.ts`), publishing a site that loads no places at all.
+    """
+    raise ValueError(f"{constant} is not valid JSON — the browser's parser rejects it")
+
+
 def load_dataset(path: Path) -> dict[str, Any]:
     """Read and JSON-parse the dataset. Anything short of a JSON object is unusable."""
     try:
@@ -154,8 +177,10 @@ def load_dataset(path: Path) -> dict[str, Any]:
         raise DatasetUnusable(f"{path} could not be read: {cause}") from cause
 
     try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as cause:
+        parsed = json.loads(raw, parse_constant=_reject_json_constant)
+    except ValueError as cause:
+        # ValueError, not JSONDecodeError: `_reject_json_constant` raises a plain ValueError, and
+        # JSONDecodeError is itself a ValueError, so one handler covers both.
         raise DatasetUnusable(f"{path} is not valid JSON: {cause}") from cause
 
     if not isinstance(parsed, dict):
@@ -217,7 +242,7 @@ def validate(
             Violation(6, f"updatedAt is not a real calendar date: {describe(updated_at)}")
         )
     else:
-        window_start = shift_months(window_end, ROLLING_WINDOW_MONTHS)
+        window_start = window_floor(window_end)
 
     places = dataset.get("places")
     if not isinstance(places, list):
@@ -298,8 +323,8 @@ def _validate_place(
                 _validate_transaction(transaction, tx_path, window_start, window_end)
             )
 
-    # Checks 7 and 8 — the two fields the UI shows verbatim.
-    for check, key in ((7, "name"), (8, "address")):
+    # Checks 7, 8 and 10 — every field `parsePlace` in `src/data/load.ts` demands as non-empty text.
+    for check, key in ((7, "name"), (8, "address"), (10, "category"), (10, "naverUrl")):
         if text_or_none(place.get(key)) is None:
             violations.append(
                 Violation(
@@ -412,7 +437,7 @@ def main(argv: list[str] | None = None) -> int:
 
     places = dataset.get("places", [])
     updated_at = date.fromisoformat(dataset["updatedAt"])
-    window_start = shift_months(updated_at, ROLLING_WINDOW_MONTHS)
+    window_start = window_floor(updated_at)
     print(
         f"OK: {len(places)} places, {count_transactions(dataset)} transactions, "
         f"window {window_start}..{updated_at}"
