@@ -50,8 +50,12 @@ jobs:
           # Exit status is read explicitly: `grep` answers 0 for a match, 1 for a clean scan and 2+
           # for a read error it could not complete. Only 1 is a pass — treating 2 as "clean" would
           # turn an unreadable file into a silent green.
-          grep -rInE "$patterns" $targets
-          status=$?
+          #
+          # `|| status=$?` rather than a bare call: GitHub runs this step under `bash -e`, so an
+          # unguarded `grep` exiting 1 — the clean scan, the case this job wants — would abort the
+          # step before the status is ever read.
+          status=0
+          grep -rInE "$patterns" $targets || status=$?
           if [ "$status" -eq 0 ]; then
             echo "::error::credential-shaped string found — only the public browser Client ID may appear in the bundled sources (AGENTS.md Golden Principle 1)"
             exit 1
