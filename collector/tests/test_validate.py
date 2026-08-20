@@ -210,6 +210,42 @@ def test_loader_parity_fields_are_reported() -> None:
         assert checks_reported(violations) == {10}, key
 
 
+def test_naver_url_scheme_and_host_are_reported() -> None:
+    """`requireNaverUrl` in `src/data/load.ts` rejects these, so a gate that accepts them is weaker
+    than the loader it guards — the dataset would validate and then blank the site."""
+    for url in (
+        "javascript:alert(1)",
+        "http://map.naver.com/p/entry/place/1",
+        # Ends with `naver.com` without being a subdomain of it.
+        "https://evilnaver.com/p/entry/place/1",
+        "https://example.com/p/entry/place/1",
+        "한밭식당",
+        # WHATWG reads the backslash as an authority separator, so the loader sees host
+        # `evil.com`. `urlsplit` alone would read userinfo `evil.com\\` on host `naver.com`
+        # and pass it — a gate weaker than the loader publishes a dataset that blanks the site.
+        "https://evil.com\\@naver.com/x",
+        # `new URL` rejects a port outside 0..65535, so the loader rejects the whole file;
+        # `urlsplit` only range-checks the port when the attribute is read.
+        "https://naver.com:99999/x",
+        "https://naver.com:-1/x",
+    ):
+        violations = validate(dataset(place(naverUrl=url)), approvals())
+        assert checks_reported(violations) == {10}, url
+
+
+def test_naver_url_accepts_the_hosts_the_loader_accepts() -> None:
+    for url in (
+        "https://map.naver.com/p/entry/place/1",
+        "https://naver.me/xAbCdEf",
+        "https://m.map.naver.com/p/entry/place/1",
+        # The mirror of the rejected backslash case: here both parsers read host `naver.com`
+        # and the rest as path, so the gate must not reject what the loader accepts either.
+        "https://naver.com\\@evil.com/x",
+        "https://naver.com:443/p/entry/place/1",
+    ):
+        assert validate(dataset(place(naverUrl=url)), approvals()) == [], url
+
+
 def test_nan_and_infinity_are_not_valid_json(tmp_path: Path, approved_csv: Path) -> None:
     """Python's json accepts them; RFC 8259 and the browser's `Response.json()` do not."""
     for literal in ("NaN", "Infinity", "-Infinity"):

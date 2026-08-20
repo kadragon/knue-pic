@@ -10,16 +10,7 @@
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
-- [ ] [debt] `renderPlaceMap` installs `globalThis.navermap_authFailure` on every successful mount and never clears it, including on the empty-dataset and load-failure paths. Harmless today — `src/ui/bootstrap.ts` reaches `renderPlaceMap` once per page — but a second `renderDataset` would leave a stale closure that removes a detached canvas and appends the fallback into a detached section (source: QA verification of the PR #6 fix) — `src/map/place-map.ts`
-
-- [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts`
-
-### PR #5 (discovery, search, detail card)
-
-- [ ] `src/data/load.ts` accepts `naverUrl` as any non-empty string (`requireText`), unlike `lat`/`lng`
-      which are range-checked. PR #5 closed the sink at the render site (`src/ui/place-detail.ts`
-      refuses a non-`https:` URL), but the loader's stated contract is to reject bad values before
-      they reach `src/stats/`/`src/ui/` — add a scheme (ideally host) check there too.
+- [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*
 
 ## Someday
 
