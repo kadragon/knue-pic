@@ -25,6 +25,7 @@ import argparse
 import csv
 import json
 import math
+import re
 import sys
 import urllib.parse
 from dataclasses import dataclass
@@ -49,6 +50,9 @@ ROLLING_WINDOW_MONTHS = 12
 # an https URL on one of these hosts rather than merely non-empty text. Check 10 exists to be no
 # weaker than that loader; a value this gate waves through would blank the published site.
 NAVER_URL_HOSTS = ("naver.com", "naver.me")
+
+# Plain ASCII LDH labels — see `naver_url_or_none` for why the host is held to this shape.
+ASCII_HOST_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)*")
 
 DEFAULT_CANDIDATES = Path("review_candidates.csv")
 
@@ -169,13 +173,15 @@ def naver_url_or_none(value: Any) -> str | None:
     # the gate would publish a dataset that blanks the site. Normalising first removes that gap.
     #
     # The two parsers still disagree elsewhere (`https:/naver.com`, a fullwidth `naver。com`), but
-    # only in the safe direction: this gate rejects what the loader would accept, so a divergence
-    # stops publication and is visible to the operator instead of reaching the browser.
-    parsed = urllib.parse.urlsplit(text.replace("\\", "/"))
+    # only in the safe direction — this gate rejecting what the loader would accept, which stops
+    # publication and shows the operator, instead of reaching a visitor.
     try:
-        # `urlsplit` range-checks the port only when the attribute is read, so this access is the
-        # check, not a lookup. `new URL` rejects a port outside 0..65535 outright, and the loader
-        # turns that into a whole-file rejection — reading it here is what keeps the two agreeing.
+        # Both calls are inside the `try` because both raise on input `new URL` merely rejects:
+        # `urlsplit` raises on a malformed IPv6 authority (`https://[::1/x`), and it range-checks
+        # the port only when the attribute is read, so that access is the check, not a lookup.
+        # An escaping exception would abort the whole run with a traceback — the one outcome this
+        # module's docstring rules out — instead of reporting a check-10 violation.
+        parsed = urllib.parse.urlsplit(text.replace("\\", "/"))
         parsed.port
     except ValueError:
         return None
@@ -183,6 +189,17 @@ def naver_url_or_none(value: Any) -> str | None:
         return None
     host = (parsed.hostname or "").lower()
     if not any(host == allowed or host.endswith(f".{allowed}") for allowed in NAVER_URL_HOSTS):
+        return None
+    # WHATWG runs IDNA on the host; nothing in the standard library reproduces it. Python's `idna`
+    # codec is IDNA2003 and is the looser of the two — it accepts `xn--b0b`, which `new URL`
+    # rejects — so mirroring it closes one case and leaves the next. Instead of chasing that, the
+    # host is required to be plain ASCII letters/digits/hyphens with no `xn--` label at all. For a
+    # host in that shape WHATWG's IDNA step is a no-op, so anything this gate accepts the loader
+    # accepts too — the one-directional invariant holds by construction rather than by corpus.
+    # It costs nothing real: every URL the collector emits is an ASCII `*.naver.com` address.
+    if not ASCII_HOST_RE.fullmatch(host):
+        return None
+    if any(label.startswith("xn--") for label in host.split(".")):
         return None
     return text
 

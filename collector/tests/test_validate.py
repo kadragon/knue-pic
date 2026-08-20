@@ -228,6 +228,15 @@ def test_naver_url_scheme_and_host_are_reported() -> None:
         # `urlsplit` only range-checks the port when the attribute is read.
         "https://naver.com:99999/x",
         "https://naver.com:-1/x",
+        # No stdlib parser reproduces WHATWG IDNA — Python's `idna` codec accepts `xn--b0b`,
+        # which `new URL` rejects. The gate refuses every `xn--` label rather than mirror it,
+        # which also refuses `xn--h32b` that the loader would accept: stricter, never looser.
+        "https://xn--a.naver.com/x",
+        "https://xn--b0b.naver.com/x",
+        "https://xn--h32b.naver.com/x",
+        # `urlsplit` itself raises on a malformed IPv6 authority. The validator must report a
+        # violation, never abort the run with a traceback.
+        "https://[::1/x",
     ):
         violations = validate(dataset(place(naverUrl=url)), approvals())
         assert checks_reported(violations) == {10}, url

@@ -204,6 +204,7 @@ describe('naverUrl', () => {
     // Both parsers read host `naver.com` and the rest as path — kept so the gate and the
     // loader are pinned to the same answer on the backslash case in both directions.
     'https://naver.com\\@evil.com/x',
+    'https://xn--h32b.naver.com/x',
   ])('accepts %s', (url) => {
     const payload = validPayload();
     firstPlace(payload)['naverUrl'] = url;
@@ -231,9 +232,15 @@ describe('naverUrl', () => {
     expect(() => parseDataset(payload)).toThrow(/places\[0\]\.naverUrl must be an https URL/);
   });
 
-  it('rejects a string that is not a URL at all', () => {
+  it.each([
+    '한밭식당',
+    // `new URL` runs IDNA on the host and throws outright on a label that claims to be punycode
+    // without being it, so this fails at the parse rather than at the host allowlist.
+    // `collector/validate.py` decodes the host for the same reason — see its own regression case.
+    'https://xn--a.naver.com/x',
+  ])('rejects %s as unparseable', (url) => {
     const payload = validPayload();
-    firstPlace(payload)['naverUrl'] = '한밭식당';
+    firstPlace(payload)['naverUrl'] = url;
 
     expect(() => parseDataset(payload)).toThrow(/places\[0\]\.naverUrl is not a valid URL/);
   });

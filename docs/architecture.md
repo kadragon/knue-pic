@@ -94,7 +94,10 @@ It also runs a tenth, `loader-parity` check, because the nine are not sufficient
 — it is the only dataset string the page puts in an `href`, so the loader checks it rather than
 leaving the scheme to the render site alone. A dataset passing only the nine could therefore still
 leave every visitor on the load-error screen. A gate weaker than the loader it guards is not a
-gate.
+gate. On `naverUrl` the validator is deliberately *stricter*: it holds the host to plain ASCII
+labels and rejects punycode outright, because no Python parser reproduces the browser's IDNA and
+mirroring it approximately is what lets a divergence through. Stricter only ever stops publication,
+which the operator sees; looser reaches a visitor.
 
 Two of the nine need a concrete value the invariant list does not carry:
 
