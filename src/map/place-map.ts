@@ -119,7 +119,15 @@ interface AuthFailureGlobal {
   navermap_authFailure?: () => void;
 }
 
-function setAuthFailureHandler(handler: () => void): void {
+/**
+ * `undefined` deletes the property rather than storing a no-op: the API reads this global to decide
+ * whether anyone is listening, so an installed do-nothing function is not the same as no handler.
+ */
+function setAuthFailureHandler(handler: (() => void) | undefined): void {
+  if (handler === undefined) {
+    delete (globalThis as AuthFailureGlobal).navermap_authFailure;
+    return;
+  }
   (globalThis as AuthFailureGlobal).navermap_authFailure = handler;
 }
 
@@ -138,6 +146,13 @@ export async function renderPlaceMap(
   options: RenderPlaceMapOptions = {},
 ): Promise<PlaceMapHandle> {
   const { loadApi = () => loadNaverMaps() } = options;
+
+  // A previous render's handler closes over a section this call is about to replace: left
+  // installed, it would remove an already-detached canvas and append the fallback where nobody can
+  // see it, while the live map stays up. Clearing here rather than on each exit covers all three —
+  // empty dataset, loader failure, successful mount — and the gap until the new handler is
+  // registered is the awaited load, during which there is no map for the API to reject.
+  setAuthFailureHandler(undefined);
 
   const section = document.createElement('section');
   section.className = 'place-map';
@@ -169,6 +184,9 @@ export async function renderPlaceMap(
     // vendor guarantee — `backlog.md` carries the real-browser check that would settle it. Moving
     // the registration earlier is not the cheap fix it looks like: the `catch` below has already
     // appended the fallback, so a pre-installed handler would append a second one.
+    //
+    // Only this path installs a handler; the entry-clear above is what keeps a re-render from
+    // leaving the previous one behind.
     let live = true;
     setAuthFailureHandler(() => {
       // Idempotent: nothing documents how many times the API calls this, and a second call would

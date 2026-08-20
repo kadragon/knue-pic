@@ -195,3 +195,53 @@ describe('text normalisation', () => {
     expect(parseDataset(payload).places[0]?.name).toBe('한밭식당');
   });
 });
+
+describe('naverUrl', () => {
+  it.each([
+    'https://map.naver.com/p/entry/place/1',
+    'https://naver.me/xAbCdEf',
+    'https://m.map.naver.com/p/entry/place/1',
+    // Both parsers read host `naver.com` and the rest as path — kept so the gate and the
+    // loader are pinned to the same answer on the backslash case in both directions.
+    'https://naver.com\\@evil.com/x',
+    'https://xn--h32b.naver.com/x',
+  ])('accepts %s', (url) => {
+    const payload = validPayload();
+    firstPlace(payload)['naverUrl'] = url;
+
+    expect(parseDataset(payload).places[0]?.naverUrl).toBe(url);
+  });
+
+  it.each([
+    // The sink in `src/ui/place-detail.ts` already refuses this one; the loader must not be the
+    // weaker of the two, since it is what the stats layer and every other reader trust.
+    'javascript:alert(1)',
+    'http://map.naver.com/p/entry/place/1',
+    // A leading dot on the suffix test is the whole point: this host merely ends with `naver.com`.
+    'https://evilnaver.com/p/entry/place/1',
+    'https://example.com/p/entry/place/1',
+    // WHATWG reads the backslash as an authority separator for a special scheme, so the host
+    // here is `evil.com`. `collector/validate.py` normalises the same way; a parser that did
+    // not would pass this at the gate and then blank the site here.
+    'https://evil.com\\@naver.com/x',
+  ])('rejects %s', (url) => {
+    const payload = validPayload();
+    firstPlace(payload)['naverUrl'] = url;
+
+    expect(() => parseDataset(payload)).toThrow(DatasetLoadError);
+    expect(() => parseDataset(payload)).toThrow(/places\[0\]\.naverUrl must be an https URL/);
+  });
+
+  it.each([
+    '한밭식당',
+    // `new URL` runs IDNA on the host and throws outright on a label that claims to be punycode
+    // without being it, so this fails at the parse rather than at the host allowlist.
+    // `collector/validate.py` decodes the host for the same reason — see its own regression case.
+    'https://xn--a.naver.com/x',
+  ])('rejects %s as unparseable', (url) => {
+    const payload = validPayload();
+    firstPlace(payload)['naverUrl'] = url;
+
+    expect(() => parseDataset(payload)).toThrow(/places\[0\]\.naverUrl is not a valid URL/);
+  });
+});

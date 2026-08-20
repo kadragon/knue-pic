@@ -27,6 +27,11 @@ afterEach(() => {
   delete (globalThis as { navermap_authFailure?: () => void }).navermap_authFailure;
 });
 
+/** The property, not a call — the re-render cases assert it is absent rather than a no-op. */
+function authFailureHook(): (() => void) | undefined {
+  return (globalThis as { navermap_authFailure?: () => void }).navermap_authFailure;
+}
+
 async function render(
   api: FakeNaverApi,
   onSelect: (placeId: string) => void = () => {},
@@ -303,6 +308,47 @@ describe('renderPlaceMap degradation', () => {
       handle.select(SAMPLE_DATASET.places[0]!.id);
     }).not.toThrow();
     expect(api.markers.map((marker) => marker.setIconCalls)).toEqual(painted);
+  });
+
+  it('clears the auth-failure hook when a re-render finds no places', async () => {
+    const api = createFakeNaverApi();
+    const { root: first } = await render(api);
+    expect(authFailureHook()).toBeTypeOf('function');
+
+    const second = container();
+    await renderPlaceMap(
+      second,
+      { ...SAMPLE_DATASET, places: [] },
+      computeTopPlaces({ ...SAMPLE_DATASET, places: [] }, '1y', RANKED_LIMIT),
+      () => {},
+      { loadApi: () => Promise.resolve(api) },
+    );
+
+    // The stale closure is gone, so nothing can rewrite the detached first render.
+    expect(authFailureHook()).toBeUndefined();
+    expect(second.querySelector('.place-map-empty')?.textContent).toBe(MAP_EMPTY_MESSAGE);
+    expect(first.querySelector('.place-map-fallback')).toBeNull();
+  });
+
+  it('clears the auth-failure hook when a re-render fails to load the script', async () => {
+    const api = createFakeNaverApi();
+    const { root: first } = await render(api);
+    const firstCanvas = first.querySelector('.place-map-canvas');
+
+    const second = container();
+    await renderPlaceMap(
+      second,
+      SAMPLE_DATASET,
+      computeTopPlaces(SAMPLE_DATASET, '1y', RANKED_LIMIT),
+      () => {},
+      { loadApi: () => Promise.reject(new Error('script blocked')) },
+    );
+
+    expect(authFailureHook()).toBeUndefined();
+    expect(second.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
+    // The first render's canvas is left exactly as it was — no stale handler reached it.
+    expect(first.querySelector('.place-map-canvas')).toBe(firstCanvas);
+    expect(first.querySelector('.place-map-fallback')).toBeNull();
   });
 
   it('falls back when the script loads but the API throws while mounting', async () => {

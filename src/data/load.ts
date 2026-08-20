@@ -116,7 +116,7 @@ function parsePlace(raw: unknown, path: string): PlaceRecord {
     address: requireText(place['address'], `${path}.address`),
     lat: requireCoordinate(place['lat'], `${path}.lat`, 90),
     lng: requireCoordinate(place['lng'], `${path}.lng`, 180),
-    naverUrl: requireText(place['naverUrl'], `${path}.naverUrl`),
+    naverUrl: requireNaverUrl(place['naverUrl'], `${path}.naverUrl`),
     transactions: rawTransactions.map((transaction, index) =>
       parseTransaction(transaction, `${path}.transactions[${index}]`),
     ),
@@ -156,6 +156,41 @@ function requireText(raw: unknown, path: string): string {
     throw new DatasetLoadError(`${path} must be a non-empty string, got ${describe(raw)}`);
   }
   return raw.trim();
+}
+
+/**
+ * `naverUrl` is the only dataset string that reaches an executable position in the app —
+ * `src/ui/place-detail.ts` puts it in an `href`. That sink already refuses a non-`https:` value, but
+ * this module's contract is to reject a bad value before it reaches `src/stats/`/`src/ui/` at all,
+ * the way `lat`/`lng` are range-checked rather than merely non-empty.
+ *
+ * The host allowlist is deliberately narrower than the scheme check: the field names one thing, a
+ * Naver place page, so anything else is a defect in the collector rather than a link worth showing.
+ * The suffix test carries its leading dot on purpose — `evilnaver.com` ends with `naver.com`.
+ */
+const NAVER_HOSTS = ['naver.com', 'naver.me'];
+
+function requireNaverUrl(raw: unknown, path: string): string {
+  const text = requireText(raw, path);
+
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    // A value `new URL` cannot parse is not a URL, which is the same rejection as a wrong scheme.
+    throw new DatasetLoadError(`${path} is not a valid URL: ${describe(text)}`);
+  }
+
+  const hostAllowed = NAVER_HOSTS.some(
+    (host) => url.hostname === host || url.hostname.endsWith(`.${host}`),
+  );
+  if (url.protocol !== 'https:' || !hostAllowed) {
+    throw new DatasetLoadError(
+      `${path} must be an https URL on ${NAVER_HOSTS.join(' or ')}, got ${describe(text)}`,
+    );
+  }
+
+  return text;
 }
 
 function requireCoordinate(raw: unknown, path: string, limit: number): number {

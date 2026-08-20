@@ -25,7 +25,9 @@ import argparse
 import csv
 import json
 import math
+import re
 import sys
+import urllib.parse
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -43,6 +45,14 @@ KOREA_LNG_MAX = 132.0
 # The published file keeps the most recent 12 months, anchored on `updatedAt`
 # (`docs/architecture.md` -> Rolling window). The collector may retain 13 internally; only 12 ship.
 ROLLING_WINDOW_MONTHS = 12
+
+# `naverUrl` is the one dataset string the site puts in an `href`, so `src/data/load.ts` demands
+# an https URL on one of these hosts rather than merely non-empty text. Check 10 exists to be no
+# weaker than that loader; a value this gate waves through would blank the published site.
+NAVER_URL_HOSTS = ("naver.com", "naver.me")
+
+# Plain ASCII LDH labels — see `naver_url_or_none` for why the host is held to this shape.
+ASCII_HOST_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)*")
 
 DEFAULT_CANDIDATES = Path("review_candidates.csv")
 
@@ -145,6 +155,53 @@ def window_floor(anchor: date) -> date:
     total = anchor.year * 12 + (anchor.month - 1) - (ROLLING_WINDOW_MONTHS - 1)
     year, month = divmod(total, 12)
     return date(year, month + 1, 1)
+
+
+def naver_url_or_none(value: Any) -> str | None:
+    """The trimmed URL, or ``None`` when it is not an https URL on an allowed Naver host.
+
+    Mirrors ``requireNaverUrl`` in ``src/data/load.ts``, down to the leading dot on the suffix
+    test — ``evilnaver.com`` ends with ``naver.com`` and must not pass.
+    """
+    text = text_or_none(value)
+    if text is None:
+        return None
+    # WHATWG (what `new URL` in the browser and in `src/data/load.ts` implements) treats a backslash
+    # as an authority separator for special schemes; `urlsplit` treats it as an ordinary character.
+    # Left alone, `https://evil.com\\@naver.com/x` parses here as userinfo `evil.com\\` on host
+    # `naver.com` and passes, while the loader reads host `evil.com` and rejects the whole file —
+    # the gate would publish a dataset that blanks the site. Normalising first removes that gap.
+    #
+    # The two parsers still disagree elsewhere (`https:/naver.com`, a fullwidth `naver。com`), but
+    # only in the safe direction — this gate rejecting what the loader would accept, which stops
+    # publication and shows the operator, instead of reaching a visitor.
+    try:
+        # Both calls are inside the `try` because both raise on input `new URL` merely rejects:
+        # `urlsplit` raises on a malformed IPv6 authority (`https://[::1/x`), and it range-checks
+        # the port only when the attribute is read, so that access is the check, not a lookup.
+        # An escaping exception would abort the whole run with a traceback — the one outcome this
+        # module's docstring rules out — instead of reporting a check-10 violation.
+        parsed = urllib.parse.urlsplit(text.replace("\\", "/"))
+        parsed.port
+    except ValueError:
+        return None
+    if parsed.scheme != "https":
+        return None
+    host = (parsed.hostname or "").lower()
+    if not any(host == allowed or host.endswith(f".{allowed}") for allowed in NAVER_URL_HOSTS):
+        return None
+    # WHATWG runs IDNA on the host; nothing in the standard library reproduces it. Python's `idna`
+    # codec is IDNA2003 and is the looser of the two — it accepts `xn--b0b`, which `new URL`
+    # rejects — so mirroring it closes one case and leaves the next. Instead of chasing that, the
+    # host is required to be plain ASCII letters/digits/hyphens with no `xn--` label at all. For a
+    # host in that shape WHATWG's IDNA step is a no-op, so anything this gate accepts the loader
+    # accepts too — the one-directional invariant holds by construction rather than by corpus.
+    # It costs nothing real: every URL the collector emits is an ASCII `*.naver.com` address.
+    if not ASCII_HOST_RE.fullmatch(host):
+        return None
+    if any(label.startswith("xn--") for label in host.split(".")):
+        return None
+    return text
 
 
 def text_or_none(value: Any) -> str | None:
@@ -324,7 +381,7 @@ def _validate_place(
             )
 
     # Checks 7, 8 and 10 — every field `parsePlace` in `src/data/load.ts` demands as non-empty text.
-    for check, key in ((7, "name"), (8, "address"), (10, "category"), (10, "naverUrl")):
+    for check, key in ((7, "name"), (8, "address"), (10, "category")):
         if text_or_none(place.get(key)) is None:
             violations.append(
                 Violation(
@@ -332,6 +389,16 @@ def _validate_place(
                     f"{path}.{key} must be a non-empty string, got {describe(place.get(key))}",
                 )
             )
+
+    # Also check 10, but the loader wants more than text here — see `naver_url_or_none`.
+    if naver_url_or_none(place.get("naverUrl")) is None:
+        violations.append(
+            Violation(
+                10,
+                f"{path}.naverUrl must be an https URL on "
+                f"{' or '.join(NAVER_URL_HOSTS)}, got {describe(place.get('naverUrl'))}",
+            )
+        )
 
     # Check 9 — the approval gate. Joined on `display_name` because `review_candidates.csv` has no
     # id column and the canonical ID map does not exist yet; see `docs/architecture.md`.

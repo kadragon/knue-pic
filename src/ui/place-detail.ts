@@ -192,9 +192,10 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   section.append(renderHistogram(histogram));
 
   // The only place a dataset string reaches an executable position in this app. `src/data/load.ts`
-  // accepts `naverUrl` as any non-empty string, so a `javascript:` value would run in the page
-  // origin on click; the scheme is therefore checked here, at the sink, and a URL that is not
-  // `https:` renders no link at all rather than an inert-looking one.
+  // now rejects the whole file unless `naverUrl` is an https URL on a Naver host, so a
+  // `javascript:` value never reaches this line — but the check stays, because the cost of being
+  // wrong here is that value running in the page origin on click. A URL that is not `https:`
+  // renders no link at all rather than an inert-looking one.
   if (isHttpsUrl(place.naverUrl)) {
     const link = document.createElement('a');
     link.className = 'place-detail-link';
