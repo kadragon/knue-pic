@@ -122,8 +122,12 @@ Two of the nine need a concrete value the invariant list does not carry:
   `review_candidates.csv` has no `id` column and the canonical ID map is not built yet. The join
   fails closed in three directions: a matched row that is not `approved`, *no* matched row at all
   (an unapproved place is exactly what Golden Principle 2 forbids), and a `display_name` on two
-  rows, which is reported as ambiguous rather than resolved. This is a stopgap — see `backlog.md`
-  for the follow-up that moves the join onto the canonical ID.
+  rows, which is reported as ambiguous rather than resolved. Both sides are keyed in NFC
+  (`normalize_name`): the queue is hand-edited and a macOS paste carries the decomposed spelling of
+  a Korean name, code-point-unequal to Naver's composed one and the same business. A name approved
+  in both forms is therefore one *ambiguous* key rather than two rows, and `build_places.py`
+  normalizes the same way, so it cannot publish a `name` the gate then fails to find. This is a
+  stopgap — see `backlog.md` for the follow-up that moves the join onto the canonical ID.
 
 **Serving.** `data/` is Vite's `publicDir` (`vite.config.ts`), so the file is copied verbatim into
 `dist/` and the browser fetches it at `${BASE_URL}places.json` — `/knue-pic/places.json` in
@@ -144,8 +148,10 @@ complete prior period to compare against.
 
 **Canonical ID.** `restaurant_%06d`, assigned once and never reused. A renamed business keeps its
 ID; a different branch of the same brand is a different place with a different ID. The ID map is
-`collector/id_map.json`, keyed on the normalizer's canonical name and **committed** — it survives
-across runs because losing it silently resets every rank history. `build_places.py` only ever
+`collector/id_map.json`, keyed on the normalizer's canonical name in NFC and **committed** — it
+survives across runs because losing it silently resets every rank history. Keys are normalized on
+read, so a hand-edited decomposed entry still names its place instead of handing it a second ID,
+and two keys that normalize to one stop the build. `build_places.py` only ever
 appends to it, and mints the next number from the highest ever assigned rather than from the entry
 count, so an entry deleted by hand cannot hand its number to a different business.
 
