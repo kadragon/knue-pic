@@ -39,7 +39,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Iterable
 
-from collector.validate import DatasetUnusable, as_number, window_floor
+from collector.validate import DatasetUnusable, as_number, parse_iso_date, window_floor
 
 # `restaurant_%06d`, assigned once and never reused (`docs/architecture.md` -> Canonical ID).
 ID_FORMAT = "restaurant_%06d"
@@ -88,6 +88,14 @@ def text(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
+def parse_float(value: str) -> float | None:
+    """The number the text denotes, or ``None``. Finiteness is ``as_number``'s job, not this."""
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
 def load_approved(path: Path) -> dict[str, Approved]:
     """Approved rows keyed by ``canonical_name``.
 
@@ -110,10 +118,15 @@ def load_approved(path: Path) -> dict[str, Approved]:
                 raise DatasetUnusable(
                     f"{path} is missing column(s): {', '.join(sorted(missing))}")
             rows = list(reader)
-    except OSError as cause:
+    except (OSError, UnicodeDecodeError, csv.Error) as cause:
+        # The operator edits this file by hand, and Excel on a Korean Windows box saves CSV as
+        # CP949 — neither a decode failure nor a malformed row inherits from OSError, so without
+        # the wider tuple both escape as a traceback and the exit-2 contract is lost. Same three
+        # causes `load_approvals` in `validate.py` catches.
         raise DatasetUnusable(f"{path} could not be read: {cause}") from cause
 
     approved: dict[str, Approved] = {}
+    seen_display: dict[str, int] = {}
     for number, row in enumerate(rows, start=2):  # header is line 1
         if text(row.get("status")) != APPROVED:
             continue
@@ -125,7 +138,22 @@ def load_approved(path: Path) -> dict[str, Approved]:
                 f"{path} line {number}: canonical_name {canonical!r} is approved on two rows — "
                 "resolve the duplicate before building")
 
-        display = text(row.get("display_name")) or canonical
+        # `display_name` is the key check 9 joins on, so it carries the same two obligations the
+        # canonical name does. A blank one must not fall back to the canonical name: the fallback
+        # would publish a place whose `name` matches no review row, and check 9 reads that as
+        # unapproved. A repeated one is the ambiguity check 9 refuses to resolve, and refusing it
+        # here costs an operator one edit instead of a minted ID and a blocked deploy.
+        display = text(row.get("display_name"))
+        if not display:
+            raise DatasetUnusable(
+                f"{path} line {number}: approved row {canonical!r} has no display_name — "
+                "the review queue is joined on that column")
+        if display in seen_display:
+            raise DatasetUnusable(
+                f"{path} line {number}: display_name {display!r} is approved on two rows "
+                f"(also line {seen_display[display]}) — resolve the duplicate before building")
+        seen_display[display] = number
+
         # The road address is what a visitor would type into a map; the parcel address is the
         # fallback for the rows Naver returned without one.
         address = text(row.get("road_address")) or text(row.get("address"))
@@ -134,13 +162,16 @@ def load_approved(path: Path) -> dict[str, Approved]:
 
         category = text(row.get("category")).split(">")[0].strip() or UNCLASSIFIED_CATEGORY
 
-        try:
-            lat = float(text(row.get("lat")))
-            lng = float(text(row.get("lng")))
-        except ValueError as cause:
+        # `float` parses "nan" and "inf" without complaint, and `json.dumps` then writes bare
+        # `NaN`/`Infinity` — tokens no browser JSON parser accepts, which turns a data defect into
+        # a whole dataset the site cannot load. `as_number` is the same finiteness test the gate
+        # applies, so the build cannot emit a coordinate the gate would call unusable.
+        lat = as_number(parse_float(text(row.get("lat"))))
+        lng = as_number(parse_float(text(row.get("lng"))))
+        if lat is None or lng is None:
             raise DatasetUnusable(
                 f"{path} line {number}: approved row {display!r} has unusable coordinates "
-                f"({row.get('lat')!r}, {row.get('lng')!r})") from cause
+                f"({row.get('lat')!r}, {row.get('lng')!r})")
 
         approved[canonical] = Approved(canonical, display, category, address, lat, lng)
     return approved
@@ -197,16 +228,27 @@ def collect_transactions(
     approved: dict[str, Approved],
     window_start: date,
     window_end: date,
-) -> tuple[dict[str, list[dict[str, Any]]], int]:
-    """Per-canonical-name transactions inside the window, plus the month count.
+) -> tuple[dict[str, list[dict[str, Any]]], int, int]:
+    """Per-canonical-name transactions inside the window, the month count, and the unusable count.
 
     A transaction is kept only when its venue maps to an *approved* place. Every other outcome --
     a pending row, a rejected one, an excluded venue, a shared-receipt line the normalizer could
     not attribute -- is a venue this pass simply does not find, which is the correct result for all
-    four.
+    four, and is not counted as unusable.
+
+    A row belonging to an approved place that is dropped anyway -- an unparseable date, a
+    negative or non-numeric amount -- *is* counted and reported. Visits are the product's whole
+    ranking signal, so an extraction regression that quietly halves a place's count would move it
+    down the list with nothing saying so. Being outside the window is not a defect and is not
+    counted; that is the trim doing its job.
     """
     by_place: dict[str, list[dict[str, Any]]] = {}
+    unusable = 0
     months = month_dirs(out_dir)
+    if not months:
+        raise DatasetUnusable(
+            f"{out_dir} holds no month directory with both normalized_places.json and "
+            "raw_transactions.json — nothing to build from. Run the collection skill first")
     for month in months:
         index = raw_name_index(read_json(month / "normalized_places.json"),
                                month / "normalized_places.json")
@@ -222,16 +264,19 @@ def collect_transactions(
             if canonical is None or canonical not in approved:
                 continue
             when = row.get("date")
-            if not isinstance(when, str):
-                continue
-            try:
-                parsed = date.fromisoformat(when)
-            except ValueError:
+            # `parse_iso_date`, not `date.fromisoformat`: on 3.11+ the latter also accepts
+            # `20260703` and `2026-W28-1`, and the raw string is what gets written, so the build
+            # would emit a date its own gate rejects at check 5. The gate's parser is the one that
+            # decides what a date is.
+            parsed = parse_iso_date(when)
+            if parsed is None:
+                unusable += 1
                 continue
             if parsed < window_start or parsed > window_end:
                 continue
             amount = as_number(row.get("amount"))
             if amount is None or amount < 0:
+                unusable += 1
                 continue
             # `json` round-trips an integral float as `230000.0`; the wire format and every
             # disclosed figure are whole won, so the integral case is normalised back to `int`.
@@ -240,7 +285,7 @@ def collect_transactions(
 
     for transactions in by_place.values():
         transactions.sort(key=lambda item: (item["date"], item["amount"]))
-    return by_place, len(months)
+    return by_place, len(months), unusable
 
 
 def load_id_map(path: Path) -> dict[str, str]:
@@ -313,11 +358,14 @@ def build(
 
 def write_json(path: Path, payload: Any) -> None:
     """Write via a temp file and rename, so an interrupted run cannot truncate the target."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-                         encoding="utf-8")
-    os.replace(temporary, path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_name(path.name + ".tmp")
+        temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8")
+        os.replace(temporary, path)
+    except OSError as cause:
+        raise DatasetUnusable(f"{path} could not be written: {cause}") from cause
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -341,23 +389,40 @@ def main(argv: list[str] | None = None) -> int:
     updated_at = args.updated_at or date.today()
     window_start = window_floor(updated_at)
 
+    # The writes are inside the `try` with everything else: an unwritable target or a full disk is
+    # a run that could not proceed, and exit 2 is what says so. Escaping as a traceback would look
+    # like a crash to the operator and to any script reading the exit code.
     try:
         approved = load_approved(args.candidates)
-        transactions, months = collect_transactions(
+        transactions, months, unusable = collect_transactions(
             args.out_dir, approved, window_start, updated_at)
         id_map = load_id_map(args.id_map)
         dataset = build(approved, transactions, id_map, updated_at)
+        if approved and months and not dataset["places"]:
+            # Inputs were present and approvals existed, yet nothing survived — every transaction
+            # was dropped or trimmed. The no-month-data guard does not cover this: the months are
+            # there, so the build would write `places: []` and exit 0, and the gate passes an empty
+            # dataset (it has no minimum-place check), so CI would publish a map with nothing on
+            # it. An upstream date-format change is enough to trigger it.
+            raise DatasetUnusable(
+                f"{len(approved)} approved row(s) and {months} month(s) of data produced no "
+                "publishable place — every transaction was dropped or fell outside the window; "
+                "check the collector's output before publishing")
+        write_json(args.id_map, dict(sorted(id_map.items())))
+        write_json(args.output, dataset)
     except DatasetUnusable as cause:
         print(f"cannot build: {cause}", file=sys.stderr)
         return EXIT_UNUSABLE
-
-    write_json(args.id_map, dict(sorted(id_map.items())))
-    write_json(args.output, dataset)
 
     visits = sum(len(place["transactions"]) for place in dataset["places"])
     print(f"{args.output}: {len(dataset['places'])} place(s), {visits} transaction(s) "
           f"from {months} month(s), window {window_start} to {updated_at} "
           f"({len(approved)} approved row(s) in {args.candidates})")
+    if unusable:
+        # Not fatal, but never silent: these rows belong to approved places and were dropped for a
+        # defect, so an extraction regression shows up here instead of as an unexplained rank move.
+        print(f"warning: dropped {unusable} transaction(s) of approved places with an unusable "
+              f"date or amount", file=sys.stderr)
     return EXIT_OK
 
 

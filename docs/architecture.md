@@ -162,9 +162,20 @@ gate cannot disagree about the window. Three fields are derived rather than copi
   learns Naver's internal place ID, so composing one would be a fabrication; a search link is a
   claim the data supports, and the host satisfies both `requireNaverUrl` and check 10.
 
-It fails closed with exit 2 — writing nothing — on a duplicated approved canonical name, an
-approved row with no address, or unparseable coordinates. A place with no transaction inside the
-window is omitted rather than published empty.
+It fails closed with exit 2 — writing nothing — on a duplicated approved `canonical_name` **or
+`display_name`**, an approved row with no `display_name` or no address, coordinates that are
+unparseable or non-finite, an `--out-dir` holding no month data at all, and a run where approved
+rows *and* month data were both present yet no place survived. The last three are the ones worth
+knowing about: `float("nan")` does not raise, so a bare parse would emit JSON no browser accepts,
+and an empty `places` array passes the validator — it has no minimum-place check — so a gitignored
+`collector/out/` on a fresh clone, or an upstream date-format change that drops every transaction,
+would otherwise overwrite the dataset with `places: []`, exit 0, and publish an empty map with a
+green gate. Zero approved rows is *not* one of these: an empty queue correctly builds an empty
+dataset. A place with
+no transaction inside the window is omitted rather than published empty; a transaction belonging to
+an approved place that is dropped for a bad date or amount is counted and warned about on stderr,
+because visits are the ranking signal and a silently absorbed one moves a place with nothing
+saying so.
 
 ## Key Abstractions
 

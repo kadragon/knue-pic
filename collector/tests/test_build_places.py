@@ -175,10 +175,49 @@ def test_duplicate_approved_canonical_name_stops_the_build(fixture: Fixture) -> 
     assert not fixture.output.exists()
 
 
-def test_unparseable_coordinates_on_an_approved_row_stop_the_build(fixture: Fixture) -> None:
-    write_csv(fixture.candidates, [row(lat="", lng="")])
+def test_duplicate_approved_display_name_stops_the_build(fixture: Fixture) -> None:
+    """`display_name` is the column check 9 joins on, so a repeat is the same ambiguity.
+
+    Guarding only the canonical name let two rows with distinct canonical names and one display
+    name build cleanly — two places sharing a `name`, two IDs already minted, and check 9 then
+    reporting both as ambiguous. The refusal belongs here, one operator edit earlier.
+    """
+    write_csv(fixture.candidates, [
+        row(canonical_name="까망염소", display_name="같은이름"),
+        row(canonical_name="만리장성", display_name="같은이름"),
+    ])
     assert fixture.run() == EXIT_UNUSABLE
     assert not fixture.output.exists()
+
+
+def test_blank_display_name_on_an_approved_row_stops_the_build(fixture: Fixture) -> None:
+    """Falling back to the canonical name would publish a place check 9 sees as unapproved."""
+    write_csv(fixture.candidates, [row(display_name="")])
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+@pytest.mark.parametrize("bad", ["", "nan", "inf", "-Infinity", "1e400"])
+def test_unparseable_or_non_finite_coordinates_stop_the_build(fixture: Fixture, bad: str) -> None:
+    """`float("nan")` does not raise; writing it would emit JSON no browser parser accepts."""
+    write_csv(fixture.candidates, [row(lat=bad, lng=bad)])
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+def test_an_out_dir_with_no_month_data_stops_the_build(tmp_path: Path) -> None:
+    """The dangerous case is not "no places" — it is "no inputs", published as an empty map.
+
+    `collector/out/` is gitignored, so a fresh clone or a mistyped `--out-dir` has no months in
+    it. Building on regardless overwrote the dataset with `places: []` and exited 0, and nothing
+    downstream reports the loss: the validator has no minimum-place check, so CI would mark the
+    empty file validated and publish a map with nothing on it.
+    """
+    built = Fixture(tmp_path)
+    write_csv(built.candidates, [row()])
+    built.out_dir.mkdir()
+    assert built.run() == EXIT_UNUSABLE
+    assert not built.output.exists()
 
 
 def test_missing_candidates_file_is_unusable(fixture: Fixture) -> None:
@@ -240,11 +279,35 @@ def test_transactions_after_the_anchor_are_dropped(fixture: Fixture) -> None:
 
 
 def test_a_place_with_no_surviving_transaction_is_not_published(tmp_path: Path) -> None:
+    """One place drops out; another still publishes, so the run is a real dataset."""
+    built = Fixture(tmp_path)
+    write_csv(built.candidates, [row(), row(canonical_name="만리장성", display_name="만리장성")])
+    write_month(built.out_dir, "2024-01", [normalized(), normalized("만리장성")],
+                [transaction(when="2024-01-05"), transaction("만리장성", "2026-07-02")])
+    assert built.run() == EXIT_OK
+    assert [place["name"] for place in built.places()] == ["만리장성"]
+
+
+def test_approved_rows_and_month_data_that_yield_no_place_stop_the_build(
+        tmp_path: Path) -> None:
+    """Inputs present, output empty — the case the no-month-data guard does not cover.
+
+    Every transaction dropped upstream (here, a date format the gate rejects) would otherwise
+    write `places: []` and exit 0. The validator has no minimum-place check, so that empty file
+    passes the gate and CI publishes a map with nothing on it.
+    """
     built = Fixture(tmp_path)
     write_csv(built.candidates, [row()])
-    write_month(built.out_dir, "2024-01", [normalized()], [transaction(when="2024-01-05")])
-    assert built.run() == EXIT_OK
-    assert built.places() == []
+    write_month(built.out_dir, "2026-06", [normalized()], [transaction(when="20260603")])
+    assert built.run() == EXIT_UNUSABLE
+    assert not built.output.exists()
+
+
+def test_no_approved_rows_is_not_an_error(fixture: Fixture) -> None:
+    """The repo's actual state: every row still pending. An empty dataset is correct there."""
+    write_csv(fixture.candidates, [row(status="pending")])
+    assert fixture.run() == EXIT_OK
+    assert fixture.places() == []
 
 
 def test_visits_join_through_every_raw_spelling(fixture: Fixture) -> None:
@@ -286,6 +349,37 @@ def test_a_row_with_no_category_publishes_as_기타(fixture: Fixture) -> None:
     write_csv(fixture.candidates, [row(category="")])
     assert fixture.run() == EXIT_OK
     assert fixture.places()[0]["category"] == UNCLASSIFIED_CATEGORY
+
+
+@pytest.mark.parametrize("when", ["20260713", "2026-W28-1", "2026-07-13T00:00:00", "nonsense"])
+def test_a_date_the_gate_would_reject_is_never_written(fixture: Fixture, when: str) -> None:
+    """`date.fromisoformat` accepts more shapes than the wire format does, on 3.11+.
+
+    The raw string is what reaches the dataset, so parsing with anything looser than the gate's
+    own `parse_iso_date` would emit a date check 5 then rejects — the build and the gate
+    disagreeing about what a date is.
+    """
+    write_month(fixture.out_dir, "2026-06", [normalized()], [transaction(when=when)])
+    assert fixture.run() == EXIT_OK
+    dates = [item["date"] for place in fixture.places() for item in place["transactions"]]
+    assert when not in dates
+
+
+def test_dropped_transactions_of_approved_places_are_reported(
+        fixture: Fixture, capsys: Any) -> None:
+    """Visits are the ranking signal; a silently absorbed one moves a place with nothing saying so."""
+    write_month(fixture.out_dir, "2026-06", [normalized()],
+                [transaction(when="20260601"), transaction(when="2026-06-02", amount=-500)])
+    assert fixture.run() == EXIT_OK
+    assert "dropped 2 transaction(s)" in capsys.readouterr().err
+
+
+def test_an_out_of_window_transaction_is_not_reported_as_dropped(
+        fixture: Fixture, capsys: Any) -> None:
+    """Trimming is the job, not a defect — counting it would cry wolf on every run."""
+    write_month(fixture.out_dir, "2024-01", [normalized()], [transaction(when="2024-01-05")])
+    assert fixture.run() == EXIT_OK
+    assert "dropped" not in capsys.readouterr().err
 
 
 def test_naver_url_is_accepted_by_the_gate_that_guards_the_loader() -> None:
