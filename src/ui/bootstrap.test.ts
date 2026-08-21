@@ -5,7 +5,7 @@ import { MAP_ERROR_MESSAGE } from '../map/place-map';
 import { bootstrap } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-selector';
-import { DETAIL_EMPTY_MESSAGE, periodStatsHeading } from './place-detail';
+import { periodStatsHeading } from './place-detail';
 import { DISCLAIMER, SOURCE_LINE } from './shell';
 import { topPlacesHeading } from './top-places';
 
@@ -208,16 +208,22 @@ describe('bootstrap place selection', () => {
     root.querySelector<HTMLButtonElement>('.top-places-slot .top-place-body')?.click();
   }
 
-  it('fills the detail card from whichever list the place was picked in', async () => {
+  it('fills the detail dialog from whichever list the place was picked in', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    expect(root.querySelector('.detail-slot')?.textContent).toContain(DETAIL_EMPTY_MESSAGE);
+    // Nothing selected yet: the dialog exists but is not shown, so the page does not end in an
+    // empty card explaining a feature the visitor has not used.
+    expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(true);
 
+    const input = root.querySelector<HTMLInputElement>('.place-search-input');
+    input!.value = '황새울';
+    input!.dispatchEvent(new Event('input'));
     root
       .querySelector<HTMLButtonElement>('.place-search-list .place-select[data-place-id="restaurant_000003"]')
       ?.click();
 
+    expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(false);
     expect(root.querySelector('.detail-slot')?.textContent).toContain('황새울분식');
     expect(root.querySelector<HTMLAnchorElement>('.place-detail-link')?.rel).toBe(
       'noopener noreferrer',
@@ -252,14 +258,30 @@ describe('bootstrap place selection', () => {
     button?.focus();
     button?.click();
 
-    // Only the detail container is replaced — an in-progress search query and the discovery list
+    // Only the dialog body is repainted — an in-progress search query and the discovery list
     // survive the selection, asserted by node identity rather than by where focus ended up.
     expect(root.querySelector('.place-search-input')).toBe(searchInput);
     expect(root.querySelector('.trending-slot .discovery-list')).toBe(trendingList);
-    // Focus moves into the card on purpose: it is the last section on the page, so a selection
-    // that left focus on the button would be invisible at 360px.
-    expect(document.activeElement).toBe(root.querySelector('.place-detail'));
+    // Focus moves into the dialog so the selection is announced rather than happening off-screen.
+    expect(document.activeElement).toBe(root.querySelector('.detail-dialog-panel'));
     expect(button).not.toBe(null);
+    root.remove();
+  });
+
+  it('returns focus to the row that opened the dialog when it is closed', async () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    const button = root.querySelector<HTMLButtonElement>('.top-places-slot .top-place-body');
+    button?.focus();
+    button?.click();
+    root.querySelector<HTMLButtonElement>('.detail-dialog-close')?.click();
+
+    // The whole point of the dialog over the old bottom-of-page card: the user keeps their place
+    // in the list they were reading.
+    expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(true);
+    expect(document.activeElement).toBe(button);
     root.remove();
   });
 });
