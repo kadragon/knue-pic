@@ -136,10 +136,19 @@ def load_approved(path: Path) -> dict[str, Approved]:
     # one display name are two places the gate then rejects — whatever their statuses, since a
     # pending row is one operator edit away from being approved into that collision.
     display_rows: dict[str, list[int]] = {}
+    canonical_rows: dict[str, list[int]] = {}
     for number, row in enumerate(rows, start=2):  # header is line 1
         name = normalize_name(row.get("display_name"))
         if name is not None:
             display_rows.setdefault(name, []).append(number)
+        # The canonical name is indexed on the same any-status terms, because it is the key check 9
+        # joins approvals on: `load_approvals` in `validate.py` calls a canonical name ambiguous the
+        # moment a *second* row carries it, whatever that row's status. An approved-rows-only guard
+        # here would build a place, mint it a permanent ID, and hand the gate a dataset it can only
+        # refuse — the build and the gate disagreeing about what one name is.
+        canonical = normalize_name(row.get("canonical_name"))
+        if canonical is not None:
+            canonical_rows.setdefault(canonical, []).append(number)
 
     approved: dict[str, Approved] = {}
     for number, row in enumerate(rows, start=2):
@@ -148,10 +157,12 @@ def load_approved(path: Path) -> dict[str, Approved]:
         canonical = normalize_name(row.get("canonical_name")) or ""
         if not canonical:
             raise DatasetUnusable(f"{path} line {number}: approved row has no canonical_name")
-        if canonical in approved:
+        others = [line for line in canonical_rows.get(canonical, ()) if line != number]
+        if others:
             raise DatasetUnusable(
-                f"{path} line {number}: canonical_name {canonical!r} is approved on two rows — "
-                "resolve the duplicate before building")
+                f"{path} line {number}: canonical_name {canonical!r} is on more than one row "
+                f"(also line {others[0]}) — check 9 reads that as ambiguous whatever the other "
+                "row's status; resolve the duplicate before building")
 
         # `display_name` is what gets published as the place's `name`, so it carries two
         # obligations of its own. A blank one must not fall back to the canonical name: the queue

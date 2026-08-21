@@ -192,17 +192,35 @@ def test_duplicate_approved_display_name_stops_the_build(fixture: Fixture) -> No
 
 
 @pytest.mark.parametrize("status", ["pending", "rejected"])
-def test_an_approved_name_repeated_on_an_unapproved_row_stops_the_build(
+def test_an_approved_display_name_repeated_on_an_unapproved_row_stops_the_build(
         fixture: Fixture, status: str) -> None:
-    """Check 9 counts *rows*, not approvals, so the build has to count them the same way.
+    """A pending row is one operator edit from being approved into a check 11 collision.
 
     Comparing approved rows only let this pair build cleanly and mint an ID, and the gate then
-    refused the dataset as ambiguous — the build and check 9 disagreeing about one name, one step
-    later and one deploy more expensive.
+    refused the dataset — the build and the gate disagreeing about one name, one step later and one
+    deploy more expensive.
     """
     write_csv(fixture.candidates, [
         row(),
         row(status=status, canonical_name="만리장성", display_name="까망염소"),
+    ])
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+@pytest.mark.parametrize("status", ["pending", "rejected"])
+def test_an_approved_canonical_name_repeated_on_an_unapproved_row_stops_the_build(
+        fixture: Fixture, status: str) -> None:
+    """Check 9 counts canonical *rows*, not approvals, so the build has to count them the same way.
+
+    The display names differ here, so the guard above stays silent and only the canonical one can
+    catch it. Comparing approved rows only built this pair cleanly, minted a permanent ID, and left
+    check 9 reporting the published place as ambiguous — a blocked deploy for a dataset the build
+    had already called good.
+    """
+    write_csv(fixture.candidates, [
+        row(),
+        row(status=status, canonical_name="까망염소", display_name="까망염소 복대점"),
     ])
     assert fixture.run() == EXIT_UNUSABLE
     assert not fixture.output.exists()

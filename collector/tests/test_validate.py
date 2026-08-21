@@ -298,7 +298,9 @@ def test_naver_url_accepts_the_hosts_the_loader_accepts() -> None:
         assert check(dataset(place(naverUrl=url)), approvals()) == [], url
 
 
-def test_nan_and_infinity_are_not_valid_json(tmp_path: Path, approved_csv: Path) -> None:
+def test_nan_and_infinity_are_not_valid_json(
+    tmp_path: Path, approved_csv: Path, approved_id_map: Path
+) -> None:
     """Python's json accepts them; RFC 8259 and the browser's `Response.json()` do not."""
     for literal in ("NaN", "Infinity", "-Infinity"):
         json_path = tmp_path / "places.json"

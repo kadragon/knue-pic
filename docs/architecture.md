@@ -179,8 +179,10 @@ gate cannot disagree about the window. Three fields are derived rather than copi
   learns Naver's internal place ID, so composing one would be a fabrication; a search link is a
   claim the data supports, and the host satisfies both `requireNaverUrl` and check 10.
 
-It fails closed with exit 2 — writing nothing — on a duplicated approved `canonical_name` **or
-`display_name`**, an approved row with no `display_name` or no address, coordinates that are
+It fails closed with exit 2 — writing nothing — on a `canonical_name` or a `display_name` that
+appears on more than one row **whatever the other row's status** (check 9 and check 11 count rows,
+not approvals, so the build counts them the same way or it mints a permanent ID for a place the
+gate then refuses), an approved row with no `display_name` or no address, coordinates that are
 unparseable or non-finite, an `--out-dir` holding no month data at all, and a run where approved
 rows *and* month data were both present yet no place survived. The last three are the ones worth
 knowing about: `float("nan")` does not raise, so a bare parse would emit JSON no browser accepts,
