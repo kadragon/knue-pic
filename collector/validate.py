@@ -1,4 +1,4 @@
-"""The publication gate for ``data/places.json`` — the nine checks of PRD §32.
+"""The publication gate for ``data/places.json`` — the PRD §32 checks, and the two beyond them.
 
 ``data/places.json`` is the entire API of this product and it ships verbatim to the public site,
 so this module is the last thing that stands between a bad row and a published one. It is wired
@@ -307,7 +307,7 @@ def validate(
     approvals: dict[str, str],
     duplicate_names: Iterable[str] = (),
 ) -> list[Violation]:
-    """Run all nine checks and return every violation found, in check order per place."""
+    """Run every check and return every violation found, in check order per place."""
     violations: list[Violation] = []
     duplicates = set(duplicate_names)
 
@@ -330,7 +330,7 @@ def validate(
         return violations
 
     seen_ids: set[str] = set()
-    seen_names: set[str] = set()
+    seen_names: dict[str, str] = {}
     for index, place in enumerate(places):
         path = f"places[{index}]"
         if not isinstance(place, dict):
@@ -348,7 +348,7 @@ def _validate_place(
     place: dict[str, Any],
     path: str,
     seen_ids: set[str],
-    seen_names: set[str],
+    seen_names: dict[str, str],
     approvals: dict[str, str],
     duplicates: set[str],
     window_start: date | None,
@@ -436,12 +436,15 @@ def _validate_place(
     if name is not None:
         # Check 11 — one business, one place. Keyed on NFC like check 9, so the composed and the
         # decomposed spelling of one name are the same key rather than two published restaurants.
+        # The message names the *first* occurrence, because that pair is exactly the case where the
+        # two `name` values look identical in the file and the name alone locates nothing.
         if name in seen_names:
             violations.append(
-                Violation(11, f'{path}.name "{original}" is already published under another id')
+                Violation(11, f'{path}.name "{original}" is already published at '
+                              f'{seen_names[name]} — one business, two places')
             )
         else:
-            seen_names.add(name)
+            seen_names[name] = f"{path} (id {place_id})" if place_id is not None else path
 
         if name in duplicates:
             violations.append(
@@ -513,7 +516,7 @@ def count_transactions(dataset: dict[str, Any]) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python3 -m collector.validate",
-        description="Run the nine PRD §32 checks over a built places.json. Non-zero exit = do not publish.",
+        description="Run the publication gate over a built places.json. Non-zero exit = do not publish.",
     )
     parser.add_argument("dataset", type=Path, help="path to the built data/places.json")
     parser.add_argument(

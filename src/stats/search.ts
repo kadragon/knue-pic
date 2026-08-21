@@ -60,9 +60,12 @@ function matchesText(place: PlaceRecord, text: string): boolean {
 
 /** Both filters apply together; dataset order is preserved so the result is stable. */
 export function filterPlaces(dataset: PlacesDataset, query: PlaceQuery): PlaceRecord[] {
+  // The query side is normalized once, not once per place: this runs on every keystroke.
+  const category = query.category === ALL_CATEGORIES ? ALL_CATEGORIES : toNfc(query.category);
+
   return dataset.places.filter(
     (place) =>
-      (query.category === ALL_CATEGORIES || toNfc(place.category) === toNfc(query.category)) &&
+      (category === ALL_CATEGORIES || toNfc(place.category) === category) &&
       matchesText(place, query.text),
   );
 }
