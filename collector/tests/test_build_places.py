@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import json
+import unicodedata
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -185,6 +186,23 @@ def test_duplicate_approved_display_name_stops_the_build(fixture: Fixture) -> No
     write_csv(fixture.candidates, [
         row(canonical_name="까망염소", display_name="같은이름"),
         row(canonical_name="만리장성", display_name="같은이름"),
+    ])
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+@pytest.mark.parametrize("status", ["pending", "rejected"])
+def test_an_approved_name_repeated_on_an_unapproved_row_stops_the_build(
+        fixture: Fixture, status: str) -> None:
+    """Check 9 counts *rows*, not approvals, so the build has to count them the same way.
+
+    Comparing approved rows only let this pair build cleanly and mint an ID, and the gate then
+    refused the dataset as ambiguous — the build and check 9 disagreeing about one name, one step
+    later and one deploy more expensive.
+    """
+    write_csv(fixture.candidates, [
+        row(),
+        row(status=status, canonical_name="만리장성", display_name="까망염소"),
     ])
     assert fixture.run() == EXIT_UNUSABLE
     assert not fixture.output.exists()
@@ -392,3 +410,69 @@ def test_the_built_dataset_passes_the_validator(fixture: Fixture, capsys: Any) -
     assert fixture.run() == EXIT_OK
     capsys.readouterr()
     assert validate_main([str(fixture.output), "--candidates", str(fixture.candidates)]) == 0
+
+
+# --- Unicode normalization ---------------------------------------------------------------------
+
+# The same Korean name reaches the CSV from two hands: a macOS paste carries the decomposed form,
+# Naver's API the composed one. They are code-point-unequal and the same business, so every join
+# below is keyed on NFC — otherwise one restaurant builds as two places with two IDs, and check 9
+# reads a name the build wrote as having no review row.
+NFD = unicodedata.normalize("NFD", "까망염소")
+
+
+def test_a_decomposed_csv_name_publishes_one_place_the_gate_accepts(
+        fixture: Fixture, capsys: Any) -> None:
+    """The CSV in NFD, the normalizer's output in NFC — one place the gate agrees on."""
+    write_csv(fixture.candidates, [row(canonical_name=NFD, display_name=NFD)])
+    assert fixture.run() == EXIT_OK
+    places = fixture.places()
+    assert len(places) == 1
+    assert places[0]["name"] == "까망염소"
+    capsys.readouterr()
+    assert validate_main([str(fixture.output), "--candidates", str(fixture.candidates)]) == 0
+
+
+def test_one_name_approved_in_both_forms_stops_the_build(fixture: Fixture) -> None:
+    """Two spellings of one business is the ambiguity Golden Principle 2 refuses to resolve."""
+    write_csv(fixture.candidates, [row(), row(canonical_name=NFD, display_name=NFD)])
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+def test_an_approved_name_repeated_in_the_other_form_on_an_unapproved_row_stops_the_build(
+        fixture: Fixture) -> None:
+    """The same row-counting rule, reached through normalization rather than a literal repeat."""
+    write_csv(fixture.candidates, [
+        row(),
+        row(status="rejected", canonical_name="만리장성", display_name=NFD),
+    ])
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+def test_visits_join_across_a_normalization_mismatch(fixture: Fixture) -> None:
+    """A decomposed `normalized_places.json` against a composed CSV still attributes its visits."""
+    write_month(fixture.out_dir, "2026-06",
+                [normalized(NFD, raw_names=[NFD])],
+                [transaction(NFD, "2026-06-01")])
+    assert fixture.run() == EXIT_OK
+    assert len(fixture.places()[0]["transactions"]) == 2
+
+
+def test_the_two_forms_share_one_id(fixture: Fixture) -> None:
+    """A re-approval typed in the other form must not mint a second ID for the same place."""
+    assert fixture.run() == EXIT_OK
+    first_id = fixture.places()[0]["id"]
+
+    write_csv(fixture.candidates, [row(canonical_name=NFD, display_name=NFD)])
+    assert fixture.run() == EXIT_OK
+    assert fixture.places()[0]["id"] == first_id
+
+
+def test_a_decomposed_id_map_entry_is_not_minted_a_second_id(fixture: Fixture) -> None:
+    """The map is committed and hand-edited; a decomposed key still names the place it names."""
+    fixture.id_map.write_text(json.dumps({NFD: "restaurant_000007"}, ensure_ascii=False),
+                              encoding="utf-8")
+    assert fixture.run() == EXIT_OK
+    assert fixture.places()[0]["id"] == "restaurant_000007"

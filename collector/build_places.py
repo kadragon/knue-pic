@@ -39,7 +39,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Iterable
 
-from collector.validate import DatasetUnusable, as_number, parse_iso_date, window_floor
+from collector.validate import (DatasetUnusable, as_number, normalize_name, parse_iso_date,
+                                window_floor)
 
 # `restaurant_%06d`, assigned once and never reused (`docs/architecture.md` -> Canonical ID).
 ID_FORMAT = "restaurant_%06d"
@@ -104,6 +105,11 @@ def load_approved(path: Path) -> dict[str, Approved]:
     ``review_candidates.csv`` has no ``id`` column; moving this join onto the canonical ID is the
     follow-up in ``backlog.md`` that this module's ID map unblocks.
 
+    Both names are keyed in NFC (``normalize_name``). The operator edits this file by hand, so one
+    business can arrive composed on one row and decomposed on another; keying on the raw code
+    points would build it as two places with two IDs, and would write a ``name`` that check 9 —
+    which normalizes too — then reads as belonging to a different row.
+
     Fails closed. A duplicated canonical name, a missing coordinate or an unparseable one on an
     *approved* row raises: with no defensible answer to "which row was approved?", publishing
     either is exactly what Golden Principle 2 forbids.
@@ -125,12 +131,21 @@ def load_approved(path: Path) -> dict[str, Approved]:
         # causes `load_approvals` in `validate.py` catches.
         raise DatasetUnusable(f"{path} could not be read: {cause}") from cause
 
-    approved: dict[str, Approved] = {}
-    seen_display: dict[str, int] = {}
+    # Every row's display name, not just the approved ones: check 9 calls a name ambiguous when it
+    # appears on more than one *row* whatever their statuses, so a build that only compared approved
+    # rows would publish a place the gate then rejects — the build and the gate disagreeing about
+    # what one name is, which is the whole defect this module is being fixed for.
+    display_rows: dict[str, list[int]] = {}
     for number, row in enumerate(rows, start=2):  # header is line 1
+        name = normalize_name(row.get("display_name"))
+        if name is not None:
+            display_rows.setdefault(name, []).append(number)
+
+    approved: dict[str, Approved] = {}
+    for number, row in enumerate(rows, start=2):
         if text(row.get("status")) != APPROVED:
             continue
-        canonical = text(row.get("canonical_name"))
+        canonical = normalize_name(row.get("canonical_name")) or ""
         if not canonical:
             raise DatasetUnusable(f"{path} line {number}: approved row has no canonical_name")
         if canonical in approved:
@@ -141,18 +156,19 @@ def load_approved(path: Path) -> dict[str, Approved]:
         # `display_name` is the key check 9 joins on, so it carries the same two obligations the
         # canonical name does. A blank one must not fall back to the canonical name: the fallback
         # would publish a place whose `name` matches no review row, and check 9 reads that as
-        # unapproved. A repeated one is the ambiguity check 9 refuses to resolve, and refusing it
-        # here costs an operator one edit instead of a minted ID and a blocked deploy.
-        display = text(row.get("display_name"))
+        # unapproved. A repeated one is the ambiguity check 9 refuses to resolve — on *any* row,
+        # approved or not — and refusing it here costs an operator one edit instead of a minted ID
+        # and a blocked deploy.
+        display = normalize_name(row.get("display_name")) or ""
         if not display:
             raise DatasetUnusable(
                 f"{path} line {number}: approved row {canonical!r} has no display_name — "
                 "the review queue is joined on that column")
-        if display in seen_display:
+        others = [line for line in display_rows.get(display, ()) if line != number]
+        if others:
             raise DatasetUnusable(
-                f"{path} line {number}: display_name {display!r} is approved on two rows "
-                f"(also line {seen_display[display]}) — resolve the duplicate before building")
-        seen_display[display] = number
+                f"{path} line {number}: display_name {display!r} is on more than one row "
+                f"(also line {others[0]}) — resolve the duplicate before building")
 
         # The road address is what a visitor would type into a map; the parcel address is the
         # fallback for the rows Naver returned without one.
@@ -202,6 +218,10 @@ def month_dirs(out_dir: Path) -> list[Path]:
 def raw_name_index(normalized: Any, path: Path) -> dict[str, str]:
     """``raw venue name`` -> ``canonicalName``, for one month.
 
+    Both sides of the key are NFC (``normalize_name``): the normalizer's output and the review
+    queue are separate files that need not agree on a spelling, and a mismatch here drops every
+    visit of an approved place rather than reporting anything.
+
     Only ``places`` is indexed. ``excluded`` holds the venues a classification rule rejected
     (a wholesaler, a print shop); their transactions must not reach the dataset, and leaving them
     out of the index is what drops them.
@@ -212,12 +232,14 @@ def raw_name_index(normalized: Any, path: Path) -> dict[str, str]:
 
     index: dict[str, str] = {}
     for place in places:
-        canonical = text(place.get("canonicalName")) if isinstance(place, dict) else ""
+        if not isinstance(place, dict):
+            continue
+        canonical = normalize_name(place.get("canonicalName")) or ""
         if not canonical:
             continue
         raw_names = place.get("rawNames")
         for raw in raw_names if isinstance(raw_names, list) else []:
-            name = text(raw)
+            name = normalize_name(raw) or ""
             if name:
                 index[name] = canonical
     return index
@@ -260,7 +282,7 @@ def collect_transactions(
         for row in rows:
             if not isinstance(row, dict):
                 continue
-            canonical = index.get(text(row.get("venue")))
+            canonical = index.get(normalize_name(row.get("venue")) or "")
             if canonical is None or canonical not in approved:
                 continue
             when = row.get("date")
@@ -289,14 +311,29 @@ def collect_transactions(
 
 
 def load_id_map(path: Path) -> dict[str, str]:
-    """The persisted ``canonical_name`` -> id map; an absent file is a first run, not an error."""
+    """The persisted ``canonical_name`` -> id map; an absent file is a first run, not an error.
+
+    Keys are read trimmed and in NFC, matching ``load_approved``. The file is committed and edited
+    by hand, so
+    a decomposed key would otherwise name no approved place and the place would be minted a second
+    ID — the one thing the map exists to prevent. Two keys that normalize to one are fatal: which
+    ID the place keeps is exactly the question this module refuses to answer for the operator.
+    """
     if not path.exists():
         return {}
     parsed = read_json(path)
     if not isinstance(parsed, dict) or not all(
             isinstance(key, str) and isinstance(value, str) for key, value in parsed.items()):
         raise DatasetUnusable(f"{path} must be a JSON object of name -> id strings")
-    return dict(parsed)
+    id_map: dict[str, str] = {}
+    for key, value in parsed.items():
+        name = normalize_name(key) or key
+        if name in id_map and id_map[name] != value:
+            raise DatasetUnusable(
+                f"{path}: {name!r} is mapped to both {id_map[name]!r} and {value!r} — two "
+                "spellings of one name; resolve the duplicate before building")
+        id_map[name] = value
+    return id_map
 
 
 def next_index(id_map: dict[str, str]) -> int:

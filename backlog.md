@@ -6,9 +6,11 @@
 
 ## Review Backlog
 
-### build_places (follow-up, PR #11)
+### NFC join keys (follow-up, PR #12)
 
-- [ ] `[CONSTRAINT]` `collector/build_places.py` compares approved `display_name` values by raw code points, so NFC and NFD spellings of one Korean name build as two places with two IDs. Normalize the key with `unicodedata.normalize("NFC", ...)` — and apply the same normalization in `load_approvals` in `collector/validate.py`, or the build and check 9 disagree about what one name is (source: contract QA on PR #11)
+- [ ] `[CONSTRAINT]` `category` is a join key too, and nothing normalizes it: `collector/build_places.py` copies the CSV's first taxonomy segment verbatim, and `src/stats/search.ts` groups and filters places by exact `category` string, so NFC and NFD spellings of `한식` render two visually identical filter options that each hide the other's places. Normalize it in the build *and* in the browser, or the two disagree again (source: code-review on PR #12)
+- [ ] `[FIX]` `src/stats/search.ts` → `normalize()` does `trim().toLowerCase()` with no `normalize("NFC")`. Now that every published `name` is NFC, a decomposed query string matches nothing at all — an NFD query at least matched an NFD name before PR #12 (source: code-review on PR #12)
+- [ ] `[CONSTRAINT]` `collector/validate.py` has no dataset-level name-uniqueness check — check 1 covers `id` only. A hand-edited `data/places.json` carrying both the NFC and the NFD spelling of one approved name passes check 9 twice: two places, two ids, one business. `build_places.py` can no longer emit that, so the gate is the only thing standing between a hand edit and publication (source: contract QA on PR #12)
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 

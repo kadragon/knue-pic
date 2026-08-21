@@ -27,6 +27,7 @@ import json
 import math
 import re
 import sys
+import unicodedata
 import urllib.parse
 from dataclasses import dataclass
 from datetime import date
@@ -217,6 +218,21 @@ def text_or_none(value: Any) -> str | None:
     return trimmed or None
 
 
+def normalize_name(value: Any) -> str | None:
+    """``text_or_none`` in NFC, for the values a join is keyed on.
+
+    A Korean name reaches the queue from two hands — a macOS paste carries the decomposed spelling,
+    Naver's API the composed one — and the two are code-point-unequal while naming one business.
+    Every name-keyed join in the collector goes through this, so the build and check 9 cannot
+    disagree about what one name is. Names only, which is a scope and not a claim about the other
+    fields: ``src/stats/search.ts`` does group places by exact ``category`` string, so that field has
+    the same defect — tracked in ``backlog.md`` rather than fixed here, because it needs the browser
+    side to agree too.
+    """
+    text = text_or_none(value)
+    return unicodedata.normalize("NFC", text) if text is not None else None
+
+
 def _reject_json_constant(constant: str) -> Any:
     """Python's ``json`` accepts ``NaN``/``Infinity``; RFC 8259 and the browser do not.
 
@@ -248,6 +264,10 @@ def load_dataset(path: Path) -> dict[str, Any]:
 def load_approvals(path: Path) -> tuple[dict[str, str], set[str]]:
     """Map ``display_name`` -> ``status`` from the review queue, plus the ambiguous names.
 
+    Keys are NFC (``normalize_name``), so the two spellings of one Korean name are one key. That
+    makes a name approved in both forms a *duplicate* rather than two independent rows — the
+    ambiguity is surfaced, not resolved.
+
     A name appearing on two rows is returned in the second value rather than resolved: with two
     rows there is no defensible answer to "was this one approved?", so check 9 reports it.
     """
@@ -270,7 +290,7 @@ def load_approvals(path: Path) -> tuple[dict[str, str], set[str]]:
     approvals: dict[str, str] = {}
     duplicates: set[str] = set()
     for row in rows:
-        name = text_or_none(row.get("display_name"))
+        name = normalize_name(row.get("display_name"))
         if name is None:
             continue
         if name in approvals:
@@ -401,20 +421,25 @@ def _validate_place(
         )
 
     # Check 9 — the approval gate. Joined on `display_name` because `review_candidates.csv` has no
-    # id column and the canonical ID map does not exist yet; see `docs/architecture.md`.
-    name = text_or_none(place.get("name"))
+    # id column and the canonical ID map does not exist yet; see `docs/architecture.md`. Both sides
+    # are keyed on NFC (`normalize_name` — `load_approvals` does the same), so a decomposed name in
+    # either file joins the row it names. The messages quote the *file's* spelling, not the key:
+    # the operator has to find that string to fix it.
+    original = text_or_none(place.get("name"))
+    name = normalize_name(place.get("name"))
     if name is not None:
         if name in duplicates:
             violations.append(
-                Violation(9, f'{path}.name "{name}" matches more than one review row — ambiguous')
+                Violation(9,
+                          f'{path}.name "{original}" matches more than one review row — ambiguous')
             )
         elif name not in approvals:
             violations.append(
-                Violation(9, f'{path}.name "{name}" has no row in the review queue')
+                Violation(9, f'{path}.name "{original}" has no row in the review queue')
             )
         elif approvals[name] != "approved":
             violations.append(
-                Violation(9, f'{path}.name "{name}" is "{approvals[name]}", not "approved"')
+                Violation(9, f'{path}.name "{original}" is "{approvals[name]}", not "approved"')
             )
 
     return violations

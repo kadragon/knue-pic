@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import csv
 import json
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -458,3 +459,41 @@ def test_cli_exits_two_when_the_dataset_is_not_utf8(tmp_path: Path, approved_csv
     json_path = tmp_path / "places.json"
     json_path.write_bytes(json.dumps(dataset(), ensure_ascii=False).encode("cp949"))
     assert main([str(json_path), "--candidates", str(approved_csv)]) == EXIT_UNUSABLE
+
+
+# --- Unicode normalization ---------------------------------------------------------------------
+
+# `review_candidates.csv` is edited by hand and `data/places.json` is built from it; a macOS paste
+# carries the decomposed spelling of a Korean name and Naver's API the composed one. Check 9 joins
+# on that name, so both sides are keyed on NFC or the gate reads one business as two.
+NFD_NAME = unicodedata.normalize("NFD", "신토불이교원대점")
+
+
+def test_a_decomposed_dataset_name_matches_a_composed_approval() -> None:
+    assert validate(dataset(place(name=NFD_NAME)), approvals()) == []
+
+
+def test_load_approvals_keys_a_decomposed_name_in_nfc(tmp_path: Path) -> None:
+    approved, duplicates = load_approvals(write_candidates(
+        tmp_path / "review_candidates.csv",
+        [{"status": "approved", "canonical_name": "s", "display_name": NFD_NAME}],
+    ))
+    assert approved == {"신토불이교원대점": "approved"}
+    assert duplicates == set()
+    # End to end: a composed dataset name against that decomposed row passes the gate.
+    assert validate(dataset(), approved, duplicates) == []
+
+
+def test_one_name_approved_in_both_forms_is_still_ambiguous(tmp_path: Path) -> None:
+    """Normalizing the key must not resolve the ambiguity — it is what makes it visible."""
+    approved, duplicates = load_approvals(write_candidates(
+        tmp_path / "review_candidates.csv",
+        [
+            {"status": "approved", "canonical_name": "a", "display_name": "신토불이교원대점"},
+            {"status": "rejected", "canonical_name": "b", "display_name": NFD_NAME},
+        ],
+    ))
+    assert duplicates == {"신토불이교원대점"}
+    violations = validate(dataset(), approved, duplicates)
+    assert checks_reported(violations) == {9}
+    assert "ambiguous" in details(violations)
