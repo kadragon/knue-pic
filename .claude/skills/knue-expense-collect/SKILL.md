@@ -89,7 +89,9 @@ cheaper. Add substring keywords only when the word cannot occur inside a shop or
 **Same shop, different spelling.** Stage 3 merges only exact normalised matches, so
 `본도시락` and `본도시락 오송점` stay separate on purpose: `docs/architecture.md` treats a branch as
 its own place, and nothing in the data proves the bare name means that branch. If you believe two
-rows are one place, say so in the summary and let the reviewer merge — don't pre-merge them.
+rows are one place, say so in the summary and let the reviewer merge — don't pre-merge them. The
+reviewer merges in `collector/aliases.json`, not by editing the queue: the canonical name is what
+the transactions join on, so deleting a row drops its visits instead of merging them.
 
 **Out-of-region venues.** Business trips produce Seoul and Gangneung entries. They are flagged,
 not deleted, because the flag is based on a geocoder guess. The agreed scope is 청주 · 세종 ·

@@ -56,6 +56,7 @@ Run by the operator; never in CI. Full cycle in `docs/workflows.md` → `data-up
 # collection is the knue-expense-collect skill — its SKILL.md holds the five stage commands
 # → writes collector/out/ and appends rows to review_candidates.csv
 # review pending rows by hand: set status to approved / rejected
+# merge spellings of one business in collector/aliases.json (see docs/architecture.md → Build)
 python -m collector.build_places             # emits data/places.json from approved rows
 # → also appends any new place to collector/id_map.json; commit that file with the dataset
 python -m collector.validate data/places.json  # PRD §32 checks; non-zero exit = do not publish

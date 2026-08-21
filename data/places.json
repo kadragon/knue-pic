@@ -2,36 +2,6 @@
   "updatedAt": "2026-08-21",
   "places": [
     {
-      "id": "restaurant_000001",
-      "name": "(오송) 본도시락",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 186 113호",
-      "lat": 36.6311892,
-      "lng": 127.3296024,
-      "naverUrl": "https://map.naver.com/p/search/%28%EC%98%A4%EC%86%A1%29%20%EB%B3%B8%EB%8F%84%EC%8B%9C%EB%9D%BD",
-      "transactions": [
-        {
-          "date": "2026-01-12",
-          "amount": 327800
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000002",
-      "name": "(오송)피자마루",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-6 106호",
-      "lat": 36.6308541,
-      "lng": 127.3293623,
-      "naverUrl": "https://map.naver.com/p/search/%28%EC%98%A4%EC%86%A1%29%ED%94%BC%EC%9E%90%EB%A7%88%EB%A3%A8",
-      "transactions": [
-        {
-          "date": "2025-09-22",
-          "amount": 42800
-        }
-      ]
-    },
-    {
       "id": "restaurant_000003",
       "name": "1004풍천장어",
       "category": "한식",
@@ -47,63 +17,6 @@
       ]
     },
     {
-      "id": "restaurant_000004",
-      "name": "1972송은정보리밥본점",
-      "category": "음식점",
-      "address": "세종특별자치시 조치원읍 세종로 2427 1층",
-      "lat": 36.6039736,
-      "lng": 127.2892084,
-      "naverUrl": "https://map.naver.com/p/search/1972%EC%86%A1%EC%9D%80%EC%A0%95%EB%B3%B4%EB%A6%AC%EB%B0%A5%EB%B3%B8%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2026-04-10",
-          "amount": 90000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000005",
-      "name": "36.5",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 390",
-      "lat": 36.6177543,
-      "lng": 127.3561614,
-      "naverUrl": "https://map.naver.com/p/search/36.5",
-      "transactions": [
-        {
-          "date": "2025-12-11",
-          "amount": 128000
-        },
-        {
-          "date": "2026-01-12",
-          "amount": 20000
-        },
-        {
-          "date": "2026-06-29",
-          "amount": 50000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000006",
-      "name": "36.5<공감>",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 390",
-      "lat": 36.6177543,
-      "lng": 127.3561614,
-      "naverUrl": "https://map.naver.com/p/search/36.5%3C%EA%B3%B5%EA%B0%90%3E",
-      "transactions": [
-        {
-          "date": "2025-11-19",
-          "amount": 46000
-        },
-        {
-          "date": "2025-12-31",
-          "amount": 79000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000007",
       "name": "36.5공감",
       "category": "음식점",
@@ -115,6 +28,10 @@
         {
           "date": "2025-09-01",
           "amount": 120000
+        },
+        {
+          "date": "2025-09-11",
+          "amount": 26000
         },
         {
           "date": "2025-09-18",
@@ -133,8 +50,24 @@
           "amount": 36000
         },
         {
+          "date": "2025-10-01",
+          "amount": 116000
+        },
+        {
           "date": "2025-10-21",
           "amount": 198000
+        },
+        {
+          "date": "2025-11-12",
+          "amount": 21000
+        },
+        {
+          "date": "2025-11-19",
+          "amount": 46000
+        },
+        {
+          "date": "2025-11-21",
+          "amount": 98000
         },
         {
           "date": "2025-11-25",
@@ -161,12 +94,24 @@
           "amount": 104000
         },
         {
+          "date": "2025-12-11",
+          "amount": 128000
+        },
+        {
           "date": "2025-12-23",
           "amount": 85500
         },
         {
+          "date": "2025-12-31",
+          "amount": 79000
+        },
+        {
           "date": "2026-01-07",
           "amount": 143000
+        },
+        {
+          "date": "2026-01-12",
+          "amount": 20000
         },
         {
           "date": "2026-02-03",
@@ -185,12 +130,20 @@
           "amount": 165000
         },
         {
+          "date": "2026-04-17",
+          "amount": 2550000
+        },
+        {
           "date": "2026-05-29",
           "amount": 130000
         },
         {
           "date": "2026-06-02",
           "amount": 76000
+        },
+        {
+          "date": "2026-06-29",
+          "amount": 50000
         },
         {
           "date": "2026-07-14",
@@ -248,21 +201,6 @@
         {
           "date": "2026-01-22",
           "amount": 193000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000011",
-      "name": "vips 청주 커넥트현대점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 2순환로 1225 4층 빕스",
-      "lat": 36.6269924,
-      "lng": 127.4306879,
-      "naverUrl": "https://map.naver.com/p/search/vips%20%EC%B2%AD%EC%A3%BC%20%EC%BB%A4%EB%84%A5%ED%8A%B8%ED%98%84%EB%8C%80%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2026-01-20",
-          "amount": 294720
         }
       ]
     },
@@ -392,40 +330,6 @@
       ]
     },
     {
-      "id": "restaurant_000019",
-      "name": "강내면파리바게뜨",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 강내면 가로수로 534 1층",
-      "lat": 36.6235472,
-      "lng": 127.3594046,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B0%95%EB%82%B4%EB%A9%B4%ED%8C%8C%EB%A6%AC%EB%B0%94%EA%B2%8C%EB%9C%A8",
-      "transactions": [
-        {
-          "date": "2026-05-26",
-          "amount": 75000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000020",
-      "name": "강내집",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 396-10",
-      "lat": 36.6175373,
-      "lng": 127.3561443,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B0%95%EB%82%B4%EC%A7%91",
-      "transactions": [
-        {
-          "date": "2026-01-02",
-          "amount": 250000
-        },
-        {
-          "date": "2026-01-18",
-          "amount": 119000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000021",
       "name": "강서추어탕",
       "category": "한식",
@@ -449,21 +353,6 @@
       ]
     },
     {
-      "id": "restaurant_000022",
-      "name": "경복궁",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 2순환로 1250 3층",
-      "lat": 36.624609,
-      "lng": 127.430767,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B2%BD%EB%B3%B5%EA%B6%81",
-      "transactions": [
-        {
-          "date": "2025-11-28",
-          "amount": 308000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000023",
       "name": "고기싸롱",
       "category": "한식",
@@ -479,25 +368,53 @@
       ]
     },
     {
-      "id": "restaurant_000024",
-      "name": "고메스퀘어",
+      "id": "restaurant_000025",
+      "name": "고메스퀘어 오송점",
       "category": "음식점",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 166 1층",
       "lat": 36.6323721,
       "lng": 127.3301088,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B3%A0%EB%A9%94%EC%8A%A4%ED%80%98%EC%96%B4",
+      "naverUrl": "https://map.naver.com/p/search/%EA%B3%A0%EB%A9%94%EC%8A%A4%ED%80%98%EC%96%B4%20%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-09-03",
+          "amount": 181300
+        },
         {
           "date": "2025-10-02",
           "amount": 310800
+        },
+        {
+          "date": "2025-10-24",
+          "amount": 155400
         },
         {
           "date": "2025-11-19",
           "amount": 77700
         },
         {
+          "date": "2025-11-19",
+          "amount": 239200
+        },
+        {
+          "date": "2025-11-29",
+          "amount": 305100
+        },
+        {
+          "date": "2025-12-01",
+          "amount": 299000
+        },
+        {
+          "date": "2025-12-05",
+          "amount": 336700
+        },
+        {
           "date": "2025-12-09",
           "amount": 77700
+        },
+        {
+          "date": "2025-12-10",
+          "amount": 89700
         },
         {
           "date": "2025-12-18",
@@ -505,10 +422,34 @@
         },
         {
           "date": "2025-12-23",
+          "amount": 119600
+        },
+        {
+          "date": "2025-12-23",
+          "amount": 129500
+        },
+        {
+          "date": "2025-12-23",
           "amount": 336700
         },
         {
           "date": "2025-12-30",
+          "amount": 129500
+        },
+        {
+          "date": "2025-12-30",
+          "amount": 129500
+        },
+        {
+          "date": "2025-12-30",
+          "amount": 233100
+        },
+        {
+          "date": "2026-01-09",
+          "amount": 129500
+        },
+        {
+          "date": "2026-01-09",
           "amount": 233100
         },
         {
@@ -517,6 +458,34 @@
         },
         {
           "date": "2026-01-13",
+          "amount": 310800
+        },
+        {
+          "date": "2026-01-13",
+          "amount": 414400
+        },
+        {
+          "date": "2026-01-15",
+          "amount": 492100
+        },
+        {
+          "date": "2026-01-20",
+          "amount": 129500
+        },
+        {
+          "date": "2026-01-20",
+          "amount": 388500
+        },
+        {
+          "date": "2026-01-21",
+          "amount": 687700
+        },
+        {
+          "date": "2026-01-22",
+          "amount": 181300
+        },
+        {
+          "date": "2026-01-29",
           "amount": 414400
         },
         {
@@ -552,133 +521,6 @@
           "amount": 304000
         },
         {
-          "date": "2026-04-07",
-          "amount": 129500
-        },
-        {
-          "date": "2026-04-14",
-          "amount": 155400
-        },
-        {
-          "date": "2026-05-13",
-          "amount": 1004400
-        },
-        {
-          "date": "2026-05-19",
-          "amount": 328900
-        },
-        {
-          "date": "2026-06-24",
-          "amount": 77700
-        },
-        {
-          "date": "2026-07-08",
-          "amount": 181300
-        },
-        {
-          "date": "2026-07-15",
-          "amount": 233100
-        },
-        {
-          "date": "2026-07-20",
-          "amount": 440300
-        },
-        {
-          "date": "2026-07-29",
-          "amount": 207200
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000025",
-      "name": "고메스퀘어 오송점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 166 1층",
-      "lat": 36.6323721,
-      "lng": 127.3301088,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B3%A0%EB%A9%94%EC%8A%A4%ED%80%98%EC%96%B4%20%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-09-03",
-          "amount": 181300
-        },
-        {
-          "date": "2025-10-24",
-          "amount": 155400
-        },
-        {
-          "date": "2025-11-19",
-          "amount": 239200
-        },
-        {
-          "date": "2025-11-29",
-          "amount": 305100
-        },
-        {
-          "date": "2025-12-01",
-          "amount": 299000
-        },
-        {
-          "date": "2025-12-05",
-          "amount": 336700
-        },
-        {
-          "date": "2025-12-10",
-          "amount": 89700
-        },
-        {
-          "date": "2025-12-23",
-          "amount": 119600
-        },
-        {
-          "date": "2025-12-23",
-          "amount": 129500
-        },
-        {
-          "date": "2025-12-30",
-          "amount": 129500
-        },
-        {
-          "date": "2025-12-30",
-          "amount": 129500
-        },
-        {
-          "date": "2026-01-09",
-          "amount": 129500
-        },
-        {
-          "date": "2026-01-09",
-          "amount": 233100
-        },
-        {
-          "date": "2026-01-13",
-          "amount": 310800
-        },
-        {
-          "date": "2026-01-15",
-          "amount": 492100
-        },
-        {
-          "date": "2026-01-20",
-          "amount": 129500
-        },
-        {
-          "date": "2026-01-20",
-          "amount": 388500
-        },
-        {
-          "date": "2026-01-21",
-          "amount": 687700
-        },
-        {
-          "date": "2026-01-22",
-          "amount": 181300
-        },
-        {
-          "date": "2026-01-29",
-          "amount": 414400
-        },
-        {
           "date": "2026-03-13",
           "amount": 388500
         },
@@ -687,8 +529,24 @@
           "amount": 155400
         },
         {
+          "date": "2026-04-07",
+          "amount": 129500
+        },
+        {
+          "date": "2026-04-14",
+          "amount": 155400
+        },
+        {
           "date": "2026-05-08",
           "amount": 854700
+        },
+        {
+          "date": "2026-05-13",
+          "amount": 1004400
+        },
+        {
+          "date": "2026-05-19",
+          "amount": 328900
         },
         {
           "date": "2026-05-22",
@@ -736,11 +594,31 @@
         },
         {
           "date": "2026-06-24",
+          "amount": 77700
+        },
+        {
+          "date": "2026-06-24",
           "amount": 595700
         },
         {
           "date": "2026-06-25",
           "amount": 59800
+        },
+        {
+          "date": "2026-07-08",
+          "amount": 181300
+        },
+        {
+          "date": "2026-07-15",
+          "amount": 233100
+        },
+        {
+          "date": "2026-07-20",
+          "amount": 440300
+        },
+        {
+          "date": "2026-07-29",
+          "amount": 207200
         }
       ]
     },
@@ -771,48 +649,6 @@
         {
           "date": "2026-06-25",
           "amount": 198000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000028",
-      "name": "공감",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 390",
-      "lat": 36.6177543,
-      "lng": 127.3561614,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B3%B5%EA%B0%90",
-      "transactions": [
-        {
-          "date": "2025-10-01",
-          "amount": 116000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000029",
-      "name": "공감 36.5",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 390",
-      "lat": 36.6177543,
-      "lng": 127.3561614,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B3%B5%EA%B0%90%2036.5",
-      "transactions": [
-        {
-          "date": "2025-09-11",
-          "amount": 26000
-        },
-        {
-          "date": "2025-11-12",
-          "amount": 21000
-        },
-        {
-          "date": "2025-11-21",
-          "amount": 98000
-        },
-        {
-          "date": "2026-04-17",
-          "amount": 2550000
         }
       ]
     },
@@ -875,27 +711,16 @@
       "naverUrl": "https://map.naver.com/p/search/%EA%B5%90%EB%8F%99%EB%A9%B4%EC%98%A5",
       "transactions": [
         {
+          "date": "2025-12-22",
+          "amount": 150000
+        },
+        {
           "date": "2026-01-19",
           "amount": 243000
         },
         {
           "date": "2026-06-30",
           "amount": 246000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000034",
-      "name": "교동면옥 청주죽림점",
-      "category": "한식",
-      "address": "충청북도 청주시 서원구 남이면 대림로 380 교동면옥 청주죽림점",
-      "lat": 36.6045692,
-      "lng": 127.4410433,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B5%90%EB%8F%99%EB%A9%B4%EC%98%A5%20%EC%B2%AD%EC%A3%BC%EC%A3%BD%EB%A6%BC%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-12-22",
-          "amount": 150000
         }
       ]
     },
@@ -1104,33 +929,6 @@
       ]
     },
     {
-      "id": "restaurant_000043",
-      "name": "기운센장어",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 391-50 1층",
-      "lat": 36.617456,
-      "lng": 127.3539821,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B8%B0%EC%9A%B4%EC%84%BC%EC%9E%A5%EC%96%B4",
-      "transactions": [
-        {
-          "date": "2025-09-23",
-          "amount": 454000
-        },
-        {
-          "date": "2025-09-24",
-          "amount": 743000
-        },
-        {
-          "date": "2026-01-13",
-          "amount": 383000
-        },
-        {
-          "date": "2026-03-27",
-          "amount": 193000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000044",
       "name": "기운쎈장어",
       "category": "한식",
@@ -1156,8 +954,16 @@
           "amount": 97000
         },
         {
+          "date": "2025-09-23",
+          "amount": 454000
+        },
+        {
           "date": "2025-09-24",
           "amount": 360000
+        },
+        {
+          "date": "2025-09-24",
+          "amount": 743000
         },
         {
           "date": "2025-10-01",
@@ -1212,6 +1018,10 @@
           "amount": 350000
         },
         {
+          "date": "2026-01-13",
+          "amount": 383000
+        },
+        {
           "date": "2026-01-16",
           "amount": 109000
         },
@@ -1234,6 +1044,10 @@
         {
           "date": "2026-03-25",
           "amount": 442000
+        },
+        {
+          "date": "2026-03-27",
+          "amount": 193000
         },
         {
           "date": "2026-04-02",
@@ -1492,36 +1306,6 @@
       ]
     },
     {
-      "id": "restaurant_000051",
-      "name": "까망카페",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 고락로40번길 25",
-      "lat": 36.6430688,
-      "lng": 127.4002169,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B9%8C%EB%A7%9D%EC%B9%B4%ED%8E%98",
-      "transactions": [
-        {
-          "date": "2025-11-10",
-          "amount": 46500
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000052",
-      "name": "깐치호",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 월탄3길 9 깐치호깐풍기치킨",
-      "lat": 36.6071466,
-      "lng": 127.3542489,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B9%90%EC%B9%98%ED%98%B8",
-      "transactions": [
-        {
-          "date": "2026-01-06",
-          "amount": 90000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000053",
       "name": "깐치호깐풍기치킨",
       "category": "음식점",
@@ -1533,6 +1317,10 @@
         {
           "date": "2025-11-26",
           "amount": 22000
+        },
+        {
+          "date": "2026-01-06",
+          "amount": 90000
         }
       ]
     },
@@ -1588,6 +1376,10 @@
           "amount": 58000
         },
         {
+          "date": "2025-11-18",
+          "amount": 389000
+        },
+        {
           "date": "2025-11-25",
           "amount": 198000
         },
@@ -1608,6 +1400,10 @@
           "amount": 100000
         },
         {
+          "date": "2026-01-11",
+          "amount": 90000
+        },
+        {
           "date": "2026-01-21",
           "amount": 105000
         },
@@ -1626,40 +1422,10 @@
         {
           "date": "2026-04-27",
           "amount": 164000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000057",
-      "name": "나루 스시",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 55-14 101호",
-      "lat": 36.6229647,
-      "lng": 127.3199934,
-      "naverUrl": "https://map.naver.com/p/search/%EB%82%98%EB%A3%A8%20%EC%8A%A4%EC%8B%9C",
-      "transactions": [
+        },
         {
           "date": "2026-05-19",
           "amount": 220000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000058",
-      "name": "나루 오송점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 55-14 101호",
-      "lat": 36.6229647,
-      "lng": 127.3199934,
-      "naverUrl": "https://map.naver.com/p/search/%EB%82%98%EB%A3%A8%20%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-11-18",
-          "amount": 389000
-        },
-        {
-          "date": "2026-01-11",
-          "amount": 90000
         }
       ]
     },
@@ -1777,21 +1543,6 @@
       ]
     },
     {
-      "id": "restaurant_000062",
-      "name": "넉넉피자",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 만수1길 24-11 (트윈하우스 102호) 넉넉피자",
-      "lat": 36.6235624,
-      "lng": 127.3296336,
-      "naverUrl": "https://map.naver.com/p/search/%EB%84%89%EB%84%89%ED%94%BC%EC%9E%90",
-      "transactions": [
-        {
-          "date": "2026-06-11",
-          "amount": 199600
-        }
-      ]
-    },
-    {
       "id": "restaurant_000063",
       "name": "넉넉피자오송점",
       "category": "음식점",
@@ -1803,36 +1554,10 @@
         {
           "date": "2026-04-01",
           "amount": 306000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000064",
-      "name": "네모",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 만수길 17 1층 네모",
-      "lat": 36.6238981,
-      "lng": 127.326963,
-      "naverUrl": "https://map.naver.com/p/search/%EB%84%A4%EB%AA%A8",
-      "transactions": [
+        },
         {
-          "date": "2025-10-01",
-          "amount": 265000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000065",
-      "name": "네모(NEMO)",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 만수길 17 1층 네모",
-      "lat": 36.6238981,
-      "lng": 127.326963,
-      "naverUrl": "https://map.naver.com/p/search/%EB%84%A4%EB%AA%A8%28NEMO%29",
-      "transactions": [
-        {
-          "date": "2026-07-31",
-          "amount": 47200
+          "date": "2026-06-11",
+          "amount": 199600
         }
       ]
     },
@@ -1880,21 +1605,6 @@
       ]
     },
     {
-      "id": "restaurant_000067",
-      "name": "뉴욕버거",
-      "category": "양식",
-      "address": "충청북도 청주시 흥덕구 강내면 월탄리",
-      "lat": 36.6103875,
-      "lng": 127.3585334,
-      "naverUrl": "https://map.naver.com/p/search/%EB%89%B4%EC%9A%95%EB%B2%84%EA%B1%B0",
-      "transactions": [
-        {
-          "date": "2025-11-26",
-          "amount": 94100
-        }
-      ]
-    },
-    {
       "id": "restaurant_000068",
       "name": "뉴욕버거 한국교원대학교점",
       "category": "양식",
@@ -1910,6 +1620,10 @@
         {
           "date": "2025-11-19",
           "amount": 200000
+        },
+        {
+          "date": "2025-11-26",
+          "amount": 94100
         },
         {
           "date": "2025-11-26",
@@ -2122,6 +1836,10 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%A3%BC%EC%8B%9D%ED%9A%8C%EC%82%AC%20%EB%8B%AC%EB%B3%B4%EB%93%9C%EB%A0%88",
       "transactions": [
         {
+          "date": "2025-09-02",
+          "amount": 96000
+        },
+        {
           "date": "2025-09-17",
           "amount": 169000
         },
@@ -2138,6 +1856,14 @@
           "amount": 108000
         },
         {
+          "date": "2025-10-24",
+          "amount": 72000
+        },
+        {
+          "date": "2025-11-07",
+          "amount": 53000
+        },
+        {
           "date": "2025-11-12",
           "amount": 264000
         },
@@ -2146,12 +1872,24 @@
           "amount": 300000
         },
         {
+          "date": "2025-11-18",
+          "amount": 132000
+        },
+        {
           "date": "2025-11-21",
+          "amount": 180000
+        },
+        {
+          "date": "2025-11-25",
           "amount": 180000
         },
         {
           "date": "2025-11-26",
           "amount": 194000
+        },
+        {
+          "date": "2026-01-05",
+          "amount": 44000
         },
         {
           "date": "2026-01-09",
@@ -2166,6 +1904,10 @@
           "amount": 200000
         },
         {
+          "date": "2026-02-10",
+          "amount": 131000
+        },
+        {
           "date": "2026-03-19",
           "amount": 255000
         },
@@ -2178,6 +1920,22 @@
           "amount": 142000
         },
         {
+          "date": "2026-04-28",
+          "amount": 105000
+        },
+        {
+          "date": "2026-05-07",
+          "amount": 200000
+        },
+        {
+          "date": "2026-05-13",
+          "amount": 120000
+        },
+        {
+          "date": "2026-06-10",
+          "amount": 87000
+        },
+        {
           "date": "2026-06-20",
           "amount": 499700
         },
@@ -2188,91 +1946,6 @@
         {
           "date": "2026-07-07",
           "amount": 69000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000079",
-      "name": "달보드레&잡솨보리",
-      "category": "쇼핑,유통",
-      "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 31-10 1층",
-      "lat": 36.6215229,
-      "lng": 127.3622796,
-      "naverUrl": "https://map.naver.com/p/search/%EB%8B%AC%EB%B3%B4%EB%93%9C%EB%A0%88%26%EC%9E%A1%EC%86%A8%EB%B3%B4%EB%A6%AC",
-      "transactions": [
-        {
-          "date": "2026-02-10",
-          "amount": 131000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000080",
-      "name": "달보드레잡솨보리",
-      "category": "쇼핑,유통",
-      "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 31-10 1층",
-      "lat": 36.6215229,
-      "lng": 127.3622796,
-      "naverUrl": "https://map.naver.com/p/search/%EB%8B%AC%EB%B3%B4%EB%93%9C%EB%A0%88%EC%9E%A1%EC%86%A8%EB%B3%B4%EB%A6%AC",
-      "transactions": [
-        {
-          "date": "2025-09-02",
-          "amount": 96000
-        },
-        {
-          "date": "2025-10-24",
-          "amount": 72000
-        },
-        {
-          "date": "2025-11-07",
-          "amount": 53000
-        },
-        {
-          "date": "2025-11-18",
-          "amount": 132000
-        },
-        {
-          "date": "2025-11-25",
-          "amount": 180000
-        },
-        {
-          "date": "2026-01-05",
-          "amount": 44000
-        },
-        {
-          "date": "2026-04-28",
-          "amount": 105000
-        },
-        {
-          "date": "2026-05-13",
-          "amount": 120000
-        },
-        {
-          "date": "2026-06-10",
-          "amount": 87000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000081",
-      "name": "대가",
-      "category": "육류,고기요리",
-      "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 48 1층",
-      "lat": 36.6205042,
-      "lng": 127.363958,
-      "naverUrl": "https://map.naver.com/p/search/%EB%8C%80%EA%B0%80",
-      "transactions": [
-        {
-          "date": "2026-02-09",
-          "amount": 420000
-        },
-        {
-          "date": "2026-06-04",
-          "amount": 85000
-        },
-        {
-          "date": "2026-07-31",
-          "amount": 180000
         }
       ]
     },
@@ -2356,25 +2029,6 @@
       ]
     },
     {
-      "id": "restaurant_000087",
-      "name": "더덕솥뚜껑삼겹살",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 만수길 13-9",
-      "lat": 36.6242037,
-      "lng": 127.3261292,
-      "naverUrl": "https://map.naver.com/p/search/%EB%8D%94%EB%8D%95%EC%86%A5%EB%9A%9C%EA%BB%91%EC%82%BC%EA%B2%B9%EC%82%B4",
-      "transactions": [
-        {
-          "date": "2025-12-03",
-          "amount": 291000
-        },
-        {
-          "date": "2025-12-03",
-          "amount": 332100
-        }
-      ]
-    },
-    {
       "id": "restaurant_000088",
       "name": "더덕솥뚜껑삼겹살 오송점",
       "category": "한식",
@@ -2383,6 +2037,14 @@
       "lng": 127.3261292,
       "naverUrl": "https://map.naver.com/p/search/%EB%8D%94%EB%8D%95%EC%86%A5%EB%9A%9C%EA%BB%91%EC%82%BC%EA%B2%B9%EC%82%B4%20%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-12-03",
+          "amount": 291000
+        },
+        {
+          "date": "2025-12-03",
+          "amount": 332100
+        },
         {
           "date": "2026-02-12",
           "amount": 97000
@@ -2493,25 +2155,6 @@
       ]
     },
     {
-      "id": "restaurant_000094",
-      "name": "도미노피자",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 208-9 102, 103호",
-      "lat": 36.6302619,
-      "lng": 127.3323224,
-      "naverUrl": "https://map.naver.com/p/search/%EB%8F%84%EB%AF%B8%EB%85%B8%ED%94%BC%EC%9E%90",
-      "transactions": [
-        {
-          "date": "2025-12-08",
-          "amount": 439400
-        },
-        {
-          "date": "2026-03-30",
-          "amount": 82400
-        }
-      ]
-    },
-    {
       "id": "restaurant_000095",
       "name": "도미노피자 오송점",
       "category": "음식점",
@@ -2527,6 +2170,14 @@
         {
           "date": "2025-11-27",
           "amount": 220200
+        },
+        {
+          "date": "2025-12-08",
+          "amount": 439400
+        },
+        {
+          "date": "2026-03-30",
+          "amount": 82400
         }
       ]
     },
@@ -2656,27 +2307,24 @@
           "amount": 105000
         },
         {
+          "date": "2026-05-04",
+          "amount": 57000
+        },
+        {
           "date": "2026-05-06",
           "amount": 90000
         },
         {
-          "date": "2026-05-27",
-          "amount": 44900
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000101",
-      "name": "동근이숯불두마리치킨(강내오송점)",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 월탄3길 26-4",
-      "lat": 36.6082381,
-      "lng": 127.3557886,
-      "naverUrl": "https://map.naver.com/p/search/%EB%8F%99%EA%B7%BC%EC%9D%B4%EC%88%AF%EB%B6%88%EB%91%90%EB%A7%88%EB%A6%AC%EC%B9%98%ED%82%A8%28%EA%B0%95%EB%82%B4%EC%98%A4%EC%86%A1%EC%A0%90%29",
-      "transactions": [
+          "date": "2026-05-20",
+          "amount": 36200
+        },
         {
           "date": "2026-05-20",
           "amount": 80900
+        },
+        {
+          "date": "2026-05-27",
+          "amount": 44900
         },
         {
           "date": "2026-06-08",
@@ -2770,51 +2418,6 @@
       ]
     },
     {
-      "id": "restaurant_000105",
-      "name": "돝",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 377 1층 103호",
-      "lat": 36.6207885,
-      "lng": 127.3236726,
-      "naverUrl": "https://map.naver.com/p/search/%EB%8F%9D",
-      "transactions": [
-        {
-          "date": "2025-12-17",
-          "amount": 174200
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000106",
-      "name": "돝(DOT)",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 377 1층 103호",
-      "lat": 36.6207885,
-      "lng": 127.3236726,
-      "naverUrl": "https://map.naver.com/p/search/%EB%8F%9D%28DOT%29",
-      "transactions": [
-        {
-          "date": "2026-06-09",
-          "amount": 284800
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000107",
-      "name": "돝dot",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 377 1층 103호",
-      "lat": 36.6207885,
-      "lng": 127.3236726,
-      "naverUrl": "https://map.naver.com/p/search/%EB%8F%9Ddot",
-      "transactions": [
-        {
-          "date": "2025-11-25",
-          "amount": 172300
-        }
-      ]
-    },
-    {
       "id": "restaurant_000108",
       "name": "두꺼비집",
       "category": "음식점",
@@ -2890,17 +2493,25 @@
       ]
     },
     {
-      "id": "restaurant_000113",
-      "name": "디저트39",
+      "id": "restaurant_000116",
+      "name": "디저트39 한국교원대점",
       "category": "카페,디저트",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 386 디저트39 한국교원대점",
       "lat": 36.6173791,
       "lng": 127.3559085,
-      "naverUrl": "https://map.naver.com/p/search/%EB%94%94%EC%A0%80%ED%8A%B839",
+      "naverUrl": "https://map.naver.com/p/search/%EB%94%94%EC%A0%80%ED%8A%B839%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%80%EC%A0%90",
       "transactions": [
         {
           "date": "2025-10-14",
           "amount": 111000
+        },
+        {
+          "date": "2025-10-20",
+          "amount": 20700
+        },
+        {
+          "date": "2025-11-02",
+          "amount": 125000
         },
         {
           "date": "2025-11-18",
@@ -2911,85 +2522,12 @@
           "amount": 146400
         },
         {
-          "date": "2025-11-25",
-          "amount": 87300
-        },
-        {
-          "date": "2026-03-13",
-          "amount": 34300
-        },
-        {
-          "date": "2026-04-27",
-          "amount": 99500
-        },
-        {
-          "date": "2026-05-06",
-          "amount": 54800
-        },
-        {
-          "date": "2026-05-22",
-          "amount": 80400
-        },
-        {
-          "date": "2026-05-26",
-          "amount": 232000
-        },
-        {
-          "date": "2026-06-02",
-          "amount": 37000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000114",
-      "name": "디저트39 교원대점",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 386 디저트39 한국교원대점",
-      "lat": 36.6173791,
-      "lng": 127.3559085,
-      "naverUrl": "https://map.naver.com/p/search/%EB%94%94%EC%A0%80%ED%8A%B839%20%EA%B5%90%EC%9B%90%EB%8C%80%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2026-04-28",
-          "amount": 32900
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000115",
-      "name": "디저트39 한국교원대",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 386 디저트39 한국교원대점",
-      "lat": 36.6173791,
-      "lng": 127.3559085,
-      "naverUrl": "https://map.naver.com/p/search/%EB%94%94%EC%A0%80%ED%8A%B839%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%80",
-      "transactions": [
-        {
-          "date": "2026-05-06",
-          "amount": 66600
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000116",
-      "name": "디저트39 한국교원대점",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 386 디저트39 한국교원대점",
-      "lat": 36.6173791,
-      "lng": 127.3559085,
-      "naverUrl": "https://map.naver.com/p/search/%EB%94%94%EC%A0%80%ED%8A%B839%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%80%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-10-20",
-          "amount": 20700
-        },
-        {
-          "date": "2025-11-02",
-          "amount": 125000
-        },
-        {
           "date": "2025-11-24",
           "amount": 28000
+        },
+        {
+          "date": "2025-11-25",
+          "amount": 87300
         },
         {
           "date": "2025-12-08",
@@ -3008,6 +2546,10 @@
           "amount": 31900
         },
         {
+          "date": "2026-03-13",
+          "amount": 34300
+        },
+        {
           "date": "2026-03-25",
           "amount": 34700
         },
@@ -3020,8 +2562,32 @@
           "amount": 100000
         },
         {
+          "date": "2026-04-27",
+          "amount": 99500
+        },
+        {
+          "date": "2026-04-28",
+          "amount": 32900
+        },
+        {
+          "date": "2026-05-06",
+          "amount": 54800
+        },
+        {
+          "date": "2026-05-06",
+          "amount": 66600
+        },
+        {
+          "date": "2026-05-22",
+          "amount": 80400
+        },
+        {
           "date": "2026-05-22",
           "amount": 299900
+        },
+        {
+          "date": "2026-05-26",
+          "amount": 232000
         },
         {
           "date": "2026-05-30",
@@ -3032,23 +2598,12 @@
           "amount": 100000
         },
         {
+          "date": "2026-06-02",
+          "amount": 37000
+        },
+        {
           "date": "2026-07-07",
           "amount": 25600
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000117",
-      "name": "떡마마",
-      "category": "전통식품",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-4 1층 101호",
-      "lat": 36.6305627,
-      "lng": 127.3297356,
-      "naverUrl": "https://map.naver.com/p/search/%EB%96%A1%EB%A7%88%EB%A7%88",
-      "transactions": [
-        {
-          "date": "2025-11-27",
-          "amount": 180000
         }
       ]
     },
@@ -3068,25 +2623,6 @@
       ]
     },
     {
-      "id": "restaurant_000119",
-      "name": "떡마마 오송점",
-      "category": "전통식품",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-4 1층 101호",
-      "lat": 36.6305627,
-      "lng": 127.3297356,
-      "naverUrl": "https://map.naver.com/p/search/%EB%96%A1%EB%A7%88%EB%A7%88%20%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-11-11",
-          "amount": 103000
-        },
-        {
-          "date": "2026-01-20",
-          "amount": 175000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000120",
       "name": "떡마마 청주오송점",
       "category": "전통식품",
@@ -3095,6 +2631,22 @@
       "lng": 127.3297356,
       "naverUrl": "https://map.naver.com/p/search/%EB%96%A1%EB%A7%88%EB%A7%88%20%EC%B2%AD%EC%A3%BC%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-11-11",
+          "amount": 103000
+        },
+        {
+          "date": "2025-11-27",
+          "amount": 180000
+        },
+        {
+          "date": "2026-01-20",
+          "amount": 175000
+        },
+        {
+          "date": "2026-02-11",
+          "amount": 294000
+        },
         {
           "date": "2026-04-17",
           "amount": 61000
@@ -3133,21 +2685,6 @@
       ]
     },
     {
-      "id": "restaurant_000122",
-      "name": "뚜레쥬르",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 118 상가 3동 104호 뚜레쥬르",
-      "lat": 36.618469,
-      "lng": 127.3120554,
-      "naverUrl": "https://map.naver.com/p/search/%EB%9A%9C%EB%A0%88%EC%A5%AC%EB%A5%B4",
-      "transactions": [
-        {
-          "date": "2025-11-11",
-          "amount": 106900
-        }
-      ]
-    },
-    {
       "id": "restaurant_000123",
       "name": "뚜레쥬르 오송센트럴시티",
       "category": "카페,디저트",
@@ -3169,6 +2706,10 @@
           "amount": 42100
         },
         {
+          "date": "2025-11-11",
+          "amount": 106900
+        },
+        {
           "date": "2025-11-20",
           "amount": 159800
         },
@@ -3179,21 +2720,6 @@
         {
           "date": "2025-11-20",
           "amount": 249000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000124",
-      "name": "뚜레쥬르 오송파라곤",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 164",
-      "lat": 36.6215449,
-      "lng": 127.3175428,
-      "naverUrl": "https://map.naver.com/p/search/%EB%9A%9C%EB%A0%88%EC%A5%AC%EB%A5%B4%20%EC%98%A4%EC%86%A1%ED%8C%8C%EB%9D%BC%EA%B3%A4",
-      "transactions": [
-        {
-          "date": "2026-06-20",
-          "amount": 82580
         }
       ]
     },
@@ -3209,6 +2735,10 @@
         {
           "date": "2025-11-11",
           "amount": 167600
+        },
+        {
+          "date": "2026-06-20",
+          "amount": 82580
         }
       ]
     },
@@ -4169,21 +3699,6 @@
       ]
     },
     {
-      "id": "restaurant_000154",
-      "name": "맨스그릴",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 166 2층",
-      "lat": 36.6318975,
-      "lng": 127.3274685,
-      "naverUrl": "https://map.naver.com/p/search/%EB%A7%A8%EC%8A%A4%EA%B7%B8%EB%A6%B4",
-      "transactions": [
-        {
-          "date": "2025-12-05",
-          "amount": 175000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000155",
       "name": "먹벙감자탕",
       "category": "한식",
@@ -4414,21 +3929,6 @@
       ]
     },
     {
-      "id": "restaurant_000161",
-      "name": "명성보리밥",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강내면 가로수로 501 명성보리밥쌈밥",
-      "lat": 36.623807,
-      "lng": 127.3556072,
-      "naverUrl": "https://map.naver.com/p/search/%EB%AA%85%EC%84%B1%EB%B3%B4%EB%A6%AC%EB%B0%A5",
-      "transactions": [
-        {
-          "date": "2026-06-30",
-          "amount": 39000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000162",
       "name": "명성보리밥쌈밥",
       "category": "한식",
@@ -4444,6 +3944,10 @@
         {
           "date": "2025-12-23",
           "amount": 280500
+        },
+        {
+          "date": "2026-06-30",
+          "amount": 39000
         }
       ]
     },
@@ -4463,44 +3967,6 @@
       ]
     },
     {
-      "id": "restaurant_000164",
-      "name": "명장갈비",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송가락로 259",
-      "lat": 36.6295246,
-      "lng": 127.33317,
-      "naverUrl": "https://map.naver.com/p/search/%EB%AA%85%EC%9E%A5%EA%B0%88%EB%B9%84",
-      "transactions": [
-        {
-          "date": "2025-10-29",
-          "amount": 58000
-        },
-        {
-          "date": "2026-06-13",
-          "amount": 105000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000165",
-      "name": "명장갈비(오송점)",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송가락로 259",
-      "lat": 36.6295246,
-      "lng": 127.33317,
-      "naverUrl": "https://map.naver.com/p/search/%EB%AA%85%EC%9E%A5%EA%B0%88%EB%B9%84%28%EC%98%A4%EC%86%A1%EC%A0%90%29",
-      "transactions": [
-        {
-          "date": "2025-10-17",
-          "amount": 420000
-        },
-        {
-          "date": "2026-01-30",
-          "amount": 199000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000166",
       "name": "명장갈비 오송점",
       "category": "음식점",
@@ -4509,6 +3975,18 @@
       "lng": 127.33317,
       "naverUrl": "https://map.naver.com/p/search/%EB%AA%85%EC%9E%A5%EA%B0%88%EB%B9%84%20%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-10-17",
+          "amount": 420000
+        },
+        {
+          "date": "2025-10-29",
+          "amount": 58000
+        },
+        {
+          "date": "2026-01-30",
+          "amount": 199000
+        },
         {
           "date": "2026-01-30",
           "amount": 200000
@@ -4520,6 +3998,10 @@
         {
           "date": "2026-05-29",
           "amount": 190500
+        },
+        {
+          "date": "2026-06-13",
+          "amount": 105000
         }
       ]
     },
@@ -4591,21 +4073,6 @@
         {
           "date": "2026-07-16",
           "amount": 54000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000168",
-      "name": "명품한우",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 연제1길 24-35 1층 107호~110호",
-      "lat": 36.6264649,
-      "lng": 127.3225712,
-      "naverUrl": "https://map.naver.com/p/search/%EB%AA%85%ED%92%88%ED%95%9C%EC%9A%B0",
-      "transactions": [
-        {
-          "date": "2026-06-01",
-          "amount": 178800
         }
       ]
     },
@@ -4910,21 +4377,6 @@
       ]
     },
     {
-      "id": "restaurant_000185",
-      "name": "버거킹 오송점",
-      "category": "양식",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 178",
-      "lat": 36.6313707,
-      "lng": 127.3291117,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B2%84%EA%B1%B0%ED%82%B9%20%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-11-24",
-          "amount": 56900
-        }
-      ]
-    },
-    {
       "id": "restaurant_000186",
       "name": "버거킹 청주오송점",
       "category": "양식",
@@ -4936,6 +4388,10 @@
         {
           "date": "2025-11-05",
           "amount": 55200
+        },
+        {
+          "date": "2025-11-24",
+          "amount": 56900
         }
       ]
     },
@@ -5050,21 +4506,6 @@
       ]
     },
     {
-      "id": "restaurant_000193",
-      "name": "복호두",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강서로 111 강서베리굿 2차 1층 105호",
-      "lat": 36.6249919,
-      "lng": 127.4287025,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B3%B5%ED%98%B8%EB%91%90",
-      "transactions": [
-        {
-          "date": "2025-12-24",
-          "amount": 194000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000194",
       "name": "복호두청주터미널",
       "category": "음식점",
@@ -5073,6 +4514,10 @@
       "lng": 127.4287025,
       "naverUrl": "https://map.naver.com/p/search/%EB%B3%B5%ED%98%B8%EB%91%90%EC%B2%AD%EC%A3%BC%ED%84%B0%EB%AF%B8%EB%84%90",
       "transactions": [
+        {
+          "date": "2025-12-24",
+          "amount": 194000
+        },
         {
           "date": "2026-05-27",
           "amount": 495000
@@ -5133,105 +4578,6 @@
       ]
     },
     {
-      "id": "restaurant_000198",
-      "name": "본도시락",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 186 113호",
-      "lat": 36.6311892,
-      "lng": 127.3296024,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B3%B8%EB%8F%84%EC%8B%9C%EB%9D%BD",
-      "transactions": [
-        {
-          "date": "2025-09-25",
-          "amount": 525600
-        },
-        {
-          "date": "2025-11-10",
-          "amount": 64200
-        },
-        {
-          "date": "2025-11-12",
-          "amount": 90300
-        },
-        {
-          "date": "2025-11-21",
-          "amount": 123200
-        },
-        {
-          "date": "2025-11-24",
-          "amount": 316600
-        },
-        {
-          "date": "2025-11-25",
-          "amount": 160300
-        },
-        {
-          "date": "2025-11-26",
-          "amount": 41200
-        },
-        {
-          "date": "2025-12-03",
-          "amount": 109800
-        },
-        {
-          "date": "2025-12-05",
-          "amount": 122600
-        },
-        {
-          "date": "2026-01-21",
-          "amount": 124100
-        },
-        {
-          "date": "2026-03-19",
-          "amount": 163100
-        },
-        {
-          "date": "2026-04-09",
-          "amount": 94300
-        },
-        {
-          "date": "2026-04-22",
-          "amount": 428800
-        },
-        {
-          "date": "2026-04-24",
-          "amount": 61600
-        },
-        {
-          "date": "2026-04-27",
-          "amount": 107800
-        },
-        {
-          "date": "2026-05-26",
-          "amount": 118300
-        },
-        {
-          "date": "2026-06-04",
-          "amount": 135200
-        },
-        {
-          "date": "2026-06-10",
-          "amount": 122400
-        },
-        {
-          "date": "2026-06-16",
-          "amount": 77500
-        },
-        {
-          "date": "2026-06-17",
-          "amount": 136000
-        },
-        {
-          "date": "2026-07-02",
-          "amount": 108800
-        },
-        {
-          "date": "2026-07-15",
-          "amount": 326400
-        }
-      ]
-    },
-    {
       "id": "restaurant_000199",
       "name": "본도시락 오송점",
       "category": "음식점",
@@ -5257,6 +4603,10 @@
           "amount": 355700
         },
         {
+          "date": "2025-09-25",
+          "amount": 525600
+        },
+        {
           "date": "2025-10-27",
           "amount": 328800
         },
@@ -5273,8 +4623,32 @@
           "amount": 175300
         },
         {
+          "date": "2025-11-10",
+          "amount": 64200
+        },
+        {
+          "date": "2025-11-12",
+          "amount": 90300
+        },
+        {
           "date": "2025-11-19",
           "amount": 447000
+        },
+        {
+          "date": "2025-11-21",
+          "amount": 123200
+        },
+        {
+          "date": "2025-11-24",
+          "amount": 316600
+        },
+        {
+          "date": "2025-11-25",
+          "amount": 160300
+        },
+        {
+          "date": "2025-11-26",
+          "amount": 41200
         },
         {
           "date": "2025-11-28",
@@ -5286,7 +4660,15 @@
         },
         {
           "date": "2025-12-03",
+          "amount": 109800
+        },
+        {
+          "date": "2025-12-03",
           "amount": 128100
+        },
+        {
+          "date": "2025-12-05",
+          "amount": 122600
         },
         {
           "date": "2025-12-16",
@@ -5317,12 +4699,20 @@
           "amount": 187200
         },
         {
+          "date": "2026-01-12",
+          "amount": 327800
+        },
+        {
           "date": "2026-01-13",
           "amount": 298000
         },
         {
           "date": "2026-01-14",
           "amount": 297900
+        },
+        {
+          "date": "2026-01-21",
+          "amount": 124100
         },
         {
           "date": "2026-01-26",
@@ -5334,11 +4724,23 @@
         },
         {
           "date": "2026-01-28",
+          "amount": 116100
+        },
+        {
+          "date": "2026-01-28",
           "amount": 120900
         },
         {
           "date": "2026-03-11",
           "amount": 180000
+        },
+        {
+          "date": "2026-03-19",
+          "amount": 163100
+        },
+        {
+          "date": "2026-04-09",
+          "amount": 94300
         },
         {
           "date": "2026-04-20",
@@ -5349,8 +4751,20 @@
           "amount": 329400
         },
         {
+          "date": "2026-04-22",
+          "amount": 428800
+        },
+        {
+          "date": "2026-04-24",
+          "amount": 61600
+        },
+        {
           "date": "2026-04-24",
           "amount": 178800
+        },
+        {
+          "date": "2026-04-27",
+          "amount": 107800
         },
         {
           "date": "2026-04-28",
@@ -5373,35 +4787,52 @@
           "amount": 105700
         },
         {
+          "date": "2026-05-14",
+          "amount": 103200
+        },
+        {
           "date": "2026-05-21",
           "amount": 74400
+        },
+        {
+          "date": "2026-05-26",
+          "amount": 118300
         },
         {
           "date": "2026-05-26",
           "amount": 289400
         },
         {
+          "date": "2026-06-04",
+          "amount": 135200
+        },
+        {
           "date": "2026-06-05",
           "amount": 71000
         },
         {
+          "date": "2026-06-10",
+          "amount": 122400
+        },
+        {
+          "date": "2026-06-16",
+          "amount": 77500
+        },
+        {
+          "date": "2026-06-17",
+          "amount": 136000
+        },
+        {
+          "date": "2026-07-02",
+          "amount": 108800
+        },
+        {
           "date": "2026-07-02",
           "amount": 206700
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000200",
-      "name": "본죽",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 146 1층 105호",
-      "lat": 36.620392,
-      "lng": 127.3159595,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B3%B8%EC%A3%BD",
-      "transactions": [
+        },
         {
-          "date": "2025-11-04",
-          "amount": 70000
+          "date": "2026-07-15",
+          "amount": 326400
         }
       ]
     },
@@ -5414,6 +4845,10 @@
       "lng": 127.3159595,
       "naverUrl": "https://map.naver.com/p/search/%EB%B3%B8%EC%A3%BD%26%EB%B9%84%EB%B9%94%EB%B0%A5",
       "transactions": [
+        {
+          "date": "2025-11-04",
+          "amount": 70000
+        },
         {
           "date": "2026-01-23",
           "amount": 54000
@@ -5581,6 +5016,10 @@
       "naverUrl": "https://map.naver.com/p/search/%EB%B8%8C%EB%9D%BC%EB%8D%94%ED%95%9C%EC%A0%95%EC%8B%9D%EB%8F%84%EC%8B%9C%EB%9D%BD",
       "transactions": [
         {
+          "date": "2025-11-24",
+          "amount": 322000
+        },
+        {
           "date": "2025-12-10",
           "amount": 213000
         },
@@ -5593,46 +5032,20 @@
           "amount": 128000
         },
         {
+          "date": "2026-05-18",
+          "amount": 91000
+        },
+        {
+          "date": "2026-07-14",
+          "amount": 49000
+        },
+        {
           "date": "2026-07-29",
           "amount": 195000
         },
         {
           "date": "2026-07-29",
           "amount": 207500
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000212",
-      "name": "브라더한정식도시락 오송",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 연제만수길 54 102호",
-      "lat": 36.624284,
-      "lng": 127.3292328,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B8%8C%EB%9D%BC%EB%8D%94%ED%95%9C%EC%A0%95%EC%8B%9D%EB%8F%84%EC%8B%9C%EB%9D%BD%20%EC%98%A4%EC%86%A1",
-      "transactions": [
-        {
-          "date": "2026-05-18",
-          "amount": 91000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000213",
-      "name": "브라더한정식도시락 오송점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 연제만수길 54 102호",
-      "lat": 36.624284,
-      "lng": 127.3292328,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B8%8C%EB%9D%BC%EB%8D%94%ED%95%9C%EC%A0%95%EC%8B%9D%EB%8F%84%EC%8B%9C%EB%9D%BD%20%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-11-24",
-          "amount": 322000
-        },
-        {
-          "date": "2026-07-14",
-          "amount": 49000
         }
       ]
     },
@@ -5652,105 +5065,6 @@
         {
           "date": "2026-04-06",
           "amount": 72100
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000215",
-      "name": "브리드커피",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 250 학생회관 1층",
-      "lat": 36.6083878,
-      "lng": 127.3597916,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B8%8C%EB%A6%AC%EB%93%9C%EC%BB%A4%ED%94%BC",
-      "transactions": [
-        {
-          "date": "2025-09-02",
-          "amount": 20000
-        },
-        {
-          "date": "2025-09-09",
-          "amount": 20000
-        },
-        {
-          "date": "2025-09-18",
-          "amount": 92000
-        },
-        {
-          "date": "2025-09-22",
-          "amount": 96000
-        },
-        {
-          "date": "2025-10-31",
-          "amount": 100000
-        },
-        {
-          "date": "2025-11-04",
-          "amount": 46000
-        },
-        {
-          "date": "2025-11-05",
-          "amount": 28500
-        },
-        {
-          "date": "2025-11-18",
-          "amount": 31500
-        },
-        {
-          "date": "2025-11-18",
-          "amount": 200000
-        },
-        {
-          "date": "2025-11-25",
-          "amount": 43000
-        },
-        {
-          "date": "2025-11-27",
-          "amount": 19300
-        },
-        {
-          "date": "2026-01-02",
-          "amount": 23700
-        },
-        {
-          "date": "2026-01-14",
-          "amount": 30200
-        },
-        {
-          "date": "2026-01-29",
-          "amount": 175000
-        },
-        {
-          "date": "2026-01-30",
-          "amount": 195000
-        },
-        {
-          "date": "2026-02-05",
-          "amount": 7500
-        },
-        {
-          "date": "2026-03-10",
-          "amount": 22000
-        },
-        {
-          "date": "2026-03-30",
-          "amount": 18500
-        },
-        {
-          "date": "2026-04-06",
-          "amount": 105000
-        },
-        {
-          "date": "2026-04-17",
-          "amount": 80000
-        },
-        {
-          "date": "2026-05-20",
-          "amount": 18500
-        },
-        {
-          "date": "2026-05-21",
-          "amount": 18800
         }
       ]
     },
@@ -5783,6 +5097,14 @@
       "naverUrl": "https://map.naver.com/p/search/%EB%B8%8C%EB%A6%AC%EB%93%9C%EC%BB%A4%ED%94%BC%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%80%EC%A0%90",
       "transactions": [
         {
+          "date": "2025-09-02",
+          "amount": 20000
+        },
+        {
+          "date": "2025-09-09",
+          "amount": 20000
+        },
+        {
           "date": "2025-09-11",
           "amount": 19900
         },
@@ -5797,6 +5119,14 @@
         {
           "date": "2025-09-15",
           "amount": 66500
+        },
+        {
+          "date": "2025-09-18",
+          "amount": 92000
+        },
+        {
+          "date": "2025-09-22",
+          "amount": 96000
         },
         {
           "date": "2025-10-14",
@@ -5815,8 +5145,20 @@
           "amount": 186000
         },
         {
+          "date": "2025-10-31",
+          "amount": 100000
+        },
+        {
           "date": "2025-11-03",
           "amount": 88300
+        },
+        {
+          "date": "2025-11-04",
+          "amount": 46000
+        },
+        {
+          "date": "2025-11-05",
+          "amount": 28500
         },
         {
           "date": "2025-11-10",
@@ -5831,12 +5173,28 @@
           "amount": 2185000
         },
         {
+          "date": "2025-11-18",
+          "amount": 31500
+        },
+        {
+          "date": "2025-11-18",
+          "amount": 200000
+        },
+        {
           "date": "2025-11-19",
           "amount": 47000
         },
         {
           "date": "2025-11-19",
           "amount": 126000
+        },
+        {
+          "date": "2025-11-25",
+          "amount": 43000
+        },
+        {
+          "date": "2025-11-27",
+          "amount": 19300
         },
         {
           "date": "2025-11-27",
@@ -5859,12 +5217,20 @@
           "amount": 26000
         },
         {
+          "date": "2026-01-02",
+          "amount": 23700
+        },
+        {
           "date": "2026-01-08",
           "amount": 100000
         },
         {
           "date": "2026-01-12",
           "amount": 75000
+        },
+        {
+          "date": "2026-01-14",
+          "amount": 30200
         },
         {
           "date": "2026-01-20",
@@ -5875,8 +5241,36 @@
           "amount": 65000
         },
         {
+          "date": "2026-01-29",
+          "amount": 175000
+        },
+        {
+          "date": "2026-01-30",
+          "amount": 195000
+        },
+        {
+          "date": "2026-02-05",
+          "amount": 7500
+        },
+        {
+          "date": "2026-03-10",
+          "amount": 22000
+        },
+        {
+          "date": "2026-03-30",
+          "amount": 18500
+        },
+        {
+          "date": "2026-04-06",
+          "amount": 105000
+        },
+        {
           "date": "2026-04-17",
           "amount": 30000
+        },
+        {
+          "date": "2026-04-17",
+          "amount": 80000
         },
         {
           "date": "2026-04-21",
@@ -5909,6 +5303,14 @@
         {
           "date": "2026-05-19",
           "amount": 80000
+        },
+        {
+          "date": "2026-05-20",
+          "amount": 18500
+        },
+        {
+          "date": "2026-05-21",
+          "amount": 18800
         },
         {
           "date": "2026-05-26",
@@ -6006,6 +5408,10 @@
         {
           "date": "2025-10-30",
           "amount": 99400
+        },
+        {
+          "date": "2026-01-20",
+          "amount": 294720
         }
       ]
     },
@@ -6305,21 +5711,6 @@
       ]
     },
     {
-      "id": "restaurant_000230",
-      "name": "삼학도수산",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 비하로 30",
-      "lat": 36.6297969,
-      "lng": 127.425258,
-      "naverUrl": "https://map.naver.com/p/search/%EC%82%BC%ED%95%99%EB%8F%84%EC%88%98%EC%82%B0",
-      "transactions": [
-        {
-          "date": "2026-02-10",
-          "amount": 180000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000231",
       "name": "삼학도회수산",
       "category": "한식",
@@ -6335,6 +5726,10 @@
         {
           "date": "2026-01-08",
           "amount": 226000
+        },
+        {
+          "date": "2026-02-10",
+          "amount": 180000
         }
       ]
     },
@@ -6348,42 +5743,24 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%82%BF%EB%BD%80%EB%A1%9C",
       "transactions": [
         {
+          "date": "2025-12-18",
+          "amount": 450000
+        },
+        {
           "date": "2026-01-26",
           "amount": 451000
         },
         {
-          "date": "2026-07-20",
-          "amount": 280000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000233",
-      "name": "삿뽀로 청주점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 2순환로 1250",
-      "lat": 36.624557,
-      "lng": 127.430783,
-      "naverUrl": "https://map.naver.com/p/search/%EC%82%BF%EB%BD%80%EB%A1%9C%20%EC%B2%AD%EC%A3%BC%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-12-18",
-          "amount": 450000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000234",
-      "name": "삿포로",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 2순환로 1250",
-      "lat": 36.624557,
-      "lng": 127.430783,
-      "naverUrl": "https://map.naver.com/p/search/%EC%82%BF%ED%8F%AC%EB%A1%9C",
-      "transactions": [
+          "date": "2026-04-07",
+          "amount": 105000
+        },
         {
           "date": "2026-06-08",
           "amount": 240000
+        },
+        {
+          "date": "2026-07-20",
+          "amount": 280000
         }
       ]
     },
@@ -6553,44 +5930,6 @@
       ]
     },
     {
-      "id": "restaurant_000242",
-      "name": "샤브마니아",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 연제1길 24-35 1층 107호~110호",
-      "lat": 36.6264649,
-      "lng": 127.3225712,
-      "naverUrl": "https://map.naver.com/p/search/%EC%83%A4%EB%B8%8C%EB%A7%88%EB%8B%88%EC%95%84",
-      "transactions": [
-        {
-          "date": "2025-11-12",
-          "amount": 149000
-        },
-        {
-          "date": "2026-04-08",
-          "amount": 76000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000243",
-      "name": "샤브마니아 오송레이크점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 연제1길 24-35 1층 107호~110호",
-      "lat": 36.6264649,
-      "lng": 127.3225712,
-      "naverUrl": "https://map.naver.com/p/search/%EC%83%A4%EB%B8%8C%EB%A7%88%EB%8B%88%EC%95%84%20%EC%98%A4%EC%86%A1%EB%A0%88%EC%9D%B4%ED%81%AC%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-12-03",
-          "amount": 97400
-        },
-        {
-          "date": "2026-01-29",
-          "amount": 240000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000244",
       "name": "샤브연리지",
       "category": "음식점",
@@ -6621,40 +5960,6 @@
       ]
     },
     {
-      "id": "restaurant_000246",
-      "name": "서브웨이",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 165 1층 101호",
-      "lat": 36.6323873,
-      "lng": 127.3277001,
-      "naverUrl": "https://map.naver.com/p/search/%EC%84%9C%EB%B8%8C%EC%9B%A8%EC%9D%B4",
-      "transactions": [
-        {
-          "date": "2026-04-30",
-          "amount": 180300
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000247",
-      "name": "서브웨이 오송점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 165 1층 101호",
-      "lat": 36.6323873,
-      "lng": 127.3277001,
-      "naverUrl": "https://map.naver.com/p/search/%EC%84%9C%EB%B8%8C%EC%9B%A8%EC%9D%B4%20%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-11-08",
-          "amount": 415400
-        },
-        {
-          "date": "2026-03-12",
-          "amount": 460000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000248",
       "name": "서브웨이 청주오송",
       "category": "음식점",
@@ -6670,6 +5975,22 @@
         {
           "date": "2025-10-16",
           "amount": 78400
+        },
+        {
+          "date": "2025-11-08",
+          "amount": 415400
+        },
+        {
+          "date": "2026-03-12",
+          "amount": 460000
+        },
+        {
+          "date": "2026-04-15",
+          "amount": 138300
+        },
+        {
+          "date": "2026-04-30",
+          "amount": 180300
         },
         {
           "date": "2026-05-14",
@@ -6984,6 +6305,10 @@
         {
           "date": "2026-01-26",
           "amount": 136000
+        },
+        {
+          "date": "2026-04-10",
+          "amount": 90000
         }
       ]
     },
@@ -7097,25 +6422,6 @@
       ]
     },
     {
-      "id": "restaurant_000270",
-      "name": "수이재",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강서로71번길 4 1층 한옥기와집",
-      "lat": 36.6227765,
-      "lng": 127.4253556,
-      "naverUrl": "https://map.naver.com/p/search/%EC%88%98%EC%9D%B4%EC%9E%AC",
-      "transactions": [
-        {
-          "date": "2026-05-11",
-          "amount": 150000
-        },
-        {
-          "date": "2026-05-20",
-          "amount": 100000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000271",
       "name": "수이재1928",
       "category": "한식",
@@ -7127,6 +6433,14 @@
         {
           "date": "2026-01-29",
           "amount": 234000
+        },
+        {
+          "date": "2026-05-11",
+          "amount": 150000
+        },
+        {
+          "date": "2026-05-20",
+          "amount": 100000
         },
         {
           "date": "2026-05-20",
@@ -7281,6 +6595,14 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%8A%A4%EC%8B%9C88",
       "transactions": [
         {
+          "date": "2025-09-10",
+          "amount": 480000
+        },
+        {
+          "date": "2025-09-16",
+          "amount": 134500
+        },
+        {
           "date": "2025-10-01",
           "amount": 60000
         },
@@ -7297,8 +6619,16 @@
           "amount": 117000
         },
         {
+          "date": "2025-11-26",
+          "amount": 129500
+        },
+        {
           "date": "2025-11-27",
           "amount": 20900
+        },
+        {
+          "date": "2025-11-27",
+          "amount": 90000
         },
         {
           "date": "2025-12-02",
@@ -7321,6 +6651,10 @@
           "amount": 264500
         },
         {
+          "date": "2025-12-11",
+          "amount": 264500
+        },
+        {
           "date": "2025-12-18",
           "amount": 64500
         },
@@ -7333,12 +6667,24 @@
           "amount": 236500
         },
         {
+          "date": "2026-01-21",
+          "amount": 264500
+        },
+        {
+          "date": "2026-01-22",
+          "amount": 104500
+        },
+        {
           "date": "2026-02-03",
           "amount": 424500
         },
         {
           "date": "2026-03-04",
           "amount": 660000
+        },
+        {
+          "date": "2026-03-12",
+          "amount": 244500
         },
         {
           "date": "2026-04-08",
@@ -7379,41 +6725,6 @@
         {
           "date": "2026-07-27",
           "amount": 123500
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000280",
-      "name": "스시88 오송점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 161 103호",
-      "lat": 36.6324555,
-      "lng": 127.3275474,
-      "naverUrl": "https://map.naver.com/p/search/%EC%8A%A4%EC%8B%9C88%20%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-11-26",
-          "amount": 129500
-        },
-        {
-          "date": "2025-11-27",
-          "amount": 90000
-        },
-        {
-          "date": "2025-12-11",
-          "amount": 264500
-        },
-        {
-          "date": "2026-01-21",
-          "amount": 264500
-        },
-        {
-          "date": "2026-01-22",
-          "amount": 104500
-        },
-        {
-          "date": "2026-03-12",
-          "amount": 244500
         }
       ]
     },
@@ -7468,6 +6779,22 @@
         {
           "date": "2025-12-29",
           "amount": 55500
+        },
+        {
+          "date": "2026-02-03",
+          "amount": 211900
+        },
+        {
+          "date": "2026-02-04",
+          "amount": 940000
+        },
+        {
+          "date": "2026-02-05",
+          "amount": 112800
+        },
+        {
+          "date": "2026-05-07",
+          "amount": 13200
         },
         {
           "date": "2026-05-23",
@@ -7529,48 +6856,6 @@
       ]
     },
     {
-      "id": "restaurant_000286",
-      "name": "스타벅스 청주오송점",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 222",
-      "lat": 36.6298699,
-      "lng": 127.3332929,
-      "naverUrl": "https://map.naver.com/p/search/%EC%8A%A4%ED%83%80%EB%B2%85%EC%8A%A4%20%EC%B2%AD%EC%A3%BC%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2026-02-03",
-          "amount": 211900
-        },
-        {
-          "date": "2026-02-04",
-          "amount": 940000
-        },
-        {
-          "date": "2026-02-05",
-          "amount": 112800
-        },
-        {
-          "date": "2026-05-07",
-          "amount": 13200
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000287",
-      "name": "(주)스타벅스커피코리아",
-      "category": "카페,디저트",
-      "address": "대전광역시 서구 둔산중로134번길 13 토요코인호텔 1층 (둔산동)",
-      "lat": 36.3590591,
-      "lng": 127.3877262,
-      "naverUrl": "https://map.naver.com/p/search/%28%EC%A3%BC%29%EC%8A%A4%ED%83%80%EB%B2%85%EC%8A%A4%EC%BB%A4%ED%94%BC%EC%BD%94%EB%A6%AC%EC%95%84",
-      "transactions": [
-        {
-          "date": "2025-09-24",
-          "amount": 520000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000288",
       "name": "스타벅스 코리아",
       "category": "카페,디저트",
@@ -7579,6 +6864,10 @@
       "lng": 127.3877262,
       "naverUrl": "https://map.naver.com/p/search/%EC%8A%A4%ED%83%80%EB%B2%85%EC%8A%A4%20%EC%BD%94%EB%A6%AC%EC%95%84",
       "transactions": [
+        {
+          "date": "2025-09-24",
+          "amount": 520000
+        },
         {
           "date": "2025-12-04",
           "amount": 63600
@@ -7620,25 +6909,6 @@
       ]
     },
     {
-      "id": "restaurant_000291",
-      "name": "시즌 카페",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 월탄3길 26-4 1층",
-      "lat": 36.6082394,
-      "lng": 127.3557919,
-      "naverUrl": "https://map.naver.com/p/search/%EC%8B%9C%EC%A6%8C%20%EC%B9%B4%ED%8E%98",
-      "transactions": [
-        {
-          "date": "2026-05-04",
-          "amount": 57000
-        },
-        {
-          "date": "2026-05-20",
-          "amount": 36200
-        }
-      ]
-    },
-    {
       "id": "restaurant_000292",
       "name": "신선매운탕",
       "category": "한식",
@@ -7669,121 +6939,6 @@
       ]
     },
     {
-      "id": "restaurant_000294",
-      "name": "신토불이",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 399 신토불이 교원대점",
-      "lat": 36.6188431,
-      "lng": 127.3564631,
-      "naverUrl": "https://map.naver.com/p/search/%EC%8B%A0%ED%86%A0%EB%B6%88%EC%9D%B4",
-      "transactions": [
-        {
-          "date": "2025-09-05",
-          "amount": 288000
-        },
-        {
-          "date": "2025-09-18",
-          "amount": 100000
-        },
-        {
-          "date": "2025-09-29",
-          "amount": 90000
-        },
-        {
-          "date": "2025-09-29",
-          "amount": 495000
-        },
-        {
-          "date": "2025-10-22",
-          "amount": 75000
-        },
-        {
-          "date": "2025-10-29",
-          "amount": 300000
-        },
-        {
-          "date": "2025-10-30",
-          "amount": 126000
-        },
-        {
-          "date": "2025-10-31",
-          "amount": 300000
-        },
-        {
-          "date": "2025-11-12",
-          "amount": 92000
-        },
-        {
-          "date": "2025-11-19",
-          "amount": 240000
-        },
-        {
-          "date": "2025-11-28",
-          "amount": 250000
-        },
-        {
-          "date": "2025-12-01",
-          "amount": 160000
-        },
-        {
-          "date": "2026-01-23",
-          "amount": 210000
-        },
-        {
-          "date": "2026-01-28",
-          "amount": 211000
-        },
-        {
-          "date": "2026-02-11",
-          "amount": 295000
-        },
-        {
-          "date": "2026-02-24",
-          "amount": 162000
-        },
-        {
-          "date": "2026-03-03",
-          "amount": 324000
-        },
-        {
-          "date": "2026-03-12",
-          "amount": 45000
-        },
-        {
-          "date": "2026-03-30",
-          "amount": 483000
-        },
-        {
-          "date": "2026-04-02",
-          "amount": 1700000
-        },
-        {
-          "date": "2026-04-14",
-          "amount": 1640000
-        },
-        {
-          "date": "2026-05-13",
-          "amount": 75000
-        },
-        {
-          "date": "2026-06-08",
-          "amount": 291500
-        },
-        {
-          "date": "2026-06-11",
-          "amount": 90000
-        },
-        {
-          "date": "2026-07-01",
-          "amount": 238000
-        },
-        {
-          "date": "2026-07-15",
-          "amount": 315000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000295",
       "name": "신토불이교원대점",
       "category": "한식",
@@ -7797,12 +6952,20 @@
           "amount": 138000
         },
         {
+          "date": "2025-09-05",
+          "amount": 288000
+        },
+        {
           "date": "2025-09-11",
           "amount": 180000
         },
         {
           "date": "2025-09-17",
           "amount": 950000
+        },
+        {
+          "date": "2025-09-18",
+          "amount": 100000
         },
         {
           "date": "2025-09-18",
@@ -7833,12 +6996,24 @@
           "amount": 283000
         },
         {
+          "date": "2025-09-29",
+          "amount": 90000
+        },
+        {
+          "date": "2025-09-29",
+          "amount": 495000
+        },
+        {
           "date": "2025-10-16",
           "amount": 49000
         },
         {
           "date": "2025-10-20",
           "amount": 240000
+        },
+        {
+          "date": "2025-10-22",
+          "amount": 75000
         },
         {
           "date": "2025-10-23",
@@ -7849,8 +7024,20 @@
           "amount": 225000
         },
         {
+          "date": "2025-10-29",
+          "amount": 300000
+        },
+        {
+          "date": "2025-10-30",
+          "amount": 126000
+        },
+        {
           "date": "2025-10-30",
           "amount": 465000
+        },
+        {
+          "date": "2025-10-31",
+          "amount": 300000
         },
         {
           "date": "2025-11-02",
@@ -7869,6 +7056,14 @@
           "amount": 330000
         },
         {
+          "date": "2025-11-12",
+          "amount": 92000
+        },
+        {
+          "date": "2025-11-19",
+          "amount": 240000
+        },
+        {
           "date": "2025-11-24",
           "amount": 150000
         },
@@ -7879,6 +7074,14 @@
         {
           "date": "2025-11-26",
           "amount": 150000
+        },
+        {
+          "date": "2025-11-28",
+          "amount": 250000
+        },
+        {
+          "date": "2025-12-01",
+          "amount": 160000
         },
         {
           "date": "2025-12-09",
@@ -7949,12 +7152,24 @@
           "amount": 499600
         },
         {
+          "date": "2026-01-23",
+          "amount": 210000
+        },
+        {
           "date": "2026-01-28",
           "amount": 195000
         },
         {
+          "date": "2026-01-28",
+          "amount": 211000
+        },
+        {
           "date": "2026-02-06",
           "amount": 162000
+        },
+        {
+          "date": "2026-02-11",
+          "amount": 295000
         },
         {
           "date": "2026-02-11",
@@ -7963,6 +7178,18 @@
         {
           "date": "2026-02-13",
           "amount": 660000
+        },
+        {
+          "date": "2026-02-24",
+          "amount": 162000
+        },
+        {
+          "date": "2026-03-03",
+          "amount": 324000
+        },
+        {
+          "date": "2026-03-12",
+          "amount": 45000
         },
         {
           "date": "2026-03-12",
@@ -7997,6 +7224,14 @@
           "amount": 375000
         },
         {
+          "date": "2026-03-30",
+          "amount": 483000
+        },
+        {
+          "date": "2026-04-02",
+          "amount": 1700000
+        },
+        {
           "date": "2026-04-06",
           "amount": 120000
         },
@@ -8015,6 +7250,10 @@
         {
           "date": "2026-04-09",
           "amount": 2304000
+        },
+        {
+          "date": "2026-04-14",
+          "amount": 1640000
         },
         {
           "date": "2026-04-20",
@@ -8062,6 +7301,10 @@
         },
         {
           "date": "2026-05-13",
+          "amount": 75000
+        },
+        {
+          "date": "2026-05-13",
           "amount": 92000
         },
         {
@@ -8093,6 +7336,10 @@
           "amount": 550000
         },
         {
+          "date": "2026-06-08",
+          "amount": 291500
+        },
+        {
           "date": "2026-06-10",
           "amount": 80000
         },
@@ -8105,12 +7352,20 @@
           "amount": 396000
         },
         {
+          "date": "2026-06-11",
+          "amount": 90000
+        },
+        {
           "date": "2026-06-23",
           "amount": 427000
         },
         {
           "date": "2026-06-24",
           "amount": 138000
+        },
+        {
+          "date": "2026-07-01",
+          "amount": 238000
         },
         {
           "date": "2026-07-07",
@@ -8123,6 +7378,10 @@
         {
           "date": "2026-07-14",
           "amount": 244000
+        },
+        {
+          "date": "2026-07-15",
+          "amount": 315000
         },
         {
           "date": "2026-07-27",
@@ -8158,21 +7417,6 @@
         {
           "date": "2025-11-19",
           "amount": 70920
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000297",
-      "name": "써브웨이",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 165 1층 101호",
-      "lat": 36.6323873,
-      "lng": 127.3277001,
-      "naverUrl": "https://map.naver.com/p/search/%EC%8D%A8%EB%B8%8C%EC%9B%A8%EC%9D%B4",
-      "transactions": [
-        {
-          "date": "2026-04-15",
-          "amount": 138300
         }
       ]
     },
@@ -8293,25 +7537,6 @@
       ]
     },
     {
-      "id": "restaurant_000302",
-      "name": "아람옷닭",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송4길 15 1층",
-      "lat": 36.6126112,
-      "lng": 127.3276882,
-      "naverUrl": "https://map.naver.com/p/search/%EC%95%84%EB%9E%8C%EC%98%B7%EB%8B%AD",
-      "transactions": [
-        {
-          "date": "2026-03-11",
-          "amount": 76000
-        },
-        {
-          "date": "2026-04-14",
-          "amount": 171000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000303",
       "name": "아람옻닭",
       "category": "한식",
@@ -8338,11 +7563,19 @@
         },
         {
           "date": "2026-03-11",
+          "amount": 76000
+        },
+        {
+          "date": "2026-03-11",
           "amount": 99700
         },
         {
           "date": "2026-03-19",
           "amount": 246400
+        },
+        {
+          "date": "2026-04-14",
+          "amount": 171000
         },
         {
           "date": "2026-04-14",
@@ -8891,21 +8124,6 @@
       ]
     },
     {
-      "id": "restaurant_000324",
-      "name": "옛날 솥뚜껑",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 260",
-      "lat": 36.607344,
-      "lng": 127.3533448,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%9B%EB%82%A0%20%EC%86%A5%EB%9A%9C%EA%BB%91",
-      "transactions": [
-        {
-          "date": "2025-12-03",
-          "amount": 163000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000325",
       "name": "옛날 솥뚜껑 생 삼겹살",
       "category": "한식",
@@ -8917,6 +8135,10 @@
         {
           "date": "2025-11-06",
           "amount": 90000
+        },
+        {
+          "date": "2025-12-03",
+          "amount": 163000
         },
         {
           "date": "2026-06-04",
@@ -8999,6 +8221,10 @@
           "amount": 180500
         },
         {
+          "date": "2026-05-06",
+          "amount": 381600
+        },
+        {
           "date": "2026-06-02",
           "amount": 180000
         },
@@ -9007,8 +8233,16 @@
           "amount": 150000
         },
         {
+          "date": "2026-06-23",
+          "amount": 150000
+        },
+        {
           "date": "2026-06-30",
           "amount": 105000
+        },
+        {
+          "date": "2026-07-15",
+          "amount": 180000
         },
         {
           "date": "2026-07-16",
@@ -9021,40 +8255,6 @@
         {
           "date": "2026-07-22",
           "amount": 300000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000330",
-      "name": "오복누룽지삼계탕 청주강내점",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강내면 상월곡길 61",
-      "lat": 36.6186107,
-      "lng": 127.3726876,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EB%B3%B5%EB%88%84%EB%A3%BD%EC%A7%80%EC%82%BC%EA%B3%84%ED%83%95%20%EC%B2%AD%EC%A3%BC%EA%B0%95%EB%82%B4%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2026-06-23",
-          "amount": 150000
-        },
-        {
-          "date": "2026-07-15",
-          "amount": 180000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000331",
-      "name": "오복누릉지삼계탕",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강내면 상월곡길 61",
-      "lat": 36.6186107,
-      "lng": 127.3726876,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EB%B3%B5%EB%88%84%EB%A6%89%EC%A7%80%EC%82%BC%EA%B3%84%ED%83%95",
-      "transactions": [
-        {
-          "date": "2026-05-06",
-          "amount": 381600
         }
       ]
     },
@@ -9089,59 +8289,6 @@
       ]
     },
     {
-      "id": "restaurant_000334",
-      "name": "오송떡마마",
-      "category": "전통식품",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-4 1층 101호",
-      "lat": 36.6305627,
-      "lng": 127.3297356,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EC%86%A1%EB%96%A1%EB%A7%88%EB%A7%88",
-      "transactions": [
-        {
-          "date": "2026-02-11",
-          "amount": 294000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000335",
-      "name": "오송본도시락",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 186 113호",
-      "lat": 36.6311892,
-      "lng": 127.3296024,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EC%86%A1%EB%B3%B8%EB%8F%84%EC%8B%9C%EB%9D%BD",
-      "transactions": [
-        {
-          "date": "2026-01-28",
-          "amount": 116100
-        },
-        {
-          "date": "2026-05-14",
-          "amount": 103200
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000336",
-      "name": "오송스시88",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 161 103호",
-      "lat": 36.6324555,
-      "lng": 127.3275474,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EC%86%A1%EC%8A%A4%EC%8B%9C88",
-      "transactions": [
-        {
-          "date": "2025-09-10",
-          "amount": 480000
-        },
-        {
-          "date": "2025-09-16",
-          "amount": 134500
-        }
-      ]
-    },
-    {
       "id": "restaurant_000337",
       "name": "오송조개구이",
       "category": "한식",
@@ -9153,21 +8300,6 @@
         {
           "date": "2026-05-20",
           "amount": 295000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000338",
-      "name": "오송파라곤 파리바게뜨",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 146 1동 101, 102호",
-      "lat": 36.6204509,
-      "lng": 127.3160766,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EC%86%A1%ED%8C%8C%EB%9D%BC%EA%B3%A4%20%ED%8C%8C%EB%A6%AC%EB%B0%94%EA%B2%8C%EB%9C%A8",
-      "transactions": [
-        {
-          "date": "2026-01-08",
-          "amount": 169740
         }
       ]
     },
@@ -9236,8 +8368,20 @@
           "amount": 808000
         },
         {
+          "date": "2026-01-14",
+          "amount": 1002000
+        },
+        {
+          "date": "2026-01-19",
+          "amount": 1500000
+        },
+        {
           "date": "2026-01-20",
           "amount": 600000
+        },
+        {
+          "date": "2026-01-20",
+          "amount": 996000
         },
         {
           "date": "2026-01-28",
@@ -9246,6 +8390,10 @@
         {
           "date": "2026-04-01",
           "amount": 701600
+        },
+        {
+          "date": "2026-04-02",
+          "amount": 3150000
         },
         {
           "date": "2026-04-13",
@@ -9258,33 +8406,10 @@
         {
           "date": "2026-06-11",
           "amount": 599200
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000341",
-      "name": "오후네시(커피나후)",
-      "category": "카페,디저트",
-      "address": "세종특별자치시 호려울로 29 114호 커피나후 (공영주차장앞)",
-      "lat": 36.4777689,
-      "lng": 127.2900711,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%ED%9B%84%EB%84%A4%EC%8B%9C%28%EC%BB%A4%ED%94%BC%EB%82%98%ED%9B%84%29",
-      "transactions": [
-        {
-          "date": "2026-01-14",
-          "amount": 1002000
         },
         {
-          "date": "2026-01-19",
-          "amount": 1500000
-        },
-        {
-          "date": "2026-01-20",
-          "amount": 996000
-        },
-        {
-          "date": "2026-04-02",
-          "amount": 3150000
+          "date": "2026-07-30",
+          "amount": 615000
         }
       ]
     },
@@ -9349,21 +8474,6 @@
       ]
     },
     {
-      "id": "restaurant_000346",
-      "name": "온정(플러스)",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 연제만수길 22 1층 102호",
-      "lat": 36.6259074,
-      "lng": 127.3263023,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%A8%EC%A0%95%28%ED%94%8C%EB%9F%AC%EC%8A%A4%29",
-      "transactions": [
-        {
-          "date": "2026-05-14",
-          "amount": 316800
-        }
-      ]
-    },
-    {
       "id": "restaurant_000347",
       "name": "온정+(플러스)",
       "category": "음식점",
@@ -9372,6 +8482,10 @@
       "lng": 127.3263023,
       "naverUrl": "https://map.naver.com/p/search/%EC%98%A8%EC%A0%95%2B%28%ED%94%8C%EB%9F%AC%EC%8A%A4%29",
       "transactions": [
+        {
+          "date": "2025-09-02",
+          "amount": 232200
+        },
         {
           "date": "2025-09-12",
           "amount": 360000
@@ -9383,21 +8497,10 @@
         {
           "date": "2026-02-03",
           "amount": 450000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000348",
-      "name": "온정플러스",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 연제만수길 22 1층 102호",
-      "lat": 36.6259074,
-      "lng": 127.3263023,
-      "naverUrl": "https://map.naver.com/p/search/%EC%98%A8%EC%A0%95%ED%94%8C%EB%9F%AC%EC%8A%A4",
-      "transactions": [
+        },
         {
-          "date": "2025-09-02",
-          "amount": 232200
+          "date": "2026-05-14",
+          "amount": 316800
         }
       ]
     },
@@ -9533,6 +8636,10 @@
           "amount": 100000
         },
         {
+          "date": "2025-10-17",
+          "amount": 159000
+        },
+        {
           "date": "2025-10-30",
           "amount": 289500
         },
@@ -9553,29 +8660,6 @@
           "amount": 123000
         },
         {
-          "date": "2025-12-18",
-          "amount": 121500
-        },
-        {
-          "date": "2026-05-08",
-          "amount": 105000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000356",
-      "name": "왕천파닭강내점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 396-10",
-      "lat": 36.6175373,
-      "lng": 127.3561443,
-      "naverUrl": "https://map.naver.com/p/search/%EC%99%95%EC%B2%9C%ED%8C%8C%EB%8B%AD%EA%B0%95%EB%82%B4%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-10-17",
-          "amount": 159000
-        },
-        {
           "date": "2025-12-09",
           "amount": 478000
         },
@@ -9584,8 +8668,24 @@
           "amount": 370000
         },
         {
+          "date": "2025-12-18",
+          "amount": 121500
+        },
+        {
+          "date": "2026-01-02",
+          "amount": 250000
+        },
+        {
+          "date": "2026-01-18",
+          "amount": 119000
+        },
+        {
           "date": "2026-02-05",
           "amount": 1296000
+        },
+        {
+          "date": "2026-05-08",
+          "amount": 105000
         },
         {
           "date": "2026-06-04",
@@ -9636,25 +8736,6 @@
       ]
     },
     {
-      "id": "restaurant_000359",
-      "name": "우별당",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 봉산1길 25-10 1층 101호",
-      "lat": 36.620651,
-      "lng": 127.3218794,
-      "naverUrl": "https://map.naver.com/p/search/%EC%9A%B0%EB%B3%84%EB%8B%B9",
-      "transactions": [
-        {
-          "date": "2025-11-05",
-          "amount": 249000
-        },
-        {
-          "date": "2026-06-02",
-          "amount": 315000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000360",
       "name": "우별당오송점",
       "category": "한식",
@@ -9668,8 +8749,16 @@
           "amount": 390000
         },
         {
+          "date": "2025-11-05",
+          "amount": 249000
+        },
+        {
           "date": "2026-04-16",
           "amount": 299000
+        },
+        {
+          "date": "2026-06-02",
+          "amount": 315000
         }
       ]
     },
@@ -9701,21 +8790,6 @@
       ]
     },
     {
-      "id": "restaurant_000362",
-      "name": "우즈",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 다락탑연길 232 상가",
-      "lat": 36.6130672,
-      "lng": 127.3613292,
-      "naverUrl": "https://map.naver.com/p/search/%EC%9A%B0%EC%A6%88",
-      "transactions": [
-        {
-          "date": "2026-06-10",
-          "amount": 49900
-        }
-      ]
-    },
-    {
       "id": "restaurant_000363",
       "name": "우즈(OOWZZ)",
       "category": "음식점",
@@ -9727,6 +8801,10 @@
         {
           "date": "2026-04-03",
           "amount": 10500
+        },
+        {
+          "date": "2026-06-10",
+          "amount": 49900
         }
       ]
     },
@@ -9905,29 +8983,6 @@
       ]
     },
     {
-      "id": "restaurant_000374",
-      "name": "이디야 청주강내점",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 71 1층 1호",
-      "lat": 36.6232023,
-      "lng": 127.3640627,
-      "naverUrl": "https://map.naver.com/p/search/%EC%9D%B4%EB%94%94%EC%95%BC%20%EC%B2%AD%EC%A3%BC%EA%B0%95%EB%82%B4%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2026-06-23",
-          "amount": 19700
-        },
-        {
-          "date": "2026-06-26",
-          "amount": 35400
-        },
-        {
-          "date": "2026-07-03",
-          "amount": 42000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000375",
       "name": "이디야커피 청주강내점",
       "category": "카페,디저트",
@@ -9971,6 +9026,18 @@
         {
           "date": "2026-03-13",
           "amount": 47100
+        },
+        {
+          "date": "2026-06-23",
+          "amount": 19700
+        },
+        {
+          "date": "2026-06-26",
+          "amount": 35400
+        },
+        {
+          "date": "2026-07-03",
+          "amount": 42000
         },
         {
           "date": "2026-07-09",
@@ -10225,53 +9292,6 @@
       ]
     },
     {
-      "id": "restaurant_000386",
-      "name": "잇플레이스",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 강내면 가로수로 560 1층 잇플레이스720",
-      "lat": 36.6239141,
-      "lng": 127.3620866,
-      "naverUrl": "https://map.naver.com/p/search/%EC%9E%87%ED%94%8C%EB%A0%88%EC%9D%B4%EC%8A%A4",
-      "transactions": [
-        {
-          "date": "2025-10-21",
-          "amount": 121000
-        },
-        {
-          "date": "2026-01-05",
-          "amount": 5500
-        },
-        {
-          "date": "2026-01-05",
-          "amount": 68000
-        },
-        {
-          "date": "2026-01-07",
-          "amount": 89700
-        },
-        {
-          "date": "2026-01-07",
-          "amount": 122900
-        },
-        {
-          "date": "2026-01-19",
-          "amount": 129000
-        },
-        {
-          "date": "2026-02-13",
-          "amount": 300000
-        },
-        {
-          "date": "2026-05-06",
-          "amount": 179700
-        },
-        {
-          "date": "2026-05-19",
-          "amount": 56230
-        }
-      ]
-    },
-    {
       "id": "restaurant_000387",
       "name": "잇플레이스720",
       "category": "음식점",
@@ -10319,6 +9339,10 @@
         {
           "date": "2025-10-02",
           "amount": 480000
+        },
+        {
+          "date": "2025-10-21",
+          "amount": 121000
         },
         {
           "date": "2025-10-22",
@@ -10398,7 +9422,23 @@
         },
         {
           "date": "2026-01-05",
+          "amount": 5500
+        },
+        {
+          "date": "2026-01-05",
+          "amount": 68000
+        },
+        {
+          "date": "2026-01-05",
           "amount": 89200
+        },
+        {
+          "date": "2026-01-07",
+          "amount": 89700
+        },
+        {
+          "date": "2026-01-07",
+          "amount": 122900
         },
         {
           "date": "2026-01-14",
@@ -10407,6 +9447,10 @@
         {
           "date": "2026-01-15",
           "amount": 297200
+        },
+        {
+          "date": "2026-01-19",
+          "amount": 129000
         },
         {
           "date": "2026-01-19",
@@ -10443,6 +9487,10 @@
         {
           "date": "2026-02-09",
           "amount": 290000
+        },
+        {
+          "date": "2026-02-13",
+          "amount": 300000
         },
         {
           "date": "2026-02-20",
@@ -10509,8 +9557,16 @@
           "amount": 122400
         },
         {
+          "date": "2026-05-06",
+          "amount": 179700
+        },
+        {
           "date": "2026-05-18",
           "amount": 187700
+        },
+        {
+          "date": "2026-05-19",
+          "amount": 56230
         },
         {
           "date": "2026-05-22",
@@ -10542,21 +9598,6 @@
         {
           "date": "2026-05-28",
           "amount": 128000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000389",
-      "name": "잡솨보리",
-      "category": "쇼핑,유통",
-      "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 31-10 1층",
-      "lat": 36.6215229,
-      "lng": 127.3622796,
-      "naverUrl": "https://map.naver.com/p/search/%EC%9E%A1%EC%86%A8%EB%B3%B4%EB%A6%AC",
-      "transactions": [
-        {
-          "date": "2026-05-07",
-          "amount": 200000
         }
       ]
     },
@@ -10712,18 +9753,7 @@
         {
           "date": "2025-12-19",
           "amount": 378780
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000399",
-      "name": "제주도새기 찌개 전문가",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 432",
-      "lat": 36.6208938,
-      "lng": 127.3587322,
-      "naverUrl": "https://map.naver.com/p/search/%EC%A0%9C%EC%A3%BC%EB%8F%84%EC%83%88%EA%B8%B0%20%EC%B0%8C%EA%B0%9C%20%EC%A0%84%EB%AC%B8%EA%B0%80",
-      "transactions": [
+        },
         {
           "date": "2026-02-17",
           "amount": 300000
@@ -10744,38 +9774,16 @@
           "amount": 112000
         },
         {
-          "date": "2026-05-21",
-          "amount": 117000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000401",
-      "name": "조가네갑오징어(세종)",
-      "category": "해물,생선요리",
-      "address": "세종특별자치시 아름서1길 13-9 205호",
-      "lat": 36.5116758,
-      "lng": 127.2426038,
-      "naverUrl": "https://map.naver.com/p/search/%EC%A1%B0%EA%B0%80%EB%84%A4%EA%B0%91%EC%98%A4%EC%A7%95%EC%96%B4%28%EC%84%B8%EC%A2%85%29",
-      "transactions": [
-        {
-          "date": "2026-05-21",
-          "amount": 117000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000402",
-      "name": "조가네갑오징어(세종점)",
-      "category": "해물,생선요리",
-      "address": "세종특별자치시 아름서1길 13-9 205호",
-      "lat": 36.5116758,
-      "lng": 127.2426038,
-      "naverUrl": "https://map.naver.com/p/search/%EC%A1%B0%EA%B0%80%EB%84%A4%EA%B0%91%EC%98%A4%EC%A7%95%EC%96%B4%28%EC%84%B8%EC%A2%85%EC%A0%90%29",
-      "transactions": [
-        {
           "date": "2026-04-10",
           "amount": 112000
+        },
+        {
+          "date": "2026-05-21",
+          "amount": 117000
+        },
+        {
+          "date": "2026-05-21",
+          "amount": 117000
         }
       ]
     },
@@ -10789,8 +9797,20 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%A3%BC%EB%AC%B8%EC%A7%84%EB%AC%BC%ED%9A%8C",
       "transactions": [
         {
+          "date": "2025-11-04",
+          "amount": 156000
+        },
+        {
+          "date": "2025-12-12",
+          "amount": 241000
+        },
+        {
           "date": "2026-03-24",
           "amount": 95000
+        },
+        {
+          "date": "2026-06-23",
+          "amount": 115000
         },
         {
           "date": "2026-06-25",
@@ -10799,40 +9819,6 @@
         {
           "date": "2026-07-30",
           "amount": 140000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000404",
-      "name": "주문진물회.탕.구이",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 만수길 20",
-      "lat": 36.6238898,
-      "lng": 127.3273156,
-      "naverUrl": "https://map.naver.com/p/search/%EC%A3%BC%EB%AC%B8%EC%A7%84%EB%AC%BC%ED%9A%8C.%ED%83%95.%EA%B5%AC%EC%9D%B4",
-      "transactions": [
-        {
-          "date": "2025-11-04",
-          "amount": 156000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000405",
-      "name": "주문진물회탕구이",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 만수길 20",
-      "lat": 36.6238898,
-      "lng": 127.3273156,
-      "naverUrl": "https://map.naver.com/p/search/%EC%A3%BC%EB%AC%B8%EC%A7%84%EB%AC%BC%ED%9A%8C%ED%83%95%EA%B5%AC%EC%9D%B4",
-      "transactions": [
-        {
-          "date": "2025-12-12",
-          "amount": 241000
-        },
-        {
-          "date": "2026-06-23",
-          "amount": 115000
         }
       ]
     },
@@ -11012,53 +9998,6 @@
       ]
     },
     {
-      "id": "restaurant_000415",
-      "name": "청주강내 파리바게뜨",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 강내면 가로수로 534 1층",
-      "lat": 36.6235472,
-      "lng": 127.3594046,
-      "naverUrl": "https://map.naver.com/p/search/%EC%B2%AD%EC%A3%BC%EA%B0%95%EB%82%B4%20%ED%8C%8C%EB%A6%AC%EB%B0%94%EA%B2%8C%EB%9C%A8",
-      "transactions": [
-        {
-          "date": "2025-10-15",
-          "amount": 80800
-        },
-        {
-          "date": "2026-01-09",
-          "amount": 70000
-        },
-        {
-          "date": "2026-03-10",
-          "amount": 88300
-        },
-        {
-          "date": "2026-03-17",
-          "amount": 61000
-        },
-        {
-          "date": "2026-04-28",
-          "amount": 41600
-        },
-        {
-          "date": "2026-04-28",
-          "amount": 85000
-        },
-        {
-          "date": "2026-04-30",
-          "amount": 102600
-        },
-        {
-          "date": "2026-05-19",
-          "amount": 48000
-        },
-        {
-          "date": "2026-07-02",
-          "amount": 20900
-        }
-      ]
-    },
-    {
       "id": "restaurant_000416",
       "name": "청주강내 파리바게트",
       "category": "카페,디저트",
@@ -11086,6 +10025,10 @@
         {
           "date": "2025-10-01",
           "amount": 135600
+        },
+        {
+          "date": "2025-10-15",
+          "amount": 80800
         },
         {
           "date": "2025-10-21",
@@ -11136,8 +10079,20 @@
           "amount": 75600
         },
         {
+          "date": "2026-01-09",
+          "amount": 70000
+        },
+        {
           "date": "2026-01-19",
           "amount": 67000
+        },
+        {
+          "date": "2026-03-10",
+          "amount": 88300
+        },
+        {
+          "date": "2026-03-17",
+          "amount": 61000
         },
         {
           "date": "2026-04-03",
@@ -11148,8 +10103,32 @@
           "amount": 75000
         },
         {
+          "date": "2026-04-28",
+          "amount": 41600
+        },
+        {
+          "date": "2026-04-28",
+          "amount": 85000
+        },
+        {
+          "date": "2026-04-30",
+          "amount": 102600
+        },
+        {
+          "date": "2026-05-19",
+          "amount": 48000
+        },
+        {
+          "date": "2026-05-26",
+          "amount": 75000
+        },
+        {
           "date": "2026-05-28",
           "amount": 192400
+        },
+        {
+          "date": "2026-05-29",
+          "amount": 50600
         },
         {
           "date": "2026-06-01",
@@ -11158,6 +10137,18 @@
         {
           "date": "2026-06-01",
           "amount": 192400
+        },
+        {
+          "date": "2026-07-02",
+          "amount": 20900
+        },
+        {
+          "date": "2026-07-14",
+          "amount": 109900
+        },
+        {
+          "date": "2026-07-28",
+          "amount": 122500
         }
       ]
     },
@@ -11177,6 +10168,10 @@
         {
           "date": "2025-11-14",
           "amount": 210000
+        },
+        {
+          "date": "2025-11-28",
+          "amount": 308000
         },
         {
           "date": "2026-05-18",
@@ -11276,21 +10271,6 @@
         {
           "date": "2025-11-25",
           "amount": 117000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000423",
-      "name": "청주점 삿뽀로",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 2순환로 1250",
-      "lat": 36.624557,
-      "lng": 127.430783,
-      "naverUrl": "https://map.naver.com/p/search/%EC%B2%AD%EC%A3%BC%EC%A0%90%20%EC%82%BF%EB%BD%80%EB%A1%9C",
-      "transactions": [
-        {
-          "date": "2026-04-07",
-          "amount": 105000
         }
       ]
     },
@@ -11483,8 +10463,20 @@
           "amount": 270000
         },
         {
+          "date": "2025-09-30",
+          "amount": 269000
+        },
+        {
           "date": "2025-10-01",
           "amount": 57400
+        },
+        {
+          "date": "2025-10-01",
+          "amount": 430600
+        },
+        {
+          "date": "2025-10-28",
+          "amount": 89700
         },
         {
           "date": "2025-11-25",
@@ -11539,41 +10531,6 @@
           "amount": 154000
         },
         {
-          "date": "2026-04-14",
-          "amount": 300000
-        },
-        {
-          "date": "2026-05-11",
-          "amount": 360000
-        },
-        {
-          "date": "2026-07-15",
-          "amount": 240000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000434",
-      "name": "충돈삼겹살",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 443 1층",
-      "lat": 36.6219016,
-      "lng": 127.3578954,
-      "naverUrl": "https://map.naver.com/p/search/%EC%B6%A9%EB%8F%88%EC%82%BC%EA%B2%B9%EC%82%B4",
-      "transactions": [
-        {
-          "date": "2025-09-30",
-          "amount": 269000
-        },
-        {
-          "date": "2025-10-01",
-          "amount": 430600
-        },
-        {
-          "date": "2025-10-28",
-          "amount": 89700
-        },
-        {
           "date": "2026-04-01",
           "amount": 475000
         },
@@ -11582,23 +10539,20 @@
           "amount": 214000
         },
         {
+          "date": "2026-04-14",
+          "amount": 300000
+        },
+        {
+          "date": "2026-05-11",
+          "amount": 360000
+        },
+        {
           "date": "2026-05-28",
           "amount": 315000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000435",
-      "name": "충청한우",
-      "category": "육류,고기요리",
-      "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 48 1층",
-      "lat": 36.6205042,
-      "lng": 127.363958,
-      "naverUrl": "https://map.naver.com/p/search/%EC%B6%A9%EC%B2%AD%ED%95%9C%EC%9A%B0",
-      "transactions": [
+        },
         {
-          "date": "2026-02-26",
-          "amount": 395000
+          "date": "2026-07-15",
+          "amount": 240000
         }
       ]
     },
@@ -11716,6 +10670,10 @@
           "amount": 200000
         },
         {
+          "date": "2026-02-09",
+          "amount": 420000
+        },
+        {
           "date": "2026-02-11",
           "amount": 900000
         },
@@ -11726,6 +10684,10 @@
         {
           "date": "2026-02-13",
           "amount": 180000
+        },
+        {
+          "date": "2026-02-26",
+          "amount": 395000
         },
         {
           "date": "2026-03-18",
@@ -11760,12 +10722,20 @@
           "amount": 114000
         },
         {
+          "date": "2026-06-04",
+          "amount": 85000
+        },
+        {
           "date": "2026-06-15",
           "amount": 450000
         },
         {
           "date": "2026-06-18",
           "amount": 100000
+        },
+        {
+          "date": "2026-07-31",
+          "amount": 180000
         }
       ]
     },
@@ -11794,12 +10764,40 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%B9%B4%ED%8E%98%20540",
       "transactions": [
         {
+          "date": "2025-11-12",
+          "amount": 149000
+        },
+        {
+          "date": "2025-12-03",
+          "amount": 97400
+        },
+        {
+          "date": "2025-12-05",
+          "amount": 38000
+        },
+        {
           "date": "2026-01-11",
           "amount": 7500
         },
         {
           "date": "2026-01-11",
           "amount": 17000
+        },
+        {
+          "date": "2026-01-29",
+          "amount": 240000
+        },
+        {
+          "date": "2026-04-08",
+          "amount": 76000
+        },
+        {
+          "date": "2026-04-10",
+          "amount": 95000
+        },
+        {
+          "date": "2026-06-01",
+          "amount": 178800
         }
       ]
     },
@@ -12122,6 +11120,10 @@
       "naverUrl": "https://map.naver.com/p/search/%EA%B9%8C%ED%8E%98%EA%B9%8C%EB%A7%9D",
       "transactions": [
         {
+          "date": "2025-11-10",
+          "amount": 46500
+        },
+        {
           "date": "2026-02-10",
           "amount": 17000
         },
@@ -12149,8 +11151,16 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%B9%B4%ED%8E%98%20%EB%84%A4%EB%AA%A8",
       "transactions": [
         {
+          "date": "2025-10-01",
+          "amount": 265000
+        },
+        {
           "date": "2026-03-24",
           "amount": 31500
+        },
+        {
+          "date": "2026-07-31",
+          "amount": 47200
         }
       ]
     },
@@ -12263,21 +11273,6 @@
       ]
     },
     {
-      "id": "restaurant_000448",
-      "name": "카페정다운",
-      "category": "양식",
-      "address": "충청북도 청주시 서원구 사직대로 107 1층 카페정다운 샌드위치",
-      "lat": 36.6350702,
-      "lng": 127.4592604,
-      "naverUrl": "https://map.naver.com/p/search/%EC%B9%B4%ED%8E%98%EC%A0%95%EB%8B%A4%EC%9A%B4",
-      "transactions": [
-        {
-          "date": "2025-11-28",
-          "amount": 181000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000449",
       "name": "카페정다운 샌드위치",
       "category": "양식",
@@ -12293,6 +11288,10 @@
         {
           "date": "2025-10-23",
           "amount": 204000
+        },
+        {
+          "date": "2025-11-28",
+          "amount": 181000
         }
       ]
     },
@@ -12338,36 +11337,6 @@
         {
           "date": "2025-11-21",
           "amount": 349500
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000453",
-      "name": "커피나후",
-      "category": "카페,디저트",
-      "address": "세종특별자치시 호려울로 29 114호 커피나후 (공영주차장앞)",
-      "lat": 36.4777689,
-      "lng": 127.2900711,
-      "naverUrl": "https://map.naver.com/p/search/%EC%BB%A4%ED%94%BC%EB%82%98%ED%9B%84",
-      "transactions": [
-        {
-          "date": "2026-07-30",
-          "amount": 615000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000454",
-      "name": "커피르앙주",
-      "category": "쇼핑,유통",
-      "address": "세종특별자치시 시청대로 219 5층 506호(보람동, 시드니하트)",
-      "lat": 36.4840179,
-      "lng": 127.2938563,
-      "naverUrl": "https://map.naver.com/p/search/%EC%BB%A4%ED%94%BC%EB%A5%B4%EC%95%99%EC%A3%BC",
-      "transactions": [
-        {
-          "date": "2026-03-17",
-          "amount": 12000
         }
       ]
     },
@@ -12447,21 +11416,6 @@
       ]
     },
     {
-      "id": "restaurant_000460",
-      "name": "코코호도",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 19-6 101호",
-      "lat": 36.6204241,
-      "lng": 127.3173133,
-      "naverUrl": "https://map.naver.com/p/search/%EC%BD%94%EC%BD%94%ED%98%B8%EB%8F%84",
-      "transactions": [
-        {
-          "date": "2026-04-29",
-          "amount": 45000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000461",
       "name": "코코호도오송점",
       "category": "카페,디저트",
@@ -12473,21 +11427,10 @@
         {
           "date": "2025-12-29",
           "amount": 76500
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000462",
-      "name": "쿤밍",
-      "category": "중식",
-      "address": "충청북도 청주시 흥덕구 오송읍 연제1길 24-35 B3호",
-      "lat": 36.6264649,
-      "lng": 127.3225712,
-      "naverUrl": "https://map.naver.com/p/search/%EC%BF%A4%EB%B0%8D",
-      "transactions": [
+        },
         {
-          "date": "2026-04-10",
-          "amount": 95000
+          "date": "2026-04-29",
+          "amount": 45000
         }
       ]
     },
@@ -12898,6 +11841,10 @@
       "naverUrl": "https://map.naver.com/p/search/%ED%8C%8C%EB%A6%AC%EB%B0%94%EA%B2%8C%EB%9C%A8",
       "transactions": [
         {
+          "date": "2025-09-05",
+          "amount": 92700
+        },
+        {
           "date": "2025-09-17",
           "amount": 79600
         },
@@ -12914,12 +11861,28 @@
           "amount": 170000
         },
         {
+          "date": "2025-11-06",
+          "amount": 141800
+        },
+        {
+          "date": "2025-11-06",
+          "amount": 170000
+        },
+        {
           "date": "2025-11-28",
           "amount": 5500
         },
         {
+          "date": "2026-02-20",
+          "amount": 173000
+        },
+        {
           "date": "2026-03-24",
           "amount": 53800
+        },
+        {
+          "date": "2026-04-21",
+          "amount": 126700
         },
         {
           "date": "2026-05-11",
@@ -12936,6 +11899,10 @@
       "lng": 127.3160766,
       "naverUrl": "https://map.naver.com/p/search/%ED%8C%8C%EB%A6%AC%EB%B0%94%EA%B2%8C%EB%9C%A8%20%EC%98%A4%EC%86%A1%ED%8C%8C%EB%9D%BC%EA%B3%A4%EC%A0%90",
       "transactions": [
+        {
+          "date": "2026-01-08",
+          "amount": 169740
+        },
         {
           "date": "2026-07-16",
           "amount": 82800
@@ -12954,71 +11921,6 @@
         {
           "date": "2026-07-31",
           "amount": 154300
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000485",
-      "name": "파리바게뜨 청주강내점",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 강내면 가로수로 534 1층",
-      "lat": 36.6235472,
-      "lng": 127.3594046,
-      "naverUrl": "https://map.naver.com/p/search/%ED%8C%8C%EB%A6%AC%EB%B0%94%EA%B2%8C%EB%9C%A8%20%EC%B2%AD%EC%A3%BC%EA%B0%95%EB%82%B4%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2026-05-29",
-          "amount": 50600
-        },
-        {
-          "date": "2026-07-14",
-          "amount": 109900
-        },
-        {
-          "date": "2026-07-28",
-          "amount": 122500
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000486",
-      "name": "파리바게트",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 대농로 43 신영지웰시티 101, 102호",
-      "lat": 36.6437885,
-      "lng": 127.4270256,
-      "naverUrl": "https://map.naver.com/p/search/%ED%8C%8C%EB%A6%AC%EB%B0%94%EA%B2%8C%ED%8A%B8",
-      "transactions": [
-        {
-          "date": "2025-11-06",
-          "amount": 141800
-        },
-        {
-          "date": "2025-11-06",
-          "amount": 170000
-        },
-        {
-          "date": "2026-02-20",
-          "amount": 173000
-        },
-        {
-          "date": "2026-04-21",
-          "amount": 126700
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000487",
-      "name": "파리바케트",
-      "category": "카페,디저트",
-      "address": "충청북도 청주시 흥덕구 대농로 43 신영지웰시티 101, 102호",
-      "lat": 36.6437885,
-      "lng": 127.4270256,
-      "naverUrl": "https://map.naver.com/p/search/%ED%8C%8C%EB%A6%AC%EB%B0%94%EC%BC%80%ED%8A%B8",
-      "transactions": [
-        {
-          "date": "2025-09-05",
-          "amount": 92700
         }
       ]
     },
@@ -13042,25 +11944,6 @@
       ]
     },
     {
-      "id": "restaurant_000489",
-      "name": "파파존스",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명12로 31 1층 일부호",
-      "lat": 36.6204549,
-      "lng": 127.319821,
-      "naverUrl": "https://map.naver.com/p/search/%ED%8C%8C%ED%8C%8C%EC%A1%B4%EC%8A%A4",
-      "transactions": [
-        {
-          "date": "2025-10-20",
-          "amount": 30500
-        },
-        {
-          "date": "2026-04-21",
-          "amount": 169200
-        }
-      ]
-    },
-    {
       "id": "restaurant_000490",
       "name": "파파존스 오송조치원점",
       "category": "음식점",
@@ -13070,8 +11953,16 @@
       "naverUrl": "https://map.naver.com/p/search/%ED%8C%8C%ED%8C%8C%EC%A1%B4%EC%8A%A4%20%EC%98%A4%EC%86%A1%EC%A1%B0%EC%B9%98%EC%9B%90%EC%A0%90",
       "transactions": [
         {
+          "date": "2025-10-20",
+          "amount": 30500
+        },
+        {
           "date": "2026-04-09",
           "amount": 130400
+        },
+        {
+          "date": "2026-04-21",
+          "amount": 169200
         },
         {
           "date": "2026-04-24",
@@ -13244,6 +12135,10 @@
           "amount": 420000
         },
         {
+          "date": "2025-12-05",
+          "amount": 175000
+        },
+        {
           "date": "2026-05-16",
           "amount": 600000
         },
@@ -13320,6 +12215,14 @@
           "amount": 450000
         },
         {
+          "date": "2025-11-25",
+          "amount": 172300
+        },
+        {
+          "date": "2025-12-17",
+          "amount": 174200
+        },
+        {
           "date": "2026-03-11",
           "amount": 289400
         },
@@ -13334,6 +12237,10 @@
         {
           "date": "2026-06-08",
           "amount": 291000
+        },
+        {
+          "date": "2026-06-09",
+          "amount": 284800
         },
         {
           "date": "2026-06-10",
@@ -13472,6 +12379,10 @@
       "naverUrl": "https://map.naver.com/p/search/%ED%94%BC%EC%9E%90%EB%A7%88%EB%A3%A8",
       "transactions": [
         {
+          "date": "2025-09-22",
+          "amount": 42800
+        },
+        {
           "date": "2025-11-18",
           "amount": 79500
         }
@@ -13582,6 +12493,10 @@
           "amount": 180000
         },
         {
+          "date": "2026-03-17",
+          "amount": 12000
+        },
+        {
           "date": "2026-07-29",
           "amount": 300000
         }
@@ -13619,40 +12534,13 @@
       ]
     },
     {
-      "id": "restaurant_000516",
-      "name": "한상모아",
+      "id": "restaurant_000518",
+      "name": "한상모아 도시락 청주본점",
       "category": "음식점",
       "address": "충청북도 청주시 서원구 사직대로 107",
       "lat": 36.6350807,
       "lng": 127.4592912,
-      "naverUrl": "https://map.naver.com/p/search/%ED%95%9C%EC%83%81%EB%AA%A8%EC%95%84",
-      "transactions": [
-        {
-          "date": "2025-10-22",
-          "amount": 360000
-        },
-        {
-          "date": "2026-01-02",
-          "amount": 437000
-        },
-        {
-          "date": "2026-03-31",
-          "amount": 252000
-        },
-        {
-          "date": "2026-05-19",
-          "amount": 207100
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000517",
-      "name": "한상모아도시락",
-      "category": "음식점",
-      "address": "충청북도 청주시 서원구 사직대로 107",
-      "lat": 36.6350807,
-      "lng": 127.4592912,
-      "naverUrl": "https://map.naver.com/p/search/%ED%95%9C%EC%83%81%EB%AA%A8%EC%95%84%EB%8F%84%EC%8B%9C%EB%9D%BD",
+      "naverUrl": "https://map.naver.com/p/search/%ED%95%9C%EC%83%81%EB%AA%A8%EC%95%84%20%EB%8F%84%EC%8B%9C%EB%9D%BD%20%EC%B2%AD%EC%A3%BC%EB%B3%B8%EC%A0%90",
       "transactions": [
         {
           "date": "2025-09-24",
@@ -13661,6 +12549,14 @@
         {
           "date": "2025-09-30",
           "amount": 390000
+        },
+        {
+          "date": "2025-10-01",
+          "amount": 300000
+        },
+        {
+          "date": "2025-10-22",
+          "amount": 360000
         },
         {
           "date": "2025-11-21",
@@ -13672,6 +12568,22 @@
         },
         {
           "date": "2025-12-04",
+          "amount": 430000
+        },
+        {
+          "date": "2025-12-04",
+          "amount": 437000
+        },
+        {
+          "date": "2025-12-05",
+          "amount": 1410000
+        },
+        {
+          "date": "2025-12-22",
+          "amount": 568000
+        },
+        {
+          "date": "2026-01-02",
           "amount": 437000
         },
         {
@@ -13681,53 +12593,6 @@
         {
           "date": "2026-01-09",
           "amount": 300000
-        },
-        {
-          "date": "2026-03-10",
-          "amount": 204000
-        },
-        {
-          "date": "2026-03-19",
-          "amount": 500000
-        },
-        {
-          "date": "2026-05-13",
-          "amount": 221000
-        },
-        {
-          "date": "2026-05-27",
-          "amount": 750000
-        },
-        {
-          "date": "2026-05-29",
-          "amount": 200000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000518",
-      "name": "한상모아 도시락 청주본점",
-      "category": "음식점",
-      "address": "충청북도 청주시 서원구 사직대로 107",
-      "lat": 36.6350807,
-      "lng": 127.4592912,
-      "naverUrl": "https://map.naver.com/p/search/%ED%95%9C%EC%83%81%EB%AA%A8%EC%95%84%20%EB%8F%84%EC%8B%9C%EB%9D%BD%20%EC%B2%AD%EC%A3%BC%EB%B3%B8%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-10-01",
-          "amount": 300000
-        },
-        {
-          "date": "2025-12-04",
-          "amount": 430000
-        },
-        {
-          "date": "2025-12-05",
-          "amount": 1410000
-        },
-        {
-          "date": "2025-12-22",
-          "amount": 568000
         },
         {
           "date": "2026-01-22",
@@ -13742,8 +12607,20 @@
           "amount": 3600000
         },
         {
+          "date": "2026-03-10",
+          "amount": 204000
+        },
+        {
           "date": "2026-03-16",
           "amount": 203000
+        },
+        {
+          "date": "2026-03-19",
+          "amount": 500000
+        },
+        {
+          "date": "2026-03-31",
+          "amount": 252000
         },
         {
           "date": "2026-03-31",
@@ -13754,12 +12631,28 @@
           "amount": 390000
         },
         {
+          "date": "2026-05-13",
+          "amount": 221000
+        },
+        {
+          "date": "2026-05-19",
+          "amount": 207100
+        },
+        {
           "date": "2026-05-26",
           "amount": 1817000
         },
         {
           "date": "2026-05-27",
           "amount": 390000
+        },
+        {
+          "date": "2026-05-27",
+          "amount": 750000
+        },
+        {
+          "date": "2026-05-29",
+          "amount": 200000
         },
         {
           "date": "2026-07-15",
@@ -13806,18 +12699,7 @@
         {
           "date": "2025-09-25",
           "amount": 252000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000521",
-      "name": "한솥 충북오송점",
-      "category": "음식점",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 196 101호",
-      "lat": 36.6307842,
-      "lng": 127.3307417,
-      "naverUrl": "https://map.naver.com/p/search/%ED%95%9C%EC%86%A5%20%EC%B6%A9%EB%B6%81%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
+        },
         {
           "date": "2026-05-15",
           "amount": 497700
@@ -13919,25 +12801,6 @@
       ]
     },
     {
-      "id": "restaurant_000528",
-      "name": "홍장군",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 강내면 월탄3길 9 홍장군김치삼겹살",
-      "lat": 36.6071852,
-      "lng": 127.3542992,
-      "naverUrl": "https://map.naver.com/p/search/%ED%99%8D%EC%9E%A5%EA%B5%B0",
-      "transactions": [
-        {
-          "date": "2026-02-20",
-          "amount": 300000
-        },
-        {
-          "date": "2026-02-25",
-          "amount": 240000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000529",
       "name": "홍장군김치삼겹살",
       "category": "한식",
@@ -13957,6 +12820,14 @@
         {
           "date": "2025-12-31",
           "amount": 250000
+        },
+        {
+          "date": "2026-02-20",
+          "amount": 300000
+        },
+        {
+          "date": "2026-02-25",
+          "amount": 240000
         },
         {
           "date": "2026-04-27",
@@ -13996,21 +12867,6 @@
         {
           "date": "2026-01-07",
           "amount": 250000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000531",
-      "name": "화신쭈꾸미",
-      "category": "한식",
-      "address": "충청북도 청주시 흥덕구 오송읍 연제1길 24-35 116호 화신쭈꾸미",
-      "lat": 36.6264649,
-      "lng": 127.3225712,
-      "naverUrl": "https://map.naver.com/p/search/%ED%99%94%EC%8B%A0%EC%AD%88%EA%BE%B8%EB%AF%B8",
-      "transactions": [
-        {
-          "date": "2025-12-05",
-          "amount": 38000
         }
       ]
     },

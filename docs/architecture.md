@@ -46,6 +46,7 @@ collector/            # Python; never imported by src/
   validate.py         # the publication gate (PRD §32)
   build_places.py     # approved rows + collected transactions -> data/places.json
   id_map.json         # canonical ID map, committed — it must survive every run
+  aliases.json        # spelling merge map, committed — optional, absent means no merges
   out/                # raw_transactions.json, normalized_places.json (intermediate, gitignored)
 .claude/skills/knue-expense-collect/
                       # the collection half: download, extract, normalize, classify, geocode.
@@ -165,6 +166,8 @@ read, so a hand-edited decomposed entry still names its place instead of handing
 and two keys that normalize to one stop the build. `build_places.py` only ever
 appends to it, and mints the next number from the highest ever assigned rather than from the entry
 count, so an entry deleted by hand cannot hand its number to a different business.
+A spelling merged away by `collector/aliases.json` publishes no place, so it is minted no ID; an ID
+already minted for one before the merge stays in the map, unused and unreusable.
 
 **Build.** `collector/build_places.py` (`python -m collector.build_places`) is step 7 of the
 `data-update` cycle — the only thing that writes `data/places.json`. It joins `review_candidates.csv`
@@ -178,6 +181,18 @@ gate cannot disagree about the window. Three fields are derived rather than copi
 - `naverUrl` is a `https://map.naver.com/p/search/…` link on the place name. The collector never
   learns Naver's internal place ID, so composing one would be a fabrication; a search link is a
   claim the data supports, and the host satisfies both `requireNaverUrl` and check 10.
+
+**Spelling merges.** The disclosures spell one business several ways, and stage 3 merges only exact
+normalised matches (see *Key Abstractions* below), so `신토불이교원대점` and `신토불이` arrive as two
+approved rows and would publish as two places splitting one business's visits between them.
+`collector/aliases.json` — `{alias canonical_name: representative canonical_name}`, NFC on both
+sides, committed — is where the reviewer says they are one business; nothing merges that is not
+written there, and an absent file means no merges. An aliased row publishes no place and is minted
+no ID, and `collect_transactions` resolves the alias *before* testing approval, so the merged
+spelling's visits land on the representative instead of being dropped as unapproved. The build fails
+closed on a self-alias, on a chain (a target that is itself a key — resolving it would depend on
+dict order), and on a target no approved row carries, which would silently discard every visit of
+the merged spelling.
 
 It fails closed with exit 2 — writing nothing — on a `canonical_name` or a `display_name` that
 appears on more than one row **whatever the other row's status** (check 9 and check 11 count rows,

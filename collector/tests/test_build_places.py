@@ -100,13 +100,21 @@ class Fixture:
         self.candidates = tmp_path / "review_candidates.csv"
         self.out_dir = tmp_path / "out"
         self.id_map = tmp_path / "id_map.json"
+        # Pointed at `tmp_path` even though most tests never write it: the default is the repo's
+        # own `collector/aliases.json`, and a fixture that fell back to it would merge this test's
+        # names according to the operator's real merge decisions.
+        self.aliases = tmp_path / "aliases.json"
         self.output = tmp_path / "places.json"
+
+    def write_aliases(self, aliases: dict[str, str]) -> None:
+        self.aliases.write_text(json.dumps(aliases, ensure_ascii=False), encoding="utf-8")
 
     def run(self, updated_at: date = UPDATED_AT) -> int:
         return main([
             "--candidates", str(self.candidates),
             "--out-dir", str(self.out_dir),
             "--id-map", str(self.id_map),
+            "--aliases", str(self.aliases),
             "--output", str(self.output),
             "--updated-at", updated_at.isoformat(),
         ])
@@ -354,6 +362,85 @@ def test_visits_join_through_every_raw_spelling(fixture: Fixture) -> None:
                  transaction("채순자의 까망염소", "2026-06-02")])
     assert fixture.run() == EXIT_OK
     assert len(fixture.places()[0]["transactions"]) == 3
+
+
+def merged(fixture: Fixture) -> None:
+    """Two approved rows for one business, plus a month of visits under the second spelling."""
+    write_csv(fixture.candidates, [
+        row(),
+        row(canonical_name="까망염소 본점", display_name="까망염소 본점"),
+    ])
+    write_month(fixture.out_dir, "2026-06",
+                [normalized(), normalized("까망염소 본점")],
+                [transaction("까망염소 본점", "2026-06-02")])
+
+
+def test_an_aliased_spelling_publishes_its_visits_under_the_representative(
+    fixture: Fixture,
+) -> None:
+    """The point of the map: one place, both spellings' visits."""
+    merged(fixture)
+    fixture.write_aliases({"까망염소 본점": "까망염소"})
+    assert fixture.run() == EXIT_OK
+    places = fixture.places()
+    assert [place["name"] for place in places] == ["까망염소"]
+    assert len(places[0]["transactions"]) == 2
+
+
+def test_without_the_alias_the_same_fixture_publishes_two_places(fixture: Fixture) -> None:
+    """The control: the split is what the operator is merging away, not a fixture accident."""
+    merged(fixture)
+    assert fixture.run() == EXIT_OK
+    assert sorted(place["name"] for place in fixture.places()) == ["까망염소", "까망염소 본점"]
+
+
+def test_an_aliased_row_is_never_published_and_never_minted_an_id(fixture: Fixture) -> None:
+    """A merged spelling is not a place, so it must not consume a canonical ID either."""
+    merged(fixture)
+    fixture.write_aliases({"까망염소 본점": "까망염소"})
+    assert fixture.run() == EXIT_OK
+    assert list(load_id_map(fixture.id_map)) == ["까망염소"]
+
+
+def test_an_alias_pointing_at_an_unapproved_name_stops_the_build(fixture: Fixture) -> None:
+    """Otherwise the merged spelling's visits are dropped silently — the failure this prevents."""
+    merged(fixture)
+    fixture.write_aliases({"까망염소 본점": "있지도 않은 집"})
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+def test_a_chained_alias_stops_the_build(fixture: Fixture) -> None:
+    """Resolving a chain would depend on dict order, so it is refused rather than resolved."""
+    merged(fixture)
+    fixture.write_aliases({"까망염소 본점": "까망염소 2호점", "까망염소 2호점": "까망염소"})
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+def test_a_self_alias_stops_the_build(fixture: Fixture) -> None:
+    """A name merged into itself is a typo; obeying it would delete the place."""
+    merged(fixture)
+    fixture.write_aliases({"까망염소": "까망염소"})
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+def test_a_decomposed_alias_key_still_names_its_row(fixture: Fixture) -> None:
+    """The map is hand-edited like the queue, so both sides are NFC — same as every other key."""
+    merged(fixture)
+    fixture.write_aliases({
+        unicodedata.normalize("NFD", "까망염소 본점"): unicodedata.normalize("NFD", "까망염소"),
+    })
+    assert fixture.run() == EXIT_OK
+    assert len(fixture.places()) == 1
+
+
+def test_a_missing_alias_file_is_not_an_error(fixture: Fixture) -> None:
+    """A repo that has never needed a merge carries no map."""
+    assert not fixture.aliases.exists()
+    assert fixture.run() == EXIT_OK
+    assert len(fixture.places()) == 1
 
 
 def test_an_excluded_venue_contributes_nothing(fixture: Fixture) -> None:
