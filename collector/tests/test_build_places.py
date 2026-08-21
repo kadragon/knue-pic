@@ -409,7 +409,8 @@ def test_the_built_dataset_passes_the_validator(fixture: Fixture, capsys: Any) -
     """End to end: the build's output is judged by the module that gates publication."""
     assert fixture.run() == EXIT_OK
     capsys.readouterr()
-    assert validate_main([str(fixture.output), "--candidates", str(fixture.candidates)]) == 0
+    assert validate_main([str(fixture.output), "--candidates", str(fixture.candidates),
+                          "--id-map", str(fixture.id_map)]) == 0
 
 
 # --- Unicode normalization ---------------------------------------------------------------------
@@ -430,7 +431,8 @@ def test_a_decomposed_csv_name_publishes_one_place_the_gate_accepts(
     assert len(places) == 1
     assert places[0]["name"] == "까망염소"
     capsys.readouterr()
-    assert validate_main([str(fixture.output), "--candidates", str(fixture.candidates)]) == 0
+    assert validate_main([str(fixture.output), "--candidates", str(fixture.candidates),
+                          "--id-map", str(fixture.id_map)]) == 0
 
 
 def test_a_decomposed_category_publishes_composed(fixture: Fixture) -> None:

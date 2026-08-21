@@ -56,6 +56,10 @@ NAVER_URL_HOSTS = ("naver.com", "naver.me")
 ASCII_HOST_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)*")
 
 DEFAULT_CANDIDATES = Path("review_candidates.csv")
+# The canonical ID map `build_places.py` writes (`docs/architecture.md` -> Canonical ID). Check 9
+# reads it in reverse — id -> canonical name — because the published `id` is the only field of a
+# place that a rename cannot move.
+DEFAULT_ID_MAP = Path("collector/id_map.json")
 
 EXIT_OK = 0
 EXIT_INVALID = 1
@@ -265,7 +269,12 @@ def load_dataset(path: Path) -> dict[str, Any]:
 
 
 def load_approvals(path: Path) -> tuple[dict[str, str], set[str]]:
-    """Map ``display_name`` -> ``status`` from the review queue, plus the ambiguous names.
+    """Map ``canonical_name`` -> ``status`` from the review queue, plus the ambiguous names.
+
+    Keyed on the canonical name, not the display name: the canonical name is what
+    ``collector/id_map.json`` remembers a business by, so a row whose ``display_name`` was retyped
+    still answers for the place it was approved for. ``display_name`` is display text here and is
+    not read at all.
 
     Keys are NFC (``normalize_name``), so the two spellings of one Korean name are one key. That
     makes a name approved in both forms a *duplicate* rather than two independent rows — the
@@ -279,7 +288,7 @@ def load_approvals(path: Path) -> tuple[dict[str, str], set[str]]:
             reader = csv.DictReader(handle)
             if reader.fieldnames is None:
                 raise DatasetUnusable(f"{path} is empty — no header row")
-            missing = {"status", "display_name"} - set(reader.fieldnames)
+            missing = {"status", "canonical_name"} - set(reader.fieldnames)
             if missing:
                 raise DatasetUnusable(
                     f"{path} is missing required column(s): {', '.join(sorted(missing))}"
@@ -293,7 +302,7 @@ def load_approvals(path: Path) -> tuple[dict[str, str], set[str]]:
     approvals: dict[str, str] = {}
     duplicates: set[str] = set()
     for row in rows:
-        name = normalize_name(row.get("display_name"))
+        name = normalize_name(row.get("canonical_name"))
         if name is None:
             continue
         if name in approvals:
@@ -302,14 +311,68 @@ def load_approvals(path: Path) -> tuple[dict[str, str], set[str]]:
     return approvals, duplicates
 
 
+def load_id_map(path: Path) -> dict[str, str]:
+    """``id`` -> ``canonical_name``, the reverse of what ``collector/id_map.json`` stores.
+
+    Reversed because that is the direction check 9 travels: it holds a published place's ``id`` and
+    needs the name the review queue filed it under. ``build_places.py`` owns the forward direction
+    and is the only writer.
+
+    Reading mirrors ``build_places.load_id_map``: keys are NFC (``normalize_name``), so a
+    hand-edited decomposed entry still names its place, and two spellings of one name mapped to one
+    id are the same entry rather than a conflict. Two *different* canonical names sharing one id is
+    fatal — the id would name two businesses, and which one the dataset's place is cannot be
+    answered here.
+
+    Unlike the build, a missing file is fatal rather than an empty map: for the build, a first run
+    legitimately has none, but for the gate a dataset holding places and no map is a run that can
+    decide nothing — exit 2 ("could not run"), never a silent pass or a violation per place.
+    """
+    if not path.exists():
+        raise DatasetUnusable(
+            f"{path} does not exist — check 9 joins the dataset's ids to the review queue through "
+            "it, so there is nothing to validate against. `python -m collector.build_places` "
+            "writes it and it is committed with the dataset"
+        )
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as cause:
+        raise DatasetUnusable(f"{path} could not be read: {cause}") from cause
+    try:
+        parsed = json.loads(raw, parse_constant=_reject_json_constant)
+    except ValueError as cause:
+        raise DatasetUnusable(f"{path} is not valid JSON: {cause}") from cause
+    if not isinstance(parsed, dict) or not all(
+            isinstance(key, str) and isinstance(value, str) for key, value in parsed.items()):
+        raise DatasetUnusable(f"{path} must be a JSON object of name -> id strings")
+
+    by_id: dict[str, str] = {}
+    for key, value in parsed.items():
+        name = normalize_name(key)
+        place_id = text_or_none(value)
+        if name is None or place_id is None:
+            raise DatasetUnusable(
+                f"{path}: {key!r} -> {value!r} has an empty name or id"
+            )
+        if place_id in by_id and by_id[place_id] != name:
+            raise DatasetUnusable(
+                f"{path}: id {place_id!r} is mapped from both {by_id[place_id]!r} and {name!r} — "
+                "one id cannot name two businesses; resolve the duplicate before validating"
+            )
+        by_id[place_id] = name
+    return by_id
+
+
 def validate(
     dataset: dict[str, Any],
     approvals: dict[str, str],
+    id_names: dict[str, str] | None = None,
     duplicate_names: Iterable[str] = (),
 ) -> list[Violation]:
     """Run every check and return every violation found, in check order per place."""
     violations: list[Violation] = []
     duplicates = set(duplicate_names)
+    names_by_id = id_names or {}
 
     # `updatedAt` anchors the rolling window (and every period window in `src/data/types.ts`).
     # When it is unusable, check 6 has no anchor: report that once and let the other checks run,
@@ -337,8 +400,8 @@ def validate(
             violations.append(Violation(None, f"{path} must be an object, got {describe(place)}"))
             continue
         violations.extend(
-            _validate_place(place, path, seen_ids, seen_names, approvals, duplicates,
-                            window_start, window_end)
+            _validate_place(place, path, seen_ids, seen_names, approvals, names_by_id,
+                            duplicates, window_start, window_end)
         )
 
     return violations
@@ -350,6 +413,7 @@ def _validate_place(
     seen_ids: set[str],
     seen_names: dict[str, str],
     approvals: dict[str, str],
+    names_by_id: dict[str, str],
     duplicates: set[str],
     window_start: date | None,
     window_end: date | None,
@@ -426,11 +490,16 @@ def _validate_place(
             )
         )
 
-    # Check 9 — the approval gate. Joined on `display_name` because `review_candidates.csv` has no
-    # id column and the canonical ID map does not exist yet; see `docs/architecture.md`. Both sides
-    # are keyed on NFC (`normalize_name` — `load_approvals` does the same), so a decomposed name in
-    # either file joins the row it names. The messages quote the *file's* spelling, not the key:
-    # the operator has to find that string to fix it.
+    # Check 9 — the approval gate, joined on the canonical ID: `place.id` -> the name
+    # `collector/id_map.json` filed it under -> that row's `status`. Not on `name`, which the
+    # operator retypes: a business that changes its display name would lose the approval a human
+    # gave it, and a renamed *rejected* row would inherit one. The id survives both
+    # (`docs/architecture.md` -> Canonical ID).
+    #
+    # Both sides of the second hop are NFC (`normalize_name` — `load_approvals` and `load_id_map`
+    # do the same), so a decomposed spelling in either file joins the row it names. The messages
+    # quote the id *and* the file's `name` spelling: the id locates the map row, the name locates
+    # the place on screen.
     original = text_or_none(place.get("name"))
     name = normalize_name(place.get("name"))
     if name is not None:
@@ -446,18 +515,29 @@ def _validate_place(
         else:
             seen_names[name] = f"{path} (id {place_id})" if place_id is not None else path
 
-        if name in duplicates:
+    # Runs off `place_id`, not `name`, so it is skipped only when check 1 already reported the id
+    # missing — an unidentifiable place is a check-1 defect, and reporting it twice hides that.
+    if place_id is not None:
+        canonical = names_by_id.get(place_id)
+        if canonical is None:
             violations.append(
-                Violation(9,
-                          f'{path}.name "{original}" matches more than one review row — ambiguous')
+                Violation(9, f'{path} (id "{place_id}", name "{original}") is in no '
+                             'collector/id_map.json entry — it was never assigned a canonical name')
             )
-        elif name not in approvals:
+        elif canonical in duplicates:
             violations.append(
-                Violation(9, f'{path}.name "{original}" has no row in the review queue')
+                Violation(9, f'{path} (id "{place_id}", name "{original}") is filed under '
+                             f'"{canonical}", which matches more than one review row — ambiguous')
             )
-        elif approvals[name] != "approved":
+        elif canonical not in approvals:
             violations.append(
-                Violation(9, f'{path}.name "{original}" is "{approvals[name]}", not "approved"')
+                Violation(9, f'{path} (id "{place_id}", name "{original}") is filed under '
+                             f'"{canonical}", which has no row in the review queue')
+            )
+        elif approvals[canonical] != "approved":
+            violations.append(
+                Violation(9, f'{path} (id "{place_id}", name "{original}") is filed under '
+                             f'"{canonical}", which is "{approvals[canonical]}", not "approved"')
             )
 
     return violations
@@ -525,6 +605,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_CANDIDATES,
         help=f"review queue CSV to join approvals from (default: {DEFAULT_CANDIDATES})",
     )
+    parser.add_argument(
+        "--id-map",
+        type=Path,
+        default=DEFAULT_ID_MAP,
+        help=f"canonical ID map check 9 joins through (default: {DEFAULT_ID_MAP})",
+    )
     return parser
 
 
@@ -534,11 +620,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         dataset = load_dataset(args.dataset)
         approvals, duplicates = load_approvals(args.candidates)
+        id_names = load_id_map(args.id_map)
     except DatasetUnusable as error:
         print(f"validator could not run: {error}", file=sys.stderr)
         return EXIT_UNUSABLE
 
-    violations = validate(dataset, approvals, duplicates)
+    violations = validate(dataset, approvals, id_names, duplicates)
     if violations:
         for violation in violations:
             print(violation.render(), file=sys.stderr)

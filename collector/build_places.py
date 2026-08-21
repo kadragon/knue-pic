@@ -101,9 +101,9 @@ def load_approved(path: Path) -> dict[str, Approved]:
     """Approved rows keyed by ``canonical_name``.
 
     The key is the canonical name because that is what the normalizer writes into
-    ``normalized_places.json`` and therefore the only join available to the transaction pass.
-    ``review_candidates.csv`` has no ``id`` column; moving this join onto the canonical ID is the
-    follow-up in ``backlog.md`` that this module's ID map unblocks.
+    ``normalized_places.json`` and therefore the only join available to the transaction pass. It is
+    also the key ``collector/validate.py`` check 9 joins approvals on, through the ID map this
+    module writes — so the build and the gate file a place under the same name or neither does.
 
     Both names are keyed in NFC (``normalize_name``). The operator edits this file by hand, so one
     business can arrive composed on one row and decomposed on another; keying on the raw code
@@ -131,10 +131,10 @@ def load_approved(path: Path) -> dict[str, Approved]:
         # causes `load_approvals` in `validate.py` catches.
         raise DatasetUnusable(f"{path} could not be read: {cause}") from cause
 
-    # Every row's display name, not just the approved ones: check 9 calls a name ambiguous when it
-    # appears on more than one *row* whatever their statuses, so a build that only compared approved
-    # rows would publish a place the gate then rejects — the build and the gate disagreeing about
-    # what one name is, which is the whole defect this module is being fixed for.
+    # Every row's display name, not just the approved ones. The published `name` is this column,
+    # and check 11 (`unique-name`) calls one business published twice a defect, so two rows carrying
+    # one display name are two places the gate then rejects — whatever their statuses, since a
+    # pending row is one operator edit away from being approved into that collision.
     display_rows: dict[str, list[int]] = {}
     for number, row in enumerate(rows, start=2):  # header is line 1
         name = normalize_name(row.get("display_name"))
@@ -153,17 +153,17 @@ def load_approved(path: Path) -> dict[str, Approved]:
                 f"{path} line {number}: canonical_name {canonical!r} is approved on two rows — "
                 "resolve the duplicate before building")
 
-        # `display_name` is the key check 9 joins on, so it carries the same two obligations the
-        # canonical name does. A blank one must not fall back to the canonical name: the fallback
-        # would publish a place whose `name` matches no review row, and check 9 reads that as
-        # unapproved. A repeated one is the ambiguity check 9 refuses to resolve — on *any* row,
-        # approved or not — and refusing it here costs an operator one edit instead of a minted ID
-        # and a blocked deploy.
+        # `display_name` is what gets published as the place's `name`, so it carries two
+        # obligations of its own. A blank one must not fall back to the canonical name: the queue
+        # is what the operator reads, and a place named by a string that appears nowhere in it is
+        # unreviewable — check 7 would reject the blank anyway, one deploy later. A repeated one is
+        # the collision check 11 refuses to publish, on *any* row, approved or not; refusing it here
+        # costs an operator one edit instead of a minted ID and a blocked deploy.
         display = normalize_name(row.get("display_name")) or ""
         if not display:
             raise DatasetUnusable(
                 f"{path} line {number}: approved row {canonical!r} has no display_name — "
-                "the review queue is joined on that column")
+                "that column is the place's published name")
         others = [line for line in display_rows.get(display, ()) if line != number]
         if others:
             raise DatasetUnusable(

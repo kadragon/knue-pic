@@ -112,6 +112,11 @@ intended behaviour (PRD §38) — the fix is the key, never removing the fallbac
 **Fix:** correct the offending row in `review_candidates.csv` (or the collector step that produced
 it) and regenerate. Never edit `data/places.json` by hand to get past the gate.
 
+Exit **2** is a different failure: the validator could not run at all. Besides an unreadable
+dataset or queue, check 9 needs `collector/id_map.json` — it joins each place's `id` to the queue
+through that map — so a missing or self-contradicting map stops the run before any check. Rebuild
+it with `python -m collector.build_places` and commit it with the dataset.
+
 ### 404 on the deployed site, works locally
 
 **Symptom:** blank page or missing assets on the Pages URL.
