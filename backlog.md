@@ -6,6 +6,10 @@
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*
 
+### Same-coordinate spelling clusters are found by hand (2026-08-21)
+
+- [ ] [debt] `collector/aliases.json` merges the spellings of one business, but finding them is a manual pass: group the approved rows on identical `lat`/`lng` and the clusters fall out. The 2025-09..2026-08 run had 66 of them covering 47% of all visits, and new spellings arrive every month, so this recurs. Surface the clusters at stage 4 (or as a `--report` on the build) so the reviewer is told which rows to consider merging instead of having to look — `.claude/skills/knue-expense-collect/scripts/geocode_candidates.py`
+
 ## Someday
 
 - [ ] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget

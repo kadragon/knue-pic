@@ -59,6 +59,7 @@ NAVER_SEARCH_PREFIX = "https://map.naver.com/p/search/"
 DEFAULT_CANDIDATES = Path("review_candidates.csv")
 DEFAULT_OUT_DIR = Path("collector/out")
 DEFAULT_ID_MAP = Path("collector/id_map.json")
+DEFAULT_ALIASES = Path("collector/aliases.json")
 DEFAULT_OUTPUT = Path("data/places.json")
 
 APPROVED = "approved"
@@ -97,8 +98,53 @@ def parse_float(value: str) -> float | None:
         return None
 
 
-def load_approved(path: Path) -> dict[str, Approved]:
-    """Approved rows keyed by ``canonical_name``.
+def load_aliases(path: Path) -> dict[str, str]:
+    """``alias canonical_name`` -> ``representative canonical_name``, the operator's merge map.
+
+    The disclosures spell one business several ways -- `신토불이교원대점` and `신토불이`,
+    four spellings of `본도시락 오송점` -- and stage 3 of the collector merges only exact
+    normalised matches on purpose (`docs/architecture.md` -> Build), so those arrive as separate
+    approved rows and publish as separate places with their visits split between them. This file is
+    where the reviewer says they are one business; nothing merges that is not written here.
+
+    Keys and values are NFC (``normalize_name``) like every other join key in this module: the
+    operator edits this file and the queue by hand, and a decomposed spelling in one of them would
+    otherwise name a place the other does not have.
+
+    A missing file is an empty map, not an error -- a repo that has never needed a merge has no
+    reason to carry one.
+
+    Fails closed on a self-alias and on a chain (a target that is itself a key). A chain has no
+    defensible single answer -- resolving it would depend on dict order -- and both are far more
+    likely to be a typo than an intent.
+    """
+    if not path.exists():
+        return {}
+    payload = read_json(path)
+    if not isinstance(payload, dict):
+        raise DatasetUnusable(f"{path} must be a JSON object of alias -> canonical name")
+
+    aliases: dict[str, str] = {}
+    for key, value in payload.items():
+        alias = normalize_name(key) or ""
+        target = normalize_name(value) if isinstance(value, str) else None
+        if not alias or not target:
+            raise DatasetUnusable(
+                f"{path}: {key!r} -> {value!r} is not a usable canonical name pair")
+        if alias == target:
+            raise DatasetUnusable(f"{path}: {alias!r} is aliased to itself")
+        aliases[alias] = target
+
+    for alias, target in aliases.items():
+        if target in aliases:
+            raise DatasetUnusable(
+                f"{path}: {alias!r} points at {target!r}, which is itself an alias for "
+                f"{aliases[target]!r} — resolve the chain to a single representative")
+    return aliases
+
+
+def load_approved(path: Path, aliases: dict[str, str]) -> dict[str, Approved]:
+    """Approved rows keyed by ``canonical_name``, minus the ones ``aliases`` merges away.
 
     The key is the canonical name because that is what the normalizer writes into
     ``normalized_places.json`` and therefore the only join available to the transaction pass. It is
@@ -164,6 +210,13 @@ def load_approved(path: Path) -> dict[str, Approved]:
                 f"(also line {others[0]}) — check 9 reads that as ambiguous whatever the other "
                 "row's status; resolve the duplicate before building")
 
+        # A merged spelling publishes no place of its own: `collect_transactions` sends its visits
+        # to the representative instead. Skipping here rather than after the field checks is
+        # deliberate — a row that publishes nothing must not be held to what a published row needs,
+        # and the canonical-name guard above still ran, which is the one check 9 mirrors.
+        if canonical in aliases:
+            continue
+
         # `display_name` is what gets published as the place's `name`, so it carries two
         # obligations of its own. A blank one must not fall back to the canonical name: the queue
         # is what the operator reads, and a place named by a string that appears nowhere in it is
@@ -205,6 +258,15 @@ def load_approved(path: Path) -> dict[str, Approved]:
                 f"({row.get('lat')!r}, {row.get('lng')!r})")
 
         approved[canonical] = Approved(canonical, display, category, address, lat, lng)
+
+    # An alias pointing at a name no approved row carries is the silent-loss case this whole
+    # mechanism exists to prevent: `collect_transactions` would resolve the merged spelling to that
+    # name, find it unapproved, and drop every one of its visits with nothing said.
+    for alias, target in sorted(aliases.items()):
+        if target not in approved:
+            raise DatasetUnusable(
+                f"alias {alias!r} points at {target!r}, which is on no approved row — "
+                "its visits would be dropped rather than merged")
     return approved
 
 
@@ -263,6 +325,7 @@ def raw_name_index(normalized: Any, path: Path) -> dict[str, str]:
 def collect_transactions(
     out_dir: Path,
     approved: dict[str, Approved],
+    aliases: dict[str, str],
     window_start: date,
     window_end: date,
 ) -> tuple[dict[str, list[dict[str, Any]]], int, int]:
@@ -298,6 +361,12 @@ def collect_transactions(
             if not isinstance(row, dict):
                 continue
             canonical = index.get(normalize_name(row.get("venue")) or "")
+            # The merge happens here, before the approval test: a spelling the operator merged away
+            # is not approved under its own name, so resolving it afterwards would drop the visits
+            # this map exists to keep. `load_approved` has already refused any alias whose target is
+            # unapproved, so the lookup cannot land on a name that then fails the test below.
+            if canonical is not None:
+                canonical = aliases.get(canonical, canonical)
             if canonical is None or canonical not in approved:
                 continue
             when = row.get("date")
@@ -429,6 +498,8 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
                         help="collector intermediates root (default: collector/out)")
     parser.add_argument("--id-map", type=Path, default=DEFAULT_ID_MAP,
                         help="persistent canonical ID map (default: collector/id_map.json)")
+    parser.add_argument("--aliases", type=Path, default=DEFAULT_ALIASES,
+                        help="spelling merge map (default: collector/aliases.json)")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT,
                         help="dataset to write (default: data/places.json)")
     parser.add_argument("--updated-at", type=date.fromisoformat, default=None,
@@ -445,9 +516,10 @@ def main(argv: list[str] | None = None) -> int:
     # a run that could not proceed, and exit 2 is what says so. Escaping as a traceback would look
     # like a crash to the operator and to any script reading the exit code.
     try:
-        approved = load_approved(args.candidates)
+        aliases = load_aliases(args.aliases)
+        approved = load_approved(args.candidates, aliases)
         transactions, months, unusable = collect_transactions(
-            args.out_dir, approved, window_start, updated_at)
+            args.out_dir, approved, aliases, window_start, updated_at)
         id_map = load_id_map(args.id_map)
         dataset = build(approved, transactions, id_map, updated_at)
         if approved and months and not dataset["places"]:
