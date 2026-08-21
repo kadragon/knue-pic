@@ -176,7 +176,11 @@ def load_approved(path: Path) -> dict[str, Approved]:
         if not address:
             raise DatasetUnusable(f"{path} line {number}: approved row {display!r} has no address")
 
-        category = text(row.get("category")).split(">")[0].strip() or UNCLASSIFIED_CATEGORY
+        # NFC like every other join key: `src/stats/search.ts` groups the filter options by
+        # exact `category` string, so a decomposed spelling would render a second, visually
+        # identical option hiding the composed one's places.
+        category = normalize_name(text(row.get("category")).split(">")[0]) \
+            or UNCLASSIFIED_CATEGORY
 
         # `float` parses "nan" and "inf" without complaint, and `json.dumps` then writes bare
         # `NaN`/`Infinity` — tokens no browser JSON parser accepts, which turns a data defect into

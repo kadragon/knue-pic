@@ -75,6 +75,10 @@ CHECK_NAMES = {
     # unusable, so a dataset this gate passes could still leave the site with zero places rendered.
     # A gate weaker than the loader it guards is not a gate.
     10: "loader-parity",
+    # And an eleventh: check 1 makes each `id` unique, which one business published twice under the
+    # two spellings of its name satisfies — two ids, two places, one restaurant. `build_places.py`
+    # can no longer emit that, so for a hand-edited dataset this gate is the only thing left.
+    11: "unique-name",
 }
 
 
@@ -223,11 +227,10 @@ def normalize_name(value: Any) -> str | None:
 
     A Korean name reaches the queue from two hands — a macOS paste carries the decomposed spelling,
     Naver's API the composed one — and the two are code-point-unequal while naming one business.
-    Every name-keyed join in the collector goes through this, so the build and check 9 cannot
-    disagree about what one name is. Names only, which is a scope and not a claim about the other
-    fields: ``src/stats/search.ts`` does group places by exact ``category`` string, so that field has
-    the same defect — tracked in ``backlog.md`` rather than fixed here, because it needs the browser
-    side to agree too.
+    Every join key the collector writes goes through this — the names check 9 joins on, and the
+    ``category`` ``src/stats/search.ts`` groups its filter options by — so no two parts of the
+    pipeline can disagree about what one string is. The browser side normalizes to NFC too
+    (``src/stats/search.ts``); a key normalized on one side only still has the defect.
     """
     text = text_or_none(value)
     return unicodedata.normalize("NFC", text) if text is not None else None
@@ -327,13 +330,15 @@ def validate(
         return violations
 
     seen_ids: set[str] = set()
+    seen_names: set[str] = set()
     for index, place in enumerate(places):
         path = f"places[{index}]"
         if not isinstance(place, dict):
             violations.append(Violation(None, f"{path} must be an object, got {describe(place)}"))
             continue
         violations.extend(
-            _validate_place(place, path, seen_ids, approvals, duplicates, window_start, window_end)
+            _validate_place(place, path, seen_ids, seen_names, approvals, duplicates,
+                            window_start, window_end)
         )
 
     return violations
@@ -343,6 +348,7 @@ def _validate_place(
     place: dict[str, Any],
     path: str,
     seen_ids: set[str],
+    seen_names: set[str],
     approvals: dict[str, str],
     duplicates: set[str],
     window_start: date | None,
@@ -428,6 +434,15 @@ def _validate_place(
     original = text_or_none(place.get("name"))
     name = normalize_name(place.get("name"))
     if name is not None:
+        # Check 11 — one business, one place. Keyed on NFC like check 9, so the composed and the
+        # decomposed spelling of one name are the same key rather than two published restaurants.
+        if name in seen_names:
+            violations.append(
+                Violation(11, f'{path}.name "{original}" is already published under another id')
+            )
+        else:
+            seen_names.add(name)
+
         if name in duplicates:
             violations.append(
                 Violation(9,

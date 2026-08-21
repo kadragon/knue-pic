@@ -26,9 +26,19 @@ export interface PlaceQuery {
  * silently make some places unreachable through the filter the month a new one appears.
  */
 export function listCategories(dataset: PlacesDataset): string[] {
-  return [...new Set(dataset.places.map((place) => place.category))].sort((a, b) =>
+  return [...new Set(dataset.places.map((place) => toNfc(place.category)))].sort((a, b) =>
     a.localeCompare(b, 'ko'),
   );
+}
+
+/**
+ * Unicode-composition-insensitive. The collector publishes every name and category in NFC
+ * (`collector/validate.py` -> `normalize_name`), but a query typed or pasted on macOS arrives
+ * decomposed, and the two spellings of one Korean word are code-point-unequal. Applied to the
+ * needle and to the field alike, so neither side has to be the composed one.
+ */
+function toNfc(value: string): string {
+  return value.normalize('NFC');
 }
 
 /**
@@ -36,7 +46,7 @@ export function listCategories(dataset: PlacesDataset): string[] {
  * dataset carry latin fragments, and a user typing `cafe` should reach `Cafe`.
  */
 function normalize(value: string): string {
-  return value.trim().toLowerCase();
+  return toNfc(value).trim().toLowerCase();
 }
 
 function matchesText(place: PlaceRecord, text: string): boolean {
@@ -52,7 +62,7 @@ function matchesText(place: PlaceRecord, text: string): boolean {
 export function filterPlaces(dataset: PlacesDataset, query: PlaceQuery): PlaceRecord[] {
   return dataset.places.filter(
     (place) =>
-      (query.category === ALL_CATEGORIES || place.category === query.category) &&
+      (query.category === ALL_CATEGORIES || toNfc(place.category) === toNfc(query.category)) &&
       matchesText(place, query.text),
   );
 }

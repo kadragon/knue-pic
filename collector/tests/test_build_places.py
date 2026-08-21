@@ -433,6 +433,23 @@ def test_a_decomposed_csv_name_publishes_one_place_the_gate_accepts(
     assert validate_main([str(fixture.output), "--candidates", str(fixture.candidates)]) == 0
 
 
+def test_a_decomposed_category_publishes_composed(fixture: Fixture) -> None:
+    """`src/stats/search.ts` groups filter options by exact `category`, so the build must not
+    publish two spellings of one cuisine — they would render as two identical-looking options."""
+    write_csv(fixture.candidates,
+              [row(category=unicodedata.normalize("NFD", "한식") + ">육류,고기요리")])
+    assert fixture.run() == EXIT_OK
+    assert fixture.places()[0]["category"] == "한식"
+
+
+def test_a_blank_category_still_publishes_the_unclassified_default(fixture: Fixture) -> None:
+    """Normalizing the segment must not turn an empty category into an empty published one —
+    `parsePlace` in `src/data/load.ts` rejects the whole file on it."""
+    write_csv(fixture.candidates, [row(category="  ")])
+    assert fixture.run() == EXIT_OK
+    assert fixture.places()[0]["category"] == UNCLASSIFIED_CATEGORY
+
+
 def test_one_name_approved_in_both_forms_stops_the_build(fixture: Fixture) -> None:
     """Two spellings of one business is the ambiguity Golden Principle 2 refuses to resolve."""
     write_csv(fixture.candidates, [row(), row(canonical_name=NFD, display_name=NFD)])
