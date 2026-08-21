@@ -224,8 +224,10 @@ def normalize_name(value: Any) -> str | None:
     A Korean name reaches the queue from two hands — a macOS paste carries the decomposed spelling,
     Naver's API the composed one — and the two are code-point-unequal while naming one business.
     Every name-keyed join in the collector goes through this, so the build and check 9 cannot
-    disagree about what one name is. Names only: an address or a category is displayed, never used
-    as a key, and normalizing it would be a change nothing needs.
+    disagree about what one name is. Names only, which is a scope and not a claim about the other
+    fields: ``src/stats/search.ts`` does group places by exact ``category`` string, so that field has
+    the same defect — tracked in ``backlog.md`` rather than fixed here, because it needs the browser
+    side to agree too.
     """
     text = text_or_none(value)
     return unicodedata.normalize("NFC", text) if text is not None else None

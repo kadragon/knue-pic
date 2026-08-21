@@ -191,6 +191,23 @@ def test_duplicate_approved_display_name_stops_the_build(fixture: Fixture) -> No
     assert not fixture.output.exists()
 
 
+@pytest.mark.parametrize("status", ["pending", "rejected"])
+def test_an_approved_name_repeated_on_an_unapproved_row_stops_the_build(
+        fixture: Fixture, status: str) -> None:
+    """Check 9 counts *rows*, not approvals, so the build has to count them the same way.
+
+    Comparing approved rows only let this pair build cleanly and mint an ID, and the gate then
+    refused the dataset as ambiguous — the build and check 9 disagreeing about one name, one step
+    later and one deploy more expensive.
+    """
+    write_csv(fixture.candidates, [
+        row(),
+        row(status=status, canonical_name="만리장성", display_name="까망염소"),
+    ])
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
 def test_blank_display_name_on_an_approved_row_stops_the_build(fixture: Fixture) -> None:
     """Falling back to the canonical name would publish a place check 9 sees as unapproved."""
     write_csv(fixture.candidates, [row(display_name="")])
@@ -419,6 +436,17 @@ def test_a_decomposed_csv_name_publishes_one_place_the_gate_accepts(
 def test_one_name_approved_in_both_forms_stops_the_build(fixture: Fixture) -> None:
     """Two spellings of one business is the ambiguity Golden Principle 2 refuses to resolve."""
     write_csv(fixture.candidates, [row(), row(canonical_name=NFD, display_name=NFD)])
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+def test_an_approved_name_repeated_in_the_other_form_on_an_unapproved_row_stops_the_build(
+        fixture: Fixture) -> None:
+    """The same row-counting rule, reached through normalization rather than a literal repeat."""
+    write_csv(fixture.candidates, [
+        row(),
+        row(status="rejected", canonical_name="만리장성", display_name=NFD),
+    ])
     assert fixture.run() == EXIT_UNUSABLE
     assert not fixture.output.exists()
 

@@ -131,9 +131,18 @@ def load_approved(path: Path) -> dict[str, Approved]:
         # causes `load_approvals` in `validate.py` catches.
         raise DatasetUnusable(f"{path} could not be read: {cause}") from cause
 
-    approved: dict[str, Approved] = {}
-    seen_display: dict[str, int] = {}
+    # Every row's display name, not just the approved ones: check 9 calls a name ambiguous when it
+    # appears on more than one *row* whatever their statuses, so a build that only compared approved
+    # rows would publish a place the gate then rejects — the build and the gate disagreeing about
+    # what one name is, which is the whole defect this module is being fixed for.
+    display_rows: dict[str, list[int]] = {}
     for number, row in enumerate(rows, start=2):  # header is line 1
+        name = normalize_name(row.get("display_name"))
+        if name is not None:
+            display_rows.setdefault(name, []).append(number)
+
+    approved: dict[str, Approved] = {}
+    for number, row in enumerate(rows, start=2):
         if text(row.get("status")) != APPROVED:
             continue
         canonical = normalize_name(row.get("canonical_name")) or ""
@@ -147,18 +156,19 @@ def load_approved(path: Path) -> dict[str, Approved]:
         # `display_name` is the key check 9 joins on, so it carries the same two obligations the
         # canonical name does. A blank one must not fall back to the canonical name: the fallback
         # would publish a place whose `name` matches no review row, and check 9 reads that as
-        # unapproved. A repeated one is the ambiguity check 9 refuses to resolve, and refusing it
-        # here costs an operator one edit instead of a minted ID and a blocked deploy.
+        # unapproved. A repeated one is the ambiguity check 9 refuses to resolve — on *any* row,
+        # approved or not — and refusing it here costs an operator one edit instead of a minted ID
+        # and a blocked deploy.
         display = normalize_name(row.get("display_name")) or ""
         if not display:
             raise DatasetUnusable(
                 f"{path} line {number}: approved row {canonical!r} has no display_name — "
                 "the review queue is joined on that column")
-        if display in seen_display:
+        others = [line for line in display_rows.get(display, ()) if line != number]
+        if others:
             raise DatasetUnusable(
-                f"{path} line {number}: display_name {display!r} is approved on two rows "
-                f"(also line {seen_display[display]}) — resolve the duplicate before building")
-        seen_display[display] = number
+                f"{path} line {number}: display_name {display!r} is on more than one row "
+                f"(also line {others[0]}) — resolve the duplicate before building")
 
         # The road address is what a visitor would type into a map; the parcel address is the
         # fallback for the rows Naver returned without one.
@@ -303,7 +313,8 @@ def collect_transactions(
 def load_id_map(path: Path) -> dict[str, str]:
     """The persisted ``canonical_name`` -> id map; an absent file is a first run, not an error.
 
-    Keys are read in NFC, matching ``load_approved``. The file is committed and edited by hand, so
+    Keys are read trimmed and in NFC, matching ``load_approved``. The file is committed and edited
+    by hand, so
     a decomposed key would otherwise name no approved place and the place would be minted a second
     ID — the one thing the map exists to prevent. Two keys that normalize to one are fatal: which
     ID the place keeps is exactly the question this module refuses to answer for the operator.
