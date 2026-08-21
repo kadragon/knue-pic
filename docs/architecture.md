@@ -105,6 +105,12 @@ labels and rejects punycode outright, because no Python parser reproduces the br
 mirroring it approximately is what lets a divergence through. Stricter only ever stops publication,
 which the operator sees; looser reaches a visitor.
 
+An eleventh, `unique-name`, guards the same boundary from the other side: check 1 makes each `id`
+unique, which one business published twice — under the composed and the decomposed spelling of its
+name, or verbatim — satisfies with two ids for one restaurant. `build_places.py` refuses to emit
+that (it keys every join on NFC), so the only remaining path to it is a hand edit of the generated
+`data/places.json`, and this gate is the last thing between that edit and publication.
+
 Two of the nine need a concrete value the invariant list does not carry:
 
 - **In range** means the Korea bounding box — `lat` 33.0–39.0, `lng` 124.0–132.0 — not the global

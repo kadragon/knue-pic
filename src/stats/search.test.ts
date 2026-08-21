@@ -57,3 +57,46 @@ describe('filterPlaces', () => {
     expect(found.map((place) => place.id)).toEqual(['restaurant_000001', 'restaurant_000006']);
   });
 });
+
+// --- Unicode normalization ---------------------------------------------------------------------
+
+// The collector publishes every name and category in NFC (`collector/validate.py` ->
+// `normalize_name`), but a query typed or pasted on macOS arrives decomposed, and a hand-edited
+// dataset can still carry either spelling. The two are code-point-unequal and name one thing.
+const NFD_HANSIK = '\u1112\u1161\u11ab\u1109\u1175\u11a8'; // 한식, decomposed
+const NFC_HANSIK = '\uD55C\uC2DD'; // 한식, composed
+
+const mixedSpellings: PlacesDataset = {
+  updatedAt: '2026-08-01',
+  places: [
+    { ...SAMPLE_DATASET.places[0]!, id: 'a', category: NFC_HANSIK },
+    { ...SAMPLE_DATASET.places[1]!, id: 'b', category: NFD_HANSIK },
+  ],
+};
+
+describe('unicode composition', () => {
+  it('lists one category for a dataset holding both spellings of it', () => {
+    expect(listCategories(mixedSpellings)).toEqual([NFC_HANSIK]);
+  });
+
+  it('filters both spellings under either one', () => {
+    for (const category of [NFC_HANSIK, NFD_HANSIK]) {
+      expect(filterPlaces(mixedSpellings, { text: '', category }).map((place) => place.id)).toEqual([
+        'a',
+        'b',
+      ]);
+    }
+  });
+
+  it('matches a decomposed query against composed text, and the reverse', () => {
+    expect(
+      filterPlaces(mixedSpellings, { ...NO_FILTER, text: NFD_HANSIK }).map((place) => place.id),
+    ).toEqual(['a', 'b']);
+
+    const decomposedName: PlacesDataset = {
+      updatedAt: '2026-08-01',
+      places: [{ ...SAMPLE_DATASET.places[0]!, name: NFD_HANSIK }],
+    };
+    expect(filterPlaces(decomposedName, { ...NO_FILTER, text: NFC_HANSIK })).toHaveLength(1);
+  });
+});

@@ -484,6 +484,31 @@ def test_load_approvals_keys_a_decomposed_name_in_nfc(tmp_path: Path) -> None:
     assert validate(dataset(), approved, duplicates) == []
 
 
+def test_one_name_published_twice_in_the_two_forms_is_reported() -> None:
+    """Check 1 sees two distinct ids; only check 11 sees one business published twice."""
+    violations = validate(
+        dataset(place(), place(id="restaurant_000002", name=NFD_NAME)),
+        approvals(),
+    )
+
+    assert checks_reported(violations) == {11}
+
+
+def test_one_name_published_twice_verbatim_is_reported() -> None:
+    violations = validate(dataset(place(), place(id="restaurant_000002")), approvals())
+
+    assert checks_reported(violations) == {11}
+
+
+def test_two_different_names_are_not_reported_as_duplicates() -> None:
+    violations = validate(
+        dataset(place(), place(id="restaurant_000002", name="만리장성")),
+        approvals("신토불이교원대점", "만리장성"),
+    )
+
+    assert violations == []
+
+
 def test_one_name_approved_in_both_forms_is_still_ambiguous(tmp_path: Path) -> None:
     """Normalizing the key must not resolve the ambiguity — it is what makes it visible."""
     approved, duplicates = load_approvals(write_candidates(
