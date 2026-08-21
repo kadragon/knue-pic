@@ -1,9 +1,5 @@
 # Backlog
 
-## Next
-
-- [ ] `[CONSTRAINT]` `collector/validate.py` check 9 joins on `display_name` because `review_candidates.csv` has no `id` column — move the join onto the canonical ID so a renamed business cannot lose its approval
-
 ## Review Backlog
 
 ### Map auth-failure hook (follow-up, 2026-08-19)

@@ -124,16 +124,21 @@ Two of the nine need a concrete value the invariant list does not carry:
   `src/stats/period.ts` -> `isWithinWindow` applies. A day-anchored floor would admit transactions
   that every 1y view then ignores, so the histogram bars would sum to fewer visits than the count
   printed beside them, with nothing reporting the gap.
-- **Review status** is joined on the place `name` against the CSV's `display_name`, because
-  `review_candidates.csv` has no `id` column and the canonical ID map is not built yet. The join
-  fails closed in three directions: a matched row that is not `approved`, *no* matched row at all
-  (an unapproved place is exactly what Golden Principle 2 forbids), and a `display_name` on two
-  rows, which is reported as ambiguous rather than resolved. Both sides are keyed in NFC
-  (`normalize_name`): the queue is hand-edited and a macOS paste carries the decomposed spelling of
-  a Korean name, code-point-unequal to Naver's composed one and the same business. A name approved
-  in both forms is therefore one *ambiguous* key rather than two rows, and `build_places.py`
-  normalizes the same way, so it cannot publish a `name` the gate then fails to find. This is a
-  stopgap — see `backlog.md` for the follow-up that moves the join onto the canonical ID.
+- **Review status** is joined on the canonical ID, in two hops: the place's `id` names a
+  `collector/id_map.json` entry (read in reverse, id → `canonical_name`), and that name names the
+  `review_candidates.csv` row whose `status` decides it. `display_name` is display text and is not
+  a join key — a business that changes its sign keeps the approval a human gave it, and renaming a
+  rejected row cannot hand it an approval that belongs to another place. The join fails closed in
+  four directions: an `id` in no map entry, a canonical name with no row in the queue (an
+  unapproved place is exactly what Golden Principle 2 forbids), a matched row that is not
+  `approved`, and a canonical name on two rows, which is reported as ambiguous rather than
+  resolved. Both files are hand-edited and both sides are keyed in NFC (`normalize_name`): a macOS
+  paste carries the decomposed spelling of a Korean name, code-point-unequal to Naver's composed
+  one and the same business. A name approved in both forms is therefore one *ambiguous* key rather
+  than two rows, and `build_places.py` normalizes the same way, so the build cannot file a place
+  under a key the gate then fails to find. A missing, unreadable or self-contradicting `id_map.json`
+  (one `id` reached from two canonical names) is exit 2 — the validator could not run — never a
+  pass; `--id-map` defaults to `collector/id_map.json`, so the CI invocation carries no flag.
 
 **Serving.** `data/` is Vite's `publicDir` (`vite.config.ts`), so the file is copied verbatim into
 `dist/` and the browser fetches it at `${BASE_URL}places.json` — `/knue-pic/places.json` in
@@ -174,8 +179,10 @@ gate cannot disagree about the window. Three fields are derived rather than copi
   learns Naver's internal place ID, so composing one would be a fabrication; a search link is a
   claim the data supports, and the host satisfies both `requireNaverUrl` and check 10.
 
-It fails closed with exit 2 — writing nothing — on a duplicated approved `canonical_name` **or
-`display_name`**, an approved row with no `display_name` or no address, coordinates that are
+It fails closed with exit 2 — writing nothing — on a `canonical_name` or a `display_name` that
+appears on more than one row **whatever the other row's status** (check 9 and check 11 count rows,
+not approvals, so the build counts them the same way or it mints a permanent ID for a place the
+gate then refuses), an approved row with no `display_name` or no address, coordinates that are
 unparseable or non-finite, an `--out-dir` holding no month data at all, and a run where approved
 rows *and* month data were both present yet no place survived. The last three are the ones worth
 knowing about: `float("nan")` does not raise, so a bare parse would emit JSON no browser accepts,
