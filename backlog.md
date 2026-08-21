@@ -2,9 +2,7 @@
 
 ## Next
 
-- [ ] Collector (Python): download, extract XLS/XLSX/CSV/PDF, normalize, merge, classify, geocode, emit `review_candidates.csv`
-- [ ] Collector: canonical ID map persisted across runs; rolling-window trim on `places.json` build
-- [ ] `[CONSTRAINT]` `collector/validate.py` check 9 joins on `display_name` because `review_candidates.csv` has no `id` column — move the join onto the canonical ID so a renamed business cannot lose its approval *(blocked by: canonical-id-map)*
+- [ ] `[CONSTRAINT]` `collector/validate.py` check 9 joins on `display_name` because `review_candidates.csv` has no `id` column — move the join onto the canonical ID so a renamed business cannot lose its approval
 
 ## Review Backlog
 
