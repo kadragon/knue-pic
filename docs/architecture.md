@@ -42,8 +42,14 @@ src/                  # web app; browser-only code
                       #   bounds re-search still to come
   ui/                 # views, Korean strings
 data/places.json      # published dataset (generated — see below); also Vite's publicDir
-collector/            # Python collector skill; never imported by src/
+collector/            # Python; never imported by src/
+  validate.py         # the publication gate (PRD §32)
+  build_places.py     # approved rows + collected transactions -> data/places.json
+  id_map.json         # canonical ID map, committed — it must survive every run
   out/                # raw_transactions.json, normalized_places.json (intermediate, gitignored)
+.claude/skills/knue-expense-collect/
+                      # the collection half: download, extract, normalize, classify, geocode.
+                      # Steps 1–5 of the data-update cycle live here, not under collector/
 review_candidates.csv # manual location approval queue (committed)
 .github/workflows/    # validate → build → deploy to Pages
 ```
@@ -137,8 +143,39 @@ to 13 months internally so that the 12-month trend and the previous-period rank 
 complete prior period to compare against.
 
 **Canonical ID.** `restaurant_%06d`, assigned once and never reused. A renamed business keeps its
-ID; a different branch of the same brand is a different place with a different ID. The ID map
-survives across runs — losing it silently resets every rank history.
+ID; a different branch of the same brand is a different place with a different ID. The ID map is
+`collector/id_map.json`, keyed on the normalizer's canonical name and **committed** — it survives
+across runs because losing it silently resets every rank history. `build_places.py` only ever
+appends to it, and mints the next number from the highest ever assigned rather than from the entry
+count, so an entry deleted by hand cannot hand its number to a different business.
+
+**Build.** `collector/build_places.py` (`python -m collector.build_places`) is step 7 of the
+`data-update` cycle — the only thing that writes `data/places.json`. It joins `review_candidates.csv`
+rows with `status=approved` against the transactions in `collector/out/<month>/`, via the raw venue
+spellings the normalizer merged, and imports `window_floor` from `validate.py` so the build and the
+gate cannot disagree about the window. Three fields are derived rather than copied:
+
+- `category` is the first segment of the CSV's Naver taxonomy path (`한식>육류,고기요리` → `한식`),
+  falling back to `기타` — the loader rejects the whole file on an empty category.
+- `address` prefers `road_address`, falling back to the parcel `address`.
+- `naverUrl` is a `https://map.naver.com/p/search/…` link on the place name. The collector never
+  learns Naver's internal place ID, so composing one would be a fabrication; a search link is a
+  claim the data supports, and the host satisfies both `requireNaverUrl` and check 10.
+
+It fails closed with exit 2 — writing nothing — on a duplicated approved `canonical_name` **or
+`display_name`**, an approved row with no `display_name` or no address, coordinates that are
+unparseable or non-finite, an `--out-dir` holding no month data at all, and a run where approved
+rows *and* month data were both present yet no place survived. The last three are the ones worth
+knowing about: `float("nan")` does not raise, so a bare parse would emit JSON no browser accepts,
+and an empty `places` array passes the validator — it has no minimum-place check — so a gitignored
+`collector/out/` on a fresh clone, or an upstream date-format change that drops every transaction,
+would otherwise overwrite the dataset with `places: []`, exit 0, and publish an empty map with a
+green gate. Zero approved rows is *not* one of these: an empty queue correctly builds an empty
+dataset. A place with
+no transaction inside the window is omitted rather than published empty; a transaction belonging to
+an approved place that is dropped for a bad date or amount is counted and warned about on stderr,
+because visits are the ranking signal and a silently absorbed one moves a place with nothing
+saying so.
 
 ## Key Abstractions
 

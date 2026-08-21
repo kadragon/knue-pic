@@ -2,11 +2,13 @@
 
 ## Next
 
-- [ ] Collector (Python): download, extract XLS/XLSX/CSV/PDF, normalize, merge, classify, geocode, emit `review_candidates.csv`
-- [ ] Collector: canonical ID map persisted across runs; rolling-window trim on `places.json` build
-- [ ] `[CONSTRAINT]` `collector/validate.py` check 9 joins on `display_name` because `review_candidates.csv` has no `id` column — move the join onto the canonical ID so a renamed business cannot lose its approval *(blocked by: canonical-id-map)*
+- [ ] `[CONSTRAINT]` `collector/validate.py` check 9 joins on `display_name` because `review_candidates.csv` has no `id` column — move the join onto the canonical ID so a renamed business cannot lose its approval
 
 ## Review Backlog
+
+### build_places (follow-up, PR #11)
+
+- [ ] `[CONSTRAINT]` `collector/build_places.py` compares approved `display_name` values by raw code points, so NFC and NFD spellings of one Korean name build as two places with two IDs. Normalize the key with `unicodedata.normalize("NFC", ...)` — and apply the same normalization in `load_approvals` in `collector/validate.py`, or the build and check 9 disagree about what one name is (source: contract QA on PR #11)
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
