@@ -1,62 +1,256 @@
+/*
+ * Design tokens from DESIGN.md (Airbnb system spec), with the departures the review forced.
+ *
+ * 1. No webfont. The spec runs Airbnb Cereal VF; Golden Principle #1 (AGENTS.md) allows the page to
+ *    load `data/places.json` and the Naver Maps script and nothing else, so a font CDN is out. The
+ *    stack keeps Cereal/Circular first for anyone who has them locally and falls through to the
+ *    system Korean faces, which is what the UI actually renders in.
+ * 2. Light only, but not contrast-blind. "Airbnb does not have a dark mode on the public web"
+ *    (DESIGN.md → Surface), so there is no dark scheme; a `prefers-contrast: more` block at the end
+ *    of this file carries the users a dark mode would otherwise have served.
+ * 3. The page floor is `surface-soft`, not `canvas`. The spec's sections sit on white because a
+ *    photograph gives every card its body; this product has no photography, so on a white floor the
+ *    layout reads as text floating in space.
+ * 4. White text never sits on `--rausch`. #ff385c under white is 3.52:1 — below the 4.5:1 of WCAG
+ *    1.4.3 — so every surface that puts text on the brand colour uses `--rausch-strong` (#e00b41,
+ *    4.89:1). #ff385c survives only where it carries no text.
+ * 5. The spec's modest 22–28px display weights assume photography carries the visual load. With no
+ *    imagery the scale has to do the whole job, so the ranked list is deliberately promoted above
+ *    every other surface rather than sharing one card style with them.
+ */
 :root {
-  --bg: #ffffff;
-  --fg: #1a1a1a;
-  --muted: #5a5a5a;
-  --line: #e2e2e2;
-  color-scheme: light dark;
-}
+  /* Decorative brand voltage: no text is ever placed on it. */
+  --rausch: #ff385c;
+  /* The text-bearing brand colour — 4.89:1 with white. */
+  --rausch-strong: #e00b41;
+  --rausch-active: #c10032;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16181c;
-    --fg: #f2f2f2;
-    --muted: #b0b0b0;
-    --line: #303339;
-  }
+  --canvas: #ffffff;
+  --surface-soft: #f7f7f7;
+  --surface-strong: #f2f2f2;
+
+  --hairline: #dddddd;
+  --hairline-soft: #ebebeb;
+  /* Control boundaries, not decorative rules: 3.03:1 on white, the WCAG 1.4.11 floor. */
+  --border-control: #949494;
+  --border-strong: #767676;
+
+  --ink: #222222;
+  --body: #3f3f3f;
+  --muted: #6a6a6a;
+  --on-primary: #ffffff;
+
+  --error: #c13515;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  /* The spec caps elevation at one tier. Nothing on this page may invent a second. */
+  --shadow-float:
+    rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px, rgba(0, 0, 0, 0.1) 0 4px 8px;
+
+  /* The centred column: 960px wide including a 24px gutter, so the full-bleed header and footer
+     bands line their text up with `#content` without needing a wrapper element. */
+  --column-inset: max(24px, calc(50% - 456px));
+  /* Height of the sticky header band; the period bar parks directly beneath it. */
+  --header-height: 104px;
+
+  --font-sans:
+    'Airbnb Cereal VF', Circular, 'Pretendard Variable', Pretendard, -apple-system,
+    BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+
+  color-scheme: light;
 }
 
 * {
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font-family:
-    'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic',
-    sans-serif;
-  line-height: 1.5;
+/* Two elements are scrolled to programmatically, and both must stop clear of the sticky header. */
+html {
+  scroll-padding-top: calc(var(--header-height) + 8px);
 }
 
-#app {
+body {
+  margin: 0;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  /*
+   * Korean breaks at any syllable by default, so a place name splits mid-word at 360px. `keep-all`
+   * holds each eojeol together; `break-word` still rescues a token with no break opportunity at
+   * all, which is what long road-name addresses produce.
+   */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Shell ─────────────────────────────────────────────────────────────────────────────────── */
+
+/*
+ * `#content` is a two-column grid so the two discovery lists — the page's least important sections
+ * — can sit side by side instead of adding two full-width blocks to the scroll. Everything else
+ * spans both columns.
+ */
+#content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-content: start;
   max-width: 960px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0 24px 64px;
+}
+
+#content > * {
+  grid-column: 1 / -1;
+}
+
+/* Scoped through `#content` on purpose: the `#content > *` rule above is an ID selector, so a bare
+   class here loses to it and both lists silently span the full width. */
+#content > .trending-slot,
+#content > .newly-seen-slot {
+  grid-column: span 1;
+}
+
+/* The dialog inside is `position: fixed`, so the slot must not occupy a grid row of its own. */
+.detail-slot {
+  display: contents;
+}
+
+/* {component.top-nav}: a white band on the tinted floor. */
+.shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 20px var(--column-inset) 18px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--canvas);
 }
 
 .shell-header h1 {
   margin: 0;
-  font-size: 1.5rem;
-  letter-spacing: 0.02em;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+/* The one decorative Rausch mark: a period after the wordmark, carrying no text. */
+.shell-header h1::after {
+  content: '.';
+  color: var(--rausch);
 }
 
 .shell-tagline {
-  margin: 0.25rem 0 1rem;
+  margin: 2px 0 0;
   color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .shell-footer {
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
+  padding: 24px var(--column-inset) 48px;
+  border-top: 1px solid var(--hairline);
+  background: var(--canvas);
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .shell-footer p {
-  margin: 0.25rem 0;
+  margin: 0 0 4px;
 }
+
+.shell-disclaimer {
+  max-width: 52ch;
+}
+
+/* ── Section surfaces ──────────────────────────────────────────────────────────────────────── */
+
+/*
+ * Three tiers, not one. The review's finding was that six identical white cards on a #f7f7f7 floor
+ * are optically indistinguishable (white on that floor is 1.07:1), so the page read as one
+ * undifferentiated column with nothing to start on.
+ *
+ * Tier 1 — the ranked list: the product's whole claim, so it gets the largest heading, the most
+ * padding and the only visible border of the three.
+ * Tier 2 — search and map: ordinary cards.
+ * Tier 3 — the two discovery lists: no card at all, sitting directly on the floor.
+ */
+.top-places,
+.place-search,
+.place-map {
+  padding: 24px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--radius-lg);
+  background: var(--canvas);
+}
+
+.top-places {
+  padding: 28px 28px 20px;
+  border-color: var(--hairline);
+}
+
+.top-places h2 {
+  margin: 0 0 4px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.4px;
+}
+
+.place-search h2,
+.place-map h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.18px;
+}
+
+/* Tier 3: a label over a list, not a container. */
+.discovery {
+  padding: 4px 4px 0;
+}
+
+.discovery h2 {
+  margin: 0 0 2px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.discovery-note,
+.top-places-note,
+.place-search-count {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.place-search-count {
+  margin: 0 0 4px;
+}
+
+.top-places-empty,
+.discovery-empty,
+.place-search-empty,
+.place-detail-empty,
+.place-detail-empty-period {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────────────────────── */
 
 /* Touch targets stay comfortable down to the 360px minimum width (PRD §36). */
 button,
@@ -65,76 +259,154 @@ a[role='button'] {
   min-width: 44px;
 }
 
-.data-state {
-  margin: 2rem 0 1rem;
-  color: var(--muted);
-}
-
-.data-state-retry {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg);
+/* {component.button-secondary} */
+.data-state-retry,
+.place-search-reset {
+  height: 48px;
+  margin-top: 12px;
+  padding: 13px 23px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
+  color: var(--ink);
   font: inherit;
+  font-weight: 600;
   cursor: pointer;
 }
 
-/* Period selector — wraps rather than overflowing at the 360px minimum width (PRD §36). */
+.data-state-retry:hover,
+.place-search-reset:hover {
+  background: var(--surface-soft);
+  border-color: var(--ink);
+}
+
+/* ── Data states ───────────────────────────────────────────────────────────────────────────── */
+
+/* Before any view has data there is no section card to sit in, so the state carries its own. */
+.data-state {
+  margin: 0;
+  padding: 24px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--radius-lg);
+  background: var(--canvas);
+  color: var(--muted);
+}
+
+/* ── Period selector ───────────────────────────────────────────────────────────────────────── */
+
+/*
+ * Parked under the header, because it governs a list long enough to scroll it off screen — a
+ * control the user cannot see is a control they assume does not exist.
+ */
+.period-controls {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 1;
+  margin: 0 -8px;
+  padding: 12px 8px;
+  background: var(--surface-soft);
+}
+
+/* {component.category-strip}: pill filters, wrapping rather than overflowing at 360px (PRD §36). */
 .period-selector {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1rem 0;
+  gap: 8px;
 }
 
 .period-option {
-  padding: 0.5rem 0.875rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
+  padding: 10px 20px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-full);
+  background: var(--canvas);
+  color: var(--body);
   font: inherit;
+  font-size: 14px;
   cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
 }
 
-/* The active period is marked by weight and border as well as colour, never colour alone. */
+.period-option:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* The active period is marked by weight, fill and border as well as colour, never colour alone. */
 .period-option[aria-pressed='true'] {
-  border-color: var(--fg);
-  color: var(--fg);
-  font-weight: 600;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-primary);
+  font-weight: 700;
 }
 
-.top-places h2 {
-  margin: 1.5rem 0 0.75rem;
-  font-size: 1.125rem;
-}
+/* ── Ranked list & selectable rows ─────────────────────────────────────────────────────────── */
 
-.top-places-empty {
-  margin: 1rem 0;
-  color: var(--muted);
-}
-
-.top-places-list {
-  margin: 0;
+.top-places-list,
+.discovery-list,
+.place-search-list {
+  margin: 8px 0 0;
   padding: 0;
   list-style: none;
 }
 
-.top-place {
+/*
+ * Rows are ruled rather than floated: the spec drops separators because each of its cards is a
+ * photograph with its own edges, and these rows are text.
+ */
+.top-place,
+.discovery-place,
+.place-search-list li {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--line);
+  gap: 12px;
+  margin: 0 -8px;
+  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hairline-soft);
+  transition: background-color 120ms ease;
 }
 
-/* Fixed width so the rank column stays aligned from 1 to 10. */
+.top-place:last-child,
+.discovery-place:last-child,
+.place-search-list li:last-child {
+  border-bottom: 0;
+}
+
+.top-place:hover,
+.discovery-place:hover,
+.place-search-list li:hover {
+  background: var(--surface-soft);
+}
+
+.top-place {
+  padding-inline: 8px;
+}
+
+.discovery-place,
+.place-search-list li {
+  padding-inline: 8px;
+}
+
+/*
+ * {component.icon-button-circle}, fixed width so the column stays aligned from 1 to 10. The rank is
+ * always present as text; the ink fill on the leaders is a second cue, never the only one.
+ */
 .top-place-rank {
-  flex: 0 0 2rem;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 13px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.top-place:nth-child(-n + 3) .top-place-rank {
+  background: var(--ink);
+  color: var(--on-primary);
 }
 
 .top-place-body {
@@ -142,62 +414,20 @@ a[role='button'] {
   min-width: 0;
 }
 
-.top-place-name {
-  display: block;
-  margin: 0;
-  font-weight: 600;
-}
-
-.top-place-meta {
-  display: block;
-  margin: 0.125rem 0 0;
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-
-/* The arrow glyph carries the direction; colour only reinforces it. */
-.top-place-delta {
-  flex: 0 0 auto;
-  color: var(--muted);
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.top-places-note {
-  margin: 0 0 0.75rem;
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-
-/* Colour reinforces the ▲/▼ glyph; it never carries the direction on its own. */
-.top-place-delta[data-direction='up'] {
-  color: #1f7a4d;
-}
-
-.top-place-delta[data-direction='down'] {
-  color: #a8442a;
-}
-
-@media (prefers-color-scheme: dark) {
-  .top-place-delta[data-direction='up'] {
-    color: #5cc48c;
-  }
-
-  .top-place-delta[data-direction='down'] {
-    color: #e08a6d;
-  }
-}
-
 /*
- * `.top-place-body` is a `<button>` when the list is wired to the detail card and a `<div>` when
- * it is not, so the button case is stripped back to the text it already was — the row must not
- * change shape depending on whether it is interactive.
+ * `.top-place-body` is a `<button>` when the list is wired to the detail card and a `<div>` when it
+ * is not, so the button case is stripped back to the text it already was — the row must not change
+ * shape depending on whether it is interactive.
+ *
+ * The row's vertical padding lives on the button rather than on the `<li>`, so the tappable box is
+ * the whole row (~64px) instead of the text's own 42px.
  */
 button.top-place-body,
 .place-select {
   display: block;
   width: 100%;
-  padding: 0;
+  min-height: 0;
+  padding: 12px 0;
   border: 0;
   background: transparent;
   color: inherit;
@@ -206,179 +436,295 @@ button.top-place-body,
   cursor: pointer;
 }
 
-.place-select {
-  padding: 0.5rem 0;
+div.top-place-body {
+  padding: 12px 0;
 }
 
+.top-place-name,
 .place-select-name {
   display: block;
+  margin: 0;
+  font-size: 16px;
   font-weight: 600;
+  /* 1.35, not the spec's 1.25: Hangul fills the em box top to bottom with no x-height relief, so a
+     Latin line-height crowds a name that wraps to two lines. */
+  line-height: 1.35;
 }
 
+.top-place-meta,
 .place-select-meta {
   display: block;
-  margin-top: 0.125rem;
+  margin: 2px 0 0;
   color: var(--muted);
-  font-size: 0.8125rem;
-  /* Addresses are long; the row wraps rather than pushing the layout past 360px. */
-  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.discovery h2,
-.place-search h2,
-.place-detail h2 {
-  margin: 1.5rem 0 0.25rem;
-  font-size: 1.125rem;
-}
-
-.discovery-note {
-  margin: 0 0 0.5rem;
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-
-.discovery-empty,
-.place-search-empty,
-.place-detail-empty,
-.place-detail-empty-period {
-  margin: 0.75rem 0;
-  color: var(--muted);
-}
-
-.discovery-list,
-.place-search-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.discovery-place,
-.place-search-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  border-bottom: 1px solid var(--line);
-}
-
-.discovery-new,
+/*
+ * The glyph carries the direction and `role="img"` carries the words; colour adds nothing here that
+ * is not already said. It used to be green/red, which put a decline in the system's *error* colour
+ * — a judgement about the business, which is the framing `docs/conventions.md` forbids, and which
+ * no banned-phrase test can catch because it is not a string.
+ */
+.top-place-delta,
 .discovery-delta {
   flex: 0 0 auto;
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
-/* A bordered pill, so the badge is not carried by colour alone. */
+.top-place-delta {
+  white-space: nowrap;
+}
+
+/* {component.new-tag}. Text on the brand colour, so it takes the accessible variant. */
 .discovery-new {
-  padding: 0.125rem 0.5rem;
-  border: 1px solid var(--fg);
-  border-radius: 999px;
-  color: var(--fg);
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background: var(--rausch-strong);
+  color: var(--on-primary);
+  /* {typography.uppercase-tag}, opened up from 8px — legible is the floor. */
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
-.discovery-delta[data-direction='up'] {
-  color: #1f7a4d;
+/* The remainder line is a footnote to the list, not another row. */
+.discovery-remainder {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
-.discovery-delta[data-direction='down'] {
-  color: #a8442a;
-}
+/* ── Search ────────────────────────────────────────────────────────────────────────────────── */
 
-@media (prefers-color-scheme: dark) {
-  .discovery-delta[data-direction='up'] {
-    color: #5cc48c;
-  }
-
-  .discovery-delta[data-direction='down'] {
-    color: #e08a6d;
-  }
-}
-
-/* One column at 360px, two once there is room for them. */
+/*
+ * {component.search-bar-pill}: white surface, fully rounded, split into segments by a single
+ * hairline. It is the spec's most recognisable device and the only place this page spends it.
+ */
 .place-search-controls {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0.5rem 0 1rem;
+  align-items: stretch;
+  margin: 12px 0 12px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-full);
+  background: var(--canvas);
+  box-shadow: var(--shadow-float);
 }
 
 .place-search-field {
   display: flex;
-  flex: 1 1 14rem;
+  flex: 1 1 60%;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.8125rem;
-  color: var(--muted);
+  justify-content: center;
+  gap: 2px;
+  padding: 12px 24px;
+  cursor: text;
+}
+
+.place-search-field + .place-search-field {
+  flex: 1 1 40%;
+  border-left: 1px solid var(--hairline);
+  cursor: pointer;
+}
+
+.place-search-field > span {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
 }
 
 .place-search-input,
 .place-search-category {
-  min-height: 44px;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--fg);
-  font: inherit;
-}
-
-.place-search-count {
-  margin: 0 0 0.25rem;
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-
-.place-search-reset {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  width: 100%;
+  padding: 0;
+  border: 0;
   background: transparent;
-  color: var(--fg);
+  color: var(--ink);
   font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.place-search-input::placeholder {
+  color: var(--muted);
+}
+
+.place-search-category {
   cursor: pointer;
 }
 
+/* The ring belongs to the pill, not to the borderless control sitting inside it. */
+.place-search-controls:focus-within {
+  border-color: var(--ink);
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.place-search-input:focus-visible,
+.place-search-category:focus-visible {
+  outline: none;
+}
+
+/*
+ * A category can still match a couple of hundred places, so the results keep their own scroll and
+ * the section keeps a fixed footprint. The padding is what stops the 2px ring at 2px offset from
+ * being clipped by the scroll container's edge on the first and last rows.
+ */
+.place-search-list {
+  max-height: min(60vh, 30rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 0;
+  scroll-padding: 6px 0;
+}
+
+/* ── Detail dialog ─────────────────────────────────────────────────────────────────────────── */
+
+/*
+ * The detail card used to be the last section of the page: selecting anything threw the reader ~3
+ * screens down, past every other section, with no way back and no way to compare a second place.
+ * As a dialog it opens over the list the reader is already in and hands focus back on close.
+ */
+.detail-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.detail-dialog[hidden] {
+  display: none;
+}
+
+/* {colors.scrim} — the spec's black at 50%. */
+.detail-dialog-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.detail-dialog-panel {
+  position: relative;
+  width: min(640px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  background: var(--canvas);
+  box-shadow: rgba(0, 0, 0, 0.28) 0 8px 28px;
+}
+
+/* {component.button-secondary}, sized as an icon button and parked out of the reading order. */
+.detail-dialog-close {
+  position: absolute;
+  top: 16px;
+  inset-inline-end: 16px;
+  min-width: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-full);
+  background: var(--canvas);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.detail-dialog-close:hover {
+  background: var(--surface-soft);
+  border-color: var(--ink);
+}
+
+/* Inside the panel the card is content, not a surface — the panel already carries the edges. */
 .place-detail {
-  margin-top: 1rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--line);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.place-detail h2 {
+  margin: 0;
+  /* The dialog's own accessible name; the panel's size and position already announce it visually,
+     so it stays a quiet label rather than competing with the place name below it. */
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.02em;
 }
 
 .place-detail-name {
-  margin: 0.5rem 0 0.125rem;
-  font-size: 1.0625rem;
+  /* Right-hand room for the close control, which is absolutely positioned over this line. */
+  margin: 4px 56px 2px 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.44px;
 }
 
 .place-detail-meta,
 .place-detail-period {
-  margin: 0 0 0.25rem;
+  margin: 0 0 2px;
   color: var(--muted);
-  font-size: 0.8125rem;
-  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .place-detail-figures {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  margin: 0.75rem 0;
+  align-items: flex-end;
+  gap: 16px 28px;
+  margin: 20px 0 0;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--hairline-soft);
 }
 
 .place-detail-figure dt {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 13px;
 }
 
 .place-detail-figure dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
+  margin: 2px 0 0;
+  font-size: 18px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
+/*
+ * {typography.rating-display} — the spec's one oversized figure, spent on the number a listing is
+ * actually judged by. Here that number is the visit count. Pulled down from the spec's 64px: a
+ * two-or-three digit 회 count does not need it, and 48px against 18px is still a 2.7× step.
+ */
+.place-detail-figure:first-child {
+  flex: 0 0 auto;
+  margin-inline-end: 4px;
+}
+
+.place-detail-figure:first-child dd {
+  font-size: clamp(36px, 10vw, 48px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -1px;
+}
+
+/* ── Histogram ─────────────────────────────────────────────────────────────────────────────── */
+
 .place-histogram h4 {
-  margin: 1rem 0 0.5rem;
-  font-size: 0.875rem;
+  margin: 20px 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .place-histogram-list {
@@ -392,8 +738,9 @@ button.top-place-body,
   /* The month and count columns are fixed so the bars share one baseline at any width. */
   grid-template-columns: 5.5rem 1fr 2.5rem;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 13px;
 }
 
 .place-histogram-month,
@@ -408,69 +755,65 @@ button.top-place-body,
 
 .place-histogram-track {
   max-width: 100%;
-  height: 0.5rem;
-  border-radius: 999px;
-  background: var(--line);
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--surface-strong);
 }
 
-/* The bar restates the count beside it; it is never the only place the number appears. */
+/*
+ * The bar restates the count beside it; it is never the only place the number appears. Ink rather
+ * than the brand colour, on the same reasoning DESIGN.md gives for ink stars: figures are data.
+ */
 .place-histogram-bar {
   display: block;
   height: 100%;
-  border-radius: 999px;
-  background: var(--muted);
+  border-radius: var(--radius-full);
+  background: var(--ink);
 }
 
+/* {component.button-primary} — the one CTA, on the text-safe brand colour. */
 .place-detail-link {
-  display: inline-block;
-  margin-top: 1rem;
-  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin-top: 24px;
+  padding: 14px 24px;
+  border-radius: var(--radius-sm);
+  background: var(--rausch-strong);
+  color: var(--on-primary);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-decoration: none;
 }
 
-/* Focused programmatically after a list selection, so the ring is the only cue it moved. */
-.place-detail:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: 4px;
+.place-detail-link:hover {
+  background: var(--rausch-active);
 }
 
-/* `#content` takes focus after a keyboard-driven retry succeeds. Without this the browser draws its
-   default ring around the whole region; an inset outline keeps the cue on screen at 360px. */
-#content:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: -2px;
-}
-
-/* map — the last documented section before the detail card (`docs/conventions.md` → Accessibility &
-   Responsive: TOP 10 → search → map → detail). */
-
-.place-map {
-  margin: 2rem 0;
-}
-
-.place-map h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
-}
+/* ── Map ───────────────────────────────────────────────────────────────────────────────────── */
 
 /* Fixed height because the Naver API sizes itself to its container: a height-less div renders a map
    zero pixels tall. `vh`-capped so it never eats a 360px screen whole. */
 .place-map-canvas {
   width: 100%;
   height: min(60vh, 22rem);
-  border: 1px solid var(--line);
-  border-radius: 0.5rem;
+  margin-top: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 .place-map-fallback,
 .place-map-empty {
-  margin: 0;
-  padding: 2rem 1rem;
-  border: 1px dashed var(--line);
-  border-radius: 0.5rem;
+  margin: 12px 0 0;
+  padding: 32px 16px;
+  border: 1px dashed var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
   color: var(--muted);
   text-align: center;
-  font-size: 0.875rem;
+  font-size: 14px;
 }
 
 /* Marker bodies are injected as markup into the map's own overlay layer, so they are styled here
@@ -481,25 +824,166 @@ button.top-place-body,
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 2px solid var(--bg);
-  border-radius: 999px;
+  border: 2px solid var(--canvas);
+  border-radius: var(--radius-full);
   background: var(--muted);
-  color: var(--bg);
-  font-size: 0.75rem;
+  color: var(--canvas);
+  font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  box-shadow: rgba(0, 0, 0, 0.18) 0 1px 3px;
 }
 
 /* Ranked markers differ from plain ones by carrying a number, never by colour alone
-   (`docs/conventions.md` → Accessibility). The contrast swap is the secondary cue. */
+   (`docs/conventions.md` → Accessibility). They carry text, so they take the accessible red. */
 .place-map-marker-ranked {
-  background: var(--fg);
-  color: var(--bg);
+  background: var(--rausch-strong);
+  color: var(--on-primary);
 }
 
 /* Selection is an outline ring, so it survives greyscale and forced-colours rendering. */
 .place-map-marker[data-selected='true'] {
-  outline: 3px solid var(--fg);
+  outline: 3px solid var(--ink);
   outline-offset: 1px;
+}
+
+/* ── Focus ─────────────────────────────────────────────────────────────────────────────────── */
+
+/*
+ * No `border-radius` here. It used to set 4px, which — at equal specificity and later in the file —
+ * won against `.period-option` (a pill) and `.place-detail-link`, so tabbing to them visibly
+ * squared off their corners. The outline follows each element's own radius on its own.
+ */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* `#content` takes focus after a keyboard-driven retry succeeds. Without this the browser draws its
+   default ring around the whole region; an inset outline keeps the cue on screen at 360px. */
+#content:focus-visible,
+.detail-dialog-panel:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+/* ── Narrow screens ────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 899px) {
+  /* The two discovery lists go back to full width before they get too narrow to hold a name and a
+     movement label on one line. */
+  #content {
+    grid-template-columns: 1fr;
+  }
+
+  #content > .trending-slot,
+  #content > .newly-seen-slot {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 599px) {
+  :root {
+    --column-inset: 16px;
+    --header-height: 92px;
+  }
+
+  #content {
+    padding: 0 16px 48px;
+  }
+
+  .top-places,
+  .place-search,
+  .place-map,
+  .data-state {
+    padding: 20px 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .top-places h2 {
+    font-size: 22px;
+  }
+
+  .detail-dialog {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  /* A bottom sheet rather than a centred box: at 360px a centred dialog with margins wastes the
+     only space the histogram has. */
+  /* The oversized figure takes its own row: at 360px it otherwise sits hard against the next
+     figure's label with no gutter between them. */
+  .place-detail-figures {
+    gap: 14px 24px;
+  }
+
+  .place-detail-figure:first-child {
+    flex: 1 0 100%;
+    margin-inline-end: 0;
+  }
+
+  .detail-dialog-panel {
+    width: 100%;
+    max-height: 92vh;
+    padding: 24px 16px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  /* The pill loses its shape below the width that fits two segments; the segments stack as fields,
+     and each takes its own ring so focus is never ambiguous between them. */
+  .place-search-controls {
+    flex-direction: column;
+    border-radius: var(--radius-md);
+  }
+
+  .place-search-controls:focus-within {
+    border-color: var(--border-control);
+    outline: none;
+  }
+
+  .place-search-field {
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .place-search-field:focus-within {
+    outline: 2px solid var(--ink);
+    outline-offset: -2px;
+  }
+
+  .place-search-field + .place-search-field {
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+}
+
+/* ── User preferences ──────────────────────────────────────────────────────────────────────── */
+
+/*
+ * There is no dark mode by design (DESIGN.md → Surface), which leaves the readers a dark mode would
+ * have served — low vision, glare, a dimmed screen — with nothing. This is what they get instead:
+ * every muted tone and every rule darkened to well past the AA floor.
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --muted: #565656;
+    --body: #2b2b2b;
+    --hairline: #767676;
+    --hairline-soft: #949494;
+    --border-control: #565656;
+  }
+
+  .top-place,
+  .discovery-place,
+  .place-search-list li {
+    border-bottom-color: var(--hairline);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

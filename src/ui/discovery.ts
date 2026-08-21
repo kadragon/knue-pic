@@ -9,6 +9,19 @@ import type { NewlySeenPlace, TrendingPlace } from '../stats/discovery';
  * recommendation and never the spending the usage was derived from.
  */
 
+/**
+ * How many rows either discovery section shows.
+ *
+ * `computeTrendingPlaces` and `computeNewlySeenPlaces` return everything that qualifies — 12 and 29
+ * rows against the published file at the time of writing — and two uncapped lists were most of the
+ * page's height, stacked below every section that actually answers a question. The ranked list has
+ * always capped itself at `TOP_PLACES_LIMIT`; these are secondary to it, so they cap harder.
+ *
+ * The cap is a display decision, not a statistical one: the stats modules still compute the full
+ * set, and `remainderLabel` says on screen how much is not shown.
+ */
+export const DISCOVERY_LIMIT = 6;
+
 export const TRENDING_HEADING = '요즘 많이 가는 곳';
 
 /**
@@ -30,6 +43,11 @@ export const NEWLY_SEEN_HEADING = '새로 발견된 곳';
 export const NEWLY_SEEN_NOTE = '최근 2개월 안에 첫 이용 기록이 생긴 곳이며, 기간 선택과 무관합니다.';
 
 export const NEWLY_SEEN_EMPTY_MESSAGE = '최근 2개월에 새로 발견된 곳이 없습니다.';
+
+/** Shown only when the section is holding rows back, so the list never reads as the whole set. */
+export function remainderLabel(hiddenCount: number): string {
+  return `이 밖에 ${hiddenCount}곳이 더 있습니다.`;
+}
 
 export function recentVisitsLabel(recentVisits: number): string {
   return `최근 1개월 ${recentVisits}회`;
@@ -106,6 +124,16 @@ function renderEmpty(section: HTMLElement, message: string): void {
   section.append(empty);
 }
 
+/** Appends the remainder line when the section rendered fewer rows than it was given. */
+function renderRemainder(section: HTMLElement, total: number): void {
+  if (total <= DISCOVERY_LIMIT) return;
+
+  const remainder = document.createElement('p');
+  remainder.className = 'discovery-remainder';
+  remainder.textContent = remainderLabel(total - DISCOVERY_LIMIT);
+  section.append(remainder);
+}
+
 export function renderTrendingPlaces(
   container: HTMLElement,
   trending: TrendingPlace[],
@@ -122,7 +150,7 @@ export function renderTrendingPlaces(
   const list = document.createElement('ul');
   list.className = 'discovery-list';
 
-  for (const entry of trending) {
+  for (const entry of trending.slice(0, DISCOVERY_LIMIT)) {
     const item = renderSelectableEntry(
       entry.place.name,
       [entry.place.category, recentVisitsLabel(entry.recentVisits)].join(' · '),
@@ -149,6 +177,7 @@ export function renderTrendingPlaces(
   }
 
   section.append(list);
+  renderRemainder(section, trending.length);
   container.replaceChildren(section);
 }
 
@@ -168,7 +197,7 @@ export function renderNewlySeenPlaces(
   const list = document.createElement('ul');
   list.className = 'discovery-list';
   list.append(
-    ...newlySeen.map((entry) =>
+    ...newlySeen.slice(0, DISCOVERY_LIMIT).map((entry) =>
       renderSelectableEntry(
         entry.place.name,
         [entry.place.category, firstVisitLabel(entry.firstVisit)].join(' · '),
@@ -179,5 +208,6 @@ export function renderNewlySeenPlaces(
   );
 
   section.append(list);
+  renderRemainder(section, newlySeen.length);
   container.replaceChildren(section);
 }

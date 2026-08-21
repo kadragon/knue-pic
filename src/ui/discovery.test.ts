@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { NewlySeenPlace, TrendingPlace } from '../stats/discovery';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import {
+  DISCOVERY_LIMIT,
   NEWLY_SEEN_EMPTY_MESSAGE,
   NEWLY_SEEN_HEADING,
   NEW_BADGE_LABEL,
@@ -9,6 +10,7 @@ import {
   TRENDING_EMPTY_MESSAGE,
   TRENDING_HEADING,
   TRENDING_NOTE,
+  remainderLabel,
   renderNewlySeenPlaces,
   renderTrendingPlaces,
   visitDeltaLabel,
@@ -112,5 +114,51 @@ describe('renderNewlySeenPlaces', () => {
     renderNewlySeenPlaces(container, [], vi.fn());
 
     expect(container.textContent).toContain(NEWLY_SEEN_EMPTY_MESSAGE);
+  });
+});
+
+describe('discovery list caps', () => {
+  const trendingRows = (count: number): TrendingPlace[] =>
+    Array.from({ length: count }, (_unused, index) => ({
+      place: { ...SAMPLE_DATASET.places[0]!, id: `restaurant_00100${index}` },
+      recentVisits: 3,
+      priorVisits: 2,
+      isNew: false,
+      visitDelta: 1,
+    }));
+
+  it('renders at most DISCOVERY_LIMIT rows and says how many are held back', () => {
+    const container = document.createElement('div');
+
+    renderTrendingPlaces(container, trendingRows(DISCOVERY_LIMIT + 3), vi.fn());
+
+    expect(container.querySelectorAll('.discovery-place')).toHaveLength(DISCOVERY_LIMIT);
+    // Truncating silently would let a partial list read as the whole set.
+    expect(container.textContent).toContain(remainderLabel(3));
+  });
+
+  it('says nothing about a remainder when everything fits', () => {
+    const container = document.createElement('div');
+
+    renderTrendingPlaces(container, trendingRows(2), vi.fn());
+
+    expect(container.querySelectorAll('.discovery-place')).toHaveLength(2);
+    expect(container.querySelector('.discovery-remainder')).toBeNull();
+  });
+
+  it('caps the newly-seen list the same way', () => {
+    const container = document.createElement('div');
+    const rows: NewlySeenPlace[] = Array.from(
+      { length: DISCOVERY_LIMIT + 1 },
+      (_unused, index) => ({
+        place: { ...SAMPLE_DATASET.places[0]!, id: `restaurant_00200${index}` },
+        firstVisit: '2026-07-01',
+      }),
+    );
+
+    renderNewlySeenPlaces(container, rows, vi.fn());
+
+    expect(container.querySelectorAll('.discovery-place')).toHaveLength(DISCOVERY_LIMIT);
+    expect(container.textContent).toContain(remainderLabel(1));
   });
 });

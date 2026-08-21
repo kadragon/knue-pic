@@ -1,0 +1,167 @@
+import { DETAIL_HEADING, renderPlaceDetail, type PlaceDetail } from './place-detail';
+
+/**
+ * The detail card as a modal dialog rather than the last section of the page.
+ *
+ * It was a section until a UI review found the defect: selecting a place from any list rendered the
+ * card ~3,400px down the page and moved focus to it, so every act of curiosity was a one-way trip
+ * past every other section, comparing two places meant a scroll shuttle, and the bottom of the page
+ * was permanently anchored by an empty card explaining a feature the visitor had not used yet.
+ *
+ * `renderPlaceDetail` is unchanged and still owns every string and figure; this module owns only
+ * the shell around it — scrim, close control, focus containment, and restoring focus on close.
+ *
+ * A hand-built dialog rather than `<dialog>`: `showModal` gives focus containment for free, but its
+ * jsdom support is uneven, and the focus behaviour here is the part most worth having under test.
+ */
+
+export const CLOSE_LABEL = '닫기';
+
+export interface DetailDialogHandle {
+  /** Renders `detail` and shows the dialog. Calling it while open just swaps the contents. */
+  open: (detail: PlaceDetail) => void;
+  close: () => void;
+  isOpen: () => boolean;
+  /**
+   * Re-renders an already-open dialog — the period selector changing under it. A no-op when
+   * closed, so a period change never pops the dialog open on its own.
+   */
+  update: (detail: PlaceDetail) => void;
+}
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Builds the dialog once and reuses it. Rebuilding per selection would replace the node holding
+ * focus, which is the failure every other module in `src/ui/` is written to avoid.
+ */
+export function createDetailDialog(container: HTMLElement): DetailDialogHandle {
+  const root = document.createElement('div');
+  root.className = 'detail-dialog';
+  root.hidden = true;
+
+  const scrim = document.createElement('div');
+  scrim.className = 'detail-dialog-scrim';
+
+  const panel = document.createElement('div');
+  panel.className = 'detail-dialog-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  // Named by the card's own `<h2>` ("선택한 곳"), which `renderPlaceDetail` writes on every render.
+  panel.setAttribute('aria-label', DETAIL_HEADING);
+  // Focused on open; never a tab stop of its own.
+  panel.tabIndex = -1;
+
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'detail-dialog-close';
+  close.textContent = CLOSE_LABEL;
+
+  const body = document.createElement('div');
+  body.className = 'detail-dialog-body';
+
+  panel.append(close, body);
+  root.append(scrim, panel);
+  container.replaceChildren(root);
+
+  /** The control that opened the dialog, so closing can hand focus back to where it came from. */
+  let opener: HTMLElement | null = null;
+
+  /** Where focus goes when there is no opener to return it to: the content region around us. */
+  function fallback(): HTMLElement | null {
+    return container.closest<HTMLElement>('#content');
+  }
+
+  function isOpen(): boolean {
+    return !root.hidden;
+  }
+
+  function closeDialog(): void {
+    if (!isOpen()) return;
+    root.hidden = true;
+    document.removeEventListener('keydown', onKeydown, true);
+    // Restoring focus is the whole point of holding `opener`: without it the caret drops to the top
+    // of the document and a keyboard user has to tab back through the entire list they came from.
+    // `isConnected` guards the case where the list was re-rendered while the dialog was open.
+    if (opener?.isConnected) {
+      opener.focus();
+    } else {
+      // No opener to go back to — a programmatic open, or the row was re-rendered underneath. Focus
+      // must not be left on the panel we just hid: an element inside a `hidden` subtree is not
+      // focusable, so a screen reader would be parked on nothing.
+      panel.blur();
+      fallback()?.focus();
+    }
+    opener = null;
+  }
+
+  /**
+   * Captured on `document` so Escape works wherever focus sits, and so Tab can be contained without
+   * relying on the panel being an ancestor of the active element.
+   */
+  function onKeydown(event: KeyboardEvent): void {
+    if (!isOpen()) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDialog();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    const focusable = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)];
+    if (focusable.length === 0) {
+      event.preventDefault();
+      panel.focus();
+      return;
+    }
+
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    const active = document.activeElement;
+
+    // Wrapping by hand rather than trusting the DOM order: the dialog sits at the end of `#content`
+    // but is visually on top of it, so an uncontained Tab walks into the page behind the scrim.
+    if (event.shiftKey && (active === first || active === panel)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    } else if (!panel.contains(active)) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  scrim.addEventListener('click', closeDialog);
+  close.addEventListener('click', closeDialog);
+
+  return {
+    isOpen,
+    close: closeDialog,
+    update(detail) {
+      if (!isOpen()) return;
+      renderPlaceDetail(body, detail);
+    },
+    open(detail) {
+      const wasOpen = isOpen();
+      renderPlaceDetail(body, detail);
+
+      if (wasOpen) {
+        // Re-opening from a marker click while already open: keep the original opener so Escape
+        // still returns focus to the list, and do not re-register the key handler.
+        panel.focus();
+        return;
+      }
+
+      const active = document.activeElement;
+      opener = active instanceof HTMLElement && active !== document.body ? active : null;
+      root.hidden = false;
+      document.addEventListener('keydown', onKeydown, true);
+      panel.focus();
+    },
+  };
+}

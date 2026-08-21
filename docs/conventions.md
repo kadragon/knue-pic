@@ -48,7 +48,14 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 ## Accessibility & Responsive (PRD §36–§37)
 
 - Marker importance is never conveyed by colour alone — TOP 10 carry a number badge.
-- Layout must hold at 360px width; mobile order is TOP 10 → search → map → detail.
+- Layout must hold at 360px width; source order is TOP 10 → search → map → discovery.
+- The place detail is a modal dialog, not a section: it opens over the list the reader is in,
+  traps Tab, closes on Escape or scrim click, and returns focus to the control that opened it.
+  It was the last section on the page until a UI review found that selecting anything threw the
+  reader three screens down with no way back — see `src/ui/detail-dialog.ts`.
+- Lists that can grow with the data are capped at a stated number: `TOP_PLACES_LIMIT` for the
+  ranked list, `DISCOVERY_LIMIT` for both discovery sections, which print `remainderLabel` when
+  they hold rows back. Search lists nothing until a query or a category is entered.
 - Every interactive control has a visible label or an `aria-label`; search is keyboard-operable.
 
 ## Git Conventions

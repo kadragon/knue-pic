@@ -7,10 +7,11 @@ import { computeMonthlyHistogram } from '../stats/histogram';
 import { computePlaceStats } from '../stats/place-stats';
 import { resolvePeriodWindow } from '../stats/period';
 import { computeTopPlaces } from '../stats/top-places';
+import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
+import { createDetailDialog } from './detail-dialog';
 import { renderNewlySeenPlaces, renderTrendingPlaces } from './discovery';
 import { markSelectedPeriod, renderPeriodSelector } from './period-selector';
-import { renderPlaceDetail } from './place-detail';
 import { renderPlaceSearch } from './search';
 import { renderShell, setShellUpdatedAt } from './shell';
 import { renderTopPlaces } from './top-places';
@@ -78,9 +79,10 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    * detail card alone, and the trending / newly-seen sections — whose windows are fixed by
    * `docs/conventions.md` → Statistics Rules and do not follow the selector — are rendered once.
    *
-   * Order follows `docs/conventions.md` → Accessibility & Responsive verbatim: TOP 10, then search,
-   * then the map, then the detail card. The two discovery sections sit after the map, which keeps
-   * all four documented sections in their stated relative order.
+   * Source order follows the reflow order in `docs/conventions.md` → Accessibility & Responsive:
+   * TOP 10, then search, then the map, with the two discovery sections after it. The detail card is
+   * no longer part of that flow — `.detail-slot` holds a dialog, so selecting a place opens over
+   * the list the user was reading instead of throwing them to the bottom of the page.
    */
   function renderDataset(dataset: PlacesDataset): void {
     // The frame is never rebuilt here: `renderShell` would replace `root` and detach the `content`
@@ -110,34 +112,40 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     // call against it is a no-op, so nothing else on the page waits on the map.
     let mapHandle: PlaceMapHandle | null = null;
 
-    function showDetail(): void {
-      const place = dataset.places.find((candidate) => candidate.id === selectedPlaceId);
-      if (!place) {
-        renderPlaceDetail(detail, null);
-        return;
-      }
+    const dialog = createDetailDialog(detail);
 
-      renderPlaceDetail(detail, {
+    /** `null` when nothing is selected, or when the selection is not in the dataset. */
+    function currentDetail(): PlaceDetail | null {
+      const place = dataset.places.find((candidate) => candidate.id === selectedPlaceId);
+      if (!place) return null;
+
+      return {
         place,
         period: currentPeriod,
         stats: computePlaceStats(place, resolvePeriodWindow(currentPeriod, dataset.updatedAt)),
         histogram: computeMonthlyHistogram(place, dataset.updatedAt),
-      });
+      };
+    }
+
+    /** Repaints an open dialog after the period changes; a no-op when nothing is open. */
+    function refreshDetail(): void {
+      const next = currentDetail();
+      if (next) dialog.update(next);
     }
 
     /**
-     * Moves focus into the card after rendering it.
+     * Opens the detail dialog over whatever the user was reading.
      *
-     * The card is the last section on the page, so on a 360px screen a selection made from a list
-     * above it changes nothing the user can see. Focusing it scrolls it into view and announces it,
-     * which is the difference between a working control and one that reads as a no-op. Focus moves
-     * only here — `show()` must leave it on the period button the user just pressed.
+     * The dialog moves focus into itself and hands it back to this control on close, so the
+     * selection is announced and reversible without the user losing their place in the list —
+     * which is what the card being the page's last section used to cost them.
      */
     function selectPlace(placeId: string): void {
       selectedPlaceId = placeId;
-      showDetail();
+      const next = currentDetail();
+      if (!next) return;
       mapHandle?.select(placeId);
-      detail.querySelector<HTMLElement>('.place-detail')?.focus();
+      dialog.open(next);
     }
 
     // Ranking the default period is the most expensive thing the initial render does; the map, the
@@ -151,7 +159,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
       renderTopPlaces(list, top, selectPlace);
       // Re-badges the existing markers; the map instance and the user's viewport survive.
       mapHandle?.update(top);
-      showDetail();
+      refreshDetail();
     }
 
     /**
