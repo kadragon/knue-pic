@@ -1,22 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { NewlySeenPlace, TrendingPlace } from '../stats/discovery';
+import type { TrendingPlace } from '../stats/discovery';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import {
-  DISCOVERY_LIMIT,
-  NEWLY_SEEN_EMPTY_MESSAGE,
-  NEWLY_SEEN_HEADING,
   NEW_BADGE_LABEL,
   NEW_BADGE_TEXT,
   TRENDING_EMPTY_MESSAGE,
-  TRENDING_HEADING,
   TRENDING_NOTE,
   remainderLabel,
-  renderNewlySeenPlaces,
   renderTrendingPlaces,
   visitDeltaLabel,
+  visitDeltaText,
 } from './discovery';
 
-const [FIRST, SECOND] = SAMPLE_DATASET.places;
+const [FIRST] = SAMPLE_DATASET.places;
+
+/** The column supplies both; the list module owns neither. */
+const OPTIONS = { heading: '최근 뜨는 곳 TOP 10', limit: 10 };
 
 function trendingEntry(overrides: Partial<TrendingPlace>): TrendingPlace {
   return {
@@ -30,21 +29,25 @@ function trendingEntry(overrides: Partial<TrendingPlace>): TrendingPlace {
 }
 
 describe('renderTrendingPlaces', () => {
-  it('says the section reads a fixed window regardless of the period selector', () => {
+  it('renders the heading it is given and says which window it reads', () => {
     const container = document.createElement('div');
 
-    renderTrendingPlaces(container, [trendingEntry({})], vi.fn());
+    renderTrendingPlaces(container, [trendingEntry({})], vi.fn(), OPTIONS);
 
-    expect(container.textContent).toContain(TRENDING_HEADING);
+    expect(container.querySelector('h2')?.textContent).toBe(OPTIONS.heading);
     expect(container.textContent).toContain(TRENDING_NOTE);
   });
 
   it('shows the movement in visits for a place with a prior-month figure', () => {
     const container = document.createElement('div');
 
-    renderTrendingPlaces(container, [trendingEntry({ visitDelta: 2 })], vi.fn());
+    renderTrendingPlaces(container, [trendingEntry({ visitDelta: 2 })], vi.fn(), OPTIONS);
 
-    expect(container.textContent).toContain(visitDeltaLabel(2));
+    const movement = container.querySelector('.discovery-delta');
+    expect(movement?.textContent).toBe(visitDeltaText(2));
+    // The glyph says nothing on its own, so the sentence has to reach a screen reader.
+    expect(movement?.getAttribute('aria-label')).toBe(visitDeltaLabel(2));
+    expect(movement?.getAttribute('role')).toBe('img');
     expect(container.querySelector('.discovery-new')).toBeNull();
   });
 
@@ -55,6 +58,7 @@ describe('renderTrendingPlaces', () => {
       container,
       [trendingEntry({ priorVisits: 0, isNew: true, visitDelta: null })],
       vi.fn(),
+      OPTIONS,
     );
 
     const badge = container.querySelector('.discovery-new');
@@ -69,55 +73,24 @@ describe('renderTrendingPlaces', () => {
     const container = document.createElement('div');
     const onSelect = vi.fn();
 
-    renderTrendingPlaces(container, [trendingEntry({})], onSelect);
+    renderTrendingPlaces(container, [trendingEntry({})], onSelect, OPTIONS);
     container.querySelector<HTMLButtonElement>('.place-select')?.click();
 
     expect(container.querySelector('.place-select')).toBeInstanceOf(HTMLButtonElement);
     expect(onSelect).toHaveBeenCalledWith(FIRST!.id);
   });
 
-  it('explains an empty section instead of rendering a bare heading', () => {
+  it('explains an empty column instead of rendering a bare heading', () => {
     const container = document.createElement('div');
 
-    renderTrendingPlaces(container, [], vi.fn());
+    renderTrendingPlaces(container, [], vi.fn(), OPTIONS);
 
     expect(container.textContent).toContain(TRENDING_EMPTY_MESSAGE);
     expect(container.querySelector('.discovery-list')).toBeNull();
   });
 });
 
-describe('renderNewlySeenPlaces', () => {
-  const entries: NewlySeenPlace[] = [{ place: SECOND!, firstVisit: '2026-07-15' }];
-
-  it('shows the first visit date for each place', () => {
-    const container = document.createElement('div');
-
-    renderNewlySeenPlaces(container, entries, vi.fn());
-
-    expect(container.textContent).toContain(NEWLY_SEEN_HEADING);
-    expect(container.textContent).toContain('첫 이용 2026-07-15');
-  });
-
-  it('reports the selected place', () => {
-    const container = document.createElement('div');
-    const onSelect = vi.fn();
-
-    renderNewlySeenPlaces(container, entries, onSelect);
-    container.querySelector<HTMLButtonElement>('.place-select')?.click();
-
-    expect(onSelect).toHaveBeenCalledWith(SECOND!.id);
-  });
-
-  it('explains an empty section', () => {
-    const container = document.createElement('div');
-
-    renderNewlySeenPlaces(container, [], vi.fn());
-
-    expect(container.textContent).toContain(NEWLY_SEEN_EMPTY_MESSAGE);
-  });
-});
-
-describe('discovery list caps', () => {
+describe('trending list cap', () => {
   const trendingRows = (count: number): TrendingPlace[] =>
     Array.from({ length: count }, (_unused, index) => ({
       place: { ...SAMPLE_DATASET.places[0]!, id: `restaurant_00100${index}` },
@@ -127,12 +100,12 @@ describe('discovery list caps', () => {
       visitDelta: 1,
     }));
 
-  it('renders at most DISCOVERY_LIMIT rows and says how many are held back', () => {
+  it('renders at most the given limit and says how many are held back', () => {
     const container = document.createElement('div');
 
-    renderTrendingPlaces(container, trendingRows(DISCOVERY_LIMIT + 3), vi.fn());
+    renderTrendingPlaces(container, trendingRows(OPTIONS.limit + 3), vi.fn(), OPTIONS);
 
-    expect(container.querySelectorAll('.discovery-place')).toHaveLength(DISCOVERY_LIMIT);
+    expect(container.querySelectorAll('.discovery-place')).toHaveLength(OPTIONS.limit);
     // Truncating silently would let a partial list read as the whole set.
     expect(container.textContent).toContain(remainderLabel(3));
   });
@@ -140,25 +113,9 @@ describe('discovery list caps', () => {
   it('says nothing about a remainder when everything fits', () => {
     const container = document.createElement('div');
 
-    renderTrendingPlaces(container, trendingRows(2), vi.fn());
+    renderTrendingPlaces(container, trendingRows(2), vi.fn(), OPTIONS);
 
     expect(container.querySelectorAll('.discovery-place')).toHaveLength(2);
     expect(container.querySelector('.discovery-remainder')).toBeNull();
-  });
-
-  it('caps the newly-seen list the same way', () => {
-    const container = document.createElement('div');
-    const rows: NewlySeenPlace[] = Array.from(
-      { length: DISCOVERY_LIMIT + 1 },
-      (_unused, index) => ({
-        place: { ...SAMPLE_DATASET.places[0]!, id: `restaurant_00200${index}` },
-        firstVisit: '2026-07-01',
-      }),
-    );
-
-    renderNewlySeenPlaces(container, rows, vi.fn());
-
-    expect(container.querySelectorAll('.discovery-place')).toHaveLength(DISCOVERY_LIMIT);
-    expect(container.textContent).toContain(remainderLabel(1));
   });
 });

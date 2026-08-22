@@ -35,11 +35,10 @@ config the web app imports, a build step that calls the collector) breaks the co
 index.html
 src/                  # web app; browser-only code
   data/               # places.json loading + schema types
-  stats/              # pure computation: top-10, rank delta, trending, newly seen,
+  stats/              # pure computation: per-period ranking, rank delta, trending,
                       #   monthly histogram, text/category filtering
   map/                # loader.ts (script injection), naver-api.ts (hand-written API types),
-                      #   place-map.ts (markers + TOP 10 badges + §38 fallback);
-                      #   bounds re-search still to come
+                      #   place-map.ts (one marker for the selected place + §38 fallback)
   ui/                 # views, Korean strings
 data/places.json      # published dataset (generated — see below); also Vite's publicDir
 collector/            # Python; never imported by src/
@@ -59,16 +58,18 @@ review_candidates.csv # manual location approval queue (committed)
 
 - `src/stats/` is pure: it takes places + a period and returns numbers. No DOM, no map, no fetch.
   Every statistic in PRD §10–§13, §19, §22–§24 is computed here so it stays unit-testable.
-- `src/map/` may read stats output; `src/stats/` must never import from `src/map/` or `src/ui/`.
+- `src/map/` reads a place record and nothing else; `src/stats/` must never import from `src/map/`
+  or `src/ui/`. The map shows the place the detail dialog is about — it carries no ranking, so it
+  has no reason to read stats output at all.
 - The map script is the app's only third-party runtime input, and it is optional: `loadNaverMaps`
   rejects (never throws) when the client ID is unset or the script is blocked, offline or unusable,
-  and `renderPlaceMap` turns that — and any throw from the API while mounting — into the PRD §38
-  fallback message. `bootstrap` renders the map fire-and-forget, so no other view waits on it or
-  fails with it. An origin missing from the key's allowed-URL list takes a second route: the v3
-  script serves its full bundle regardless, so the load succeeds, a map mounts, and the API signals
-  the rejection afterwards through a `window.navermap_authFailure` global. `renderPlaceMap`
-  registers that hook after mounting and swaps the map for the same fallback, which is why the two
-  degraded states are indistinguishable on screen.
+  and `renderPlaceLocationMap` turns that — and any throw from the API while mounting — into the
+  PRD §38 fallback message. The dialog mounts the map fire-and-forget after painting the figures,
+  so the statistics never wait on it or fail with it. An origin missing from the key's allowed-URL
+  list takes a second route: the v3 script serves its full bundle regardless, so the load succeeds,
+  a map mounts, and the API signals the rejection afterwards through a `window.navermap_authFailure`
+  global. `renderPlaceLocationMap` registers that hook after mounting and swaps the map for the same
+  fallback, which is why the two degraded states are indistinguishable on screen.
 - `src/data/` is the only module that knows the `places.json` wire format. Everything else uses its
   exported types.
 - `collector/` is never imported by `src/`, and `src/` is never imported by `collector/`.
@@ -215,8 +216,11 @@ saying so.
 
 1. **Transaction = visit.** One disclosed payment is one visit (PRD §22). Multiple payments in a
    single sitting are not merged.
-2. **Period recomputation.** Changing the 1m/6m/1y selector re-derives *everything* from
-   `transactions` client-side. There are no precomputed per-period fields in the JSON.
+2. **Period recomputation.** Every window is derived from `transactions` client-side, at render
+   time. There are no precomputed per-period fields in the JSON. The page shows four windows at
+   once — 최근 뜨는 곳 (fixed at the recent month) plus 1m / 6m / 1y — so `src/ui/place-columns.ts`
+   runs one aggregation per column on load and none after: nothing on the page switches a window
+   any more, and a place selected from a column is shown that column's figures.
 3. **Rank comparison window.** The prior period is the immediately preceding window of the same
    length. When that window's data is incomplete, the rank delta is omitted — never guessed.
 4. **Approval queue.** `review_candidates.csv` is the human gate between geocoding and publication;

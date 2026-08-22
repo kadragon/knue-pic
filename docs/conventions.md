@@ -27,10 +27,8 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 - Ranking is **by visit count only**. Amount never influences rank.
 - Ties break by: visit count → most recent visit date → total amount.
 - `averageAmount = totalAmount / visitCount`, rounded to whole won.
-- Trending (요즘 많이 가는 곳) requires **≥2 visits in the recent month**; a prior-period count of 0
+- Trending (최근 뜨는 곳) requires **≥2 visits in the recent month**; a prior-period count of 0
   shows `NEW`, not a percentage — never divide by zero into `Infinity`.
-- Newly seen (새로 발견된 곳) = first visit within the last 2 months, judged over the full retained
-  window, not the selected period.
 - Rank delta is omitted, not zero, when the prior window's data is incomplete.
 - Category defaults to `기타` when classification is uncertain — never guess a cuisine.
 
@@ -47,15 +45,22 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 
 ## Accessibility & Responsive (PRD §36–§37)
 
-- Marker importance is never conveyed by colour alone — TOP 10 carry a number badge.
-- Layout must hold at 360px width; source order is TOP 10 → search → map → discovery.
+- Layout must hold at 360px width; source order is search → the four discovery columns.
+- The four columns — 최근 뜨는 곳 / 최근 1개월 / 최근 6개월 / 최근 1년 — are peers: same card, same
+  heading tier, same row cap. Making one heavier states something about the data that the data does
+  not say. They drop to two columns below 900px and to one below 600px, where a tab group
+  (`.place-column-tabs`, hidden above that width so it takes no tab stops) switches between them.
+  A column is never split across a reflow: the columns *are* the comparison.
 - The place detail is a modal dialog, not a section: it opens over the list the reader is in,
   traps Tab, closes on Escape or scrim click, and returns focus to the control that opened it.
   It was the last section on the page until a UI review found that selecting anything threw the
-  reader three screens down with no way back — see `src/ui/detail-dialog.ts`.
-- Lists that can grow with the data are capped at a stated number: `TOP_PLACES_LIMIT` for the
-  ranked list, `DISCOVERY_LIMIT` for both discovery sections, which print `remainderLabel` when
-  they hold rows back. Search lists nothing until a query or a category is entered.
+  reader three screens down with no way back — see `src/ui/detail-dialog.ts`. It carries the
+  selected place's location map: the map exists to answer "where is *this* one?", which is a
+  question only ever asked from inside the dialog. The figures render whether or not the map
+  script arrives.
+- Lists that can grow with the data are capped at a stated number: `COLUMN_LIMIT` for all four
+  columns. A ranked column states the rendered count in its heading; the trending column prints
+  `remainderLabel`. Search lists nothing until a query or a category is entered.
 - Every interactive control has a visible label or an `aria-label`; search is keyboard-operable.
 
 ## Git Conventions

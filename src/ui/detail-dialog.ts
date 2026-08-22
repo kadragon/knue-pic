@@ -1,3 +1,5 @@
+import type { PlaceRecord } from '../data/types';
+import { renderPlaceLocationMap } from '../map/place-map';
 import { DETAIL_HEADING, renderPlaceDetail, type PlaceDetail } from './place-detail';
 
 /**
@@ -16,6 +18,15 @@ import { DETAIL_HEADING, renderPlaceDetail, type PlaceDetail } from './place-det
  */
 
 export const CLOSE_LABEL = '닫기';
+
+export interface DetailDialogOptions {
+  /**
+   * Fills the card's map slot. Injectable for the same reason `renderPlaceMap` took a `loadApi`:
+   * jsdom cannot run the Naver script, and the dialog's own behaviour — focus, Escape, the figures
+   * — is the part worth testing without one.
+   */
+  renderMap?: (container: HTMLElement, place: PlaceRecord) => void | Promise<void>;
+}
 
 export interface DetailDialogHandle {
   /** Renders `detail` and shows the dialog. Calling it while open just swaps the contents. */
@@ -36,7 +47,12 @@ const FOCUSABLE =
  * Builds the dialog once and reuses it. Rebuilding per selection would replace the node holding
  * focus, which is the failure every other module in `src/ui/` is written to avoid.
  */
-export function createDetailDialog(container: HTMLElement): DetailDialogHandle {
+export function createDetailDialog(
+  container: HTMLElement,
+  options: DetailDialogOptions = {},
+): DetailDialogHandle {
+  const { renderMap = renderPlaceLocationMap } = options;
+
   const root = document.createElement('div');
   root.className = 'detail-dialog';
   root.hidden = true;
@@ -139,16 +155,33 @@ export function createDetailDialog(container: HTMLElement): DetailDialogHandle {
   scrim.addEventListener('click', closeDialog);
   close.addEventListener('click', closeDialog);
 
+  /**
+   * Renders the card, then fills its map slot.
+   *
+   * The map is mounted after the figures rather than awaited before them: it is the one view that
+   * depends on a third-party script, and the dialog must show the numbers whether or not that
+   * script ever arrives (`docs/eval-criteria.md` → Graceful Degradation). `renderPlaceLocationMap`
+   * resolves even on failure — it renders the documented fallback instead — so the `catch` is only
+   * for an injected renderer that does not keep that promise.
+   */
+  function paint(detail: PlaceDetail): void {
+    renderPlaceDetail(body, detail);
+
+    const slot = body.querySelector<HTMLElement>('.place-detail-map');
+    if (!slot) return;
+    void Promise.resolve(renderMap(slot, detail.place)).catch(() => {});
+  }
+
   return {
     isOpen,
     close: closeDialog,
     update(detail) {
       if (!isOpen()) return;
-      renderPlaceDetail(body, detail);
+      paint(detail);
     },
     open(detail) {
       const wasOpen = isOpen();
-      renderPlaceDetail(body, detail);
+      paint(detail);
 
       if (wasOpen) {
         // Re-opening from a marker click while already open: keep the original opener so Escape

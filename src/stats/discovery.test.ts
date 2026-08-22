@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PlaceRecord, PlacesDataset } from '../data/types';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
-import { computeNewlySeenPlaces, computeTrendingPlaces } from './discovery';
+import { computeTrendingPlaces } from './discovery';
 
 /**
  * `SAMPLE_DATASET` covers the window boundaries but every place in it is a first-time entrant in
@@ -105,49 +105,5 @@ describe('computeTrendingPlaces', () => {
       'restaurant_000202',
       'restaurant_000201',
     ]);
-  });
-});
-
-describe('computeNewlySeenPlaces', () => {
-  it('lists places whose first visit falls in the last two months, newest first', () => {
-    const newlySeen = computeNewlySeenPlaces(SAMPLE_DATASET);
-
-    expect(newlySeen.map((entry) => entry.place.id)).toEqual([
-      'restaurant_000002', // first visit 2026-07-15
-      'restaurant_000004', // 2026-07-08
-      'restaurant_000005', // 2026-07-02
-    ]);
-    expect(newlySeen[0]?.firstVisit).toBe('2026-07-15');
-  });
-
-  it('judges the first visit over the whole record, not the recent window', () => {
-    // 101 and 102 are busy in the recent month but known since 2025 — not discoveries. 103 is,
-    // even though it is too quiet to trend.
-    const newlySeen = computeNewlySeenPlaces(MOVEMENT_DATASET);
-
-    expect(newlySeen.map((entry) => entry.place.id)).toEqual(['restaurant_000103']);
-  });
-
-  it('excludes a place whose first visit sits exactly on the excluded window start', () => {
-    const dataset: PlacesDataset = {
-      updatedAt: '2026-08-01',
-      places: [
-        place('restaurant_000301', ['2026-06-01']), // the excluded start day
-        place('restaurant_000302', ['2026-06-02']), // the day after it
-      ],
-    };
-
-    expect(computeNewlySeenPlaces(dataset).map((entry) => entry.place.id)).toEqual([
-      'restaurant_000302',
-    ]);
-  });
-
-  it('ignores a place with no transactions at all', () => {
-    const dataset: PlacesDataset = {
-      updatedAt: '2026-08-01',
-      places: [place('restaurant_000401', [])],
-    };
-
-    expect(computeNewlySeenPlaces(dataset)).toEqual([]);
   });
 });
