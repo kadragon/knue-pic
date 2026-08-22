@@ -6,9 +6,10 @@
  * (`docs/eval-criteria.md` → Static-First Integrity). Hand-writing the surface keeps the contract
  * visible and keeps `no-explicit-any` satisfied.
  *
- * Shapes follow the official reference: `new naver.maps.Map(el, options)`,
- * `new naver.maps.Marker(options)`, `marker.setIcon(icon)`, `map.fitBounds(bounds)`, and
- * `naver.maps.Event.addListener(target, eventName, listener)`.
+ * Shapes follow the official reference: `new naver.maps.Map(el, options)` and
+ * `new naver.maps.Marker(options)`. The marker-mutation, bounds and event surface went with the
+ * page-level map — a hand-written vendor type with no caller drifts from the real API unnoticed,
+ * so what is unused is deleted rather than kept "in case".
  *
  * Structural interfaces, not classes: the tests inject a fake that satisfies this shape, which is
  * the only way a jsdom test can exercise marker rendering at all.
@@ -36,23 +37,15 @@ export interface HtmlIcon {
   anchor?: Point;
 }
 
-export interface LatLngBounds {
-  extend(latlng: LatLng): void;
-}
-
 export interface MarkerOptions {
   position: LatLng;
   map: NaverMap;
   title?: string;
   icon?: HtmlIcon;
-  zIndex?: number;
 }
 
-export interface NaverMarker {
-  setIcon(icon: HtmlIcon): void;
-  setTitle(title: string): void;
-  setZIndex(zIndex: number): void;
-}
+/** Constructed and left alone: one marker per map, never re-badged. */
+export type NaverMarker = object;
 
 export interface MapOptions {
   center: LatLng;
@@ -60,26 +53,20 @@ export interface MapOptions {
 }
 
 export interface NaverMap {
-  fitBounds(bounds: LatLngBounds): void;
+  /**
+   * Optional because this file only promises what the app has seen the API do, and nothing in this
+   * repo has verified `destroy` against the live v3 bundle. A map that is dropped without one still
+   * has to be dropped — see `releaseMap` in `./place-map.ts`, which calls it only when the mounted
+   * object actually carries it.
+   */
+  destroy?(): void;
 }
 
-export interface MapEventListener {
-  // Opaque: the app registers listeners for the lifetime of the page and never removes one.
-  readonly eventName?: string;
-}
-
-/**
- * Constructors are exposed as values so a fake can supply plain functions. `Event.addListener` is
- * the only static the app touches.
- */
+/** Constructors are exposed as values so a fake can supply plain functions. */
 export interface NaverMapsApi {
   LatLng: new (lat: number, lng: number) => LatLng;
   Point: new (x: number, y: number) => Point;
   Size: new (width: number, height: number) => Size;
-  LatLngBounds: new (sw: LatLng, ne: LatLng) => LatLngBounds;
   Map: new (element: HTMLElement, options: MapOptions) => NaverMap;
   Marker: new (options: MarkerOptions) => NaverMarker;
-  Event: {
-    addListener(target: object, eventName: string, listener: () => void): MapEventListener;
-  };
 }

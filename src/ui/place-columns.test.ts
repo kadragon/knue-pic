@@ -46,7 +46,9 @@ describe('renderPlaceColumns', () => {
 
     const columns = [...root.querySelectorAll<HTMLElement>('.place-column')];
     expect(columns.map((column) => column.dataset['column'])).toEqual(COLUMN_ORDER);
-    expect(columns[0]?.querySelector('h2')?.textContent).toContain(COLUMN_LABELS['trending']);
+    // The trending column is ordered by movement, so it carries the bare label: no "TOP N", and
+    // `remainderLabel` is its single statement of the cap.
+    expect(columns[0]?.querySelector('h2')?.textContent).toBe(COLUMN_LABELS['trending']);
     expect(columns[3]?.querySelector('h2')?.textContent).toBe(
       columnHeading(COLUMN_LABELS['1y'], computeTopPlaces(SAMPLE_DATASET, '1y', COLUMN_LIMIT).entries.length),
     );

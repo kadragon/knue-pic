@@ -41,6 +41,15 @@ export interface RenderPlaceLocationMapOptions {
   loadApi?: () => Promise<NaverMapsApi>;
 }
 
+/**
+ * Releases the map and the auth-failure hook this render installed.
+ *
+ * Idempotent, and safe on every path — a render that never mounted anything returns one that does
+ * nothing. The caller owns a map for exactly as long as the dialog showing it is open; the previous
+ * design owned one map for the life of the page and had nothing to release.
+ */
+export type ReleasePlaceLocationMap = () => void;
+
 function markerIcon(api: NaverMapsApi): HtmlIcon {
   return {
     content: '<span class="place-map-marker"></span>',
@@ -91,6 +100,25 @@ function setAuthFailureHandler(handler: (() => void) | undefined): void {
   (globalThis as AuthFailureGlobal).navermap_authFailure = handler;
 }
 
+/** Only ours, never a handler some later render installed over it. */
+function clearAuthFailureHandler(handler: () => void): void {
+  if ((globalThis as AuthFailureGlobal).navermap_authFailure === handler) {
+    setAuthFailureHandler(undefined);
+  }
+}
+
+/**
+ * Drops a mounted map, if the object it returned knows how.
+ *
+ * Feature-detected rather than assumed: `docs/architecture.md` treats the map script as the app's
+ * only third-party runtime input, and this repo has verified nothing about `destroy` against the
+ * live v3 bundle. Calling it when it is there is what keeps a dialog opened thirty times from
+ * holding thirty live maps; calling it blindly would be a claim about an API nobody here has read.
+ */
+function releaseMap(map: NaverMap): void {
+  map.destroy?.();
+}
+
 /**
  * Renders the heading and an empty canvas synchronously, then mounts the map once the script
  * resolves.
@@ -99,18 +127,21 @@ function setAuthFailureHandler(handler: (() => void) | undefined): void {
  * the detail dialog, which must open with the figures either way: the map is the one view on the
  * page that depends on a third-party script, and its failure may never take the statistics with it
  * (`docs/eval-criteria.md` → Graceful Degradation).
+ *
+ * Resolves with the release function for whatever it mounted; the caller must call it when the
+ * dialog closes or moves to another place.
  */
 export async function renderPlaceLocationMap(
   container: HTMLElement,
   place: PlaceRecord,
   options: RenderPlaceLocationMapOptions = {},
-): Promise<void> {
+): Promise<ReleasePlaceLocationMap> {
   const { loadApi = () => loadNaverMaps() } = options;
 
   // A previous render's handler closes over a section this call is about to replace: left
   // installed, it would remove an already-detached canvas and append the fallback where nobody can
-  // see it, while the live map stays up. Selecting a second place re-enters here, so the clear is
-  // what keeps the previous dialog's handler from outliving its map.
+  // see it, while the live map stays up. The caller releases the previous render before entering
+  // here; this clear is the backstop for a caller that did not.
   setAuthFailureHandler(undefined);
 
   const section = document.createElement('section');
@@ -145,17 +176,29 @@ export async function renderPlaceLocationMap(
     // the registration earlier is not the cheap fix it looks like: the `catch` below has already
     // appended the fallback, so a pre-installed handler would append a second one.
     let live = true;
-    setAuthFailureHandler(() => {
+    const onAuthFailure = (): void => {
       // Idempotent: nothing documents how many times the API calls this, and a second call would
       // otherwise append a second message under the heading.
       if (!live) return;
       live = false;
       canvas.remove();
       section.append(message(MAP_ERROR_MESSAGE, 'place-map-fallback'));
-    });
+    };
+    setAuthFailureHandler(onAuthFailure);
+
+    return () => {
+      // `live` also gates the hook, so a rejection arriving after the dialog closed cannot append
+      // a fallback into a section that is no longer on screen.
+      live = false;
+      clearAuthFailureHandler(onAuthFailure);
+      releaseMap(map);
+    };
   } catch {
     // The reason is dropped on purpose — see MAP_ERROR_MESSAGE.
     canvas.remove();
     section.append(message(MAP_ERROR_MESSAGE, 'place-map-fallback'));
+    // Nothing mounted, so there is nothing to release — but the caller still gets a function, so it
+    // never has to branch on whether the map came up.
+    return () => {};
   }
 }

@@ -1,6 +1,6 @@
 import type { Period, PlacesDataset } from '../data/types';
 import { computeTrendingPlaces } from '../stats/discovery';
-import { computeTopPlaces } from '../stats/top-places';
+import { TOP_PLACES_LIMIT, computeTopPlaces } from '../stats/top-places';
 import { TRENDING_HEADING, renderTrendingPlaces } from './discovery';
 import { PERIOD_LABELS, PERIOD_ORDER } from './period-labels';
 import { renderTopPlaces } from './top-places';
@@ -30,8 +30,11 @@ export type ColumnKey = typeof TRENDING_COLUMN | Period;
  * columns ("there is more here") when they are only a statement about the cap. Anything held back
  * is counted on screen — the ranked columns name the rendered count in their heading, the trending
  * column prints `remainderLabel`.
+ *
+ * Aliased to the ranking module's own default rather than restated as `10`: two constants holding
+ * one documented cap is one edit away from two different caps.
  */
-export const COLUMN_LIMIT = 10;
+export const COLUMN_LIMIT = TOP_PLACES_LIMIT;
 
 /** Trending first: it is the only column about movement, and the three beside it widen from 1개월. */
 export const COLUMN_ORDER: ColumnKey[] = [TRENDING_COLUMN, ...PERIOD_ORDER];
@@ -62,6 +65,10 @@ export const TAB_GROUP_LABEL = '목록 선택';
  * States the rendered count in the heading, so a capped column never reads as the whole set. Same
  * shape as `topPlacesHeading`, which this replaces on the three ranked columns — there the subject
  * ("많이 이용한 곳") is what the heading names, here it is the window.
+ *
+ * Ranked columns only. The trending column is ordered by movement rather than by usage, so "TOP N"
+ * would name a ranking it does not express — and it already states its cap the other way, through
+ * `remainderLabel`.
  */
 export function columnHeading(label: string, renderedCount: number): string {
   return renderedCount === 0 ? label : `${label} TOP ${renderedCount}`;
@@ -133,7 +140,7 @@ export function renderPlaceColumns(
     if (column === TRENDING_COLUMN) {
       const trending = computeTrendingPlaces(dataset);
       renderTrendingPlaces(cell, trending, select, {
-        heading: columnHeading(COLUMN_LABELS[column], Math.min(trending.length, COLUMN_LIMIT)),
+        heading: COLUMN_LABELS[column],
         limit: COLUMN_LIMIT,
       });
     } else {

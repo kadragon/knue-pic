@@ -19,8 +19,13 @@ export const TRENDING_HEADING = '최근 뜨는 곳';
  * The column reads a fixed window while the three beside it read 1개월 / 6개월 / 1년, so the note
  * says which window this one is. Without it, a reader comparing the columns has no way to tell
  * what "뜨는" is measured over, and the list would read as an opinion rather than as a count.
+ *
+ * It says *ordered by* movement, not *risen*: `computeTrendingPlaces` admits every place with ≥2
+ * visits in the recent month and sorts by the change, so a place that fell is in the list too — a
+ * few rows down, carrying a ▼. A note promising only risers would be describing a filter the stats
+ * module does not apply.
  */
-export const TRENDING_NOTE = '최근 1개월 이용이 이전 1개월보다 늘어난 곳입니다.';
+export const TRENDING_NOTE = '최근 1개월에 두 번 이상 이용한 곳을, 이전 1개월 대비 변동이 큰 순으로 보여줍니다.';
 
 export const TRENDING_EMPTY_MESSAGE = '최근 1개월에 두 번 이상 이용한 곳이 없습니다.';
 

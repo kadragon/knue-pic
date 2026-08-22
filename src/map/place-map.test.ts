@@ -24,15 +24,18 @@ function authFailureHook(): (() => void) | undefined {
   return (globalThis as { navermap_authFailure?: () => void }).navermap_authFailure;
 }
 
-async function render(api: FakeNaverApi, place: PlaceRecord = PLACE): Promise<HTMLElement> {
+async function render(
+  api: FakeNaverApi,
+  place: PlaceRecord = PLACE,
+): Promise<{ root: HTMLElement; release: () => void }> {
   const root = container();
-  await renderPlaceLocationMap(root, place, { loadApi: () => Promise.resolve(api) });
-  return root;
+  const release = await renderPlaceLocationMap(root, place, { loadApi: () => Promise.resolve(api) });
+  return { root, release };
 }
 
 describe('renderPlaceLocationMap', () => {
   it('renders the heading and a canvas for the map to draw into', async () => {
-    const root = await render(createFakeNaverApi());
+    const { root } = await render(createFakeNaverApi());
 
     expect(root.querySelector('h4')?.textContent).toBe(MAP_HEADING);
     expect(root.querySelector('.place-map-canvas')).toBeInstanceOf(HTMLElement);
@@ -49,7 +52,7 @@ describe('renderPlaceLocationMap', () => {
     expect(api.maps).toHaveLength(1);
     expect(api.maps[0]?.options.center.lat()).toBe(PLACE.lat);
     // A single marker has no extent to fit to; the fixed zoom is the whole framing decision.
-    expect(api.maps[0]?.fitBoundsCalls).toBe(0);
+    expect(api.maps[0]?.options.zoom).toBeGreaterThan(0);
   });
 
   it('names the place in the marker title, so the pin is not its only carrier', async () => {
@@ -73,7 +76,7 @@ describe('renderPlaceLocationMap', () => {
   });
 
   it('shows the same fallback when the key rejects the origin after the map mounts', async () => {
-    const root = await render(createFakeNaverApi());
+    const { root } = await render(createFakeNaverApi());
 
     authFailureHook()?.();
 
@@ -82,7 +85,7 @@ describe('renderPlaceLocationMap', () => {
   });
 
   it('appends only one fallback however often the API calls the hook', async () => {
-    const root = await render(createFakeNaverApi());
+    const { root } = await render(createFakeNaverApi());
 
     authFailureHook()?.();
     authFailureHook()?.();
@@ -91,8 +94,8 @@ describe('renderPlaceLocationMap', () => {
   });
 
   it('drops the previous handler when a second place is rendered', async () => {
-    const first = await render(createFakeNaverApi());
-    const second = await render(createFakeNaverApi(), SAMPLE_DATASET.places[1]!);
+    const { root: first } = await render(createFakeNaverApi());
+    const { root: second } = await render(createFakeNaverApi(), SAMPLE_DATASET.places[1]!);
 
     authFailureHook()?.();
 
@@ -107,5 +110,34 @@ describe('renderPlaceLocationMap', () => {
     });
 
     expect(authFailureHook()).toBeUndefined();
+  });
+
+  it('releases the map instance it mounted', async () => {
+    const api = createFakeNaverApi();
+    const { release } = await render(api);
+
+    release();
+
+    // Without this every dialog open would leave a live map behind, holding the listeners and tile
+    // state the API attached to a node that is no longer in the document.
+    expect(api.maps[0]?.destroyCalls).toBe(1);
+  });
+
+  it('takes its auth-failure hook down with the map', async () => {
+    const { root, release } = await render(createFakeNaverApi());
+
+    release();
+    // The hook is gone, and even a stale reference to it can no longer paint into the detached card.
+    expect(authFailureHook()).toBeUndefined();
+    expect(root.querySelector('.place-map-fallback')).toBeNull();
+  });
+
+  it('hands back a release even when nothing mounted', async () => {
+    const release = await renderPlaceLocationMap(container(), PLACE, {
+      loadApi: () => Promise.reject(new Error('script blocked')),
+    });
+
+    // The caller never has to branch on whether the map came up.
+    expect(() => release()).not.toThrow();
   });
 });

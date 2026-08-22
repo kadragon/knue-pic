@@ -1,5 +1,5 @@
 import type { PlaceRecord } from '../data/types';
-import { renderPlaceLocationMap } from '../map/place-map';
+import { renderPlaceLocationMap, type ReleasePlaceLocationMap } from '../map/place-map';
 import { DETAIL_HEADING, renderPlaceDetail, type PlaceDetail } from './place-detail';
 
 /**
@@ -21,11 +21,16 @@ export const CLOSE_LABEL = '닫기';
 
 export interface DetailDialogOptions {
   /**
-   * Fills the card's map slot. Injectable for the same reason `renderPlaceMap` took a `loadApi`:
-   * jsdom cannot run the Naver script, and the dialog's own behaviour — focus, Escape, the figures
-   * — is the part worth testing without one.
+   * Fills the card's map slot. Injectable for the same reason `renderPlaceLocationMap` takes a
+   * `loadApi`: jsdom cannot run the Naver script, and the dialog's own behaviour — focus, Escape,
+   * the figures — is the part worth testing without one.
+   *
+   * May resolve with a release function; the dialog calls it before the next render and on close.
    */
-  renderMap?: (container: HTMLElement, place: PlaceRecord) => void | Promise<void>;
+  renderMap?: (
+    container: HTMLElement,
+    place: PlaceRecord,
+  ) => void | ReleasePlaceLocationMap | Promise<void | ReleasePlaceLocationMap>;
 }
 
 export interface DetailDialogHandle {
@@ -34,8 +39,9 @@ export interface DetailDialogHandle {
   close: () => void;
   isOpen: () => boolean;
   /**
-   * Re-renders an already-open dialog — the period selector changing under it. A no-op when
-   * closed, so a period change never pops the dialog open on its own.
+   * Re-renders an already-open dialog with new figures for the same selection. A no-op when
+   * closed, so a repaint never pops the dialog open on its own. Nothing in the page drives it
+   * today — the window a place is shown under is now fixed by the column it was picked from.
    */
   update: (detail: PlaceDetail) => void;
 }
@@ -89,6 +95,21 @@ export function createDetailDialog(
     return container.closest<HTMLElement>('#content');
   }
 
+  /**
+   * Releases the map currently mounted in the card, if any.
+   *
+   * Every paint discards the card's DOM and mounts a fresh map, so without this a reader who opens
+   * thirty places leaves thirty live map instances behind — each still holding the listeners and
+   * tile state the API attached to a node that is no longer in the document. The page-level map
+   * this replaced was built once and never had the problem.
+   */
+  let releaseMap: ReleasePlaceLocationMap | null = null;
+
+  function dropMap(): void {
+    releaseMap?.();
+    releaseMap = null;
+  }
+
   function isOpen(): boolean {
     return !root.hidden;
   }
@@ -96,6 +117,7 @@ export function createDetailDialog(
   function closeDialog(): void {
     if (!isOpen()) return;
     root.hidden = true;
+    dropMap();
     document.removeEventListener('keydown', onKeydown, true);
     // Restoring focus is the whole point of holding `opener`: without it the caret drops to the top
     // of the document and a keyboard user has to tab back through the entire list they came from.
@@ -165,11 +187,25 @@ export function createDetailDialog(
    * for an injected renderer that does not keep that promise.
    */
   function paint(detail: PlaceDetail): void {
+    dropMap();
     renderPlaceDetail(body, detail);
 
     const slot = body.querySelector<HTMLElement>('.place-detail-map');
     if (!slot) return;
-    void Promise.resolve(renderMap(slot, detail.place)).catch(() => {});
+
+    // The mount is asynchronous, so the dialog can be closed before it lands. `isOpen()` is what
+    // decides: a release that arrives for a closed dialog is spent immediately rather than stored
+    // and forgotten.
+    void Promise.resolve(renderMap(slot, detail.place))
+      .then((release) => {
+        if (typeof release !== 'function') return;
+        if (isOpen()) {
+          releaseMap = release;
+        } else {
+          release();
+        }
+      })
+      .catch(() => {});
   }
 
   return {

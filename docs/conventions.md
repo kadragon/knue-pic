@@ -45,6 +45,10 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 
 ## Accessibility & Responsive (PRD §36–§37)
 
+- Importance is never conveyed by colour alone: a rank carries a number badge, a movement glyph
+  carries an `aria-label`, and the active column tab carries weight and fill as well as colour.
+  (It used to name the map's TOP 10 marker badges; those are gone with the page-level map, the rule
+  is not — `src/ui/top-places.ts` and `src/styles.css` both still cite it.)
 - Layout must hold at 360px width; source order is search → the four discovery columns.
 - The four columns — 최근 뜨는 곳 / 최근 1개월 / 최근 6개월 / 최근 1년 — are peers: same card, same
   heading tier, same row cap. Making one heavier states something about the data that the data does
