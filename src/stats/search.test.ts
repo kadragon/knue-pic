@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PlacesDataset } from '../data/types';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
-import { ALL_CATEGORIES, filterPlaces, listCategories } from './search';
+import { ALL_CATEGORIES, ALL_KINDS, filterByKind, filterPlaces, listCategories } from './search';
 
 const NO_FILTER = { text: '', category: ALL_CATEGORIES };
 
@@ -98,5 +98,34 @@ describe('unicode composition', () => {
       places: [{ ...SAMPLE_DATASET.places[0]!, name: NFD_HANSIK }],
     };
     expect(filterPlaces(decomposedName, { ...NO_FILTER, text: NFC_HANSIK })).toHaveLength(1);
+  });
+});
+
+describe('filterByKind', () => {
+  it('returns the dataset untouched when no kind is selected', () => {
+    expect(filterByKind(SAMPLE_DATASET, ALL_KINDS)).toBe(SAMPLE_DATASET);
+  });
+
+  it('keeps only the places of the selected kind', () => {
+    expect(filterByKind(SAMPLE_DATASET, 'cafe').places.map((place) => place.id)).toEqual([
+      'restaurant_000002',
+    ]);
+  });
+
+  it('keeps updatedAt, which anchors every period window', () => {
+    // Recomputing the anchor from the subset would move the window boundaries the visit counts are
+    // measured against, so a narrowed column would show different numbers for the same month.
+    expect(filterByKind(SAMPLE_DATASET, 'cafe').updatedAt).toBe(SAMPLE_DATASET.updatedAt);
+  });
+
+  it('narrows what the other filters can see, rather than filtering beside them', () => {
+    const cafes = filterByKind(SAMPLE_DATASET, 'cafe');
+
+    expect(listCategories(cafes)).toEqual(['카페']);
+    expect(filterPlaces(cafes, { ...NO_FILTER, category: '한식' })).toEqual([]);
+  });
+
+  it('is empty, not everything, for a kind no place carries', () => {
+    expect(filterByKind(SAMPLE_DATASET, 'lunchbox').places).toEqual([]);
   });
 });

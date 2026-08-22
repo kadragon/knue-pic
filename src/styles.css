@@ -173,6 +173,43 @@ body {
  * Tier 2 — search: the same card, softer border, because it answers a different question.
  */
 .place-column,
+/*
+ * The page-wide 업종 control. Sits above the search card rather than inside it because it narrows
+ * the discovery columns too, and wraps rather than scrolls so all five options stay reachable at
+ * 360px (PRD §36).
+ */
+.kind-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.kind-filter-option {
+  padding: 10px 20px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-full);
+  background: var(--canvas);
+  color: var(--body);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.kind-filter-option:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* Marked by weight, fill and border as well as colour, never colour alone. */
+.kind-filter-option[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-primary);
+  font-weight: 700;
+}
+
 .place-search {
   padding: 24px;
   border: 1px solid var(--hairline-soft);

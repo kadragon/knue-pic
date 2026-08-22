@@ -39,6 +39,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Iterable
 
+from collector.kinds import derive_kind
 from collector.validate import (DatasetUnusable, as_number, normalize_name, parse_iso_date,
                                 window_floor)
 
@@ -80,6 +81,7 @@ class Approved:
     canonical_name: str
     display_name: str
     category: str
+    kind: str
     address: str
     lat: float
     lng: float
@@ -243,8 +245,11 @@ def load_approved(path: Path, aliases: dict[str, str]) -> dict[str, Approved]:
         # NFC like every other join key: `src/stats/search.ts` groups the filter options by
         # exact `category` string, so a decomposed spelling would render a second, visually
         # identical option hiding the composed one's places.
-        category = normalize_name(text(row.get("category")).split(">")[0]) \
-            or UNCLASSIFIED_CATEGORY
+        category_path = text(row.get("category"))
+        category = normalize_name(category_path.split(">")[0]) or UNCLASSIFIED_CATEGORY
+        # From the whole path, not the truncated `category` above: the segment that separates a
+        # café from a lunchbox shop is usually not the first one (`collector/kinds.py`).
+        kind = derive_kind(category_path)
 
         # `float` parses "nan" and "inf" without complaint, and `json.dumps` then writes bare
         # `NaN`/`Infinity` — tokens no browser JSON parser accepts, which turns a data defect into
@@ -257,7 +262,7 @@ def load_approved(path: Path, aliases: dict[str, str]) -> dict[str, Approved]:
                 f"{path} line {number}: approved row {display!r} has unusable coordinates "
                 f"({row.get('lat')!r}, {row.get('lng')!r})")
 
-        approved[canonical] = Approved(canonical, display, category, address, lat, lng)
+        approved[canonical] = Approved(canonical, display, category, kind, address, lat, lng)
 
     # An alias pointing at a name no approved row carries is the silent-loss case this whole
     # mechanism exists to prevent: `collect_transactions` would resolve the merged spelling to that
@@ -465,6 +470,7 @@ def build(
             "id": id_map[name],
             "name": approved[name].display_name,
             "category": approved[name].category,
+            "kind": approved[name].kind,
             "address": approved[name].address,
             "lat": approved[name].lat,
             "lng": approved[name].lng,

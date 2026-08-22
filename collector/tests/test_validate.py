@@ -40,6 +40,7 @@ def place(**overrides: Any) -> dict[str, Any]:
         "id": "restaurant_000001",
         "name": "신토불이교원대점",
         "category": "한식",
+        "kind": "restaurant",
         "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 399",
         "lat": 36.6188431,
         "lng": 127.3564631,
@@ -251,6 +252,23 @@ def test_loader_parity_fields_are_reported() -> None:
     for key in ("category", "naverUrl"):
         violations = check(dataset(place(**{key: ""})), approvals())
         assert checks_reported(violations) == {10}, key
+
+
+@pytest.mark.parametrize("kind", ["", None, "restaurants", "식당", "RESTAURANT"])
+def test_a_kind_outside_the_published_set_is_reported(kind: Any) -> None:
+    """`parsePlace` in `src/data/load.ts` rejects the whole file over a kind it does not know, so a
+    gate checking only that the field is non-empty would certify a dataset that blanks the site.
+    A plausible near-miss — a bucket added to the collector and not to the loader — is exactly what
+    non-emptiness waves through."""
+    violations = check(dataset(place(kind=kind)), approvals())
+    assert checks_reported(violations) == {10}, kind
+
+
+def test_a_place_with_no_kind_at_all_is_reported() -> None:
+    """The field is absent rather than wrong — a dataset built before `kind` existed."""
+    without = place()
+    del without["kind"]
+    assert checks_reported(check(dataset(without), approvals())) == {10}
 
 
 def test_naver_url_scheme_and_host_are_reported() -> None:

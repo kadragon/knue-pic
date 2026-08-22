@@ -19,12 +19,27 @@ export interface Transaction {
   amount: number;
 }
 
+/**
+ * The coarse venue kind, a closed set the code owns — unlike `category`, which is whatever text
+ * Naver's taxonomy supplied. Derived at build time from the full taxonomy path
+ * (`collector/kinds.py`), because the published `category` is only that path's first segment and
+ * `음식점` alone covers restaurants, cafés and lunchbox shops alike.
+ *
+ * Values are English slugs, and the Korean labels the reader sees live in `src/ui/kind-filter.ts`
+ * with every other user-facing string.
+ */
+export const PLACE_KINDS = ['restaurant', 'cafe', 'lunchbox', 'other'] as const;
+
+export type PlaceKind = (typeof PLACE_KINDS)[number];
+
 export interface PlaceRecord {
   /** Canonical id, `restaurant_%06d`; assigned once and never reused. */
   id: string;
   name: string;
   /** Cuisine or venue category; `기타` when classification was uncertain. */
   category: string;
+  /** The coarse kind the global filter narrows by. Always one of `PLACE_KINDS`. */
+  kind: PlaceKind;
   address: string;
   lat: number;
   lng: number;

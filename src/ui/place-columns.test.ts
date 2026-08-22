@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import { filterByKind } from '../stats/search';
 import { computeTopPlaces } from '../stats/top-places';
 import {
   COLUMN_LABELS,
@@ -99,6 +100,60 @@ describe('renderPlaceColumns', () => {
         COLUMN_LIMIT,
       );
     }
+  });
+
+  it('opens on the column the caller names, not always the first', () => {
+    const root = document.createElement('div');
+
+    renderPlaceColumns(root, SAMPLE_DATASET, vi.fn(), { active: '1y' });
+
+    expect(root.querySelector<HTMLElement>('.place-columns-grid')?.dataset['active']).toBe('1y');
+    expect(
+      [...root.querySelectorAll<HTMLButtonElement>('.place-column-tab')].find(
+        (button) => button.getAttribute('aria-pressed') === 'true',
+      )?.dataset['column'],
+    ).toBe('1y');
+  });
+
+  it('reports a tab switch, so a re-render can reopen where the reader was', () => {
+    const root = document.createElement('div');
+    const onActiveChange = vi.fn();
+
+    renderPlaceColumns(root, SAMPLE_DATASET, vi.fn(), { onActiveChange });
+    root.querySelector<HTMLButtonElement>('.place-column-tab[data-column="6m"]')?.click();
+
+    expect(onActiveChange).toHaveBeenCalledWith('6m');
+  });
+
+  it('keeps the reader on their column when the dataset narrows under them', () => {
+    const root = document.createElement('div');
+    let active = COLUMN_ORDER[0]!;
+    const options = {
+      get active() {
+        return active;
+      },
+      onActiveChange: (column: typeof active) => {
+        active = column;
+      },
+    };
+
+    renderPlaceColumns(root, SAMPLE_DATASET, vi.fn(), options);
+    root.querySelector<HTMLButtonElement>('.place-column-tab[data-column="1y"]')?.click();
+    // What the global 업종 filter does: same container, fewer places.
+    renderPlaceColumns(root, filterByKind(SAMPLE_DATASET, 'cafe'), vi.fn(), options);
+
+    // On a narrow screen the active column is the only one on screen, so resetting it here would
+    // move the reader to a list they never asked for.
+    expect(root.querySelector<HTMLElement>('.place-columns-grid')?.dataset['active']).toBe('1y');
+  });
+
+  it('ranks only the places the narrowed dataset contains', () => {
+    const root = document.createElement('div');
+
+    renderPlaceColumns(root, filterByKind(SAMPLE_DATASET, 'cafe'), vi.fn());
+
+    expect(root.textContent).toContain('청람카페');
+    expect(root.textContent).not.toContain('한밭식당');
   });
 
   it('marks a column active on a container that has one', () => {

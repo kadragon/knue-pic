@@ -17,6 +17,7 @@ function place(id: string, dates: string[]): PlaceRecord {
     id,
     name: `place-${id}`,
     category: '한식',
+    kind: 'other',
     address: '충북 청주시 흥덕구 강내면',
     lat: 36.6,
     lng: 127.3,

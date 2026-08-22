@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import { filterByKind } from '../stats/search';
 import {
   ALL_CATEGORIES_OPTION,
   NO_RESULTS_MESSAGE,
@@ -25,6 +26,12 @@ function type(container: HTMLElement, text: string): void {
   const input = searchInput(container);
   input.value = text;
   input.dispatchEvent(new Event('input'));
+}
+
+function choose(container: HTMLElement, category: string): void {
+  const select = categorySelect(container);
+  select.value = category;
+  select.dispatchEvent(new Event('change'));
 }
 
 describe('renderPlaceSearch', () => {
@@ -134,6 +141,55 @@ describe('renderPlaceSearch', () => {
     type(container, '카페');
 
     expect(searchInput(container)).toBe(before);
+  });
+
+  it('searches the narrowed dataset after setDataset, without rebuilding the input', () => {
+    const container = document.createElement('div');
+    const view = renderPlaceSearch(container, SAMPLE_DATASET, vi.fn());
+    type(container, '한밭');
+    const before = searchInput(container);
+
+    view.setDataset(filterByKind(SAMPLE_DATASET, 'cafe'));
+
+    // Same node, same text: the reader's query survives a filter change made elsewhere on the page.
+    expect(searchInput(container)).toBe(before);
+    expect(searchInput(container).value).toBe('한밭');
+    // 한밭식당 is a restaurant, so it is gone from a café-only dataset.
+    expect(container.textContent).toContain(NO_RESULTS_MESSAGE);
+  });
+
+  it('offers only the categories the narrowed dataset contains', () => {
+    const container = document.createElement('div');
+    const view = renderPlaceSearch(container, SAMPLE_DATASET, vi.fn());
+
+    view.setDataset(filterByKind(SAMPLE_DATASET, 'cafe'));
+
+    expect([...categorySelect(container).options].map((option) => option.textContent)).toEqual([
+      ALL_CATEGORIES_OPTION,
+      '카페',
+    ]);
+  });
+
+  it('drops a category selection the narrowed dataset no longer contains', () => {
+    const container = document.createElement('div');
+    const view = renderPlaceSearch(container, SAMPLE_DATASET, vi.fn());
+    choose(container, '한식');
+
+    view.setDataset(filterByKind(SAMPLE_DATASET, 'cafe'));
+
+    // Left selected, it would name a category that returns nothing on every query.
+    expect(categorySelect(container).value).toBe('');
+  });
+
+  it('keeps a category selection the narrowed dataset still contains', () => {
+    const container = document.createElement('div');
+    const view = renderPlaceSearch(container, SAMPLE_DATASET, vi.fn());
+    choose(container, '카페');
+
+    view.setDataset(filterByKind(SAMPLE_DATASET, 'cafe'));
+
+    expect(categorySelect(container).value).toBe('카페');
+    expect(container.textContent).toContain(resultCountLabel(1));
   });
 
   it('reports the selected place', () => {

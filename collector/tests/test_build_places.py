@@ -141,6 +141,7 @@ def test_clean_build_publishes_the_approved_place(fixture: Fixture) -> None:
     assert len(places) == 1
     assert places[0]["name"] == "까망염소"
     assert places[0]["category"] == "한식"  # first segment of the Naver taxonomy path
+    assert places[0]["kind"] == "restaurant"  # derived from the whole path
     assert places[0]["address"] == "충청북도 청주시 흥덕구 고락로40번길 19"  # road address wins
     assert places[0]["transactions"] == [{"date": "2026-07-13", "amount": 230000}]
     assert fixture.dataset()["updatedAt"] == "2026-08-01"
@@ -467,11 +468,25 @@ def test_a_month_directory_missing_a_file_is_skipped_not_fatal(fixture: Fixture)
     assert len(fixture.places()[0]["transactions"]) == 1
 
 
+def test_kind_is_derived_from_the_path_the_published_category_truncates(
+    fixture: Fixture,
+) -> None:
+    """`음식점>도시락,컵밥` publishes `category` `음식점` — the segment shared with every restaurant.
+    A kind read off that value could only ever say `restaurant`, which is the defect `kind` exists
+    to fix, so the build must read the row's whole path."""
+    write_csv(fixture.candidates, [row(category="음식점>도시락,컵밥")])
+    assert fixture.run() == EXIT_OK
+    published = fixture.places()[0]
+    assert published["category"] == "음식점"
+    assert published["kind"] == "lunchbox"
+
+
 def test_a_row_with_no_category_publishes_as_기타(fixture: Fixture) -> None:
     """The loader rejects the whole file on an empty category, so it is never emitted empty."""
     write_csv(fixture.candidates, [row(category="")])
     assert fixture.run() == EXIT_OK
     assert fixture.places()[0]["category"] == UNCLASSIFIED_CATEGORY
+    assert fixture.places()[0]["kind"] == "other"  # unclassifiable, but still published
 
 
 @pytest.mark.parametrize("when", ["20260713", "2026-W28-1", "2026-07-13T00:00:00", "nonsense"])

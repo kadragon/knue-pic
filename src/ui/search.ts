@@ -48,11 +48,27 @@ export function placeSummary(place: PlaceRecord): string {
   return [place.category, place.address].join(' · ');
 }
 
+/**
+ * The handle `renderPlaceSearch` returns, so the global 업종 filter can narrow the search without
+ * re-rendering it.
+ *
+ * A re-render would rebuild the text input, which throws away whatever the reader had typed and
+ * moves the caret — the same failure this module already avoids on every keystroke. `setDataset`
+ * instead rewrites the category options in place and re-runs the query that is already entered.
+ */
+export interface PlaceSearchHandle {
+  setDataset: (next: PlacesDataset) => void;
+}
+
 export function renderPlaceSearch(
   container: HTMLElement,
   dataset: PlacesDataset,
   onSelect: (placeId: string) => void,
-): void {
+): PlaceSearchHandle {
+  // Reassigned by `setDataset`; every closure below reads it rather than capturing the argument,
+  // so a narrowed dataset changes what the already-built controls search over.
+  let current = dataset;
+
   const section = document.createElement('section');
   section.className = 'place-search';
 
@@ -79,17 +95,32 @@ export function renderPlaceSearch(
   const select = document.createElement('select');
   select.className = 'place-search-category';
 
-  // The empty value stands for "no filter" so it can never be mistaken for a category named 전체.
-  const allOption = document.createElement('option');
-  allOption.value = '';
-  allOption.textContent = ALL_CATEGORIES_OPTION;
-  select.append(allOption);
-  for (const category of listCategories(dataset)) {
-    const option = document.createElement('option');
-    option.value = category;
-    option.textContent = category;
-    select.append(option);
+  /**
+   * Rebuilt whenever the dataset narrows, so the options name only categories the reader can
+   * actually reach: with 카페·디저트 selected, a `한식` option would return nothing on every
+   * choice. The previous selection is kept when the narrowed set still contains it, and otherwise
+   * falls back to 전체 — the alternative is a select displaying a category that filters to zero.
+   */
+  function fillCategories(): void {
+    const previous = select.value;
+
+    // The empty value stands for "no filter" so it can never be mistaken for a category named 전체.
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = ALL_CATEGORIES_OPTION;
+
+    const options = [allOption];
+    for (const category of listCategories(current)) {
+      const option = document.createElement('option');
+      option.value = category;
+      option.textContent = category;
+      options.push(option);
+    }
+    select.replaceChildren(...options);
+    select.value = options.some((option) => option.value === previous) ? previous : '';
   }
+
+  fillCategories();
   categoryField.append(categoryLabel, select);
 
   controls.append(textField, categoryField);
@@ -122,13 +153,13 @@ export function renderPlaceSearch(
   function update(): void {
     // Neither control touched: nothing to search for yet, so nothing is listed.
     if (input.value.trim() === '' && select.value === '') {
-      count.textContent = searchPromptLabel(dataset.places.length);
+      count.textContent = searchPromptLabel(current.places.length);
       results.replaceChildren();
       return;
     }
 
     const category = select.value === '' ? ALL_CATEGORIES : select.value;
-    const found = filterPlaces(dataset, { text: input.value, category });
+    const found = filterPlaces(current, { text: input.value, category });
     count.textContent = resultCountLabel(found.length);
 
     if (found.length === 0) {
@@ -179,4 +210,12 @@ export function renderPlaceSearch(
   update();
   section.append(heading, controls, count, results);
   container.replaceChildren(section);
+
+  return {
+    setDataset(next: PlacesDataset): void {
+      current = next;
+      fillCategories();
+      update();
+    },
+  };
 }

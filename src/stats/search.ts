@@ -1,4 +1,4 @@
-import type { PlaceRecord, PlacesDataset } from '../data/types';
+import type { PlaceKind, PlaceRecord, PlacesDataset } from '../data/types';
 
 /**
  * Text and category filtering over the dataset. Pure — places in, places out; no DOM, no map.
@@ -10,6 +10,29 @@ import type { PlaceRecord, PlacesDataset } from '../data/types';
 
 /** The category filter's "no filter" value. Not a category name, so it can never collide with one. */
 export const ALL_CATEGORIES = null;
+
+/** The kind filter's "no filter" value, same convention: not a member of `PLACE_KINDS`. */
+export const ALL_KINDS = null;
+
+/**
+ * The dataset narrowed to one kind — a `PlacesDataset`, not a place list.
+ *
+ * Returning the wrapper is what lets the kind filter reach the discovery columns at all: every
+ * statistic module takes a dataset (`computeTopPlaces`, `computeTrendingPlaces`) and so does
+ * `listCategories`, so applying the kind once here narrows the four columns, the search results
+ * and the category options the reader can pick from, with no module below knowing a filter exists.
+ *
+ * `updatedAt` rides along unchanged — it anchors every period window, and recomputing the windows
+ * from a filtered subset would move the boundaries the counts are measured against.
+ */
+export function filterByKind(dataset: PlacesDataset, kind: PlaceKind | null): PlacesDataset {
+  if (kind === ALL_KINDS) return dataset;
+
+  return {
+    updatedAt: dataset.updatedAt,
+    places: dataset.places.filter((place) => place.kind === kind),
+  };
+}
 
 export interface PlaceQuery {
   /** Free text; matched against name, category, and address. Empty means "no text filter". */

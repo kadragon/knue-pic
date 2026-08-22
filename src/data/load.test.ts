@@ -98,6 +98,29 @@ describe('parseDataset', () => {
     expect(() => parseDataset(payload)).toThrow(/places\[0\]\.lng/);
   });
 
+  it.each(['restaurants', '식당', 'RESTAURANT', '', 42, null])(
+    'rejects the kind %p, which is not one the app knows',
+    (kind) => {
+      const payload = validPayload();
+      firstPlace(payload)['kind'] = kind;
+
+      // Every consumer switches on this value, so an unknown one belongs to no filter option and
+      // makes its place unreachable through the control that exists to reach it.
+      expect(() => parseDataset(payload)).toThrow(/places\[0\]\.kind/);
+    },
+  );
+
+  it('rejects a place with no kind at all', () => {
+    const payload = validPayload();
+    delete firstPlace(payload)['kind'];
+
+    expect(() => parseDataset(payload)).toThrow(/places\[0\]\.kind/);
+  });
+
+  it('keeps the kind it parsed', () => {
+    expect(parseDataset(validPayload()).places[0]?.kind).toBe('restaurant');
+  });
+
   it.each(['name', 'address', 'id', 'category', 'naverUrl'])('rejects an empty %s', (field) => {
     const payload = validPayload();
     firstPlace(payload)[field] = '   ';
