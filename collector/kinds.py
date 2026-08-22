@@ -51,19 +51,30 @@ _RULES: tuple[tuple[str, frozenset[str]], ...] = (
 _SEPARATORS = re.compile(r"[>,]")
 
 
+def _matches(segment: str, keyword: str) -> bool:
+    """Substring for a compound keyword, whole-segment for a one-syllable one.
+
+    The compounds have to match loosely: the queue carries leaf segments no closed list can
+    enumerate (`카페,디저트>케이크전문`, `음식점>일식>초밥,롤`), and a segment containing `카페` is a
+    café whatever else it says. A single syllable cannot be matched that way — `차` is inside
+    `포장마차`, `주차장` and `전기차충전소`, none of which is a café, and because the café rule is
+    tested before the restaurant one nothing downstream could correct it. Same shape for `립` and
+    `죽`, which sit inside ordinary words.
+    """
+    return segment == keyword if len(keyword) == 1 else keyword in segment
+
+
 def derive_kind(category_path: str | None) -> str:
     """The kind ``category_path`` denotes, or ``other``.
 
     ``category_path`` is the raw CSV value — the whole path, not the truncated ``category`` the
-    dataset publishes. Substring matching, not equality: the queue carries compound segments
-    (`한식>육류,고기요리`, `카페,디저트>케이크전문`, `음식점>일식>초밥,롤`) that no closed word list
-    can enumerate, and a segment containing `카페` is a café whatever else it says.
+    dataset publishes. How a keyword is matched depends on its length — see ``_matches``.
     """
     if not category_path:
         return UNCLASSIFIED_KIND
 
     segments = [segment.strip() for segment in _SEPARATORS.split(category_path)]
     for kind, keywords in _RULES:
-        if any(keyword in segment for segment in segments for keyword in keywords):
+        if any(_matches(segment, keyword) for segment in segments for keyword in keywords):
             return kind
     return UNCLASSIFIED_KIND

@@ -8,6 +8,9 @@ which is the whole reason the published ``category`` cannot answer this question
 
 from __future__ import annotations
 
+import pathlib
+import re
+
 import pytest
 
 from collector.kinds import PLACE_KINDS, derive_kind
@@ -34,6 +37,17 @@ from collector.kinds import PLACE_KINDS, derive_kind
         ("술집>이자카야", "other"),
         ("전통식품>떡,한과", "other"),
         ("제조업>떡류제조", "other"),
+        # A one-syllable keyword matched as a substring would put all four of these under a kind
+        # they have nothing to do with — `차` sits inside three of them, and the café rule is tested
+        # before the restaurant one, so nothing downstream could correct it.
+        ("술집>포장마차", "other"),
+        ("교통시설>주차장", "other"),
+        ("교통,운수서비스>전기차충전소", "other"),
+        ("자동차>전시,판매", "other"),
+        # The same syllables as their own segment still decide the kind.
+        ("카페,디저트>차", "cafe"),
+        ("음식점>스테이크,립", "restaurant"),
+        ("음식점>죽", "restaurant"),
         # A row approved without a usable classification is published, not dropped.
         ("", "other"),
         (None, "other"),
@@ -48,3 +62,16 @@ def test_every_derived_kind_is_publishable() -> None:
     string would blank the site rather than mislabel one place."""
     paths = ["음식점>도시락,컵밥", "카페,디저트>차", "한식>냉면", "술집>맥주,호프", ""]
     assert {derive_kind(path) for path in paths} <= set(PLACE_KINDS)
+
+
+def test_the_browser_and_the_collector_publish_the_same_closed_set() -> None:
+    """`src/data/types.ts` holds the loader's copy of `PLACE_KINDS`, and `parsePlace` rejects the
+    whole file over a value outside it. A bucket added here and not there passes the gate — check 10
+    reads *this* set — ships green, and then blanks the site at load. The two lists are in different
+    languages, so this test is the only thing that can hold them equal."""
+    types = (pathlib.Path(__file__).resolve().parents[2] / "src" / "data" / "types.ts").read_text(
+        encoding="utf-8")
+    declared = re.search(r"PLACE_KINDS\s*=\s*\[(.*?)\]", types, re.S)
+    assert declared is not None, "src/data/types.ts no longer declares PLACE_KINDS as an array"
+
+    assert tuple(re.findall(r"'([^']+)'", declared.group(1))) == PLACE_KINDS

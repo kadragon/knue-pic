@@ -173,10 +173,17 @@ body {
  * Tier 2 — search: the same card, softer border, because it answers a different question.
  */
 .place-column,
+.place-search {
+  padding: 24px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--radius-lg);
+  background: var(--canvas);
+}
+
 /*
  * The page-wide 업종 control. Sits above the search card rather than inside it because it narrows
  * the discovery columns too, and wraps rather than scrolls so all five options stay reachable at
- * 360px (PRD §36).
+ * 360px (PRD §36). Not a card itself: it is a strip of controls over the two cards below it.
  */
 .kind-filter {
   display: flex;
@@ -208,13 +215,6 @@ body {
   background: var(--ink);
   color: var(--on-primary);
   font-weight: 700;
-}
-
-.place-search {
-  padding: 24px;
-  border: 1px solid var(--hairline-soft);
-  border-radius: var(--radius-lg);
-  background: var(--canvas);
 }
 
 .place-column {
