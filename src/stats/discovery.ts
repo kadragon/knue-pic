@@ -1,23 +1,18 @@
 import type { PlaceRecord, PlacesDataset } from '../data/types';
 import { computePlaceStats } from './place-stats';
-import { isWithinWindow, resolveMonthsWindow, resolvePriorWindow } from './period';
+import { resolveMonthsWindow, resolvePriorWindow } from './period';
 
 /**
- * The two discovery sections that do not follow the period selector: 요즘 많이 가는 곳 and
- * 새로 발견된 곳. Pure — dataset in, lists out; no DOM, no map.
+ * The 최근 뜨는 곳 column: the recent month measured against the month before it. Pure — dataset
+ * in, list out; no DOM, no map.
  *
- * Both windows are fixed by `docs/conventions.md` → Statistics Rules rather than chosen by the
- * user: trending is the recent month against the month before it, and newly seen is judged over
- * the full retained window. Making either follow the 1m/6m/1y selector would change what the
- * section means — "요즘" over a year is not a recent trend — so the anchor is the dataset's
- * `updatedAt` and nothing else.
+ * Its window is fixed by `docs/conventions.md` → Statistics Rules rather than chosen: the three
+ * ranked columns beside it already read 1개월 / 6개월 / 1년, and a trend measured over a year is
+ * not a trend. The anchor is the dataset's `updatedAt` and nothing else.
  */
 
 /** `docs/conventions.md` → Statistics Rules: one visit is not a trend. */
 export const TRENDING_MIN_VISITS = 2;
-
-/** A place counts as newly seen when its *first ever* visit lands inside this many months. */
-export const NEWLY_SEEN_MONTHS = 2;
 
 export interface TrendingPlace {
   place: PlaceRecord;
@@ -35,12 +30,6 @@ export interface TrendingPlace {
    * (`docs/conventions.md` → Statistics Rules). Same omission discipline as `rankDelta`.
    */
   visitDelta: number | null;
-}
-
-export interface NewlySeenPlace {
-  place: PlaceRecord;
-  /** Earliest transaction date in the whole record, not just the recent window. */
-  firstVisit: string;
 }
 
 /**
@@ -75,38 +64,6 @@ export function computeTrendingPlaces(dataset: PlacesDataset): TrendingPlace[] {
     const bChange = b.recentVisits - b.priorVisits;
     if (aChange !== bChange) return bChange - aChange;
     if (a.recentVisits !== b.recentVisits) return b.recentVisits - a.recentVisits;
-    return a.place.id < b.place.id ? -1 : 1;
-  });
-}
-
-/**
- * A place whose first visit falls inside the last `NEWLY_SEEN_MONTHS`.
- *
- * "First" is read across every transaction the record holds, not the selected period: a place
- * visited once last March and again last week has been known for months, and calling it newly
- * discovered because the 1-month window is all we looked at would be wrong. The published file is
- * trimmed to 12 months, so this is "first seen in the retained data" — which is the strongest
- * claim the dataset supports.
- */
-export function computeNewlySeenPlaces(dataset: PlacesDataset): NewlySeenPlace[] {
-  const window = resolveMonthsWindow(NEWLY_SEEN_MONTHS, dataset.updatedAt);
-  const newlySeen: NewlySeenPlace[] = [];
-
-  for (const place of dataset.places) {
-    let firstVisit: string | null = null;
-    for (const transaction of place.transactions) {
-      if (firstVisit === null || transaction.date < firstVisit) firstVisit = transaction.date;
-    }
-
-    // A place with no transactions at all has never been visited, so it was never discovered.
-    if (firstVisit === null) continue;
-    if (!isWithinWindow(firstVisit, window)) continue;
-
-    newlySeen.push({ place, firstVisit });
-  }
-
-  return newlySeen.sort((a, b) => {
-    if (a.firstVisit !== b.firstVisit) return a.firstVisit < b.firstVisit ? 1 : -1;
     return a.place.id < b.place.id ? -1 : 1;
   });
 }

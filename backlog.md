@@ -10,6 +10,15 @@
 
 - [ ] [debt] `collector/aliases.json` merges the spellings of one business, but finding them is a manual pass: group the approved rows on identical `lat`/`lng` and the clusters fall out. The 2025-09..2026-08 run had 66 of them covering 47% of all visits, and new spellings arrive every month, so this recurs. Surface the clusters at stage 4 (or as a `--report` on the build) so the reviewer is told which rows to consider merging instead of having to look — `.claude/skills/knue-expense-collect/scripts/geocode_candidates.py`
 
+### `loader.test.ts` fails on any machine with a configured client ID (2026-08-22)
+
+- [ ] [test] `loadNaverMaps({ clientId: undefined })` cannot express "not configured": the option is
+  destructured as `clientId = CLIENT_ID`, so passing `undefined` falls back to the `.env` value, a
+  script tag is injected and the case waits out the load timeout instead of rejecting. It passes in
+  CI (no `.env`) and times out locally — `npm test` is red on a contributor machine for a reason
+  that has nothing to do with their change. Reproduced on `main` at 29bab9a, so it predates the
+  four-column work — `src/map/loader.test.ts:31`, `src/map/loader.ts:58`
+
 ## Someday
 
 - [ ] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget

@@ -94,29 +94,17 @@ body {
 /* ── Shell ─────────────────────────────────────────────────────────────────────────────────── */
 
 /*
- * `#content` is a two-column grid so the two discovery lists — the page's least important sections
- * — can sit side by side instead of adding two full-width blocks to the scroll. Everything else
- * spans both columns.
+ * A plain vertical stack: search, then the four columns. The side-by-side arrangement moved down
+ * into `.place-columns-grid`, which is the only thing on the page that needs columns — and needs
+ * four of them, which is what widened the container from the old 960px.
  */
 #content {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-content: start;
-  max-width: 960px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 24px 64px;
-}
-
-#content > * {
-  grid-column: 1 / -1;
-}
-
-/* Scoped through `#content` on purpose: the `#content > *` rule above is an ID selector, so a bare
-   class here loses to it and both lists silently span the full width. */
-#content > .trending-slot,
-#content > .newly-seen-slot {
-  grid-column: span 1;
 }
 
 /* The dialog inside is `position: fixed`, so the slot must not occupy a grid row of its own. */
@@ -175,39 +163,35 @@ body {
 /* ── Section surfaces ──────────────────────────────────────────────────────────────────────── */
 
 /*
- * Three tiers, not one. The review's finding was that six identical white cards on a #f7f7f7 floor
- * are optically indistinguishable (white on that floor is 1.07:1), so the page read as one
- * undifferentiated column with nothing to start on.
+ * Two tiers now, not three. The four columns are peers — the page exists so they can be compared —
+ * so any surface that made one heavier than another would read as a claim about the data rather
+ * than about the layout. The card is therefore on `.place-column`, identically for all four, and
+ * the list inside it carries no surface of its own.
  *
- * Tier 1 — the ranked list: the product's whole claim, so it gets the largest heading, the most
- * padding and the only visible border of the three.
- * Tier 2 — search and map: ordinary cards.
- * Tier 3 — the two discovery lists: no card at all, sitting directly on the floor.
+ * Tier 1 — the four columns: white cards on the tinted floor (white on #f7f7f7 is 1.07:1 on its
+ * own, so the hairline is what actually separates them).
+ * Tier 2 — search: the same card, softer border, because it answers a different question.
  */
-.top-places,
-.place-search,
-.place-map {
+.place-column,
+.place-search {
   padding: 24px;
   border: 1px solid var(--hairline-soft);
   border-radius: var(--radius-lg);
   background: var(--canvas);
 }
 
-.top-places {
-  padding: 28px 28px 20px;
+.place-column {
   border-color: var(--hairline);
 }
 
-.top-places h2 {
-  margin: 0 0 4px;
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.4px;
+/* The card is the column; the list inside it is a bare heading over rows. */
+.top-places,
+.discovery {
+  padding: 0;
 }
 
-.place-search h2,
-.place-map h2 {
+.place-column h2,
+.place-search h2 {
   margin: 0 0 4px;
   font-size: 20px;
   font-weight: 600;
@@ -215,16 +199,12 @@ body {
   letter-spacing: -0.18px;
 }
 
-/* Tier 3: a label over a list, not a container. */
-.discovery {
-  padding: 4px 4px 0;
-}
-
-.discovery h2 {
-  margin: 0 0 2px;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.35;
+/* Inside the dialog the map sits under the place's own `h3`, so its label is a quieter tier. */
+.place-map h4 {
+  margin: 16px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .discovery-note,
@@ -292,29 +272,34 @@ a[role='button'] {
   color: var(--muted);
 }
 
-/* ── Period selector ───────────────────────────────────────────────────────────────────────── */
+/* ── Discovery columns ─────────────────────────────────────────────────────────────────────── */
 
 /*
- * Parked under the header, because it governs a list long enough to scroll it off screen — a
- * control the user cannot see is a control they assume does not exist.
+ * Four equal columns: 최근 뜨는 곳 and the three ranked windows. Column counts drop at each
+ * breakpoint and rows never reflow — the columns are the comparison, so a list must never be split
+ * across two of them.
  */
-.period-controls {
-  position: sticky;
-  top: var(--header-height);
-  z-index: 1;
-  margin: 0 -8px;
-  padding: 12px 8px;
-  background: var(--surface-soft);
+.place-columns-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/*
+ * The tab switch exists only where the grid collapses to one column; above that every column is on
+ * screen and there is nothing to switch between. `display: none` rather than visual hiding, so the
+ * buttons leave the tab order entirely instead of being four dead stops.
+ */
+.place-column-tabs {
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
 }
 
 /* {component.category-strip}: pill filters, wrapping rather than overflowing at 360px (PRD §36). */
-.period-selector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.period-option {
+.place-column-tab {
   padding: 10px 20px;
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
@@ -326,13 +311,13 @@ a[role='button'] {
   transition: border-color 120ms ease, color 120ms ease;
 }
 
-.period-option:hover {
+.place-column-tab:hover {
   border-color: var(--ink);
   color: var(--ink);
 }
 
-/* The active period is marked by weight, fill and border as well as colour, never colour alone. */
-.period-option[aria-pressed='true'] {
+/* The active column is marked by weight, fill and border as well as colour, never colour alone. */
+.place-column-tab[aria-pressed='true'] {
   border-color: var(--ink);
   background: var(--ink);
   color: var(--on-primary);
@@ -804,8 +789,7 @@ div.top-place-body {
   overflow: hidden;
 }
 
-.place-map-fallback,
-.place-map-empty {
+.place-map-fallback {
   margin: 12px 0 0;
   padding: 32px 16px;
   border: 1px dashed var(--hairline);
@@ -817,42 +801,31 @@ div.top-place-body {
 }
 
 /* Marker bodies are injected as markup into the map's own overlay layer, so they are styled here
-   rather than in the module that builds them. */
+   rather than in the module that builds them.
+
+   One marker, one meaning: the map shows the place the dialog is about, so there is no second kind
+   of pin for this one to be told apart from — the badge and selection variants went with the
+   page-level map. The name is carried in the marker's title, never by the pin alone. */
 .place-map-marker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 28px;
   height: 28px;
   border: 2px solid var(--canvas);
   border-radius: var(--radius-full);
-  background: var(--muted);
-  color: var(--canvas);
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
+  background: var(--rausch-strong);
   box-shadow: rgba(0, 0, 0, 0.18) 0 1px 3px;
 }
 
-/* Ranked markers differ from plain ones by carrying a number, never by colour alone
-   (`docs/conventions.md` → Accessibility). They carry text, so they take the accessible red. */
-.place-map-marker-ranked {
-  background: var(--rausch-strong);
-  color: var(--on-primary);
-}
-
-/* Selection is an outline ring, so it survives greyscale and forced-colours rendering. */
-.place-map-marker[data-selected='true'] {
-  outline: 3px solid var(--ink);
-  outline-offset: 1px;
+/* The card's own slot for the map, so the figures below keep their gutter when it fails or loads. */
+.place-detail-map:not(:empty) {
+  margin: 4px 0 12px;
 }
 
 /* ── Focus ─────────────────────────────────────────────────────────────────────────────────── */
 
 /*
  * No `border-radius` here. It used to set 4px, which — at equal specificity and later in the file —
- * won against `.period-option` (a pill) and `.place-detail-link`, so tabbing to them visibly
+ * won against `.place-column-tab` (a pill) and `.place-detail-link`, so tabbing to them visibly
  * squared off their corners. The outline follows each element's own radius on its own.
  */
 :focus-visible {
@@ -870,16 +843,32 @@ div.top-place-body {
 
 /* ── Narrow screens ────────────────────────────────────────────────────────────────────────── */
 
+/* Two columns before a row gets too narrow to hold a name and a movement label on one line. */
 @media (max-width: 899px) {
-  /* The two discovery lists go back to full width before they get too narrow to hold a name and a
-     movement label on one line. */
-  #content {
+  .place-columns-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*
+ * One column, and the tab switch appears with it: four stacked lists would be four screens of
+ * scrolling, and the comparison the page is for would be gone either way. The tabs keep every
+ * column one tap away instead (`docs/conventions.md` → Accessibility & Responsive).
+ */
+@media (max-width: 599px) {
+  .place-columns-grid {
     grid-template-columns: 1fr;
   }
 
-  #content > .trending-slot,
-  #content > .newly-seen-slot {
-    grid-column: 1 / -1;
+  .place-column-tabs {
+    display: flex;
+  }
+
+  .place-columns-grid[data-active='trending'] .place-column:not([data-column='trending']),
+  .place-columns-grid[data-active='1m'] .place-column:not([data-column='1m']),
+  .place-columns-grid[data-active='6m'] .place-column:not([data-column='6m']),
+  .place-columns-grid[data-active='1y'] .place-column:not([data-column='1y']) {
+    display: none;
   }
 }
 
@@ -893,16 +882,11 @@ div.top-place-body {
     padding: 0 16px 48px;
   }
 
-  .top-places,
+  .place-column,
   .place-search,
-  .place-map,
   .data-state {
     padding: 20px 16px;
     border-radius: var(--radius-md);
-  }
-
-  .top-places h2 {
-    font-size: 22px;
   }
 
   .detail-dialog {

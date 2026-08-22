@@ -144,3 +144,104 @@ describe('createDetailDialog', () => {
     document.body.replaceChildren();
   });
 });
+
+describe('createDetailDialog map lifecycle', () => {
+  /** A stand-in renderer that records what it mounted and what was released. */
+  function trackingRenderer(): {
+    renderMap: (container: HTMLElement, place: { id: string }) => Promise<() => void>;
+    mounted: string[];
+    released: string[];
+  } {
+    const mounted: string[] = [];
+    const released: string[] = [];
+    return {
+      mounted,
+      released,
+      renderMap: (_container, place) => {
+        mounted.push(place.id);
+        return Promise.resolve(() => released.push(place.id));
+      },
+    };
+  }
+
+  it('releases the mounted map when the dialog closes', async () => {
+    const { container } = mount();
+    const tracker = trackingRenderer();
+    const dialog = createDetailDialog(container, { renderMap: tracker.renderMap });
+
+    dialog.open(detailFor(0));
+    await Promise.resolve();
+    dialog.close();
+
+    // A map left mounted keeps the listeners and tile state the API attached to a card that is no
+    // longer on screen; thirty selections would leave thirty of them.
+    expect(tracker.mounted).toEqual([SAMPLE_DATASET.places[0]!.id]);
+    expect(tracker.released).toEqual([SAMPLE_DATASET.places[0]!.id]);
+    document.body.replaceChildren();
+  });
+
+  it('releases the previous map before mounting the next place', async () => {
+    const { container } = mount();
+    const tracker = trackingRenderer();
+    const dialog = createDetailDialog(container, { renderMap: tracker.renderMap });
+
+    dialog.open(detailFor(0));
+    await Promise.resolve();
+    dialog.open(detailFor(1));
+    await Promise.resolve();
+
+    expect(tracker.released).toEqual([SAMPLE_DATASET.places[0]!.id]);
+    expect(tracker.mounted).toEqual([
+      SAMPLE_DATASET.places[0]!.id,
+      SAMPLE_DATASET.places[1]!.id,
+    ]);
+    document.body.replaceChildren();
+  });
+
+  it('spends a stale release when the dialog was reopened on another place first', async () => {
+    const { container } = mount();
+    const mounted: string[] = [];
+    const released: string[] = [];
+    const pending: Array<(release: () => void) => void> = [];
+    const dialog = createDetailDialog(container, {
+      renderMap: (_container, place) => {
+        mounted.push(place.id);
+        // Held open: the real mount takes a network round trip, which is the whole window this
+        // race lives in.
+        return new Promise<() => void>((resolve) => {
+          pending.push(() => resolve(() => released.push(place.id)));
+        });
+      },
+    });
+
+    const [first, second] = [SAMPLE_DATASET.places[0]!.id, SAMPLE_DATASET.places[1]!.id];
+    dialog.open(detailFor(0));
+    dialog.close();
+    dialog.open(detailFor(1));
+    pending[0]!(() => {});
+    await Promise.resolve();
+    pending[1]!(() => {});
+    await Promise.resolve();
+    dialog.close();
+
+    // The first map resolved into an open dialog showing a different place. Storing its release
+    // there would overwrite the live one and leak the first map for the life of the page.
+    expect(mounted).toEqual([first, second]);
+    expect(released).toEqual([first, second]);
+    document.body.replaceChildren();
+  });
+
+  it('spends a release that arrives after the dialog was already closed', async () => {
+    const { container } = mount();
+    const tracker = trackingRenderer();
+    const dialog = createDetailDialog(container, { renderMap: tracker.renderMap });
+
+    dialog.open(detailFor(0));
+    // Closed while the mount was still in flight: storing the release would strand the map.
+    dialog.close();
+    await Promise.resolve();
+
+    expect(tracker.released).toEqual([SAMPLE_DATASET.places[0]!.id]);
+    document.body.replaceChildren();
+  });
+});

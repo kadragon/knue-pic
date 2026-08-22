@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlacesDataset } from '../data/types';
 import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
-import { PERIOD_GROUP_LABEL, PERIOD_LABELS } from './period-selector';
+import { PERIOD_LABELS } from './period-labels';
 import {
   EMPTY_MESSAGE,
   NO_COMPARISON_MESSAGE,
@@ -193,7 +193,6 @@ describe('framing', () => {
     const strings = [
       EMPTY_MESSAGE,
       NO_COMPARISON_MESSAGE,
-      PERIOD_GROUP_LABEL,
       ...Object.values(PERIOD_LABELS),
       ...[3, 0, -2].map(rankDeltaLabel),
     ];

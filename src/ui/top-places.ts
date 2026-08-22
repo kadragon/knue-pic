@@ -117,18 +117,26 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
   return item;
 }
 
-/** `onSelect` is optional: without it the list renders exactly as before, with no controls. */
+/**
+ * `onSelect` is optional: without it the list renders exactly as before, with no controls.
+ *
+ * `heading` is overridden by `src/ui/place-columns.ts`, where three of these lists sit side by side
+ * and the window each one reads — 최근 1개월 / 6개월 / 1년 — is the thing that tells them apart. The
+ * override still has to state the rendered count, so `columnHeading` builds it the same way
+ * `topPlacesHeading` does.
+ */
 export function renderTopPlaces(
   container: HTMLElement,
   result: TopPlacesResult,
   onSelect?: (placeId: string) => void,
+  heading: string = topPlacesHeading(result.entries.length),
 ): void {
   const section = document.createElement('section');
   section.className = 'top-places';
 
-  const heading = document.createElement('h2');
-  heading.textContent = topPlacesHeading(result.entries.length);
-  section.append(heading);
+  const title = document.createElement('h2');
+  title.textContent = heading;
+  section.append(title);
 
   if (result.entries.length === 0) {
     const empty = document.createElement('p');

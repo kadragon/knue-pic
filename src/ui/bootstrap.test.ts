@@ -1,29 +1,40 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { createFakeNaverApi } from '../map/fake-naver-api';
-import { MAP_ERROR_MESSAGE } from '../map/place-map';
+import { MAP_ERROR_MESSAGE, renderPlaceLocationMap } from '../map/place-map';
 import { bootstrap } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
-import { PERIOD_LABELS } from './period-selector';
+import { PERIOD_LABELS } from './period-labels';
+import { COLUMN_LABELS, COLUMN_ORDER, columnHeading } from './place-columns';
 import { periodStatsHeading } from './place-detail';
 import { DISCLAIMER, SOURCE_LINE } from './shell';
-import { topPlacesHeading } from './top-places';
 
 function retryButton(root: HTMLElement): HTMLButtonElement | null {
   return root.querySelector<HTMLButtonElement>('.data-state-retry');
 }
 
-function periodButton(root: HTMLElement, label: string): HTMLButtonElement | undefined {
-  return [...root.querySelectorAll<HTMLButtonElement>('.period-option')].find(
+function columnTab(root: HTMLElement, label: string): HTMLButtonElement | undefined {
+  return [...root.querySelectorAll<HTMLButtonElement>('.place-column-tab')].find(
     (button) => button.textContent === label,
   );
 }
 
-function pressedPeriod(root: HTMLElement): HTMLButtonElement | undefined {
-  return [...root.querySelectorAll<HTMLButtonElement>('.period-option')].find(
+function pressedTab(root: HTMLElement): HTMLButtonElement | undefined {
+  return [...root.querySelectorAll<HTMLButtonElement>('.place-column-tab')].find(
     (button) => button.getAttribute('aria-pressed') === 'true',
   );
 }
+
+/** The first row of one column, which is how every selection case opens the dialog. */
+function firstRow(root: HTMLElement, column: string): HTMLButtonElement | null {
+  return root.querySelector<HTMLButtonElement>(
+    `.place-column[data-column="${column}"] .top-place-body, ` +
+      `.place-column[data-column="${column}"] .place-select`,
+  );
+}
+
+/** Lets the dialog's fire-and-forget map render settle before the assertions run. */
+const flush = (): Promise<void> => Promise.resolve().then(() => {});
 
 describe('bootstrap', () => {
   it('shows the loading message while the dataset is in flight', async () => {
@@ -38,24 +49,16 @@ describe('bootstrap', () => {
     await pending;
   });
 
-  it('shows the dataset update date and the ranked list once loaded', async () => {
+  it('shows the dataset update date and the four columns once loaded', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
     expect(root.textContent).toContain(`최근 데이터 업데이트: ${SAMPLE_DATASET.updatedAt}`);
     expect(root.textContent).not.toContain(LOADING_MESSAGE);
-    expect(root.querySelector('#content')?.textContent).toContain(topPlacesHeading(6));
-  });
-
-  it('opens on the 1y period', async () => {
-    const root = document.createElement('div');
-
-    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-
-    expect(pressedPeriod(root)?.textContent).toBe(PERIOD_LABELS['1y']);
-    // 1y ranks all six fixture places; a shorter window would rank fewer.
-    expect(root.querySelectorAll('.top-place')).toHaveLength(6);
+    expect(root.querySelector('#content')?.textContent).toContain(
+      columnHeading(PERIOD_LABELS['1y'], 6),
+    );
   });
 
   it('shows a plain Korean failure state, not a raw error, when the dataset is missing', async () => {
@@ -174,41 +177,91 @@ describe('bootstrap accessibility', () => {
   });
 });
 
-describe('bootstrap period switching', () => {
-  it('re-derives the list from the newly selected period', async () => {
+describe('bootstrap columns', () => {
+  it('renders the four windows side by side, in order', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    periodButton(root, PERIOD_LABELS['1m'])?.click();
 
-    expect(pressedPeriod(root)?.textContent).toBe(PERIOD_LABELS['1m']);
-    // 1m ranks five of the six fixture places — 000003 has no visit in that window.
-    expect(root.querySelectorAll('.top-place')).toHaveLength(5);
-    // Scoped to the ranked list: the search results below it list every place regardless of period.
-    expect(root.querySelector('.top-places-slot')?.textContent).not.toContain('황새울분식');
+    const columns = [...root.querySelectorAll<HTMLElement>('.place-column')];
+    expect(columns.map((column) => column.dataset['column'])).toEqual(COLUMN_ORDER);
+    for (const column of columns) {
+      expect(column.querySelector('h2')?.textContent).toContain(
+        COLUMN_LABELS[column.dataset['column'] as keyof typeof COLUMN_LABELS],
+      );
+    }
   });
 
-  it('keeps focus on the period button that was pressed', async () => {
+  it('ranks each column over its own window', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+
+    // 1y ranks all six fixture places; 1m ranks five — 000003 has no visit in that window.
+    expect(root.querySelectorAll('.place-column[data-column="1y"] .top-place')).toHaveLength(6);
+    expect(root.querySelectorAll('.place-column[data-column="1m"] .top-place')).toHaveLength(5);
+    expect(root.querySelector('.place-column[data-column="1m"]')?.textContent).not.toContain(
+      '황새울분식',
+    );
+  });
+
+  it('shows the picked column\'s window in the dialog', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    firstRow(root, '6m')?.click();
+
+    expect(root.querySelector('.detail-slot')?.textContent).toContain(periodStatsHeading('6m'));
+  });
+
+  it('shows a place picked from the trending column over the month it trended in', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    firstRow(root, 'trending')?.click();
+
+    // Trending is measured over the recent month, so those are the figures the dialog states.
+    expect(root.querySelector('.detail-slot')?.textContent).toContain(periodStatsHeading('1m'));
+  });
+
+  it('shows a place found by search over the full retained window', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    const input = root.querySelector<HTMLInputElement>('.place-search-input');
+    input!.value = '황새울';
+    input!.dispatchEvent(new Event('input'));
+    root
+      .querySelector<HTMLButtonElement>(
+        '.place-search-list .place-select[data-place-id="restaurant_000003"]',
+      )
+      ?.click();
+
+    expect(root.querySelector('.detail-slot')?.textContent).toContain('황새울분식');
+    expect(root.querySelector('.detail-slot')?.textContent).toContain(periodStatsHeading('1y'));
+  });
+
+  it('opens the tab switch on the trending column and flips it in place', async () => {
     const root = document.createElement('div');
     document.body.append(root);
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    const button = periodButton(root, PERIOD_LABELS['6m']);
+    expect(pressedTab(root)?.textContent).toBe(COLUMN_LABELS['trending']);
+
+    const button = columnTab(root, PERIOD_LABELS['6m']);
     button?.focus();
     button?.click();
 
-    // Rebuilding the selector on every change would drop focus to the document body.
+    expect(pressedTab(root)).toBe(button);
+    expect(root.querySelector<HTMLElement>('.place-columns-grid')?.dataset['active']).toBe('6m');
+    // Rebuilding the tabs on every change would drop focus to the document body.
     expect(document.activeElement).toBe(button);
     root.remove();
   });
 });
 
 describe('bootstrap place selection', () => {
-  function selectFirstTopPlace(root: HTMLElement): void {
-    root.querySelector<HTMLButtonElement>('.top-places-slot .top-place-body')?.click();
-  }
-
-  it('fills the detail dialog from whichever list the place was picked in', async () => {
+  it('opens the dialog only once a place is picked', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
@@ -216,55 +269,33 @@ describe('bootstrap place selection', () => {
     // empty card explaining a feature the visitor has not used.
     expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(true);
 
-    const input = root.querySelector<HTMLInputElement>('.place-search-input');
-    input!.value = '황새울';
-    input!.dispatchEvent(new Event('input'));
-    root
-      .querySelector<HTMLButtonElement>('.place-search-list .place-select[data-place-id="restaurant_000003"]')
-      ?.click();
+    firstRow(root, '1y')?.click();
 
     expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(false);
-    expect(root.querySelector('.detail-slot')?.textContent).toContain('황새울분식');
     expect(root.querySelector<HTMLAnchorElement>('.place-detail-link')?.rel).toBe(
       'noopener noreferrer',
     );
   });
 
-  it('re-derives the selected place\'s figures when the period changes', async () => {
-    const root = document.createElement('div');
-
-    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    selectFirstTopPlace(root);
-    const detail = () => root.querySelector('.detail-slot')?.textContent ?? '';
-
-    // 한밭식당 tops the default 1y window with 4 visits; the 1m window holds 2 of them.
-    expect(detail()).toContain(periodStatsHeading('1y'));
-    expect(detail()).toContain('4회');
-
-    periodButton(root, PERIOD_LABELS['1m'])?.click();
-
-    expect(detail()).toContain(periodStatsHeading('1m'));
-    expect(detail()).toContain('2회');
-  });
-
-  it('leaves the lists untouched when a place is selected', async () => {
+  it('leaves the columns and the search query untouched when a place is selected', async () => {
     const root = document.createElement('div');
     document.body.append(root);
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
     const searchInput = root.querySelector<HTMLInputElement>('.place-search-input');
-    const trendingList = root.querySelector('.trending-slot .discovery-list');
-    const button = root.querySelector<HTMLButtonElement>('.top-places-slot .top-place-body');
+    const trendingList = root.querySelector('.place-column[data-column="trending"] .discovery-list');
+    const button = firstRow(root, '1y');
     button?.focus();
     button?.click();
 
-    // Only the dialog body is repainted — an in-progress search query and the discovery list
-    // survive the selection, asserted by node identity rather than by where focus ended up.
+    // Only the dialog body is repainted — an in-progress search query and the columns survive the
+    // selection, asserted by node identity rather than by where focus ended up.
     expect(root.querySelector('.place-search-input')).toBe(searchInput);
-    expect(root.querySelector('.trending-slot .discovery-list')).toBe(trendingList);
+    expect(root.querySelector('.place-column[data-column="trending"] .discovery-list')).toBe(
+      trendingList,
+    );
     // Focus moves into the dialog so the selection is announced rather than happening off-screen.
     expect(document.activeElement).toBe(root.querySelector('.detail-dialog-panel'));
-    expect(button).not.toBe(null);
     root.remove();
   });
 
@@ -273,12 +304,12 @@ describe('bootstrap place selection', () => {
     document.body.append(root);
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    const button = root.querySelector<HTMLButtonElement>('.top-places-slot .top-place-body');
+    const button = firstRow(root, '1y');
     button?.focus();
     button?.click();
     root.querySelector<HTMLButtonElement>('.detail-dialog-close')?.click();
 
-    // The whole point of the dialog over the old bottom-of-page card: the user keeps their place
+    // The whole point of the dialog over the old bottom-of-page card: the reader keeps their place
     // in the list they were reading.
     expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(true);
     expect(document.activeElement).toBe(button);
@@ -287,77 +318,51 @@ describe('bootstrap place selection', () => {
 });
 
 describe('bootstrap map wiring', () => {
-  /** Lets the fire-and-forget map render settle before the assertions run. */
-  const flush = (): Promise<void> => Promise.resolve().then(() => {});
-
-  it('places the map between search and the discovery sections', async () => {
+  it('mounts the selected place on the map inside the dialog', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
 
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      map: { loadApi: () => Promise.resolve(api) },
+      dialog: {
+        renderMap: (container, place) =>
+          renderPlaceLocationMap(container, place, { loadApi: () => Promise.resolve(api) }),
+      },
     });
+    // The map is mounted on selection, not on load: nothing is picked yet.
+    expect(api.markers).toHaveLength(0);
+
+    firstRow(root, '1y')?.click();
     await flush();
 
-    const slots = [...(root.querySelector('#content')?.children ?? [])].map(
-      (child) => child.className,
+    expect(api.markers).toHaveLength(1);
+    const selected = SAMPLE_DATASET.places.find((place) =>
+      api.markers[0]?.options.title?.startsWith(place.name),
     );
-    expect(slots.indexOf('map-slot')).toBeGreaterThan(slots.indexOf('search-slot'));
-    expect(slots.indexOf('map-slot')).toBeLessThan(slots.indexOf('trending-slot'));
-    expect(api.markers).toHaveLength(SAMPLE_DATASET.places.length);
+    expect(api.markers[0]?.options.position.lat()).toBe(selected?.lat);
+    expect(root.querySelector('.detail-slot .place-map-canvas')).toBeInstanceOf(HTMLElement);
   });
 
-  it('re-badges the markers when the period changes', async () => {
-    const root = document.createElement('div');
-    const api = createFakeNaverApi();
-
-    await bootstrap(root, {
-      load: () => Promise.resolve(SAMPLE_DATASET),
-      map: { loadApi: () => Promise.resolve(api) },
-    });
-    await flush();
-
-    const before = api.markers.map((marker) => marker.icon?.content);
-    periodButton(root, PERIOD_LABELS['1m'])?.click();
-
-    expect(api.markers.map((marker) => marker.icon?.content)).not.toEqual(before);
-    // The map instance survives a period change; only the icons are swapped.
-    expect(api.maps).toHaveLength(1);
-  });
-
-  it('marks the map selection when a place is picked from the list', async () => {
-    const root = document.createElement('div');
-    const api = createFakeNaverApi();
-
-    await bootstrap(root, {
-      load: () => Promise.resolve(SAMPLE_DATASET),
-      map: { loadApi: () => Promise.resolve(api) },
-    });
-    await flush();
-
-    root.querySelector<HTMLButtonElement>('.top-places-slot .top-place-body')?.click();
-
-    const selected = api.markers.filter((marker) =>
-      marker.icon?.content.includes('data-selected="true"'),
-    );
-    expect(selected).toHaveLength(1);
-  });
-
-  it('keeps the rest of the page working when the map script never loads', async () => {
+  it('keeps the figures and the rest of the page when the map script never loads', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      map: { loadApi: () => Promise.reject(new Error('blocked')) },
+      dialog: {
+        renderMap: (container, place) =>
+          renderPlaceLocationMap(container, place, {
+            loadApi: () => Promise.reject(new Error('blocked')),
+          }),
+      },
     });
+    firstRow(root, '1y')?.click();
     await flush();
 
-    expect(root.querySelector('.map-slot')?.textContent).toContain(MAP_ERROR_MESSAGE);
-    expect(root.textContent).toContain(topPlacesHeading(6));
+    expect(root.querySelector('.detail-slot')?.textContent).toContain(MAP_ERROR_MESSAGE);
+    // The statistics are what the dialog is for; the map failing may never take them with it.
+    expect(root.querySelector('.place-detail-figures')).not.toBeNull();
+    expect(root.textContent).toContain(columnHeading(PERIOD_LABELS['1y'], 6));
     expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE);
     expect(root.querySelector('.search-slot')).not.toBeNull();
-    // A period change must still work with no map behind it.
-    expect(() => periodButton(root, PERIOD_LABELS['1m'])?.click()).not.toThrow();
   });
 });

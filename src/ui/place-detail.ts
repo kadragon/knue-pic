@@ -1,11 +1,11 @@
 import type { PlaceRecord, Period } from '../data/types';
 import type { HistogramBucket } from '../stats/histogram';
 import type { PlaceStats } from '../stats/place-stats';
-import { PERIOD_LABELS } from './period-selector';
+import { PERIOD_LABELS } from './period-labels';
 
 /**
- * The detail card for one selected place: the figures for the currently selected period, a
- * 12-month visit histogram, and a link out to Naver Maps.
+ * The detail card for one selected place: a slot for the location map, the figures for the period
+ * the place was picked from, a 12-month visit histogram, and a link out to Naver Maps.
  *
  * Every number arrives already computed — `src/stats/place-stats.ts` and `src/stats/histogram.ts`
  * own them — so there is no second definition of a visit count on this screen. Strings are
@@ -167,7 +167,13 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   periodNote.className = 'place-detail-period';
   periodNote.textContent = periodStatsHeading(period);
 
-  section.append(name, meta, periodNote);
+  // Left empty here on purpose: the card stays pure DOM over already-computed numbers, and the map
+  // is the one view that needs a third-party script. `src/ui/detail-dialog.ts` fills this slot, so
+  // a caller that has no map — or a test — renders the whole card without one.
+  const mapSlot = document.createElement('div');
+  mapSlot.className = 'place-detail-map';
+
+  section.append(name, meta, mapSlot, periodNote);
 
   if (stats.visitCount === 0) {
     const empty = document.createElement('p');
