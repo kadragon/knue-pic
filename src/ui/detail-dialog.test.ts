@@ -198,6 +198,39 @@ describe('createDetailDialog map lifecycle', () => {
     document.body.replaceChildren();
   });
 
+  it('spends a stale release when the dialog was reopened on another place first', async () => {
+    const { container } = mount();
+    const mounted: string[] = [];
+    const released: string[] = [];
+    const pending: Array<(release: () => void) => void> = [];
+    const dialog = createDetailDialog(container, {
+      renderMap: (_container, place) => {
+        mounted.push(place.id);
+        // Held open: the real mount takes a network round trip, which is the whole window this
+        // race lives in.
+        return new Promise<() => void>((resolve) => {
+          pending.push(() => resolve(() => released.push(place.id)));
+        });
+      },
+    });
+
+    const [first, second] = [SAMPLE_DATASET.places[0]!.id, SAMPLE_DATASET.places[1]!.id];
+    dialog.open(detailFor(0));
+    dialog.close();
+    dialog.open(detailFor(1));
+    pending[0]!(() => {});
+    await Promise.resolve();
+    pending[1]!(() => {});
+    await Promise.resolve();
+    dialog.close();
+
+    // The first map resolved into an open dialog showing a different place. Storing its release
+    // there would overwrite the live one and leak the first map for the life of the page.
+    expect(mounted).toEqual([first, second]);
+    expect(released).toEqual([first, second]);
+    document.body.replaceChildren();
+  });
+
   it('spends a release that arrives after the dialog was already closed', async () => {
     const { container } = mount();
     const tracker = trackingRenderer();

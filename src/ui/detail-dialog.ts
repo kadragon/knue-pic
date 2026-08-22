@@ -105,6 +105,16 @@ export function createDetailDialog(
    */
   let releaseMap: ReleasePlaceLocationMap | null = null;
 
+  /**
+   * Which paint the stored release belongs to.
+   *
+   * `isOpen()` alone is not enough to decide whether a resolved mount is still the current one: a
+   * reader who closes and reopens on a different row before the first mount lands has an open
+   * dialog again, and storing the stale release there overwrites — never spends — the live one,
+   * leaking exactly the map instance this plumbing exists to reclaim.
+   */
+  let paintId = 0;
+
   function dropMap(): void {
     releaseMap?.();
     releaseMap = null;
@@ -117,6 +127,9 @@ export function createDetailDialog(
   function closeDialog(): void {
     if (!isOpen()) return;
     root.hidden = true;
+    // Invalidates any mount still in flight: its release is spent on arrival instead of being
+    // stored against whatever the dialog is showing by then.
+    paintId += 1;
     dropMap();
     document.removeEventListener('keydown', onKeydown, true);
     // Restoring focus is the whole point of holding `opener`: without it the caret drops to the top
@@ -193,13 +206,14 @@ export function createDetailDialog(
     const slot = body.querySelector<HTMLElement>('.place-detail-map');
     if (!slot) return;
 
-    // The mount is asynchronous, so the dialog can be closed before it lands. `isOpen()` is what
-    // decides: a release that arrives for a closed dialog is spent immediately rather than stored
-    // and forgotten.
+    // The mount is asynchronous, so the dialog can be closed — or repainted onto another place —
+    // before it lands. A release is stored only while it is still the current paint's; every other
+    // one is spent on arrival rather than stored and forgotten.
+    const mountId = ++paintId;
     void Promise.resolve(renderMap(slot, detail.place))
       .then((release) => {
         if (typeof release !== 'function') return;
-        if (isOpen()) {
+        if (isOpen() && mountId === paintId) {
           releaseMap = release;
         } else {
           release();
