@@ -112,15 +112,31 @@ function renderTabs(active: ColumnKey, onSelect: (column: ColumnKey) => void): H
 }
 
 /**
- * Renders every column once. The four lists never change after this — nothing on the page selects a
- * period any more — so a selection or a tab switch touches no list, and the row the reader pressed
- * keeps focus while the detail dialog opens over it.
+ * How a re-render keeps the reader where they were.
+ *
+ * The lists are static once rendered — nothing on the page selects a period — but the global 업종
+ * filter narrows the dataset they are computed from, so a kind change does rebuild all four. On
+ * narrow screens only one column is on screen at a time, and rebuilding with the default active
+ * column would silently move the reader from 1년 back to 최근 뜨는 곳. `active` carries their tab
+ * across the rebuild; `onActiveChange` is how the caller learns of a switch it did not make.
+ */
+export interface PlaceColumnsOptions {
+  active?: ColumnKey;
+  onActiveChange?: (column: ColumnKey) => void;
+}
+
+/**
+ * Renders every column once. Within one dataset the four lists never change — nothing on the page
+ * selects a period any more — so a selection or a tab switch touches no list, and the row the
+ * reader pressed keeps focus while the detail dialog opens over it.
  */
 export function renderPlaceColumns(
   container: HTMLElement,
   dataset: PlacesDataset,
   onSelect: (placeId: string, period: Period) => void,
+  options: PlaceColumnsOptions = {},
 ): void {
+  const { active = COLUMN_ORDER[0]!, onActiveChange } = options;
   const section = document.createElement('section');
   section.className = 'place-columns';
 
@@ -151,11 +167,12 @@ export function renderPlaceColumns(
     grid.append(cell);
   }
 
-  const tabs = renderTabs(COLUMN_ORDER[0]!, (column) => {
+  const tabs = renderTabs(active, (column) => {
     markActiveColumn(section, column);
+    onActiveChange?.(column);
   });
 
   section.append(tabs, grid);
   container.replaceChildren(section);
-  markActiveColumn(section, COLUMN_ORDER[0]!);
+  markActiveColumn(section, active);
 }

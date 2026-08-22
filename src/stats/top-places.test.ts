@@ -16,6 +16,7 @@ function place(id: string, dates: { date: string; amount: number }[]): PlaceReco
     id,
     name: `가게 ${id}`,
     category: '기타',
+    kind: 'other',
     address: '충북 청주시 흥덕구 강내면',
     lat: 36.6,
     lng: 127.3,

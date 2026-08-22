@@ -1,5 +1,5 @@
 import { isIsoDate } from './iso-date';
-import type { PlaceRecord, PlacesDataset, Transaction } from './types';
+import { PLACE_KINDS, type PlaceKind, type PlaceRecord, type PlacesDataset, type Transaction } from './types';
 
 /**
  * Loads and validates `data/places.json`, the product's entire API.
@@ -113,6 +113,7 @@ function parsePlace(raw: unknown, path: string): PlaceRecord {
     id: requireText(place['id'], `${path}.id`),
     name: requireText(place['name'], `${path}.name`),
     category: requireText(place['category'], `${path}.category`),
+    kind: requireKind(place['kind'], `${path}.kind`),
     address: requireText(place['address'], `${path}.address`),
     lat: requireCoordinate(place['lat'], `${path}.lat`, 90),
     lng: requireCoordinate(place['lng'], `${path}.lng`, 180),
@@ -156,6 +157,24 @@ function requireText(raw: unknown, path: string): string {
     throw new DatasetLoadError(`${path} must be a non-empty string, got ${describe(raw)}`);
   }
   return raw.trim();
+}
+
+/**
+ * `kind` is a closed set rather than free text (`types.ts` -> `PLACE_KINDS`), so membership is the
+ * check — every consumer switches on the value, and an unknown one would silently belong to no
+ * filter option and be unreachable through the control that exists to reach it. Rejecting the file
+ * is the loud version of that, and it is the same failure the collector's gate reports first
+ * (`collector/validate.py`, check 10).
+ */
+function requireKind(raw: unknown, path: string): PlaceKind {
+  const text = requireText(raw, path);
+  const kind = PLACE_KINDS.find((candidate) => candidate === text);
+  if (kind === undefined) {
+    throw new DatasetLoadError(
+      `${path} must be one of ${PLACE_KINDS.join(', ')}, got ${describe(raw)}`,
+    );
+  }
+  return kind;
 }
 
 /**

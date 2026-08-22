@@ -1,12 +1,14 @@
 import { loadPlacesDataset } from '../data/load';
 import type { Period, PlacesDataset } from '../data/types';
 import { computeMonthlyHistogram } from '../stats/histogram';
+import { filterByKind } from '../stats/search';
 import { computePlaceStats } from '../stats/place-stats';
 import { resolvePeriodWindow } from '../stats/period';
 import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
 import { createDetailDialog, type DetailDialogOptions } from './detail-dialog';
-import { renderPlaceColumns } from './place-columns';
+import { renderKindFilter, markActiveKind, type KindSelection } from './kind-filter';
+import { COLUMN_ORDER, renderPlaceColumns, type ColumnKey } from './place-columns';
 import { renderPlaceSearch } from './search';
 import { renderShell, setShellUpdatedAt } from './shell';
 
@@ -40,6 +42,15 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   // button the user just pressed and drop keyboard focus to the top of the document.
   const content = renderFrame();
   let retriedByUser = false;
+
+  /**
+   * Held here rather than in the views because both of them are rebuilt from it: the kind decides
+   * what the columns and the search are computed over, and the column decides which of the four is
+   * on screen once a narrow viewport has collapsed them to one. A view that owned either would lose
+   * it on the next re-render.
+   */
+  let activeKind: KindSelection = null;
+  let activeColumn: ColumnKey = COLUMN_ORDER[0]!;
 
   function onRetry(): void {
     retriedByUser = true;
@@ -81,13 +92,15 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     // and `setShellUpdatedAt` writes it in place.
     setShellUpdatedAt(root, dataset.updatedAt);
 
+    const kinds = document.createElement('div');
+    kinds.className = 'kind-filter-slot';
     const search = document.createElement('div');
     search.className = 'search-slot';
     const columns = document.createElement('div');
     columns.className = 'place-columns-slot';
     const detail = document.createElement('div');
     detail.className = 'detail-slot';
-    content.replaceChildren(search, columns, detail);
+    content.replaceChildren(kinds, search, columns, detail);
 
     const dialog = createDetailDialog(detail, dialogOptions);
 
@@ -117,10 +130,45 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
       dialog.open(next);
     }
 
-    renderPlaceSearch(search, dataset, (placeId) => {
+    // Narrowed even on the first render: `renderDataset` runs again after a failed load's retry,
+    // and a selection made before that would otherwise come back silently cleared on the lists
+    // while the control still showed it as pressed.
+    const initial = filterByKind(dataset, activeKind);
+
+    const searchView = renderPlaceSearch(search, initial, (placeId) => {
       selectPlace(placeId, SEARCH_PERIOD);
     });
-    renderPlaceColumns(columns, dataset, selectPlace);
+    renderPlaceColumns(columns, initial, selectPlace, {
+      active: activeColumn,
+      onActiveChange: (column) => {
+        activeColumn = column;
+      },
+    });
+    renderKindFilter(kinds, activeKind, selectKind);
+
+    /**
+     * One narrowed dataset feeds both views, so the columns and the search can never disagree about
+     * what is being shown. The search is updated through its handle rather than re-rendered — a
+     * rebuild would discard whatever the reader had typed — while the columns are recomputed, since
+     * their rankings are derived from the set that just changed.
+     *
+     * `selectPlace` deliberately keeps reading the *unfiltered* dataset: the dialog is opened from a
+     * row that was on screen, and looking the place up in the narrowed set would make a selection
+     * fail silently the moment the two got out of step.
+     */
+    function selectKind(kind: KindSelection): void {
+      activeKind = kind;
+      markActiveKind(kinds, kind);
+
+      const narrowed = filterByKind(dataset, kind);
+      searchView.setDataset(narrowed);
+      renderPlaceColumns(columns, narrowed, selectPlace, {
+        active: activeColumn,
+        onActiveChange: (column) => {
+          activeColumn = column;
+        },
+      });
+    }
   }
 
   function renderFrame(): HTMLElement {

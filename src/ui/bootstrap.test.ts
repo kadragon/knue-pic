@@ -7,6 +7,8 @@ import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
 import { COLUMN_LABELS, COLUMN_ORDER, columnHeading } from './place-columns';
 import { periodStatsHeading } from './place-detail';
+import { KIND_LABELS, ALL_KINDS_LABEL } from './kind-filter';
+import { NO_RESULTS_MESSAGE, resultCountLabel } from './search';
 import { DISCLAIMER, SOURCE_LINE } from './shell';
 
 function retryButton(root: HTMLElement): HTMLButtonElement | null {
@@ -31,6 +33,24 @@ function firstRow(root: HTMLElement, column: string): HTMLButtonElement | null {
     `.place-column[data-column="${column}"] .top-place-body, ` +
       `.place-column[data-column="${column}"] .place-select`,
   );
+}
+
+function kindOption(root: HTMLElement, label: string): HTMLButtonElement | undefined {
+  return [...root.querySelectorAll<HTMLButtonElement>('.kind-filter-option')].find(
+    (button) => button.textContent === label,
+  );
+}
+
+function searchField(root: HTMLElement): HTMLInputElement {
+  const input = root.querySelector<HTMLInputElement>('.place-search-input');
+  if (!input) throw new Error('search input is missing');
+  return input;
+}
+
+function typeQuery(root: HTMLElement, text: string): void {
+  const input = searchField(root);
+  input.value = text;
+  input.dispatchEvent(new Event('input'));
 }
 
 /** Lets the dialog's fire-and-forget map render settle before the assertions run. */
@@ -364,5 +384,64 @@ describe('bootstrap map wiring', () => {
     expect(root.textContent).toContain(columnHeading(PERIOD_LABELS['1y'], 6));
     expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE);
     expect(root.querySelector('.search-slot')).not.toBeNull();
+  });
+  it('narrows the columns and the search with one 업종 selection', async () => {
+    const root = document.createElement('div');
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    typeQuery(root, '식당');
+    expect(root.querySelector('.search-slot')?.textContent).toContain(resultCountLabel(1));
+
+    kindOption(root, KIND_LABELS.cafe)?.click();
+
+    // Both views answer the same question afterwards; a control that moved one and not the other
+    // would read as a bug in whichever list kept showing everything.
+    const columns = root.querySelector('.place-columns-slot');
+    expect(columns?.textContent).toContain('청람카페');
+    expect(columns?.textContent).not.toContain('한밭식당');
+    expect(root.querySelector('.search-slot')?.textContent).toContain(NO_RESULTS_MESSAGE);
+  });
+
+  it('restores every place when 전체 is picked again', async () => {
+    const root = document.createElement('div');
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+
+    kindOption(root, KIND_LABELS.cafe)?.click();
+    kindOption(root, ALL_KINDS_LABEL)?.click();
+
+    expect(root.querySelector('.place-columns-slot')?.textContent).toContain('한밭식당');
+  });
+
+  it('keeps the typed query and the open column across a 업종 change', async () => {
+    const root = document.createElement('div');
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    typeQuery(root, '카페');
+    columnTab(root, COLUMN_LABELS['1y'])?.click();
+    const input = searchField(root);
+
+    kindOption(root, KIND_LABELS.cafe)?.click();
+
+    // The same input node: a rebuild would throw away what the reader typed and move the caret.
+    expect(searchField(root)).toBe(input);
+    expect(searchField(root).value).toBe('카페');
+    expect(pressedTab(root)?.dataset['column']).toBe('1y');
+  });
+
+  it('still opens the detail dialog for a place listed under a narrowed 업종', async () => {
+    const root = document.createElement('div');
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      dialog: {
+        renderMap: (container, place) =>
+          renderPlaceLocationMap(container, place, {
+            loadApi: () => Promise.resolve(createFakeNaverApi()),
+          }),
+      },
+    });
+
+    kindOption(root, KIND_LABELS.cafe)?.click();
+    firstRow(root, '1y')?.click();
+    await flush();
+
+    expect(root.querySelector('.detail-slot')?.textContent).toContain('청람카페');
   });
 });

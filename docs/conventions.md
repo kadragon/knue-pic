@@ -63,6 +63,9 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 - Lists that can grow with the data are capped at a stated number: `COLUMN_LIMIT` for all four
   columns. A ranked column states the rendered count in its heading; the trending column prints
   `remainderLabel`. Search lists nothing until a query or a category is entered.
+- The 업종 filter is page-wide: it narrows the four columns and the search results together, and
+  the search's own 분류 options are rebuilt from whatever it left. A control that narrowed one list
+  while the other kept listing everything reads as a bug in the list it did not touch.
 - Every interactive control has a visible label or an `aria-label`; search is keyboard-operable.
 
 ## Git Conventions

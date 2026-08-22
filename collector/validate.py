@@ -34,6 +34,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Iterable
 
+from collector.kinds import PLACE_KINDS
+
 # Coordinate bounds are deliberately tighter than the loader's. `src/data/load.ts` accepts the
 # global +/-90 / +/-180 range because it is a wire-format parser; this is the quality gate, and a
 # geocoding mis-hit that lands a 청주 restaurant in Japan or the Pacific is exactly the defect the
@@ -487,6 +489,20 @@ def _validate_place(
                 10,
                 f"{path}.naverUrl must be an https URL on "
                 f"{' or '.join(NAVER_URL_HOSTS)}, got {describe(place.get('naverUrl'))}",
+            )
+        )
+
+    # Also check 10: `kind` is a closed set on the browser side (`src/data/types.ts` ->
+    # `PLACE_KINDS`), and `parsePlace` rejects the whole file over a value outside it. Membership
+    # rather than non-emptiness is the check, because a plausible-but-unknown kind — a bucket
+    # someone added to the collector and not to the loader — is exactly the value non-emptiness
+    # waves through and the site then refuses to load at all.
+    if place.get("kind") not in PLACE_KINDS:
+        violations.append(
+            Violation(
+                10,
+                f"{path}.kind must be one of {', '.join(PLACE_KINDS)}, "
+                f"got {describe(place.get('kind'))}",
             )
         )
 
