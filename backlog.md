@@ -19,6 +19,31 @@
   that has nothing to do with their change. Reproduced on `main` at 29bab9a, so it predates the
   four-column work — `src/map/loader.test.ts:31`, `src/map/loader.ts:58`
 
+### 작년 같은 달 column has no month to rank until the backfill lands (2026-08-23)
+
+- [ ] [feat] Collect 2025-06, 2025-07 and 2025-08 with `knue-expense-collect`, geocode the new
+  venues and approve them in `review_candidates.csv`, then rebuild `data/places.json`. The
+  collector's window already admits 15 months, but `collector/out/` starts at 2025-09, so the
+  first discovery column renders its honest empty message on the live site — the column shipped
+  ahead of its data by explicit decision, not by oversight
+- [ ] [fix] *(blocked by: the backfill above)* Raise `RETAINED_MONTHS` from 12 to 15 in
+  `src/stats/period.ts` so `isPriorWindowComplete` matches what the file actually holds. It must
+  not move first: the constant is read as "there is data this far back", so raising it over
+  uncollected months makes every place count zero visits there and renders invented ▼ rank drops
+  on the 6개월 column. The detail chart is no longer coupled to it — `HISTOGRAM_MONTHS` in
+  `src/stats/histogram.ts` owns the bar count — so this is a one-line change
+  — `src/stats/period.ts:87`
+
+### The detail card charts no bar for the 작년 같은 달 month (2026-08-23)
+
+- [ ] [debt] Opening a place from the 작년 같은 달 column prints "2025년 8월 기준" over figures the
+  12-bar histogram beside it cannot show: the chart ends at the anchor's own month and reaches back
+  `HISTOGRAM_MONTHS`, so the very month the count describes has no bar. Not wrong — the card names
+  its window, and the bars are labelled — but a reader comparing the two finds the stated month
+  missing. Options: widen the chart for that basis only, mark the stated month on it, or say in the
+  chart's heading that it covers the recent 12 months regardless of the figures above
+  — `src/ui/place-detail.ts`, `src/stats/histogram.ts`
+
 ## Someday
 
 - [ ] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget

@@ -1,10 +1,12 @@
-import type { PlaceRecord, PlacesDataset, Period } from '../data/types';
+import type { PlaceRecord, PlacesDataset } from '../data/types';
 import { computePlaceStats, type PlaceStats } from './place-stats';
 import {
+  LAST_YEAR_MONTH,
   isPriorWindowComplete,
-  resolvePeriodWindow,
+  resolveBasisWindow,
   resolvePriorWindow,
   type PeriodWindow,
+  type StatBasis,
 } from './period';
 
 /**
@@ -34,8 +36,11 @@ export interface TopPlacesResult {
   /** Capped at `limit`, best first. */
   entries: RankedPlace[];
   /**
-   * `false` when the prior window predates the dataset's 12-month retention floor, in which case
-   * every `rankDelta` is `null`. Surfaced so the UI can explain the absence instead of guessing.
+   * `false` when the prior window predates the dataset's retention floor, in which case every
+   * `rankDelta` is `null`. Surfaced so the UI can explain the absence instead of guessing.
+   *
+   * Always `false` for `LAST_YEAR_MONTH`: its prior window is a month two years back, which no
+   * published dataset has ever retained.
    */
   priorWindowComplete: boolean;
 }
@@ -85,21 +90,24 @@ function rankWindow(places: PlaceRecord[], periodWindow: PeriodWindow): RankedPl
 
 export function computeTopPlaces(
   dataset: PlacesDataset,
-  period: Period,
+  basis: StatBasis,
   limit: number = TOP_PLACES_LIMIT,
 ): TopPlacesResult {
-  const ranked = rankWindow(dataset.places, resolvePeriodWindow(period, dataset.updatedAt));
-  const priorWindowComplete = isPriorWindowComplete(period, dataset.updatedAt);
+  const ranked = rankWindow(dataset.places, resolveBasisWindow(basis, dataset.updatedAt));
+  // 작년 같은 달 has no comparable prior window: `resolvePriorWindow` only steps back a `Period`,
+  // and the month before that one is two years from the anchor either way — outside retention. So
+  // there is nothing to compare against and every delta is omitted rather than invented.
+  const priorWindow =
+    basis === LAST_YEAR_MONTH || !isPriorWindowComplete(basis, dataset.updatedAt)
+      ? null
+      : resolvePriorWindow(basis, dataset.updatedAt);
 
-  if (priorWindowComplete) {
+  if (priorWindow) {
     // The prior ranking covers every place, not just its own top ten: a place that entered the
     // visible list from prior rank 11 has moved, and comparing against a truncated prior list
     // would report it as a new entrant instead.
     const priorRanks = new Map(
-      rankWindow(dataset.places, resolvePriorWindow(period, dataset.updatedAt)).map((entry) => [
-        entry.place.id,
-        entry.rank,
-      ]),
+      rankWindow(dataset.places, priorWindow).map((entry) => [entry.place.id, entry.rank]),
     );
 
     for (const entry of ranked) {
@@ -108,5 +116,5 @@ export function computeTopPlaces(
     }
   }
 
-  return { entries: ranked.slice(0, limit), priorWindowComplete };
+  return { entries: ranked.slice(0, limit), priorWindowComplete: priorWindow !== null };
 }

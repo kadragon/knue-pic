@@ -94,15 +94,15 @@ body {
 /* ── Shell ─────────────────────────────────────────────────────────────────────────────────── */
 
 /*
- * A plain vertical stack: search, then the four columns. The side-by-side arrangement moved down
+ * A plain vertical stack: search, then the five columns. The side-by-side arrangement moved down
  * into `.place-columns-grid`, which is the only thing on the page that needs columns — and needs
- * four of them, which is what widened the container from the old 960px.
+ * five of them, which is what widened the container from the old 960px.
  */
 #content {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 0 24px 64px;
 }
@@ -163,12 +163,12 @@ body {
 /* ── Section surfaces ──────────────────────────────────────────────────────────────────────── */
 
 /*
- * Two tiers now, not three. The four columns are peers — the page exists so they can be compared —
+ * Two tiers now, not three. The five columns are peers — the page exists so they can be compared —
  * so any surface that made one heavier than another would read as a claim about the data rather
- * than about the layout. The card is therefore on `.place-column`, identically for all four, and
+ * than about the layout. The card is therefore on `.place-column`, identically for all five, and
  * the list inside it carries no surface of its own.
  *
- * Tier 1 — the four columns: white cards on the tinted floor (white on #f7f7f7 is 1.07:1 on its
+ * Tier 1 — the five columns: white cards on the tinted floor (white on #f7f7f7 is 1.07:1 on its
  * own, so the hairline is what actually separates them).
  * Tier 2 — search: the same card, softer border, because it answers a different question.
  */
@@ -318,7 +318,7 @@ a[role='button'] {
  */
 .place-columns-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
 }
@@ -326,7 +326,7 @@ a[role='button'] {
 /*
  * The tab switch exists only where the grid collapses to one column; above that every column is on
  * screen and there is nothing to switch between. `display: none` rather than visual hiding, so the
- * buttons leave the tab order entirely instead of being four dead stops.
+ * buttons leave the tab order entirely instead of being five dead stops.
  */
 .place-column-tabs {
   display: none;
@@ -880,7 +880,18 @@ div.top-place-body {
 
 /* ── Narrow screens ────────────────────────────────────────────────────────────────────────── */
 
-/* Two columns before a row gets too narrow to hold a name and a movement label on one line. */
+/*
+ * Three columns, then two, before a row gets too narrow to hold a name and a movement label on one
+ * line. The three-column step is what the fifth column bought: at 1200px five lists are 217px wide
+ * and every second name wraps, so the switch happens at that width — `max-width: 1199px` is
+ * "below 1200", the same way the 899px and 599px steps below read.
+ */
+@media (max-width: 1200px) {
+  .place-columns-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 899px) {
   .place-columns-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -888,7 +899,7 @@ div.top-place-body {
 }
 
 /*
- * One column, and the tab switch appears with it: four stacked lists would be four screens of
+ * One column, and the tab switch appears with it: five stacked lists would be five screens of
  * scrolling, and the comparison the page is for would be gone either way. The tabs keep every
  * column one tap away instead (`docs/conventions.md` → Accessibility & Responsive).
  */
@@ -901,10 +912,12 @@ div.top-place-body {
     display: flex;
   }
 
-  .place-columns-grid[data-active='trending'] .place-column:not([data-column='trending']),
-  .place-columns-grid[data-active='1m'] .place-column:not([data-column='1m']),
-  .place-columns-grid[data-active='6m'] .place-column:not([data-column='6m']),
-  .place-columns-grid[data-active='1y'] .place-column:not([data-column='1y']) {
+  /*
+   * Structural, not enumerated: `markActiveColumn` stamps `data-active` on every column, so a new
+   * column key needs no CSS at all. The list of keys used to live here as one selector pair each,
+   * where a forgotten key was a column that stayed hidden on a phone whatever tab was pressed.
+   */
+  .place-column[data-active='false'] {
     display: none;
   }
 }

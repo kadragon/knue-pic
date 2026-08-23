@@ -9,9 +9,11 @@ import type { PlacesDataset } from '../types';
  *
  * Windows are half-open — the start day is excluded, the end day included (see
  * `src/stats/period.ts`). With `updatedAt` at 2026-08-01 that gives:
- *   1m → after 2026-07-01, through 2026-08-01
- *   6m → after 2026-02-01, through 2026-08-01
- *   1y → after 2025-08-01, through 2026-08-01
+ *   1m           → after 2026-07-01, through 2026-08-01
+ *   3m           → after 2026-05-01, through 2026-08-01
+ *   6m           → after 2026-02-01, through 2026-08-01
+ *   1y           → after 2025-08-01, through 2026-08-01
+ *   lastYearMonth → after 2025-07-31, through 2025-08-31 (the whole of 2025-08)
  *
  * Coverage by place:
  *   000001 visits spread across all three window boundaries; 6m average is fractional (rounding)
@@ -19,9 +21,11 @@ import type { PlacesDataset } from '../types';
  *   000003 no visits in the 1m or 6m window (divide-by-zero guard) and one zero-amount payment
  *   000004 ties 000005 on visit count and most recent date; only total amount separates them
  *   000005 the other half of that tie
- *   000006 transactions on the excluded start day, the day after it, and the included end day
+ *   000006 transactions on the excluded start day, the day after it, and the included end day —
+ *          and that excluded 1y start day, 2025-08-01, is the fixture's only 작년 같은 달 visit,
+ *          so the two windows cannot be confused for one another
  *
- * Every date sits inside the 12-month rolling window the published file is trimmed to.
+ * Every date sits inside the rolling window the published file is trimmed to.
  */
 export const SAMPLE_DATASET: PlacesDataset = {
   updatedAt: '2026-08-01',

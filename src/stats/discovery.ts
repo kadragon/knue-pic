@@ -6,9 +6,9 @@ import { resolveMonthsWindow, resolvePriorWindow } from './period';
  * The 최근 뜨는 곳 column: the recent month measured against the month before it. Pure — dataset
  * in, list out; no DOM, no map.
  *
- * Its window is fixed by `docs/conventions.md` → Statistics Rules rather than chosen: the three
- * ranked columns beside it already read 1개월 / 6개월 / 1년, and a trend measured over a year is
- * not a trend. The anchor is the dataset's `updatedAt` and nothing else.
+ * Its window is fixed by `docs/conventions.md` → Statistics Rules rather than chosen: the ranked
+ * columns beside it already read 3개월 / 6개월 / 1년, and a trend measured over a year is not a
+ * trend. The anchor is the dataset's `updatedAt` and nothing else.
  */
 
 /** `docs/conventions.md` → Statistics Rules: one visit is not a trend. */

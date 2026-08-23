@@ -204,7 +204,7 @@ def test_non_iso_transaction_date_is_reported(bad: Any) -> None:
 
 def test_transaction_older_than_the_window_is_reported() -> None:
     violations = check(
-        dataset(place(transactions=[{"date": "2025-08-15", "amount": 1000}])), approvals()
+        dataset(place(transactions=[{"date": "2025-05-15", "amount": 1000}])), approvals()
     )
     assert checks_reported(violations) == {6}
     assert f"{ROLLING_WINDOW_MONTHS}-month window" in details(violations)
@@ -220,7 +220,7 @@ def test_transaction_after_updated_at_is_reported() -> None:
 def test_window_edges_pass() -> None:
     """Both ends inclusive: the first day of the oldest bucketed month, and `updatedAt` itself."""
     floor = window_floor(date.fromisoformat(UPDATED_AT))
-    assert floor.isoformat() == "2025-09-01"
+    assert floor.isoformat() == "2025-06-01"
     assert check(
         dataset(
             place(
@@ -235,16 +235,39 @@ def test_window_edges_pass() -> None:
 
 
 def test_day_anchored_boundary_is_rejected() -> None:
-    """`updatedAt` minus 12 months is a month the app never buckets — the gate must not admit it.
+    """The floor is a whole month, not ``updatedAt`` minus 15 months to the day.
 
-    `src/stats/histogram.ts` renders the 12 calendar months ending with the anchor's own month, so
-    for updatedAt 2026-08-01 anything in 2025-08 has no bar. Accepting it would let the bars sum to
-    fewer visits than the 1년 count printed beside them.
+    For updatedAt 2026-08-01 a day-anchored floor would land on 2025-05-01 and admit the tail of a
+    month the file otherwise stops short of. A half-collected month is worse than an absent one:
+    every window that touches it reports a count nobody can reproduce from the disclosures.
     """
     violations = check(
-        dataset(place(transactions=[{"date": "2025-08-31", "amount": 1000}])), approvals()
+        dataset(place(transactions=[{"date": "2025-05-31", "amount": 1000}])), approvals()
     )
     assert checks_reported(violations) == {6}
+
+
+def test_the_month_a_year_back_is_inside_the_window() -> None:
+    """What the widening from 12 months bought.
+
+    The 작년 같은 달 column (`src/ui/place-columns.ts`) ranks the calendar month twelve months
+    before the anchor's own. Under a 12-month window that month sat exactly on the floor and fell
+    out of the published file on the next monthly run, leaving the column permanently empty.
+    """
+    assert (
+        check(
+            dataset(
+                place(
+                    transactions=[
+                        {"date": "2025-08-01", "amount": 1000},
+                        {"date": "2025-08-31", "amount": 1000},
+                    ]
+                )
+            ),
+            approvals(),
+        )
+        == []
+    )
 
 
 def test_loader_parity_fields_are_reported() -> None:

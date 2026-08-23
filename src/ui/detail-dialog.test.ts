@@ -2,16 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { computeMonthlyHistogram } from '../stats/histogram';
 import { computePlaceStats } from '../stats/place-stats';
-import { resolvePeriodWindow } from '../stats/period';
+import { resolveBasisWindow, type StatBasis } from '../stats/period';
 import { CLOSE_LABEL, createDetailDialog } from './detail-dialog';
 import type { PlaceDetail } from './place-detail';
 
-function detailFor(index = 0, period: '1m' | '6m' | '1y' = '1y'): PlaceDetail {
+function detailFor(index = 0, basis: StatBasis = '1y'): PlaceDetail {
   const place = SAMPLE_DATASET.places[index]!;
   return {
     place,
-    period,
-    stats: computePlaceStats(place, resolvePeriodWindow(period, SAMPLE_DATASET.updatedAt)),
+    basis,
+    anchor: SAMPLE_DATASET.updatedAt,
+    stats: computePlaceStats(place, resolveBasisWindow(basis, SAMPLE_DATASET.updatedAt)),
     histogram: computeMonthlyHistogram(place, SAMPLE_DATASET.updatedAt),
   };
 }

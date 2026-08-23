@@ -4,8 +4,8 @@ import type { TrendingPlace } from '../stats/discovery';
  * The 최근 뜨는 곳 list. Takes what `src/stats/discovery.ts` already computed and turns it into
  * DOM — no counting happens here.
  *
- * It is one of the four columns in `src/ui/place-columns.ts`, and the only one whose window is
- * fixed rather than chosen: the other three are ranked periods. The column owns the heading and the
+ * It is one of the five columns in `src/ui/place-columns.ts`, and the only one ordered by movement
+ * rather than by usage: the four beside it are ranked windows. The column owns the heading and the
  * row cap, because those are decisions about the grid, not about trending.
  *
  * Every user-facing string is exported so the banned-phrase test can import them
@@ -16,9 +16,10 @@ import type { TrendingPlace } from '../stats/discovery';
 export const TRENDING_HEADING = '최근 뜨는 곳';
 
 /**
- * The column reads a fixed window while the three beside it read 1개월 / 6개월 / 1년, so the note
- * says which window this one is. Without it, a reader comparing the columns has no way to tell
- * what "뜨는" is measured over, and the list would read as an opinion rather than as a count.
+ * The column reads a fixed window while the ranked ones beside it read 3개월 / 6개월 / 1년 and a
+ * calendar month a year back, so the note says which window this one is. Without it, a reader
+ * comparing the columns has no way to tell what "뜨는" is measured over, and the list would read as
+ * an opinion rather than as a count.
  *
  * It states the sort, not a filter: `computeTrendingPlaces` admits every place with ≥2 visits in
  * the recent month and orders them by the *signed* change, so a place that fell is in the list too
