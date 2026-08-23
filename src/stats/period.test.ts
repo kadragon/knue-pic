@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { Period } from '../data/types';
 import {
+  LAST_YEAR_MONTH,
   isPriorWindowComplete,
   isWithinWindow,
+  lastYearMonthOf,
+  resolveBasisWindow,
+  resolveLastYearMonthWindow,
   resolvePeriodWindow,
   resolvePriorWindow,
 } from './period';
@@ -47,8 +51,13 @@ describe('resolvePeriodWindow', () => {
   it('rejects a period outside the union instead of widening the window', () => {
     // An off-union value would make the month arithmetic NaN, and a NaN-formatted start sorts
     // below every real year — the window would silently cover the whole dataset.
-    expect(() => resolvePeriodWindow('3m' as Period, '2026-08-01')).toThrow(RangeError);
+    expect(() => resolvePeriodWindow('2y' as Period, '2026-08-01')).toThrow(RangeError);
     expect(() => resolvePeriodWindow('' as Period, '2026-08-01')).toThrow(RangeError);
+    // `lastYearMonth` is a `StatBasis`, not a `Period`: it must not fall through to the month
+    // arithmetic, which has no month count for it.
+    expect(() => resolvePeriodWindow(LAST_YEAR_MONTH as unknown as Period, '2026-08-01')).toThrow(
+      RangeError,
+    );
   });
 });
 
@@ -156,5 +165,58 @@ describe('month-end anchors', () => {
         );
       }
     }
+  });
+});
+
+describe('resolveLastYearMonthWindow', () => {
+  it('covers the whole calendar month twelve months back', () => {
+    // Half-open like every other window: the last day of the month before is excluded, and the
+    // month's own last day is included. A day-anchored window would straddle two months and could
+    // not be checked against the disclosure it came from.
+    expect(resolveLastYearMonthWindow('2026-08-22')).toEqual({
+      start: '2025-07-31',
+      end: '2025-08-31',
+    });
+  });
+
+  it('does not move with the anchor day within its month', () => {
+    expect(resolveLastYearMonthWindow('2026-08-01')).toEqual(
+      resolveLastYearMonthWindow('2026-08-31'),
+    );
+  });
+
+  it('ends on the real last day of a short or leap February', () => {
+    expect(resolveLastYearMonthWindow('2027-02-15').end).toBe('2026-02-28');
+    expect(resolveLastYearMonthWindow('2029-02-15').end).toBe('2028-02-29');
+  });
+
+  it('crosses the year boundary on the month, not on the anchor', () => {
+    expect(lastYearMonthOf('2026-01-15')).toEqual({ year: 2025, month: 1 });
+    expect(resolveLastYearMonthWindow('2026-01-15')).toEqual({
+      start: '2024-12-31',
+      end: '2025-01-31',
+    });
+  });
+
+  it('is a window no `Period` produces', () => {
+    // The 1y window ends at the anchor and *excludes* its own start day, which is the last day of
+    // this one. Sharing a boundary is the point: the two tile rather than overlap.
+    const yearly = resolvePeriodWindow('1y', '2026-08-22');
+    const lastYear = resolveLastYearMonthWindow('2026-08-22');
+    expect(lastYear.end < yearly.start).toBe(false);
+    expect(isWithinWindow('2025-08-01', lastYear)).toBe(true);
+    expect(isWithinWindow('2025-08-01', yearly)).toBe(false);
+  });
+});
+
+describe('resolveBasisWindow', () => {
+  it('routes a period to its own resolver', () => {
+    expect(resolveBasisWindow('3m', '2026-08-22')).toEqual(resolvePeriodWindow('3m', '2026-08-22'));
+  });
+
+  it('routes the calendar month to its own', () => {
+    expect(resolveBasisWindow(LAST_YEAR_MONTH, '2026-08-22')).toEqual(
+      resolveLastYearMonthWindow('2026-08-22'),
+    );
   });
 });

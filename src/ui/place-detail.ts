@@ -1,7 +1,8 @@
-import type { PlaceRecord, Period } from '../data/types';
+import type { PlaceRecord } from '../data/types';
 import type { HistogramBucket } from '../stats/histogram';
 import type { PlaceStats } from '../stats/place-stats';
-import { PERIOD_LABELS } from './period-labels';
+import type { StatBasis } from '../stats/period';
+import { basisLabel } from './period-labels';
 
 /**
  * The detail card for one selected place: a slot for the location map, the figures for the period
@@ -37,8 +38,14 @@ export const FIGURE_LABELS = {
   mostRecentVisit: '최근 이용',
 } as const;
 
-export function periodStatsHeading(period: Period): string {
-  return `${PERIOD_LABELS[period]} 기준`;
+/**
+ * Names the window the figures below it were counted over — the column the place was picked from.
+ *
+ * `anchor` is needed because one of those windows is a calendar month rather than a span: the
+ * 작년 같은 달 column reads "2025년 8월 기준", which only the dataset's own date can spell.
+ */
+export function periodStatsHeading(basis: StatBasis, anchor: string): string {
+  return `${basisLabel(basis, anchor)} 기준`;
 }
 
 /** Won, with thousands separators. Amount is shown for context only; it never affects ranking. */
@@ -126,9 +133,12 @@ function renderHistogram(buckets: HistogramBucket[]): HTMLElement {
 
 export interface PlaceDetail {
   place: PlaceRecord;
-  /** Computed for the currently selected period. */
+  /** Computed over `basis`'s window. */
   stats: PlaceStats;
-  period: Period;
+  /** The window the place was picked from — the column's own. */
+  basis: StatBasis;
+  /** The dataset's `updatedAt`; every window here is measured from it, never from the clock. */
+  anchor: string;
   histogram: HistogramBucket[];
 }
 
@@ -153,7 +163,7 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
     return;
   }
 
-  const { place, stats, period, histogram } = detail;
+  const { place, stats, basis, anchor, histogram } = detail;
 
   const name = document.createElement('h3');
   name.className = 'place-detail-name';
@@ -165,7 +175,7 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
 
   const periodNote = document.createElement('p');
   periodNote.className = 'place-detail-period';
-  periodNote.textContent = periodStatsHeading(period);
+  periodNote.textContent = periodStatsHeading(basis, anchor);
 
   // Left empty here on purpose: the card stays pure DOM over already-computed numbers, and the map
   // is the one view that needs a third-party script. `src/ui/detail-dialog.ts` fills this slot, so

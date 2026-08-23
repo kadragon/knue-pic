@@ -29,7 +29,7 @@ export interface PeriodWindow {
   end: string;
 }
 
-const MONTHS_BACK: Record<Period, number> = { '1m': 1, '6m': 6, '1y': 12 };
+const MONTHS_BACK: Record<Period, number> = { '1m': 1, '3m': 3, '6m': 6, '1y': 12 };
 
 /**
  * Steps back whole calendar months, clamping the day to the target month's length so that
@@ -79,9 +79,17 @@ export function isWithinWindow(date: string, periodWindow: PeriodWindow): boolea
 }
 
 /**
- * The published file keeps the most recent 12 months (`docs/architecture.md` → Rolling window).
- * Anything before that floor is simply absent from the dataset, so a window reaching past it is
- * incomplete no matter how many transactions happen to fall inside it.
+ * How many months back the browser may assume the dataset actually covers.
+ *
+ * Anything before that floor is simply absent, so a window reaching past it is incomplete no
+ * matter how many transactions happen to fall inside it.
+ *
+ * Deliberately **behind** the collector's `ROLLING_WINDOW_MONTHS`, which was widened to 15 so the
+ * 작년 같은 달 column has a month to publish. This constant is not a configuration knob but a
+ * *claim* — `isPriorWindowComplete` reads it as "there is data this far back" — and the three
+ * extra months are not collected yet. Raising it first would have every place count 0 visits in
+ * months that were never gathered and render invented ▼ rank drops. Raise it in the same change
+ * that lands the backfill, never before (`backlog.md`).
  */
 export const RETAINED_MONTHS = 12;
 
@@ -118,4 +126,48 @@ export function resolvePriorWindow(period: Period, anchor: string): PeriodWindow
 export function isPriorWindowComplete(period: Period, anchor: string): boolean {
   const floor = subtractMonths(parseIsoDate(anchor), RETAINED_MONTHS);
   return resolvePriorWindow(period, anchor).start >= formatIsoDate(floor);
+}
+
+/**
+ * The one window that is a calendar month rather than "the last N months": the same month of the
+ * previous year, which the first discovery column ranks.
+ *
+ * It is not a `Period` because `Period` means months counted back from the anchor, and every
+ * consumer of that type — `MONTHS_BACK`, `resolvePriorWindow` — is written around that meaning.
+ * Widening `Period` to hold this would make each of them answer a question it has no answer for.
+ */
+export const LAST_YEAR_MONTH = 'lastYearMonth';
+
+/** Everything a list or the detail dialog can be measured over. */
+export type StatBasis = Period | typeof LAST_YEAR_MONTH;
+
+/** The calendar month twelve months before `anchor`'s own month. */
+export function lastYearMonthOf(anchor: string): { year: number; month: number } {
+  const { year, month } = subtractMonths(parseIsoDate(anchor), 12);
+  return { year, month };
+}
+
+/**
+ * The whole calendar month twelve months back, half-open like every other window: `start` is the
+ * last day of the month *before* it (excluded) and `end` its own last day (included).
+ *
+ * Deliberately the full month rather than a month counted back from the anchor's day. The anchor
+ * is a publication date in the middle of a month, so a day-anchored window would straddle two
+ * calendar months and could not be checked by hand against the disclosure it came from — the
+ * property `docs/architecture.md` keeps every statistic to.
+ */
+export function resolveLastYearMonthWindow(anchor: string): PeriodWindow {
+  const { year, month } = lastYearMonthOf(anchor);
+  const previous = subtractMonths({ year, month, day: 1 }, 1);
+  return {
+    start: formatIsoDate({ ...previous, day: daysInMonth(previous.year, previous.month) }),
+    end: formatIsoDate({ year, month, day: daysInMonth(year, month) }),
+  };
+}
+
+/** The window for any basis a column or the detail dialog can carry. */
+export function resolveBasisWindow(basis: StatBasis, anchor: string): PeriodWindow {
+  return basis === LAST_YEAR_MONTH
+    ? resolveLastYearMonthWindow(anchor)
+    : resolvePeriodWindow(basis, anchor);
 }

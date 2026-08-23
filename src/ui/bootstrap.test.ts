@@ -5,7 +5,7 @@ import { MAP_ERROR_MESSAGE, renderPlaceLocationMap } from '../map/place-map';
 import { bootstrap } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
-import { COLUMN_LABELS, COLUMN_ORDER, columnHeading } from './place-columns';
+import { COLUMN_ORDER, columnHeading, columnLabel } from './place-columns';
 import { periodStatsHeading } from './place-detail';
 import { KIND_LABELS, ALL_KINDS_LABEL } from './kind-filter';
 import { NO_RESULTS_MESSAGE, resultCountLabel } from './search';
@@ -69,7 +69,7 @@ describe('bootstrap', () => {
     await pending;
   });
 
-  it('shows the dataset update date and the four columns once loaded', async () => {
+  it('shows the dataset update date and the five columns once loaded', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
@@ -198,7 +198,7 @@ describe('bootstrap accessibility', () => {
 });
 
 describe('bootstrap columns', () => {
-  it('renders the four windows side by side, in order', async () => {
+  it('renders the five windows side by side, in order', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
@@ -207,7 +207,7 @@ describe('bootstrap columns', () => {
     expect(columns.map((column) => column.dataset['column'])).toEqual(COLUMN_ORDER);
     for (const column of columns) {
       expect(column.querySelector('h2')?.textContent).toContain(
-        COLUMN_LABELS[column.dataset['column'] as keyof typeof COLUMN_LABELS],
+        columnLabel(column.dataset['column'] as (typeof COLUMN_ORDER)[number], SAMPLE_DATASET.updatedAt),
       );
     }
   });
@@ -217,12 +217,16 @@ describe('bootstrap columns', () => {
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
-    // 1y ranks all six fixture places; 1m ranks five — 000003 has no visit in that window.
+    // 1y ranks all six fixture places; 3m ranks four — 000003 and 000001's 2025 visits fall
+    // outside that window, and 황새울분식 has nothing recent at all.
     expect(root.querySelectorAll('.place-column[data-column="1y"] .top-place')).toHaveLength(6);
-    expect(root.querySelectorAll('.place-column[data-column="1m"] .top-place')).toHaveLength(5);
-    expect(root.querySelector('.place-column[data-column="1m"]')?.textContent).not.toContain(
+    expect(root.querySelector('.place-column[data-column="3m"]')?.textContent).not.toContain(
       '황새울분식',
     );
+    // The 작년 같은 달 column reads a month the 1y window excludes, so it cannot be a subset of it.
+    expect(
+      root.querySelectorAll('.place-column[data-column="lastYearMonth"] .top-place'),
+    ).toHaveLength(1);
   });
 
   it('shows the picked column\'s window in the dialog', async () => {
@@ -231,7 +235,9 @@ describe('bootstrap columns', () => {
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
     firstRow(root, '6m')?.click();
 
-    expect(root.querySelector('.detail-slot')?.textContent).toContain(periodStatsHeading('6m'));
+    expect(root.querySelector('.detail-slot')?.textContent).toContain(
+      periodStatsHeading('6m', SAMPLE_DATASET.updatedAt),
+    );
   });
 
   it('shows a place picked from the trending column over the month it trended in', async () => {
@@ -241,7 +247,9 @@ describe('bootstrap columns', () => {
     firstRow(root, 'trending')?.click();
 
     // Trending is measured over the recent month, so those are the figures the dialog states.
-    expect(root.querySelector('.detail-slot')?.textContent).toContain(periodStatsHeading('1m'));
+    expect(root.querySelector('.detail-slot')?.textContent).toContain(
+      periodStatsHeading('1m', SAMPLE_DATASET.updatedAt),
+    );
   });
 
   it('shows a place found by search over the full retained window', async () => {
@@ -258,7 +266,9 @@ describe('bootstrap columns', () => {
       ?.click();
 
     expect(root.querySelector('.detail-slot')?.textContent).toContain('황새울분식');
-    expect(root.querySelector('.detail-slot')?.textContent).toContain(periodStatsHeading('1y'));
+    expect(root.querySelector('.detail-slot')?.textContent).toContain(
+      periodStatsHeading('1y', SAMPLE_DATASET.updatedAt),
+    );
   });
 
   it('opens the tab switch on the trending column and flips it in place', async () => {
@@ -266,7 +276,7 @@ describe('bootstrap columns', () => {
     document.body.append(root);
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    expect(pressedTab(root)?.textContent).toBe(COLUMN_LABELS['trending']);
+    expect(pressedTab(root)?.textContent).toBe(columnLabel(COLUMN_ORDER[0]!, SAMPLE_DATASET.updatedAt));
 
     const button = columnTab(root, PERIOD_LABELS['6m']);
     button?.focus();
@@ -415,7 +425,7 @@ describe('bootstrap map wiring', () => {
     const root = document.createElement('div');
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
     typeQuery(root, '카페');
-    columnTab(root, COLUMN_LABELS['1y'])?.click();
+    columnTab(root, columnLabel('1y', SAMPLE_DATASET.updatedAt))?.click();
     const input = searchField(root);
 
     kindOption(root, KIND_LABELS.cafe)?.click();

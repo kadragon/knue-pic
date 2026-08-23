@@ -3,7 +3,7 @@ import type { Period, PlacesDataset } from '../data/types';
 import { computeMonthlyHistogram } from '../stats/histogram';
 import { filterByKind } from '../stats/search';
 import { computePlaceStats } from '../stats/place-stats';
-import { resolvePeriodWindow } from '../stats/period';
+import { resolveBasisWindow, type StatBasis } from '../stats/period';
 import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
 import { createDetailDialog, type DetailDialogOptions } from './detail-dialog';
@@ -78,7 +78,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   }
 
   /**
-   * Each view owns its own container and is rendered exactly once: the four columns show four fixed
+   * Each view owns its own container and is rendered exactly once: the five columns show five fixed
    * windows, so nothing on the page swaps a list any more. Selecting a place rebuilds the dialog
    * alone, which is what keeps the row the reader pressed alive to hand focus back to on close.
    *
@@ -105,14 +105,15 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     const dialog = createDetailDialog(detail, dialogOptions);
 
     /** `null` when the selection is not in the dataset. */
-    function currentDetail(placeId: string, period: Period): PlaceDetail | null {
+    function currentDetail(placeId: string, basis: StatBasis): PlaceDetail | null {
       const place = dataset.places.find((candidate) => candidate.id === placeId);
       if (!place) return null;
 
       return {
         place,
-        period,
-        stats: computePlaceStats(place, resolvePeriodWindow(period, dataset.updatedAt)),
+        basis,
+        anchor: dataset.updatedAt,
+        stats: computePlaceStats(place, resolveBasisWindow(basis, dataset.updatedAt)),
         histogram: computeMonthlyHistogram(place, dataset.updatedAt),
       };
     }
@@ -120,12 +121,12 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     /**
      * Opens the detail dialog over whatever the reader was looking at.
      *
-     * `period` is the window the place was picked from — the column's own — so the figures answer
+     * `basis` is the window the place was picked from — the column's own — so the figures answer
      * the list the reader was reading rather than a period they never chose. The dialog moves focus
      * into itself and hands it back to this control on close.
      */
-    function selectPlace(placeId: string, period: Period): void {
-      const next = currentDetail(placeId, period);
+    function selectPlace(placeId: string, basis: StatBasis): void {
+      const next = currentDetail(placeId, basis);
       if (!next) return;
       dialog.open(next);
     }

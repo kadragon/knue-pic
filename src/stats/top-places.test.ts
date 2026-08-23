@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlaceRecord, PlacesDataset } from '../data/types';
+import { LAST_YEAR_MONTH } from './period';
 import { computeTopPlaces, TOP_PLACES_LIMIT } from './top-places';
 
 /**
@@ -211,5 +212,27 @@ describe('computeTopPlaces rank delta', () => {
     expect(first?.place.id).toBe('restaurant_000001');
     // Rank 11 → rank 1 is a real move; a truncated prior list would have reported `null`.
     expect(first?.rankDelta).toBe(10);
+  });
+});
+
+describe('computeTopPlaces over 작년 같은 달', () => {
+  it('ranks that calendar month alone, not a span ending at the anchor', () => {
+    // 000006's 2025-08-01 payment is the fixture's only visit in 2025-08, and the 1y window
+    // excludes it — so the two windows cannot be satisfied by the same list.
+    expect(idsOf(SAMPLE_DATASET, LAST_YEAR_MONTH)).toEqual(['restaurant_000006']);
+  });
+
+  it('omits every rank delta, because the month before it was never published', () => {
+    const result = computeTopPlaces(SAMPLE_DATASET, LAST_YEAR_MONTH);
+
+    expect(result.priorWindowComplete).toBe(false);
+    expect(result.entries.every((entry) => entry.rankDelta === null)).toBe(true);
+  });
+
+  it('ranks nothing at all when the month holds no visit', () => {
+    // The state this column ships in until the older months are collected.
+    const result = computeTopPlaces({ ...SAMPLE_DATASET, updatedAt: '2028-08-01' }, LAST_YEAR_MONTH);
+
+    expect(result.entries).toEqual([]);
   });
 });

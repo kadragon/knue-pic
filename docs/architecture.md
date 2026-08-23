@@ -159,9 +159,18 @@ published dataset and nothing else.
 dropping a row: `src/stats/` throws on a malformed transaction date, so validation has to happen
 before places reach it.
 
-**Rolling window.** The published file keeps the most recent 12 months. The collector may retain up
-to 13 months internally so that the 12-month trend and the previous-period rank comparison have a
-complete prior period to compare against.
+**Rolling window.** The published file keeps the most recent 15 months
+(`ROLLING_WINDOW_MONTHS` in `collector/validate.py`). The collector may retain up to 16 months
+internally so that the 12-month trend and the previous-period rank comparison have a complete prior
+period to compare against. Twelve of those months are what the histogram charts; the three extra
+exist so the 작년 같은 달 column — the calendar month twelve months back — has a month to rank
+instead of sitting on the floor and dropping out on the next monthly run.
+
+The window is a **ceiling on what may publish, not a claim that the months were collected.** The
+browser keeps its own, deliberately smaller floor in `RETAINED_MONTHS` (`src/stats/period.ts`,
+currently 12): `isPriorWindowComplete` reads it as "there is data this far back", and raising it
+ahead of the collection would have every place count zero visits in months nobody gathered and
+render invented rank drops. Raise it in the same change that lands the older months.
 
 **Canonical ID.** `restaurant_%06d`, assigned once and never reused. A renamed business keeps its
 ID; a different branch of the same brand is a different place with a different ID. The ID map is

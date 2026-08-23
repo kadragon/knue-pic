@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { computeMonthlyHistogram } from '../stats/histogram';
 import { computePlaceStats } from '../stats/place-stats';
-import { resolvePeriodWindow } from '../stats/period';
+import { LAST_YEAR_MONTH, resolveBasisWindow, type StatBasis } from '../stats/period';
 import {
   DETAIL_EMPTY_MESSAGE,
   FIGURE_LABELS,
@@ -17,12 +17,13 @@ import {
 
 const PLACE = SAMPLE_DATASET.places[0]!; // 한밭식당
 
-function detailFor(placeIndex = 0, period: '1m' | '6m' | '1y' = '1y') {
+function detailFor(placeIndex = 0, basis: StatBasis = '1y') {
   const place = SAMPLE_DATASET.places[placeIndex]!;
   return {
     place,
-    period,
-    stats: computePlaceStats(place, resolvePeriodWindow(period, SAMPLE_DATASET.updatedAt)),
+    basis,
+    anchor: SAMPLE_DATASET.updatedAt,
+    stats: computePlaceStats(place, resolveBasisWindow(basis, SAMPLE_DATASET.updatedAt)),
     histogram: computeMonthlyHistogram(place, SAMPLE_DATASET.updatedAt),
   };
 }
@@ -42,7 +43,20 @@ describe('renderPlaceDetail', () => {
 
     renderPlaceDetail(container, detailFor(0, '6m'));
 
-    expect(container.textContent).toContain(periodStatsHeading('6m'));
+    expect(container.textContent).toContain(periodStatsHeading('6m', SAMPLE_DATASET.updatedAt));
+  });
+
+  it('names the month itself for a place picked from the 작년 같은 달 column', () => {
+    const container = document.createElement('div');
+
+    renderPlaceDetail(container, detailFor(0, LAST_YEAR_MONTH));
+
+    // The label has to spell the month out: every other basis on the page reads 최근 N개월, so
+    // "작년 같은 달 기준" would leave the reader unable to check the figure against a disclosure.
+    expect(container.textContent).toContain(
+      periodStatsHeading(LAST_YEAR_MONTH, SAMPLE_DATASET.updatedAt),
+    );
+    expect(periodStatsHeading(LAST_YEAR_MONTH, '2026-08-22')).toBe('2025년 8월 기준');
   });
 
   it('shows the visit count, total, average, and most recent visit', () => {

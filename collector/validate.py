@@ -45,9 +45,15 @@ KOREA_LAT_MAX = 39.0
 KOREA_LNG_MIN = 124.0
 KOREA_LNG_MAX = 132.0
 
-# The published file keeps the most recent 12 months, anchored on `updatedAt`
-# (`docs/architecture.md` -> Rolling window). The collector may retain 13 internally; only 12 ship.
-ROLLING_WINDOW_MONTHS = 12
+# The published file keeps the most recent 15 months, anchored on `updatedAt`
+# (`docs/architecture.md` -> Rolling window). The collector may retain 16 internally; only 15 ship.
+#
+# Widened from 12 for the 작년 같은 달 column, which ranks the calendar month twelve months back:
+# under a 12-month window that month sat exactly on the floor and fell out of the file on the next
+# monthly run. This is a *ceiling* on what may publish, not a promise that the months exist --
+# `RETAINED_MONTHS` in `src/stats/period.ts` is the browser's separate, deliberately smaller claim
+# about what has actually been collected.
+ROLLING_WINDOW_MONTHS = 15
 
 # `naverUrl` is the one dataset string the site puts in an `href`, so `src/data/load.ts` demands
 # an https URL on one of these hosts rather than merely non-empty text. Check 10 exists to be no
@@ -158,10 +164,13 @@ def window_floor(anchor: date) -> date:
     """First day of the oldest month the published window covers.
 
     Anchored on the calendar month, not on ``anchor``'s day, because that is what the app does with
-    the data: `src/stats/histogram.ts` buckets the ``ROLLING_WINDOW_MONTHS`` calendar months ending
-    with the anchor's own month, and `src/stats/period.ts` -> ``isWithinWindow`` is half-open at the
-    start. A day-anchored floor would admit transactions that every 1y view then ignores — the
-    histogram bars would sum to less than the count printed beside them, with nothing reporting it.
+    the data: `src/stats/histogram.ts` buckets whole calendar months ending with the anchor's own,
+    and `src/stats/period.ts` -> ``isWithinWindow`` is half-open at the start. A day-anchored floor
+    would cut a month in half, and the histogram bars would sum to less than the count printed
+    beside them with nothing reporting it.
+
+    The floor is ``ROLLING_WINDOW_MONTHS`` (15) wide while the histogram still draws 12 bars: the
+    extra months exist so the 작년 같은 달 column has a month to rank, not to be charted.
     """
     total = anchor.year * 12 + (anchor.month - 1) - (ROLLING_WINDOW_MONTHS - 1)
     year, month = divmod(total, 12)
