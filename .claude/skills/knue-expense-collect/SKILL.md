@@ -25,6 +25,7 @@ python3 $SKILL/fetch_disclosures.py  --month 2026-07         # 1. posts + attach
 python3 $SKILL/parse_disclosures.py  --month 2026-07         # 2. transaction rows
 python3 $SKILL/normalize_places.py   --month 2026-07         # 3. merge spellings
 python3 $SKILL/geocode_candidates.py --month 2026-07         # 4. append to the review queue
+python3 $SKILL/geocode_candidates.py --report                # +  propose alias merges
 ```
 
 Intermediate output lands in `collector/out/<month>/` (gitignored). Only
@@ -93,6 +94,13 @@ rows are one place, say so in the summary and let the reviewer merge — don't p
 reviewer merges in `collector/aliases.json`, not by editing the queue: the canonical name is what
 the transactions join on, so deleting a row drops its visits instead of merging them.
 
+`--report` finds the candidates instead of making you look: it groups the **approved** rows on
+identical `lat`/`lng` and prints every group holding more than one spelling, loudest by visits
+first. Clusters whose spellings are already in `aliases.json` collapse to a trailing count, so what
+prints is the month's new work. It reads the committed queue only — no month, no credentials, no
+network — and it never writes: merging stays the reviewer's call, because one coordinate really can
+hold two businesses.
+
 **Out-of-region venues.** Business trips produce Seoul and Gangneung entries. They are flagged,
 not deleted, because the flag is based on a geocoder guess. The agreed scope is 청주 · 세종 ·
 공주 · 대전 (증평 is a separate 충북 county and is *not* 청주).
@@ -139,5 +147,6 @@ scripts/fetch_disclosures.py   stage 1 — posts + attachments -> posts.json
 scripts/parse_disclosures.py   stage 2 — spreadsheets/PDF -> raw_transactions.json
 scripts/normalize_places.py    stage 3 — spelling merge -> normalized_places.json
 scripts/geocode_candidates.py  stage 4 — Naver local search -> review_candidates.csv
+                               --report — same-coordinate spelling clusters to merge
 assets/exclusions.json         venue names not worth a lookup; grows as you learn
 ```

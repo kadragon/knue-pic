@@ -53,7 +53,8 @@ Note the Pages subpath: `npm run preview` serves at `/knue-pic/`, not `/`.
 Run by the operator; never in CI. Full cycle in `docs/workflows.md` → `data-update`.
 
 ```bash
-# collection is the knue-expense-collect skill — its SKILL.md holds the five stage commands
+# collection is the knue-expense-collect skill — its SKILL.md holds the five stage commands,
+# plus `geocode_candidates.py --report`, which proposes alias merges for the review pass below
 # → writes collector/out/ and appends rows to review_candidates.csv
 # review pending rows by hand: set status to approved / rejected
 # merge spellings of one business in collector/aliases.json (see docs/architecture.md → Build)

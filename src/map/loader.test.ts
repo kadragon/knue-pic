@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createFakeNaverApi } from './fake-naver-api';
 import { loadNaverMaps, naverMapsScriptUrl, resetNaverMapsLoader } from './loader';
 
@@ -31,6 +31,24 @@ describe('loadNaverMaps', () => {
   it('rejects without injecting anything when no client ID is configured', async () => {
     await expect(loadNaverMaps({ clientId: undefined, readApi: () => undefined })).rejects.toThrow();
     expect(injectedScript()).toBeNull();
+  });
+
+  it('lets an explicit undefined mean "not configured" even when the build has a key', async () => {
+    // The case above passes for the wrong reason wherever `.env` is absent — CI, a fresh clone.
+    // Loading the module against a stubbed env is what makes it a guard everywhere: a
+    // `clientId = CLIENT_ID` default would swallow the `undefined` and inject a real script tag.
+    vi.stubEnv('VITE_NAVER_MAP_CLIENT_ID', 'configured-key');
+    vi.resetModules();
+    const configured = await import('./loader');
+    try {
+      await expect(
+        configured.loadNaverMaps({ clientId: undefined, timeoutMs: 1, readApi: () => undefined }),
+      ).rejects.toThrow(/not configured/);
+      expect(injectedScript()).toBeNull();
+    } finally {
+      configured.resetNaverMapsLoader();
+      vi.unstubAllEnvs();
+    }
   });
 
   it('rejects when the script fails to load', async () => {
