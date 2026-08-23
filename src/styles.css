@@ -882,10 +882,11 @@ div.top-place-body {
 
 /*
  * Three columns, then two, before a row gets too narrow to hold a name and a movement label on one
- * line. The three-column step is what the fifth column bought: five across a 1200px laptop leaves
- * each list under 220px, where every second name wraps.
+ * line. The three-column step is what the fifth column bought: at 1200px five lists are 217px wide
+ * and every second name wraps, so the switch happens at that width — `max-width: 1199px` is
+ * "below 1200", the same way the 899px and 599px steps below read.
  */
-@media (max-width: 1199px) {
+@media (max-width: 1200px) {
   .place-columns-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

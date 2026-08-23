@@ -30,7 +30,19 @@
   `src/stats/period.ts` so `isPriorWindowComplete` matches what the file actually holds. It must
   not move first: the constant is read as "there is data this far back", so raising it over
   uncollected months makes every place count zero visits there and renders invented ▼ rank drops
-  on the 6개월 column — `src/stats/period.ts:87`
+  on the 6개월 column. The detail chart is no longer coupled to it — `HISTOGRAM_MONTHS` in
+  `src/stats/histogram.ts` owns the bar count — so this is a one-line change
+  — `src/stats/period.ts:87`
+
+### The detail card charts no bar for the 작년 같은 달 month (2026-08-23)
+
+- [ ] [debt] Opening a place from the 작년 같은 달 column prints "2025년 8월 기준" over figures the
+  12-bar histogram beside it cannot show: the chart ends at the anchor's own month and reaches back
+  `HISTOGRAM_MONTHS`, so the very month the count describes has no bar. Not wrong — the card names
+  its window, and the bars are labelled — but a reader comparing the two finds the stated month
+  missing. Options: widen the chart for that basis only, mark the stated month on it, or say in the
+  chart's heading that it covers the recent 12 months regardless of the figures above
+  — `src/ui/place-detail.ts`, `src/stats/histogram.ts`
 
 ## Someday
 

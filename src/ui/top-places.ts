@@ -120,8 +120,9 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
 /**
  * `onSelect` is optional: without it the list renders exactly as before, with no controls.
  *
- * `heading` is overridden by `src/ui/place-columns.ts`, where three of these lists sit side by side
- * and the window each one reads — 최근 1개월 / 6개월 / 1년 — is the thing that tells them apart. The
+ * `heading` is overridden by `src/ui/place-columns.ts`, where four of these lists sit side by side
+ * and the window each one reads — a calendar month a year back, then 3개월 / 6개월 / 1년 — is the
+ * thing that tells them apart. The
  * override still has to state the rendered count, so `columnHeading` builds it the same way
  * `topPlacesHeading` does.
  */

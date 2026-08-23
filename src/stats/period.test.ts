@@ -199,13 +199,33 @@ describe('resolveLastYearMonthWindow', () => {
   });
 
   it('is a window no `Period` produces', () => {
-    // The 1y window ends at the anchor and *excludes* its own start day, which is the last day of
-    // this one. Sharing a boundary is the point: the two tile rather than overlap.
+    // The 1y window is measured from the anchor *day*, this one from the anchor's month, so the
+    // two only line up when the anchor is the first of a month. On 2026-08-22 they overlap by the
+    // tail of 2025-08 — which is correct, not a defect: they are two separate columns answering
+    // two questions, and nothing sums one into the other. What must hold is that neither is a
+    // restatement of the other.
     const yearly = resolvePeriodWindow('1y', '2026-08-22');
     const lastYear = resolveLastYearMonthWindow('2026-08-22');
-    expect(lastYear.end < yearly.start).toBe(false);
+    expect(lastYear).not.toEqual(yearly);
+    // The first of the month is in this window and outside 1y; the tail of it is in both.
     expect(isWithinWindow('2025-08-01', lastYear)).toBe(true);
     expect(isWithinWindow('2025-08-01', yearly)).toBe(false);
+    expect(isWithinWindow('2025-08-25', lastYear)).toBe(true);
+    expect(isWithinWindow('2025-08-25', yearly)).toBe(true);
+  });
+
+  it('overlaps the 1y window rather than tiling with it, at any anchor', () => {
+    // Stated because the opposite is the intuitive guess. 1y reaches back to the anchor's own day
+    // twelve months ago; this window is the whole month around that day, so it always starts
+    // earlier and always ends inside 1y's span. The two columns therefore count some of the same
+    // visits — which is what side-by-side windows are for. Only the prior-window arithmetic in
+    // `resolvePriorWindow` needs windows that tile, and it is never handed this one.
+    for (const anchor of ['2026-08-01', '2026-08-22', '2026-08-31']) {
+      const yearly = resolvePeriodWindow('1y', anchor);
+      const lastYear = resolveLastYearMonthWindow(anchor);
+      expect(lastYear.start < yearly.start).toBe(true);
+      expect(lastYear.end <= yearly.end).toBe(true);
+    }
   });
 });
 

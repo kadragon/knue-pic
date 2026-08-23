@@ -8,7 +8,7 @@ import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
 import { createDetailDialog, type DetailDialogOptions } from './detail-dialog';
 import { renderKindFilter, markActiveKind, type KindSelection } from './kind-filter';
-import { COLUMN_ORDER, renderPlaceColumns, type ColumnKey } from './place-columns';
+import { TRENDING_COLUMN, renderPlaceColumns, type ColumnKey } from './place-columns';
 import { renderPlaceSearch } from './search';
 import { renderShell, setShellUpdatedAt } from './shell';
 
@@ -45,12 +45,21 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
   /**
    * Held here rather than in the views because both of them are rebuilt from it: the kind decides
-   * what the columns and the search are computed over, and the column decides which of the four is
+   * what the columns and the search are computed over, and the column decides which of the five is
    * on screen once a narrow viewport has collapsed them to one. A view that owned either would lose
    * it on the next re-render.
    */
   let activeKind: KindSelection = null;
-  let activeColumn: ColumnKey = COLUMN_ORDER[0]!;
+  /**
+   * The opening tab is trending, not `COLUMN_ORDER[0]`.
+   *
+   * The grid leads with 작년 같은 달 because that is the reading order the columns were asked for,
+   * but below 600px only the active column is on screen — and that column is the one most likely to
+   * be empty, since the month it ranks sits at the far edge of what the file retains. A phone visitor
+   * would open on "이 기간에는 이용 기록이 없습니다." with no cue that four populated lists sit
+   * behind the tabs. The tab group still lists every column in `COLUMN_ORDER`.
+   */
+  let activeColumn: ColumnKey = TRENDING_COLUMN;
 
   function onRetry(): void {
     retriedByUser = true;

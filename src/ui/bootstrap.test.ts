@@ -276,7 +276,10 @@ describe('bootstrap columns', () => {
     document.body.append(root);
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    expect(pressedTab(root)?.textContent).toBe(columnLabel(COLUMN_ORDER[0]!, SAMPLE_DATASET.updatedAt));
+    // Trending, not `COLUMN_ORDER[0]`: below 600px the active column is the only one on screen,
+    // and the column the grid leads with is the one most likely to hold nothing.
+    expect(pressedTab(root)?.textContent).toBe(columnLabel('trending', SAMPLE_DATASET.updatedAt));
+    expect(COLUMN_ORDER[0]).not.toBe('trending');
 
     const button = columnTab(root, PERIOD_LABELS['6m']);
     button?.focus();
