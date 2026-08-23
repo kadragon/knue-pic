@@ -6,19 +6,6 @@
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*
 
-### Same-coordinate spelling clusters are found by hand (2026-08-21)
-
-- [ ] [debt] `collector/aliases.json` merges the spellings of one business, but finding them is a manual pass: group the approved rows on identical `lat`/`lng` and the clusters fall out. The 2025-09..2026-08 run had 66 of them covering 47% of all visits, and new spellings arrive every month, so this recurs. Surface the clusters at stage 4 (or as a `--report` on the build) so the reviewer is told which rows to consider merging instead of having to look — `.claude/skills/knue-expense-collect/scripts/geocode_candidates.py`
-
-### `loader.test.ts` fails on any machine with a configured client ID (2026-08-22)
-
-- [ ] [test] `loadNaverMaps({ clientId: undefined })` cannot express "not configured": the option is
-  destructured as `clientId = CLIENT_ID`, so passing `undefined` falls back to the `.env` value, a
-  script tag is injected and the case waits out the load timeout instead of rejecting. It passes in
-  CI (no `.env`) and times out locally — `npm test` is red on a contributor machine for a reason
-  that has nothing to do with their change. Reproduced on `main` at 29bab9a, so it predates the
-  four-column work — `src/map/loader.test.ts:31`, `src/map/loader.ts:58`
-
 ### 작년 같은 달 column has no month to rank until the backfill lands (2026-08-23)
 
 - [ ] [feat] Collect 2025-06, 2025-07 and 2025-08 with `knue-expense-collect`, geocode the new
@@ -43,6 +30,16 @@
   missing. Options: widen the chart for that basis only, mark the stated month on it, or say in the
   chart's heading that it covers the recent 12 months regardless of the figures above
   — `src/ui/place-detail.ts`, `src/stats/histogram.ts`
+
+### `geocode_candidates.py --report` has no test home and tracebacks on operator error (2026-08-23)
+
+- [ ] [debt] Two findings from the QA pass on `--report`, both declined as out of scope there. A
+  malformed `--aliases` file raises `json.JSONDecodeError` and a directory passed as `--csv` raises
+  `IsADirectoryError`, where the missing-CSV case already exits 2 with a message — the operator-error
+  paths are inconsistent. And nothing automated covers `coordinate_clusters`/`report`: `collector/tests`
+  only collects the `collector` package, so a skill script has no test home at all. The second is the
+  larger of the two — a test harness for `.claude/skills/*/scripts/` would cover every stage, not just
+  this flag — `.claude/skills/knue-expense-collect/scripts/geocode_candidates.py`, `collector/tests/`
 
 ## Someday
 

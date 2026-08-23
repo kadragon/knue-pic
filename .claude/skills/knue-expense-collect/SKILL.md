@@ -27,6 +27,13 @@ python3 $SKILL/normalize_places.py   --month 2026-07         # 3. merge spelling
 python3 $SKILL/geocode_candidates.py --month 2026-07         # 4. append to the review queue
 ```
 
+Then review the pending rows by hand (below). **After** their `status` is set — not before —
+`--report` proposes the spellings worth merging:
+
+```bash
+python3 $SKILL/geocode_candidates.py --report
+```
+
 Intermediate output lands in `collector/out/<month>/` (gitignored). Only
 `review_candidates.csv` is committed.
 
@@ -93,6 +100,18 @@ rows are one place, say so in the summary and let the reviewer merge — don't p
 reviewer merges in `collector/aliases.json`, not by editing the queue: the canonical name is what
 the transactions join on, so deleting a row drops its visits instead of merging them.
 
+`--report` finds the candidates instead of making you look: it groups the **approved** rows on
+identical `lat`/`lng` and prints every group holding more than one spelling, loudest by visits
+first. Approved is the operative word — stage 4 appends new venues as `pending`, so running this
+straight after it shows you last month's settled clusters and none of the new spellings. Run it
+after the review pass, once this month's rows say `approved`.
+
+A cluster collapses to the trailing count only when all of its spellings resolve to the *same*
+canonical name. Names that are each mapped but to *different* canonicals still print — that is one
+coordinate publishing as two places, which is precisely the case worth seeing. It reads the
+committed queue only — no month, no credentials, no network — and it never writes: merging stays
+the reviewer's call, because one coordinate really can hold two businesses.
+
 **Out-of-region venues.** Business trips produce Seoul and Gangneung entries. They are flagged,
 not deleted, because the flag is based on a geocoder guess. The agreed scope is 청주 · 세종 ·
 공주 · 대전 (증평 is a separate 충북 county and is *not* 청주).
@@ -139,5 +158,6 @@ scripts/fetch_disclosures.py   stage 1 — posts + attachments -> posts.json
 scripts/parse_disclosures.py   stage 2 — spreadsheets/PDF -> raw_transactions.json
 scripts/normalize_places.py    stage 3 — spelling merge -> normalized_places.json
 scripts/geocode_candidates.py  stage 4 — Naver local search -> review_candidates.csv
+                               --report — same-coordinate spelling clusters to merge
 assets/exclusions.json         venue names not worth a lookup; grows as you learn
 ```

@@ -7,6 +7,8 @@ Usage:
                                     [--csv review_candidates.csv]
     python3 geocode_candidates.py --selftest      # verify the API and the
                                                   # coordinate scale first
+    python3 geocode_candidates.py --report        # list same-coordinate name
+                                                  # clusters to consider merging
 
 Every row is written with status=pending. The geocoder never promotes a place:
 docs/architecture.md makes review_candidates.csv the human gate, and a
@@ -242,6 +244,110 @@ def load_existing(path: str) -> tuple[list[dict], list[str]]:
     return rows, columns
 
 
+def coordinate_clusters(rows: list[dict]) -> list[tuple[str, list[dict]]]:
+    """Group approved rows on identical lat/lng and keep the groups holding ≥2 names.
+
+    Two approved rows sharing a coordinate to the digit are one business under two
+    spellings — the geocoder resolved both to the same place. That is the signal
+    `collector/aliases.json` is built from, and finding it by eye over ~900 rows is
+    the manual pass this exists to remove. It only *proposes*: merging stays a
+    reviewer decision, because a mall food court really can hold two businesses at
+    one point.
+    """
+    groups: dict[str, list[dict]] = {}
+    for row in rows:
+        if (row.get("status") or "").strip() != "approved":
+            continue
+        lat, lng = (row.get("lat") or "").strip(), (row.get("lng") or "").strip()
+        if not lat or not lng:
+            continue
+        groups.setdefault(f"{lat},{lng}", []).append(row)
+
+    clusters = [
+        (key, members)
+        for key, members in groups.items()
+        if len({(m.get("canonical_name") or "").strip() for m in members}) > 1
+    ]
+    # Loudest first: a cluster's visit total is what decides whether merging it
+    # changes the ranking a reader sees.
+    clusters.sort(key=lambda item: -sum(_visits(m) for m in item[1]))
+    return clusters
+
+
+def _visits(row: dict) -> int:
+    try:
+        return int((row.get("visits") or "0").strip() or 0)
+    except ValueError:
+        return 0
+
+
+def report(csv_path: str, aliases_path: str) -> int:
+    if not os.path.exists(csv_path):
+        print(f"{csv_path} does not exist — run stage 4 first", file=sys.stderr)
+        return 2
+    rows, _ = load_existing(csv_path)
+    clusters = coordinate_clusters(rows)
+
+    aliases: dict[str, str] = {}
+    if os.path.exists(aliases_path):
+        with open(aliases_path, encoding="utf-8") as fh:
+            aliases = json.load(fh)
+
+    if not clusters:
+        print(f"No same-coordinate clusters among the approved rows in {csv_path}.")
+        return 0
+
+    targets = set(aliases.values())
+
+    def state_of(name: str) -> str:
+        # A name already in aliases.json is not a decision to re-make every month,
+        # and neither is the name the others already merge *into*.
+        if name in aliases:
+            return f"→ {aliases[name]}"
+        return "canonical" if name in targets else "unmapped"
+
+    def names_of(members: list[dict]) -> list[str]:
+        return [(m.get("canonical_name") or "").strip() for m in members]
+
+    # A cluster is settled when its spellings all resolve to ONE canonical name.
+    # "Every name is mapped somewhere" is the weaker test and hides a real case:
+    # aliases {"A": "C", "X": "B"} leaves A and B at one coordinate publishing as two
+    # places, with nothing unmapped to notice. Printing settled clusters is what made
+    # the manual pass tiring, so they collapse to a count and only open ones get a block.
+    open_clusters = [
+        (key, members) for key, members in clusters
+        if len({aliases.get(name, name) for name in names_of(members)}) > 1
+    ]
+    settled = len(clusters) - len(open_clusters)
+
+    if not open_clusters:
+        print(f"{len(clusters)} same-coordinate cluster(s) in {csv_path}, "
+              f"all already merged in {aliases_path} — nothing to decide.")
+        return 0
+
+    open_visits = sum(_visits(m) for _, members in open_clusters for m in members)
+    print(f"{len(open_clusters)} same-coordinate cluster(s) awaiting a merge decision "
+          f"in {csv_path}, {open_visits} visits.\n"
+          "Each block is one coordinate: these spellings geocoded to the same point.\n"
+          f"Consider mapping them onto one canonical name in {aliases_path} —\n"
+          "this proposes, it never merges.\n")
+
+    for key, members in open_clusters:
+        members = sorted(members, key=lambda m: -_visits(m))
+        head = members[0]
+        label = (head.get("naver_title") or head.get("display_name") or "").strip()
+        print(f"  {key}  {label}  ({sum(_visits(m) for m in members)} visits)")
+        for member in members:
+            name = (member.get("canonical_name") or "").strip()
+            # Padding is deliberately absent — these names are CJK, so it never lines up.
+            print(f"      {name} ({_visits(member)} visits) — {state_of(name)}")
+        print()
+
+    if settled:
+        print(f"({settled} further cluster(s) are already fully merged — not listed.)")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--month", help="target month, YYYY-MM")
@@ -249,12 +355,20 @@ def main() -> int:
     ap.add_argument("--csv", default="review_candidates.csv")
     ap.add_argument("--selftest", action="store_true",
                     help="check credentials and the coordinate scale, then exit")
+    ap.add_argument("--report", action="store_true",
+                    help="list approved rows sharing a coordinate — the merge "
+                         "candidates for collector/aliases.json — then exit")
+    ap.add_argument("--aliases", default="collector/aliases.json",
+                    help="alias map consulted by --report to mark a name already merged")
     args = ap.parse_args()
 
     if args.selftest:
         return selftest()
+    # Reads the committed queue only: no credentials, no month, no network.
+    if args.report:
+        return report(args.csv, args.aliases)
     if not args.month or not re.fullmatch(r"\d{4}-\d{2}", args.month):
-        print("--month YYYY-MM is required (or use --selftest)", file=sys.stderr)
+        print("--month YYYY-MM is required (or use --selftest / --report)", file=sys.stderr)
         return 2
 
     client_id, secret = credentials()

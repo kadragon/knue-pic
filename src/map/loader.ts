@@ -31,6 +31,11 @@ const SCRIPT_ORIGIN = 'https://oapi.map.naver.com/openapi/v3/maps.js';
 const LOAD_TIMEOUT_MS = 10_000;
 
 export interface LoadNaverMapsOptions {
+  /**
+   * Omit to read the build-time key. Passing it explicitly — `undefined` included — overrides that,
+   * so a caller (the tests, above all) can say "not configured" on a machine that *is* configured.
+   * A `clientId = CLIENT_ID` default parameter cannot express that: it fires on `undefined` too.
+   */
   clientId?: string | undefined;
   timeoutMs?: number;
   /** Injected by the tests; production reads the real global. */
@@ -56,11 +61,8 @@ export function naverMapsScriptUrl(clientId: string): string {
 let pending: Promise<NaverMapsApi> | null = null;
 
 export function loadNaverMaps(options: LoadNaverMapsOptions = {}): Promise<NaverMapsApi> {
-  const {
-    clientId = CLIENT_ID,
-    timeoutMs = LOAD_TIMEOUT_MS,
-    readApi = readGlobalApi,
-  } = options;
+  const { timeoutMs = LOAD_TIMEOUT_MS, readApi = readGlobalApi } = options;
+  const clientId = 'clientId' in options ? options.clientId : CLIENT_ID;
 
   const already = readApi();
   if (already) return Promise.resolve(already);
