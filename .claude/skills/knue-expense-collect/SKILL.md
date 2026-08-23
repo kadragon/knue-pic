@@ -25,7 +25,13 @@ python3 $SKILL/fetch_disclosures.py  --month 2026-07         # 1. posts + attach
 python3 $SKILL/parse_disclosures.py  --month 2026-07         # 2. transaction rows
 python3 $SKILL/normalize_places.py   --month 2026-07         # 3. merge spellings
 python3 $SKILL/geocode_candidates.py --month 2026-07         # 4. append to the review queue
-python3 $SKILL/geocode_candidates.py --report                # +  propose alias merges
+```
+
+Then review the pending rows by hand (below). **After** their `status` is set — not before —
+`--report` proposes the spellings worth merging:
+
+```bash
+python3 $SKILL/geocode_candidates.py --report
 ```
 
 Intermediate output lands in `collector/out/<month>/` (gitignored). Only
@@ -96,10 +102,15 @@ the transactions join on, so deleting a row drops its visits instead of merging 
 
 `--report` finds the candidates instead of making you look: it groups the **approved** rows on
 identical `lat`/`lng` and prints every group holding more than one spelling, loudest by visits
-first. Clusters whose spellings are already in `aliases.json` collapse to a trailing count, so what
-prints is the month's new work. It reads the committed queue only — no month, no credentials, no
-network — and it never writes: merging stays the reviewer's call, because one coordinate really can
-hold two businesses.
+first. Approved is the operative word — stage 4 appends new venues as `pending`, so running this
+straight after it shows you last month's settled clusters and none of the new spellings. Run it
+after the review pass, once this month's rows say `approved`.
+
+A cluster collapses to the trailing count only when all of its spellings resolve to the *same*
+canonical name. Names that are each mapped but to *different* canonicals still print — that is one
+coordinate publishing as two places, which is precisely the case worth seeing. It reads the
+committed queue only — no month, no credentials, no network — and it never writes: merging stays
+the reviewer's call, because one coordinate really can hold two businesses.
 
 **Out-of-region venues.** Business trips produce Seoul and Gangneung entries. They are flagged,
 not deleted, because the flag is based on a geocoder guess. The agreed scope is 청주 · 세종 ·
