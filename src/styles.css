@@ -90,9 +90,6 @@
   /* Not a fourth tier — the inverse of the ladder. A pressed control sinks and a well is cut into
      its surface, so neither can be confused with the hover lift, which always rises. */
   --shadow-inset: inset rgba(0, 0, 0, 0.12) 0 1px 3px;
-  /* The top-edge sheen: white along the top pixel of a surface is what makes it read as a lit
-     pane rather than a flat rectangle. On the opaque surfaces this is the whole of the glass. */
-  --highlight-inset: inset rgba(255, 255, 255, 0.9) 0 1px 0;
 
   /* Real glass, and only where it is earned: the sticky header and the dialog scrim are the two
      surfaces with page content actually moving underneath them. Anywhere else a blur has nothing
@@ -179,8 +176,15 @@ body {
   /* Glass rather than the flat tint: the list scrolls under this band, so a translucent, blurred
      surface reports where the content went instead of hiding it behind an opaque lid. The
      saturation boost keeps the 업종 chip colours passing underneath from going grey in the blur.
-     `--glass-band` is `--band` at 72%, so the ink on it never sits on anything darker than the
-     page floor and the contrast pairs in note 4 hold. */
+
+     What passes underneath is not the page floor. `.kind-filter` is the first child of `#content`
+     and one chip is always pressed, so an `--ink` (#222) or 업종 `-fg` fill scrolls directly
+     behind this text. A full-coverage `--ink` fill would composite the band to #c1bebe, but that
+     is an arithmetic ceiling the page never reaches: `blur(20px)` spreads a 58–99px chip, so the
+     darkest pixel measured under the header text at either width is #d8d4d5. Both header pairs
+     are stated against that floor, decoded from a rendered frame rather than derived — the h1's
+     `--ink` is 10.8:1 on it and the tagline's `--body` 7.2:1. `--muted`, which the tagline used
+     to be, is 3.7:1 there, which is why it is no longer what the tagline uses. */
   background: var(--glass-band);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
@@ -209,9 +213,15 @@ body {
   color: var(--rausch);
 }
 
+/*
+ * `--body`, not the `--muted` a secondary line would otherwise take. This text sits on glass, and
+ * the darkest backdrop measured under it is #d8d4d5 (see the note on `.shell-header` above, which
+ * carries the measurement): `--muted` is 3.68:1 there and fails WCAG 1.4.3, `--body` is 7.17:1.
+ * The tone lost is the price of the header being translucent at all.
+ */
 .shell-tagline {
   margin: 2px 0 0;
-  color: var(--muted);
+  color: var(--body);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -255,7 +265,7 @@ body {
   border: 1px solid var(--hairline-soft);
   border-radius: var(--radius-lg);
   background: var(--canvas);
-  box-shadow: var(--shadow-raised), var(--highlight-inset);
+  box-shadow: var(--shadow-raised);
 }
 
 /*
@@ -292,7 +302,7 @@ body {
   font: inherit;
   font-size: 14px;
   cursor: pointer;
-  box-shadow: var(--shadow-chip), var(--highlight-inset);
+  box-shadow: var(--shadow-chip);
   transition:
     border-color 120ms ease, color 120ms ease, background-color 120ms ease,
     box-shadow 120ms ease, transform 120ms ease;
@@ -333,7 +343,7 @@ body {
   border-color: var(--ink);
   color: var(--ink);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-raised), var(--highlight-inset);
+  box-shadow: var(--shadow-raised);
 }
 
 /* Marked by weight, fill and border as well as colour, never colour alone. The inset is a fourth
@@ -481,7 +491,7 @@ a[role='button'] {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--shadow-chip), var(--highlight-inset);
+  box-shadow: var(--shadow-chip);
   transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease,
     transform 120ms ease;
 }
@@ -491,7 +501,7 @@ a[role='button'] {
   background: var(--surface-soft);
   border-color: var(--ink);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-raised), var(--highlight-inset);
+  box-shadow: var(--shadow-raised);
 }
 
 /* ── Data states ───────────────────────────────────────────────────────────────────────────── */
@@ -504,7 +514,7 @@ a[role='button'] {
   border-radius: var(--radius-lg);
   background: var(--canvas);
   color: var(--muted);
-  box-shadow: var(--shadow-raised), var(--highlight-inset);
+  box-shadow: var(--shadow-raised);
 }
 
 /* ── Period selector ───────────────────────────────────────────────────────────────────────── */
@@ -531,7 +541,7 @@ a[role='button'] {
   font: inherit;
   font-size: 14px;
   cursor: pointer;
-  box-shadow: var(--shadow-chip), var(--highlight-inset);
+  box-shadow: var(--shadow-chip);
   transition:
     border-color 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
@@ -540,7 +550,7 @@ a[role='button'] {
   border-color: var(--ink);
   color: var(--ink);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-raised), var(--highlight-inset);
+  box-shadow: var(--shadow-raised);
 }
 
 /* The active window is marked by weight, fill and border as well as colour, never colour alone;
@@ -588,6 +598,12 @@ a[role='button'] {
 .top-place:hover,
 .place-search-list li:hover {
   background: var(--surface-soft);
+}
+
+/* Only the ranked list takes the shadow. `.place-search-list` is a scroll container, so its
+   `overflow-y: auto` forces `overflow-x` off `visible` and cuts the shadow flat at both sides of
+   every row — a half-drawn shadow reads as a rendering fault, so those rows keep the tint alone. */
+.top-place:hover {
   box-shadow: var(--shadow-chip);
 }
 
@@ -765,7 +781,7 @@ div.top-place-body {
   font: inherit;
   font-size: 14px;
   cursor: pointer;
-  box-shadow: var(--shadow-chip), var(--highlight-inset);
+  box-shadow: var(--shadow-chip);
   transition:
     border-color 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
@@ -774,7 +790,7 @@ div.top-place-body {
   border-color: var(--rausch-strong);
   color: var(--rausch-strong);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-raised), var(--highlight-inset);
+  box-shadow: var(--shadow-raised);
 }
 
 
@@ -792,7 +808,7 @@ div.top-place-body {
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
   background: var(--canvas);
-  box-shadow: var(--shadow-raised), var(--highlight-inset);
+  box-shadow: var(--shadow-raised);
 }
 
 .place-search-field {
@@ -912,7 +928,7 @@ div.top-place-body {
   padding: var(--space-7);
   border-radius: var(--radius-lg);
   background: var(--canvas);
-  box-shadow: var(--shadow-overlay), var(--highlight-inset);
+  box-shadow: var(--shadow-overlay);
 }
 
 /* {component.button-secondary}, sized as an icon button and parked out of the reading order. */
@@ -930,14 +946,14 @@ div.top-place-body {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--shadow-chip), var(--highlight-inset);
+  box-shadow: var(--shadow-chip);
   transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .detail-dialog-close:hover {
   background: var(--surface-soft);
   border-color: var(--ink);
-  box-shadow: var(--shadow-raised), var(--highlight-inset);
+  box-shadow: var(--shadow-raised);
 }
 
 /* Inside the panel the card is content, not a surface — the panel already carries the edges. */
@@ -1091,15 +1107,20 @@ div.top-place-body {
   text-decoration: none;
   /* The one tinted shadow on the page, and the one place the ladder is not used. A neutral shadow
      under a saturated fill reads as dirt; this one is the fill's own colour, so it reads as the
-     button glowing. Nothing else may copy it — it marks the single CTA. */
-  box-shadow: rgba(224, 11, 65, 0.24) 0 4px 14px;
+     button glowing. Nothing else may copy it — it marks the single CTA.
+
+     `color-mix` rather than the token's channels written out: a literal `rgba(224, 11, 65, …)` is
+     a copy of `--rausch-strong` that nothing keeps in step, so retuning the brand colour would
+     leave the glow at the old hue silently. A browser without `color-mix` drops the declaration
+     and the CTA loses its glow, which is the whole of the damage. */
+  box-shadow: color-mix(in srgb, var(--rausch-strong) 24%, transparent) 0 4px 14px;
   transition: background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
 .place-detail-link:hover {
   background: var(--rausch-active);
   transform: translateY(-1px);
-  box-shadow: rgba(193, 0, 50, 0.32) 0 8px 22px;
+  box-shadow: color-mix(in srgb, var(--rausch-active) 32%, transparent) 0 8px 22px;
 }
 
 /* ── Map ───────────────────────────────────────────────────────────────────────────────────── */
@@ -1139,7 +1160,10 @@ div.top-place-body {
   border: 2px solid var(--canvas);
   border-radius: var(--radius-full);
   background: var(--rausch-strong);
-  box-shadow: var(--shadow-chip);
+  /* The one element that does not take a ladder tier. The two surface tiers are 4–7% black, tuned
+     against the page's own tinted floor; over Naver's photographic tiles that disappears and the
+     pin is left separated by its 2px white border alone. This shadow is sized for that backdrop. */
+  box-shadow: rgba(0, 0, 0, 0.18) 0 1px 3px;
 }
 
 /* The card's own slot for the map, so the figures below keep their gutter when it fails or loads. */
@@ -1307,5 +1331,16 @@ div.top-place-body {
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+
+  /* Zeroing the duration only makes the hover lift instant — it still moves, which is the thing
+     this preference asks to stop. The shadow change carries the hover on its own here. */
+  .kind-filter-option:hover,
+  .period-tab:hover,
+  .top-places-more-button:hover,
+  .data-state-retry:hover,
+  .place-search-reset:hover,
+  .place-detail-link:hover {
+    transform: none !important;
   }
 }
