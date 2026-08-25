@@ -18,8 +18,8 @@ import { daysInMonth, formatIsoDate, parseIsoDate, type CalendarDate } from '../
  *
  * That asymmetry is what lets consecutive windows tile without overlapping. `docs/architecture.md`
  * defines the prior period as the immediately preceding window of the same length, so if both ends
- * were inclusive the two windows would share their boundary day and the rank-delta and trending
- * work would count that day's transactions twice. It also keeps a `1m` window at 31 days rather
+ * were inclusive the two windows would share their boundary day and the rank-delta comparison
+ * would count that day's transactions twice. It also keeps a `1m` window at 31 days rather
  * than 32.
  */
 export interface PeriodWindow {
@@ -45,9 +45,8 @@ function subtractMonths(date: CalendarDate, months: number): CalendarDate {
 /**
  * The window covering the `months` calendar months up to (and including) `anchor`.
  *
- * The period selector is not the only consumer of a month window: trending reads one month, newly
- * seen reads two, and the histogram spans twelve of the retained months — thirteen for a card opened
- * from the 작년 같은 달 column (`src/stats/histogram.ts` -> `histogramMonthsFor`). Exposing the month
+ * The period selector is not the only consumer of a month window: the detail card's histogram
+ * spans `HISTOGRAM_MONTHS` of the retained months (`src/stats/histogram.ts`). Exposing the month
  * count directly
  * keeps all of them on the same clamping rule as `resolvePeriodWindow`, which delegates here — a
  * second hand-rolled subtraction is exactly how a window ends up one day off from the one a
@@ -86,8 +85,8 @@ export function isWithinWindow(date: string, periodWindow: PeriodWindow): boolea
  * Anything before that floor is simply absent, so a window reaching past it is incomplete no
  * matter how many transactions happen to fall inside it.
  *
- * Matches the collector's `ROLLING_WINDOW_MONTHS`, which was widened to 15 so the 작년 같은 달
- * column has a month to publish. This constant is not a configuration knob but a *claim* —
+ * Matches the collector's `ROLLING_WINDOW_MONTHS`, which is 15. This constant is not a
+ * configuration knob but a *claim* —
  * `isPriorWindowComplete` reads it as "there is data this far back" — so it may only be raised
  * once the months exist: the 2025-06/07/08 backfill landed with this change, and `data/places.json`
  * now spans 15 months. Raising it over uncollected months would have every place count 0 visits
@@ -143,56 +142,4 @@ export function isPriorWindowComplete(period: Period, anchor: string): boolean {
 function retentionFloor(anchor: string): string {
   const { year, month } = subtractMonths(parseIsoDate(anchor), RETAINED_MONTHS - 1);
   return formatIsoDate({ year, month, day: 1 });
-}
-
-/**
- * The one window that is a calendar month rather than "the last N months": the same month of the
- * previous year, which the first discovery column ranks.
- *
- * It is not a `Period` because `Period` means months counted back from the anchor, and every
- * consumer of that type — `MONTHS_BACK`, `resolvePriorWindow` — is written around that meaning.
- * Widening `Period` to hold this would make each of them answer a question it has no answer for.
- */
-export const LAST_YEAR_MONTH = 'lastYearMonth';
-
-/** Everything a list or the detail dialog can be measured over. */
-export type StatBasis = Period | typeof LAST_YEAR_MONTH;
-
-/**
- * How far back the 작년 같은 달 window sits, in whole calendar months.
- *
- * A fixed step, not a span: the column is "the same month last year", so this is twelve whatever
- * else widens. `src/stats/histogram.ts` reads it to size the chart that has to reach that month.
- */
-export const LAST_YEAR_MONTHS_BACK = 12;
-
-/** The calendar month `LAST_YEAR_MONTHS_BACK` months before `anchor`'s own month. */
-export function lastYearMonthOf(anchor: string): { year: number; month: number } {
-  const { year, month } = subtractMonths(parseIsoDate(anchor), LAST_YEAR_MONTHS_BACK);
-  return { year, month };
-}
-
-/**
- * The whole calendar month twelve months back, half-open like every other window: `start` is the
- * last day of the month *before* it (excluded) and `end` its own last day (included).
- *
- * Deliberately the full month rather than a month counted back from the anchor's day. The anchor
- * is a publication date in the middle of a month, so a day-anchored window would straddle two
- * calendar months and could not be checked by hand against the disclosure it came from — the
- * property `docs/architecture.md` keeps every statistic to.
- */
-export function resolveLastYearMonthWindow(anchor: string): PeriodWindow {
-  const { year, month } = lastYearMonthOf(anchor);
-  const previous = subtractMonths({ year, month, day: 1 }, 1);
-  return {
-    start: formatIsoDate({ ...previous, day: daysInMonth(previous.year, previous.month) }),
-    end: formatIsoDate({ year, month, day: daysInMonth(year, month) }),
-  };
-}
-
-/** The window for any basis a column or the detail dialog can carry. */
-export function resolveBasisWindow(basis: StatBasis, anchor: string): PeriodWindow {
-  return basis === LAST_YEAR_MONTH
-    ? resolveLastYearMonthWindow(anchor)
-    : resolvePeriodWindow(basis, anchor);
 }

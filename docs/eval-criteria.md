@@ -18,11 +18,9 @@ Do the displayed numbers follow from `data/places.json`?
 | 1 | Ranking uses amount, or unapproved/unlocated places appear |
 
 **How to test:** pick one place, compute visit count, total, average, most recent visit, and the
-monthly histogram by hand from the JSON; compare against the UI for 3m, 6m, 1y, and the 작년 같은
-달 column (the whole calendar month twelve months before `updatedAt`'s own month). The chart is
-twelve bars everywhere except a card opened from that column, which draws thirteen so the month
-its figures name is the oldest bar (`src/stats/histogram.ts` -> `histogramMonthsFor`). 1m has no ranked
-column of its own — check it through the detail card opened from 최근 이용 변화.
+monthly histogram by hand from the JSON; compare against the UI for each of the four columns —
+1m, 3m, 6m, 1y. The chart is `HISTOGRAM_MONTHS` bars whatever column the card was opened from
+(`src/stats/histogram.ts`).
 
 ### 2. Framing Compliance (weight: 20%)
 

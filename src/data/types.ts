@@ -56,12 +56,8 @@ export interface PlacesDataset {
 /**
  * A window measured back from the dataset's anchor. Everything is re-derived from `transactions`.
  *
- * `1m` no longer has a ranked column of its own — the 최근 이용 변화 column already reads that
- * window, so a ranked list beside it repeated the same month. It stays in the union because
- * trending is *computed* over it and the detail dialog states it as the basis for a place picked
- * from that column.
- *
- * A calendar month that is not "the last N months" — the 작년 같은 달 column — is not expressible
- * here; see `StatBasis` in `src/stats/period.ts`.
+ * The four discovery columns are exactly these four windows, and the detail dialog states the one
+ * a place was picked from as its "…기준" line. Every window is measured back from the dataset's
+ * anchor, so a calendar month that is not "the last N months" is not expressible here.
  */
 export type Period = '1m' | '3m' | '6m' | '1y';

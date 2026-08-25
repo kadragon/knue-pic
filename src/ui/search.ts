@@ -1,6 +1,6 @@
 import type { PlaceRecord, PlacesDataset } from '../data/types';
 import { ALL_CATEGORIES, filterPlaces, listCategories } from '../stats/search';
-import { displayCategory } from './place-labels';
+import { displayCategory, renderKindBadge } from './place-labels';
 
 /**
  * Search and category filter over the whole dataset, with the results list underneath.
@@ -45,8 +45,9 @@ export function resultCountLabel(count: number): string {
   return `${count}곳이 검색되었습니다.`;
 }
 
+/** The address alone; the category is carried beside it by the 업종 badge. */
 export function placeSummary(place: PlaceRecord): string {
-  return [displayCategory(place.category), place.address].join(' · ');
+  return place.address;
 }
 
 /**
@@ -195,7 +196,11 @@ export function renderPlaceSearch(
       name.textContent = place.name;
       const meta = document.createElement('span');
       meta.className = 'place-select-meta';
-      meta.textContent = placeSummary(place);
+      meta.append(renderKindBadge(place));
+      const address = document.createElement('span');
+      address.className = 'place-select-address';
+      address.textContent = placeSummary(place);
+      meta.append(address);
 
       button.append(name, meta);
       item.append(button);

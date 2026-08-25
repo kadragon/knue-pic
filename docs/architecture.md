@@ -35,7 +35,7 @@ config the web app imports, a build step that calls the collector) breaks the co
 index.html
 src/                  # web app; browser-only code
   data/               # places.json loading + schema types
-  stats/              # pure computation: per-period ranking, rank delta, trending,
+  stats/              # pure computation: per-period ranking, rank delta,
                       #   monthly histogram, text/category filtering
   map/                # loader.ts (script injection), naver-api.ts (hand-written API types),
                       #   place-map.ts (one marker for the selected place + §38 fallback)
@@ -127,7 +127,7 @@ Two of the nine need a concrete value the invariant list does not carry:
 - **The rolling window** is floored on the *calendar month*, not on `updatedAt`'s day: the oldest
   accepted date is the first day of the month `ROLLING_WINDOW_MONTHS - 1` — 14 — before
   `updatedAt`'s own month. It is wider than the span `src/stats/histogram.ts` renders — twelve
-  months, or thirteen for a card opened from the 작년 같은 달 column — and
+  months — and
   `src/stats/period.ts` -> `retentionFloor` derives the browser's floor with the same formula so
   the two cannot disagree. A day-anchored floor would cut the oldest month in half, and the
   histogram bars would sum to fewer visits than the count printed beside them, with nothing
@@ -165,9 +165,10 @@ before places reach it.
 (`ROLLING_WINDOW_MONTHS` in `collector/validate.py`). Nothing bounds what `collector/out/` holds
 locally — `build_places.py`'s `month_dirs()` reads whichever month directories happen to exist —
 so this floor is the only retention rule in the pipeline. It is wider than the span
-`src/stats/histogram.ts` charts: the extra months exist so the 작년 같은 달 column — the calendar
-month twelve months back — has a month to rank instead of sitting on the floor and dropping out on
-the next monthly run.
+`src/stats/histogram.ts` charts: the extra months are what give the 최근 6개월 window a fully
+covered prior period — that comparison reaches twelve months back, which a 12-month file could not
+retain. 최근 1년 is never covered at any width the collector publishes (its prior period starts 24
+months back), which is why its rows carry no movement glyph.
 
 The window is a **ceiling on what may publish, not a claim that the months were collected.** The
 browser states that claim separately in `RETAINED_MONTHS` (`src/stats/period.ts`), which
@@ -243,9 +244,10 @@ saying so.
    single sitting are not merged.
 2. **Period recomputation.** Every window is derived from `transactions` client-side, at render
    time. There are no precomputed per-period fields in the JSON. The page shows four windows at
-   once — 최근 이용 변화 (fixed at the recent month) plus 1m / 6m / 1y — so `src/ui/place-columns.ts`
-   runs one aggregation per column on load and none after: nothing on the page switches a window
-   any more, and a place selected from a column is shown that column's figures.
+   once — 1m / 3m / 6m / 1y — so `src/ui/place-columns.ts` runs one aggregation per column on load
+   and none after: nothing on the page switches a window any more, and a place selected from a
+   column is shown that column's figures. Each aggregation ranks the *whole* window; the view pages
+   through it as the reader scrolls, so no cap is applied at compute time.
 3. **Rank comparison window.** The prior period is the immediately preceding window of the same
    length. When that window's data is incomplete, the rank delta is omitted — never guessed.
 4. **Approval queue.** `review_candidates.csv` is the human gate between geocoding and publication;

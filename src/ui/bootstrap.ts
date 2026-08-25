@@ -1,14 +1,14 @@
 import { loadPlacesDataset } from '../data/load';
 import type { Period, PlacesDataset } from '../data/types';
-import { computeMonthlyHistogram, histogramMonthsFor } from '../stats/histogram';
+import { computeMonthlyHistogram } from '../stats/histogram';
 import { filterByKind } from '../stats/search';
 import { computePlaceStats } from '../stats/place-stats';
-import { resolveBasisWindow, type StatBasis } from '../stats/period';
+import { resolvePeriodWindow } from '../stats/period';
 import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
 import { createDetailDialog, type DetailDialogOptions } from './detail-dialog';
 import { renderKindFilter, markActiveKind, type KindSelection } from './kind-filter';
-import { TRENDING_COLUMN, renderPlaceColumns, type ColumnKey } from './place-columns';
+import { COLUMN_ORDER, renderPlaceColumns, type ColumnKey } from './place-columns';
 import { renderPlaceSearch } from './search';
 import { renderShell, setShellUpdatedAt } from './shell';
 
@@ -45,21 +45,19 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
   /**
    * Held here rather than in the views because both of them are rebuilt from it: the kind decides
-   * what the columns and the search are computed over, and the column decides which of the five is
+   * what the columns and the search are computed over, and the column decides which of the four is
    * on screen once a narrow viewport has collapsed them to one. A view that owned either would lose
    * it on the next re-render.
    */
   let activeKind: KindSelection = null;
   /**
-   * The opening tab is trending, not `COLUMN_ORDER[0]`.
+   * The opening tab is the first column — the narrowest window, 최근 1개월.
    *
-   * The grid leads with 작년 같은 달 because that is the reading order the columns were asked for,
-   * but below 600px only the active column is on screen — and that column is the one most likely to
-   * be empty, since the month it ranks sits at the far edge of what the file retains. A phone visitor
-   * would open on "이 기간에는 이용 기록이 없습니다." with no cue that four populated lists sit
-   * behind the tabs. The tab group still lists every column in `COLUMN_ORDER`.
+   * Below 600px only the active column is on screen, so this is the one a phone visitor lands on.
+   * It is the freshest of the four and the one whose figures the newest published file supports
+   * best; the tab group still lists every column in `COLUMN_ORDER`.
    */
-  let activeColumn: ColumnKey = TRENDING_COLUMN;
+  let activeColumn: ColumnKey = COLUMN_ORDER[0]!;
 
   function onRetry(): void {
     retriedByUser = true;
@@ -87,7 +85,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   }
 
   /**
-   * Each view owns its own container and is rendered exactly once: the five columns show five fixed
+   * Each view owns its own container and is rendered exactly once: the four columns show four fixed
    * windows, so nothing on the page swaps a list any more. Selecting a place rebuilds the dialog
    * alone, which is what keeps the row the reader pressed alive to hand focus back to on close.
    *
@@ -114,16 +112,15 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     const dialog = createDetailDialog(detail, dialogOptions);
 
     /** `null` when the selection is not in the dataset. */
-    function currentDetail(placeId: string, basis: StatBasis): PlaceDetail | null {
+    function currentDetail(placeId: string, basis: Period): PlaceDetail | null {
       const place = dataset.places.find((candidate) => candidate.id === placeId);
       if (!place) return null;
 
       return {
         place,
         basis,
-        anchor: dataset.updatedAt,
-        stats: computePlaceStats(place, resolveBasisWindow(basis, dataset.updatedAt)),
-        histogram: computeMonthlyHistogram(place, dataset.updatedAt, histogramMonthsFor(basis)),
+        stats: computePlaceStats(place, resolvePeriodWindow(basis, dataset.updatedAt)),
+        histogram: computeMonthlyHistogram(place, dataset.updatedAt),
       };
     }
 
@@ -134,7 +131,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
      * the list the reader was reading rather than a period they never chose. The dialog moves focus
      * into itself and hands it back to this control on close.
      */
-    function selectPlace(placeId: string, basis: StatBasis): void {
+    function selectPlace(placeId: string, basis: Period): void {
       const next = currentDetail(placeId, basis);
       if (!next) return;
       dialog.open(next);

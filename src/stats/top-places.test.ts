@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlaceRecord, PlacesDataset } from '../data/types';
-import { LAST_YEAR_MONTH } from './period';
 import { computeTopPlaces, TOP_PLACES_LIMIT } from './top-places';
 
 /**
@@ -117,11 +116,15 @@ describe('computeTopPlaces ordering', () => {
       ),
     };
 
-    const { entries } = computeTopPlaces(dataset, '1m');
+    const { entries } = computeTopPlaces(dataset, '1m', TOP_PLACES_LIMIT);
 
     expect(entries).toHaveLength(TOP_PLACES_LIMIT);
     expect(entries[0]?.place.id).toBe('restaurant_000001');
     expect(entries[TOP_PLACES_LIMIT - 1]?.rank).toBe(TOP_PLACES_LIMIT);
+
+    // No limit means the whole ranking, not a large default: the columns page through it as the
+    // reader scrolls, so a default cap would be a ceiling nobody could scroll past.
+    expect(computeTopPlaces(dataset, '1m').entries).toHaveLength(placeCount);
   });
 
   it('honours an explicit limit', () => {
@@ -133,7 +136,6 @@ describe('computeTopPlaces rank delta', () => {
   it('omits every delta when the prior window predates the retained range', () => {
     const result = computeTopPlaces(SAMPLE_DATASET, '1y');
 
-    expect(result.priorWindowComplete).toBe(false);
     expect(result.entries.every((entry) => entry.rankDelta === null)).toBe(true);
   });
 
@@ -143,7 +145,6 @@ describe('computeTopPlaces rank delta', () => {
     const result = computeTopPlaces(SAMPLE_DATASET, '1m');
     const byId = new Map(result.entries.map((entry) => [entry.place.id, entry]));
 
-    expect(result.priorWindowComplete).toBe(true);
     expect(byId.get('restaurant_000006')?.rankDelta).toBe(0);
     expect(byId.get('restaurant_000005')?.rankDelta).toBeNull();
     expect(byId.get('restaurant_000001')?.rankDelta).toBeNull();
@@ -217,24 +218,3 @@ describe('computeTopPlaces rank delta', () => {
   });
 });
 
-describe('computeTopPlaces over 작년 같은 달', () => {
-  it('ranks that calendar month alone, not a span ending at the anchor', () => {
-    // 000006's 2025-08-01 payment is the fixture's only visit in 2025-08, and the 1y window
-    // excludes it — so the two windows cannot be satisfied by the same list.
-    expect(idsOf(SAMPLE_DATASET, LAST_YEAR_MONTH)).toEqual(['restaurant_000006']);
-  });
-
-  it('omits every rank delta, because the month before it was never published', () => {
-    const result = computeTopPlaces(SAMPLE_DATASET, LAST_YEAR_MONTH);
-
-    expect(result.priorWindowComplete).toBe(false);
-    expect(result.entries.every((entry) => entry.rankDelta === null)).toBe(true);
-  });
-
-  it('ranks nothing at all when the month holds no visit', () => {
-    // The state this column ships in until the older months are collected.
-    const result = computeTopPlaces({ ...SAMPLE_DATASET, updatedAt: '2028-08-01' }, LAST_YEAR_MONTH);
-
-    expect(result.entries).toEqual([]);
-  });
-});

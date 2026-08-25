@@ -27,11 +27,8 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 - Ranking is **by visit count only**. Amount never influences rank.
 - Ties break by: visit count → most recent visit date → total amount.
 - `averageAmount = totalAmount / visitCount`, rounded to whole won.
-- 최근 이용 변화 requires **≥2 visits in the recent month**; a prior-period count of 0
-  shows `신규`, not a percentage — never divide by zero into `Infinity`.
-- Rank delta is omitted, not zero, when the prior window's data is incomplete.
-- 작년 같은 달 is the whole calendar month twelve months before the anchor's month, and it never
-  shows a rank delta: the month before it is two years back, which no published file retains.
+- Rank delta is omitted, not zero, when the prior window's data is incomplete. In practice 최근 1년
+  is the one window whose prior period is never retained, so its rows carry no movement glyph.
 - Category defaults to `기타` when classification is uncertain — never guess a cuisine.
 
 ## Naming
@@ -44,25 +41,25 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 | Types | PascalCase | `PlaceRecord` |
 | Env vars (web) | `VITE_` prefix, SCREAMING_SNAKE | `VITE_NAVER_MAP_CLIENT_ID` |
 | Period values | `1m` \| `3m` \| `6m` \| `1y` | — |
-| Column bases | a `Period`, or `lastYearMonth` | `StatBasis` |
+| Column bases | a `Period` — the columns *are* the four periods | `Period` |
 
 ## Accessibility & Responsive (PRD §36–§37)
 
 - Importance is never conveyed by colour alone: a rank carries a number badge, a movement glyph
   carries an `aria-label`, and the active column tab carries weight and fill as well as colour.
-- Layout must hold at 360px width; source order is search → the five discovery columns.
-- The five columns — 작년 같은 달 / 최근 이용 변화 / 최근 3개월 / 최근 6개월 / 최근 1년 — are peers:
-  same card, same heading tier, same row cap. Making one heavier states something about the data
-  that the data does not say. They drop to three columns below 1200px, two below 900px and one
-  below 600px, where a tab group (`.place-column-tabs`, hidden above that width so it takes no tab
-  stops) switches between them. A column is never split across a reflow: the columns *are* the
-  comparison.
-- The 작년 같은 달 column names the month it covers (`2025년 8월`), not the relation: every label
-  beside it reads 최근 N개월, so an unnamed month leaves the reader unable to check the figure by
-  hand — which is the whole claim the page makes about its numbers.
-- There is no ranked 최근 1개월 column. 최근 이용 변화 already reads that month, and a ranked list
-  beside it stated the same window twice; `1m` survives as a `Period` because trending is computed
-  over it and the detail dialog states it as the basis for a place picked from that column.
+- The 업종 palette is the one place colour carries meaning. Each of the four kinds owns a
+  `--kind-*-bg`/`--kind-*-fg` pair in `src/styles.css`, and the same pair colours the filter chip
+  and every badge on a place of that kind. Two rules hold it honest: the badge always spells the
+  place's Naver category out as text, so colour is never the only carrier; and each `-fg` clears
+  4.5:1 both on its own `-bg` and on white, so it is legible as badge text, as chip text and as
+  white-on-fill when the chip is pressed. A view never picks a colour — it stamps `data-kind` and
+  the stylesheet decides (`src/ui/place-labels.ts` → `renderKindBadge`).
+- Layout must hold at 360px width; source order is search → the four discovery columns.
+- The four columns — 최근 1개월 / 3개월 / 6개월 / 1년 — are peers: same card, same heading tier,
+  same page size. Making one heavier states something about the data that the data does not say.
+  They drop to two columns below 1200px and one below 600px, where a tab group
+  (`.place-column-tabs`, hidden above that width so it takes no tab stops) switches between them.
+  A column is never split across a reflow: the columns *are* the comparison.
 - The place detail is a modal dialog, not a section: it opens over the list the reader is in,
   traps Tab, closes on Escape or scrim click, and returns focus to the control that opened it.
   It was the last section on the page until a UI review found that selecting anything threw the
@@ -70,10 +67,14 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
   selected place's location map: the map exists to answer "where is *this* one?", which is a
   question only ever asked from inside the dialog. The figures render whether or not the map
   script arrives.
-- Lists that can grow with the data are capped at a stated number: `COLUMN_LIMIT` for all five
-  columns. A ranked column states the rendered count in its heading; the trending column prints
-  `remainderLabel`. Search lists nothing until a query or a category is entered.
-- The 업종 filter is page-wide: it narrows the five columns and the search results together, and
+- A column opens on `COLUMN_PAGE_SIZE` rows and grows by that many at a time, never truncating:
+  the counter under the list states both halves (`47곳 중 10곳 표시`, then `47곳 모두 표시`), so
+  what is held back is on screen as a number. The heading names the window only — a count there
+  would be stale the moment the list grew. Paging is driven by an `IntersectionObserver` on the
+  `더 보기` button, and that button is a real control rather than an empty sentinel: a reader who
+  cannot generate a scroll must still be able to reach the rest. Search lists nothing until a query
+  or a category is entered.
+- The 업종 filter is page-wide: it narrows the four columns and the search results together, and
   the search's own 상세 분류 options are rebuilt from whatever it left. A control that narrowed one list
   while the other kept listing everything reads as a bug in the list it did not touch.
 - A display transform applied to a stored value (`displayCategory` folds the dataset's comma into

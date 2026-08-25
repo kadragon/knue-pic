@@ -1,22 +1,24 @@
 /*
- * Design tokens from DESIGN.md (Airbnb system spec), with the departures the review forced.
+ * The design tokens for the whole app. There is no design document behind this file any more —
+ * this comment is the record of why each choice is what it is.
  *
- * 1. No webfont. The spec runs Airbnb Cereal VF; Golden Principle #1 (AGENTS.md) allows the page to
- *    load `data/places.json` and the Naver Maps script and nothing else, so a font CDN is out. The
- *    stack keeps Cereal/Circular first for anyone who has them locally and falls through to the
- *    system Korean faces, which is what the UI actually renders in.
- * 2. Light only, but not contrast-blind. "Airbnb does not have a dark mode on the public web"
- *    (DESIGN.md → Surface), so there is no dark scheme; a `prefers-contrast: more` block at the end
- *    of this file carries the users a dark mode would otherwise have served.
- * 3. The page floor is `surface-soft`, not `canvas`. The spec's sections sit on white because a
- *    photograph gives every card its body; this product has no photography, so on a white floor the
- *    layout reads as text floating in space.
+ * 1. No webfont. Golden Principle #1 (AGENTS.md) allows the page to load `data/places.json` and
+ *    the Naver Maps script and nothing else, so a font CDN is out. The stack keeps a few display
+ *    faces first for anyone who has them locally and falls through to the system Korean faces,
+ *    which is what the UI actually renders in.
+ * 2. Light only, but not contrast-blind. There is no dark scheme; a `prefers-contrast: more`
+ *    block at the end of this file carries the readers a dark mode would otherwise have served.
+ * 3. The page floor is `surface-soft`, not `canvas`. This product has no photography, so on a
+ *    white floor the layout would read as text floating in space.
  * 4. White text never sits on `--rausch`. #ff385c under white is 3.52:1 — below the 4.5:1 of WCAG
  *    1.4.3 — so every surface that puts text on the brand colour uses `--rausch-strong` (#e00b41,
  *    4.89:1). #ff385c survives only where it carries no text.
- * 5. The spec's modest 22–28px display weights assume photography carries the visual load. With no
- *    imagery the scale has to do the whole job, so the ranked list is deliberately promoted above
- *    every other surface rather than sharing one card style with them.
+ * 5. The 업종 palette is the one place colour carries meaning rather than decoration: the four
+ *    kinds the filter offers each own a `-fg`/`-bg` pair, and the same pair colours the filter
+ *    chip and every badge on a place of that kind. Each `-fg` clears 4.5:1 both on its own `-bg`
+ *    and on white, so it is legible as badge text, as chip text, and as white-on-fill when the
+ *    chip is pressed. The badge always spells its category out — colour never carries the fact
+ *    alone (`docs/conventions.md` → Accessibility).
  */
 :root {
   /* Decorative brand voltage: no text is ever placed on it. */
@@ -41,6 +43,19 @@
   --on-primary: #ffffff;
 
   --error: #c13515;
+
+  /* 업종 palette. `-fg` on `-bg` and `-fg` on white both clear 4.5:1; see note 5 above. */
+  --kind-restaurant-bg: #fff0e2;
+  --kind-restaurant-fg: #8f4300;
+  --kind-cafe-bg: #f2ecfd;
+  --kind-cafe-fg: #6127ab;
+  --kind-lunchbox-bg: #e6f5ea;
+  --kind-lunchbox-fg: #166b33;
+  --kind-other-bg: #ededed;
+  --kind-other-fg: #4a4a4a;
+
+  /* The tint the header and footer bands sit on, and the accent rule under a column heading. */
+  --band: #fffafb;
 
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -104,9 +119,9 @@ body {
 /* ── Shell ─────────────────────────────────────────────────────────────────────────────────── */
 
 /*
- * A plain vertical stack: search, then the five columns. The side-by-side arrangement moved down
- * into `.place-columns-grid`, which is the only thing on the page that needs columns — and needs
- * five of them, which is what widened the container from the old 960px.
+ * A plain vertical stack: search, then the four columns. The side-by-side arrangement moved down
+ * into `.place-columns-grid`, which is the only thing on the page that needs columns — four of
+ * them side by side, which is what widened the container from the old 960px.
  */
 #content {
   display: flex;
@@ -122,14 +137,15 @@ body {
   display: contents;
 }
 
-/* {component.top-nav}: a white band on the tinted floor. */
+/* The top band: a barely-tinted brand wash rather than plain white, so the frame reads as part of
+   the product instead of as the page's background showing through. */
 .shell-header {
   position: sticky;
   top: 0;
   z-index: 2;
   padding: var(--space-5) var(--column-inset) var(--space-4);
-  border-bottom: 1px solid var(--hairline);
-  background: var(--canvas);
+  border-bottom: 2px solid var(--rausch);
+  background: var(--band);
 }
 
 .shell-header h1 {
@@ -156,7 +172,7 @@ body {
 .shell-footer {
   padding: var(--space-6) var(--column-inset) var(--space-8);
   border-top: 1px solid var(--hairline);
-  background: var(--canvas);
+  background: var(--band);
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
@@ -173,12 +189,12 @@ body {
 /* ── Section surfaces ──────────────────────────────────────────────────────────────────────── */
 
 /*
- * Two tiers now, not three. The five columns are peers — the page exists so they can be compared —
+ * Two tiers now, not three. The four columns are peers — the page exists so they can be compared —
  * so any surface that made one heavier than another would read as a claim about the data rather
- * than about the layout. The card is therefore on `.place-column`, identically for all five, and
+ * than about the layout. The card is therefore on `.place-column`, identically for all four, and
  * the list inside it carries no surface of its own.
  *
- * Tier 1 — the five columns: white cards on the tinted floor (white on #f7f7f7 is 1.07:1 on its
+ * Tier 1 — the four columns: white cards on the tinted floor (white on #f7f7f7 is 1.07:1 on its
  * own, so the hairline is what actually separates them).
  * Tier 2 — search: the same card, softer border, because it answers a different question.
  */
@@ -195,16 +211,21 @@ body {
  * The page-wide 업종 control. Sits above the search card rather than inside it because it narrows
  * the discovery columns too, and wraps rather than scrolls so all five options stay reachable at
  * 360px (PRD §36). Not a card itself: it is a strip of controls over the two cards below it.
+ *
+ * The label rides on the same baseline row as the chips instead of taking a 100%-wide line of its
+ * own: as its own row it left a full line of empty space between the heading and the chips, which
+ * read as a gap in the layout rather than as a grouping.
  */
 .kind-filter {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
   margin: 0;
 }
 
 .kind-filter-label {
-  flex: 0 0 100%;
+  margin-inline-end: var(--space-2);
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
@@ -212,7 +233,7 @@ body {
 }
 
 .kind-filter-option {
-  padding: 10px 20px;
+  padding: 8px 16px;
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
   background: var(--canvas);
@@ -220,7 +241,36 @@ body {
   font: inherit;
   font-size: 14px;
   cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+
+/*
+ * Each kind wears its own colour, the same pair its badges wear, so the chip and the rows it
+ * selects are recognisably one thing. 전체 carries no `data-kind` value and keeps the ink default:
+ * it is not a kind, it is the absence of the filter.
+ */
+.kind-filter-option[data-kind='restaurant'] {
+  border-color: var(--kind-restaurant-fg);
+  background: var(--kind-restaurant-bg);
+  color: var(--kind-restaurant-fg);
+}
+
+.kind-filter-option[data-kind='cafe'] {
+  border-color: var(--kind-cafe-fg);
+  background: var(--kind-cafe-bg);
+  color: var(--kind-cafe-fg);
+}
+
+.kind-filter-option[data-kind='lunchbox'] {
+  border-color: var(--kind-lunchbox-fg);
+  background: var(--kind-lunchbox-bg);
+  color: var(--kind-lunchbox-fg);
+}
+
+.kind-filter-option[data-kind='other'] {
+  border-color: var(--kind-other-fg);
+  background: var(--kind-other-bg);
+  color: var(--kind-other-fg);
 }
 
 .kind-filter-option:hover {
@@ -236,13 +286,69 @@ body {
   font-weight: 700;
 }
 
+.kind-filter-option[data-kind='restaurant'][aria-pressed='true'] {
+  border-color: var(--kind-restaurant-fg);
+  background: var(--kind-restaurant-fg);
+  color: var(--on-primary);
+}
+
+.kind-filter-option[data-kind='cafe'][aria-pressed='true'] {
+  border-color: var(--kind-cafe-fg);
+  background: var(--kind-cafe-fg);
+  color: var(--on-primary);
+}
+
+.kind-filter-option[data-kind='lunchbox'][aria-pressed='true'] {
+  border-color: var(--kind-lunchbox-fg);
+  background: var(--kind-lunchbox-fg);
+  color: var(--on-primary);
+}
+
+.kind-filter-option[data-kind='other'][aria-pressed='true'] {
+  border-color: var(--kind-other-fg);
+  background: var(--kind-other-fg);
+  color: var(--on-primary);
+}
+
+/*
+ * The 업종 badge on a place row, in the detail dialog, and anywhere else a place is named. Text
+ * plus colour, never colour alone; the text is Naver's own category, which is finer than the four
+ * kinds, so the badge says more than the chip that selects it.
+ */
+.place-kind-badge {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--kind-other-bg);
+  color: var(--kind-other-fg);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.place-kind-badge[data-kind='restaurant'] {
+  background: var(--kind-restaurant-bg);
+  color: var(--kind-restaurant-fg);
+}
+
+.place-kind-badge[data-kind='cafe'] {
+  background: var(--kind-cafe-bg);
+  color: var(--kind-cafe-fg);
+}
+
+.place-kind-badge[data-kind='lunchbox'] {
+  background: var(--kind-lunchbox-bg);
+  color: var(--kind-lunchbox-fg);
+}
+
 .place-column {
   border-color: var(--hairline);
 }
 
 /* The card is the column; the list inside it is a bare heading over rows. */
-.top-places,
-.discovery {
+.top-places {
   padding: 0;
 }
 
@@ -255,6 +361,13 @@ body {
   letter-spacing: -0.18px;
 }
 
+/* An accent rule under each column heading. Decorative — the heading text already names the
+   window, so nothing is carried by the colour. */
+.place-column h2 {
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--rausch);
+}
+
 /* Inside the dialog the map sits under the place's own `h3`, so its label is a quieter tier. */
 .place-map h4 {
   margin: 16px 0 0;
@@ -263,8 +376,7 @@ body {
   line-height: 1.3;
 }
 
-.discovery-note,
-.top-places-note,
+.top-places-count,
 .place-search-count {
   margin: var(--space-2) 0 0;
   color: var(--muted);
@@ -277,7 +389,6 @@ body {
 }
 
 .top-places-empty,
-.discovery-empty,
 .place-search-empty,
 .place-detail-empty,
 .place-detail-empty-period {
@@ -331,13 +442,12 @@ a[role='button'] {
 /* ── Discovery columns ─────────────────────────────────────────────────────────────────────── */
 
 /*
- * Five equal columns: the movement list and four ranked windows. Column counts drop at each
- * breakpoint and rows never reflow — the columns are the comparison, so a list must never be split
- * across two of them.
+ * Four equal columns, one per ranked window. Column counts drop at each breakpoint and rows never
+ * reflow — the columns are the comparison, so a list must never be split across two of them.
  */
 .place-columns-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-5);
   align-items: start;
 }
@@ -345,7 +455,7 @@ a[role='button'] {
 /*
  * The tab switch exists only where the grid collapses to one column; above that every column is on
  * screen and there is nothing to switch between. `display: none` rather than visual hiding, so the
- * buttons leave the tab order entirely instead of being five dead stops.
+ * buttons leave the tab order entirely instead of being four dead stops.
  */
 .place-column-tabs {
   display: none;
@@ -383,7 +493,6 @@ a[role='button'] {
 /* ── Ranked list & selectable rows ─────────────────────────────────────────────────────────── */
 
 .top-places-list,
-.discovery-list,
 .place-search-list {
   margin: var(--space-4) 0 0;
   padding: 0;
@@ -395,7 +504,6 @@ a[role='button'] {
  * photograph with its own edges, and these rows are text.
  */
 .top-place,
-.discovery-place,
 .place-search-list li {
   display: flex;
   align-items: center;
@@ -407,13 +515,11 @@ a[role='button'] {
 }
 
 .top-place:last-child,
-.discovery-place:last-child,
 .place-search-list li:last-child {
   border-bottom: 0;
 }
 
 .top-place:hover,
-.discovery-place:hover,
 .place-search-list li:hover {
   background: var(--surface-soft);
 }
@@ -422,7 +528,6 @@ a[role='button'] {
   padding-inline: 8px;
 }
 
-.discovery-place,
 .place-search-list li {
   padding-inline: 8px;
 }
@@ -446,7 +551,7 @@ a[role='button'] {
 }
 
 .top-place:nth-child(-n + 3) .top-place-rank {
-  background: var(--ink);
+  background: var(--rausch-strong);
   color: var(--on-primary);
 }
 
@@ -492,13 +597,22 @@ div.top-place-body {
   line-height: 1.35;
 }
 
+/* The metadata line is a badge followed by figures, so it lays out rather than wrapping as text. */
 .top-place-meta,
 .place-select-meta {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
   margin: 2px 0 0;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
+}
+
+.top-place-figures,
+.place-select-address {
+  min-width: 0;
 }
 
 /*
@@ -507,8 +621,7 @@ div.top-place-body {
  * — a judgement about the business, which is the framing `docs/conventions.md` forbids, and which
  * no banned-phrase test can catch because it is not a string.
  */
-.top-place-delta,
-.discovery-delta {
+.top-place-delta {
   flex: 0 0 auto;
   color: var(--muted);
   font-size: 13px;
@@ -519,25 +632,39 @@ div.top-place-body {
   white-space: nowrap;
 }
 
-/* {component.new-tag}. Text on the brand colour, so it takes the accessible variant. */
-.discovery-new {
-  flex: 0 0 auto;
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
-  background: var(--rausch-strong);
-  color: var(--on-primary);
-  /* Korean since the badge text became 신규: no uppercase to apply, and CJK needs the size
-     back rather than the tracking — legible is the floor. */
-  font-size: 12px;
-  font-weight: 700;
+/*
+ * The foot of a paged column: what is on screen, and the control that fetches the rest.
+ *
+ * The button doubles as the scroll sentinel (`src/ui/top-places.ts`), so it has to be a real,
+ * reachable control rather than a marker — a reader who cannot generate a scroll gets through the
+ * list by pressing it.
+ */
+.top-places-more {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
 }
 
-/* The remainder line is a footnote to the list, not another row. */
-.discovery-remainder {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 13px;
+.top-places-more-button {
+  padding: 8px 16px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-full);
+  background: var(--canvas);
+  color: var(--body);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
 }
+
+.top-places-more-button:hover {
+  border-color: var(--rausch-strong);
+  color: var(--rausch-strong);
+}
+
+
 
 /* ── Search ────────────────────────────────────────────────────────────────────────────────── */
 
@@ -719,6 +846,14 @@ div.top-place-body {
   line-height: 1.5;
 }
 
+/* Same badge-then-text shape as a list row's metadata line. */
+.place-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .place-detail-figures {
   display: flex;
   flex-wrap: wrap;
@@ -802,7 +937,7 @@ div.top-place-body {
 
 /*
  * The bar restates the count beside it; it is never the only place the number appears. Ink rather
- * than the brand colour, on the same reasoning DESIGN.md gives for ink stars: figures are data.
+ * than the brand colour: a figure is data, and colouring it would make it look like a judgement.
  */
 .place-histogram-bar {
   display: block;
@@ -900,24 +1035,23 @@ div.top-place-body {
 
 /*
  * Three columns, then two, before a row gets too narrow to hold a name and a movement label on one
- * line. The three-column step is what the fifth column bought: at 1200px five lists are 217px wide
- * and every second name wraps, so the switch happens at that width — `max-width: 1199px` is
- * "below 1200", the same way the 899px and 599px steps below read.
+ * line. At 1200px four lists are ~280px wide and a name with a badge beside it starts to wrap, so
+ * the switch happens at that width — `max-width: 1200px` is "1200 and below", the same way the
+ * 599px step below reads.
+ *
+ * Two columns, not three: with four columns a three-wide grid puts three on the first row and one
+ * alone on the second, and the empty half-row reads as a missing column rather than as a reflow.
+ * Four splits evenly, so the step from four goes straight to 2×2 and the old 899px step — which
+ * existed only to catch the 5-column layout's own odd remainder — goes with it.
  */
 @media (max-width: 1200px) {
-  .place-columns-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 899px) {
   .place-columns-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 /*
- * One column, and the tab switch appears with it: five stacked lists would be five screens of
+ * One column, and the tab switch appears with it: four stacked lists would be four screens of
  * scrolling, and the comparison the page is for would be gone either way. The tabs keep every
  * column one tap away instead (`docs/conventions.md` → Accessibility & Responsive).
  */
@@ -1012,8 +1146,8 @@ div.top-place-body {
 /* ── User preferences ──────────────────────────────────────────────────────────────────────── */
 
 /*
- * There is no dark mode by design (DESIGN.md → Surface), which leaves the readers a dark mode would
- * have served — low vision, glare, a dimmed screen — with nothing. This is what they get instead:
+ * There is no dark mode by design, which leaves the readers a dark mode would have served — low
+ * vision, glare, a dimmed screen — with nothing. This is what they get instead:
  * every muted tone and every rule darkened to well past the AA floor.
  */
 @media (prefers-contrast: more) {
@@ -1026,7 +1160,6 @@ div.top-place-body {
   }
 
   .top-place,
-  .discovery-place,
   .place-search-list li {
     border-bottom-color: var(--hairline);
   }

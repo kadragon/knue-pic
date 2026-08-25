@@ -1,9 +1,8 @@
-import type { PlaceRecord } from '../data/types';
+import type { Period, PlaceRecord } from '../data/types';
 import type { HistogramBucket } from '../stats/histogram';
 import type { PlaceStats } from '../stats/place-stats';
-import type { StatBasis } from '../stats/period';
-import { basisLabel } from './period-labels';
-import { displayCategory, displayDate } from './place-labels';
+import { PERIOD_LABELS } from './period-labels';
+import { displayShortDate, renderKindBadge } from './place-labels';
 
 /**
  * The detail card for one selected place: a slot for the location map, the figures for the period
@@ -20,9 +19,8 @@ export const DETAIL_HEADING = '선택한 곳';
 export const DETAIL_EMPTY_MESSAGE = '목록에서 장소를 선택하면 이용 횟수를 확인할 수 있습니다.';
 
 /**
- * Names the span the bars actually cover, which is not fixed: a card opened from the 작년 같은 달
- * column draws one month more (`histogramMonthsFor`). A constant heading would have said 12 over
- * thirteen bars, which is the same class of defect as the missing bar it was widened to fix.
+ * Names the span the bars actually cover. Passed rather than fixed so the heading can never state
+ * a number the chart does not draw.
  */
 export function histogramHeading(monthCount: number): string {
   return `최근 ${monthCount}개월 이용 횟수`;
@@ -42,14 +40,9 @@ export const FIGURE_LABELS = {
   mostRecentVisit: '최근 이용일',
 } as const;
 
-/**
- * Names the window the figures below it were counted over — the column the place was picked from.
- *
- * `anchor` is needed because one of those windows is a calendar month rather than a span: the
- * 작년 같은 달 column reads "2025년 8월 기준", which only the dataset's own date can spell.
- */
-export function periodStatsHeading(basis: StatBasis, anchor: string): string {
-  return `${basisLabel(basis, anchor)} 기준`;
+/** Names the window the figures below it were counted over — the column the place was picked from. */
+export function periodStatsHeading(basis: Period): string {
+  return `${PERIOD_LABELS[basis]} 기준`;
 }
 
 export function visitCountLabel(visitCount: number): string {
@@ -137,9 +130,7 @@ export interface PlaceDetail {
   /** Computed over `basis`'s window. */
   stats: PlaceStats;
   /** The window the place was picked from — the column's own. */
-  basis: StatBasis;
-  /** The dataset's `updatedAt`; every window here is measured from it, never from the clock. */
-  anchor: string;
+  basis: Period;
   histogram: HistogramBucket[];
 }
 
@@ -164,7 +155,7 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
     return;
   }
 
-  const { place, stats, basis, anchor, histogram } = detail;
+  const { place, stats, basis, histogram } = detail;
 
   const name = document.createElement('h3');
   name.className = 'place-detail-name';
@@ -172,11 +163,15 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
 
   const meta = document.createElement('p');
   meta.className = 'place-detail-meta';
-  meta.textContent = [displayCategory(place.category), place.address].join(' · ');
+  meta.append(renderKindBadge(place));
+  const address = document.createElement('span');
+  address.className = 'place-detail-address';
+  address.textContent = place.address;
+  meta.append(address);
 
   const periodNote = document.createElement('p');
   periodNote.className = 'place-detail-period';
-  periodNote.textContent = periodStatsHeading(basis, anchor);
+  periodNote.textContent = periodStatsHeading(basis);
 
   // Left empty here on purpose: the card stays pure DOM over already-computed numbers, and the map
   // is the one view that needs a third-party script. `src/ui/detail-dialog.ts` fills this slot, so
@@ -199,7 +194,7 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
     );
     // Non-null whenever there was a visit; the guard keeps the type honest without inventing a date.
     if (stats.mostRecentVisit !== null) {
-      figures.append(renderFigure(FIGURE_LABELS.mostRecentVisit, displayDate(stats.mostRecentVisit)));
+      figures.append(renderFigure(FIGURE_LABELS.mostRecentVisit, displayShortDate(stats.mostRecentVisit)));
     }
     section.append(figures);
   }

@@ -1,12 +1,10 @@
-import type { PlaceRecord, PlacesDataset } from '../data/types';
+import type { Period, PlaceRecord, PlacesDataset } from '../data/types';
 import { computePlaceStats, type PlaceStats } from './place-stats';
 import {
-  LAST_YEAR_MONTH,
   isPriorWindowComplete,
-  resolveBasisWindow,
+  resolvePeriodWindow,
   resolvePriorWindow,
   type PeriodWindow,
-  type StatBasis,
 } from './period';
 
 /**
@@ -33,18 +31,15 @@ export interface RankedPlace {
 }
 
 export interface TopPlacesResult {
-  /** Capped at `limit`, best first. */
+  /** Best first; capped at `limit` when the caller passes one. */
   entries: RankedPlace[];
-  /**
-   * `false` when the prior window predates the dataset's retention floor, in which case every
-   * `rankDelta` is `null`. Surfaced so the UI can explain the absence instead of guessing.
-   *
-   * Always `false` for `LAST_YEAR_MONTH`: its prior window is a month two years back, which no
-   * published dataset has ever retained.
-   */
-  priorWindowComplete: boolean;
 }
 
+/**
+ * The default cap for a caller that wants one. `src/ui/place-columns.ts` passes no limit at all —
+ * it pages through the whole ranking as the reader scrolls, so a cap there would be a ceiling
+ * nobody could scroll past.
+ */
 export const TOP_PLACES_LIMIT = 20;
 
 /**
@@ -90,17 +85,13 @@ function rankWindow(places: PlaceRecord[], periodWindow: PeriodWindow): RankedPl
 
 export function computeTopPlaces(
   dataset: PlacesDataset,
-  basis: StatBasis,
-  limit: number = TOP_PLACES_LIMIT,
+  basis: Period,
+  limit?: number,
 ): TopPlacesResult {
-  const ranked = rankWindow(dataset.places, resolveBasisWindow(basis, dataset.updatedAt));
-  // 작년 같은 달 has no comparable prior window: `resolvePriorWindow` only steps back a `Period`,
-  // and the month before that one is two years from the anchor either way — outside retention. So
-  // there is nothing to compare against and every delta is omitted rather than invented.
-  const priorWindow =
-    basis === LAST_YEAR_MONTH || !isPriorWindowComplete(basis, dataset.updatedAt)
-      ? null
-      : resolvePriorWindow(basis, dataset.updatedAt);
+  const ranked = rankWindow(dataset.places, resolvePeriodWindow(basis, dataset.updatedAt));
+  const priorWindow = isPriorWindowComplete(basis, dataset.updatedAt)
+    ? resolvePriorWindow(basis, dataset.updatedAt)
+    : null;
 
   if (priorWindow) {
     // The prior ranking covers every place, not just the visible cap: a place that entered the
@@ -116,5 +107,8 @@ export function computeTopPlaces(
     }
   }
 
-  return { entries: ranked.slice(0, limit), priorWindowComplete: priorWindow !== null };
+  // `undefined` means "no cap" rather than a number that happens to be large enough: the previous
+  // spelling passed `dataset.places.length`, which is only ever ≥ the ranked count by coincidence
+  // of `rankWindow` filtering the same list.
+  return { entries: limit === undefined ? ranked : ranked.slice(0, limit) };
 }

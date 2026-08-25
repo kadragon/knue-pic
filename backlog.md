@@ -38,10 +38,23 @@
   half-migrated scale is worse than none: the next editor cannot tell a deliberate off-scale value
   from a missed one. Convert the on-scale ones and comment the genuinely optical values
   (2/3/6/10/13/14/56px) — `src/styles.css`
-- [ ] [debt] `·` now separates both the fields of a metadata line (`' · '`) and the parts inside one
+- [x] [debt] `·` now separates both the fields of a metadata line (`' · '`) and the parts inside one
   category (`displayCategory`), so a card reads `카페·디저트 · 청주시…`. Only the spaces distinguish
   the two roles. Pick a different field separator, or render the category as its own element
   — `src/ui/place-labels.ts`, `src/ui/top-places.ts`, `src/ui/place-detail.ts`, `src/ui/search.ts`
+  *(done: the category is its own element now — the 업종 badge — so the two roles no longer share a
+  separator)*
+
+### Naver taxonomy is truncated to one segment before it reaches the browser (2026-08-25)
+
+- [ ] [feat] `places.json` carries `category` as the *first* segment of Naver's taxonomy path, and
+  the roots are inconsistent — the same kind of restaurant arrives as `음식점>한식` or as
+  `한식>육류,고기요리`, so `음식점` (216 places) and `한식` (138) are one class split in two. The
+  full path survives only in `review_candidates.csv` (111 distinct approved values). Publishing the
+  second segment as a `subcategory` field would let the 업종 badge say `육류·고기요리` instead of
+  `한식`, and could support a finer filter than the four kinds. Needs a schema change, a validator
+  rule and a full re-collect, so it was ruled out of the UI batch that introduced the badge
+  — `collector/build_places.py`, `collector/validate.py`, `src/data/types.ts`
 
 ## Someday
 

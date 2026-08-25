@@ -1,12 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlacesDataset } from '../data/types';
-import { computeTopPlaces, TOP_PLACES_LIMIT, type TopPlacesResult } from '../stats/top-places';
+import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
 import {
+  allRenderedLabel,
+  COLUMN_PAGE_SIZE,
   EMPTY_MESSAGE,
-  NO_COMPARISON_MESSAGE,
+  moreLabel,
   rankDeltaLabel,
+  renderedCountLabel,
   renderTopPlaces,
   topPlacesHeading,
 } from './top-places';
@@ -23,23 +26,16 @@ describe('renderTopPlaces', () => {
   it('renders one ordered list item per ranked place', () => {
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
 
-    // The fixture's 1y window ranks six places, and the heading names that six — not the limit.
-    expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳 상위 6곳');
+    // The fixture's 1y window ranks six places — fewer than one page, so all six are on screen.
+    expect(container.querySelector('h2')?.textContent).toBe(topPlacesHeading());
     expect(container.querySelectorAll('ol.top-places-list > li')).toHaveLength(6);
   });
 
-  it('names the rendered count in the heading, not a fixed limit', () => {
-    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y', 3));
-
-    expect(container.querySelector('h2')?.textContent).toBe(topPlacesHeading(3));
-    expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳 상위 3곳');
-    expect(container.querySelectorAll('ol.top-places-list > li')).toHaveLength(3);
-  });
-
-  it('names no count when nothing is ranked', () => {
-    const container = render(computeTopPlaces(EMPTY_DATASET, '1y'));
+  it('counts under the list rather than in the heading, which cannot stay true as it grows', () => {
+    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
 
     expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳');
+    expect(container.querySelector('.top-places-count')?.textContent).toBe(allRenderedLabel(6));
   });
 
   it('shows the rank as a number, not by colour alone', () => {
@@ -56,11 +52,20 @@ describe('renderTopPlaces', () => {
     // 000001 over 1y: 4 visits, most recent 2026-07-20 (hand-checked against the fixture).
     expect(first?.textContent).toContain('한밭식당');
     expect(first?.textContent).toContain('4회 이용');
-    expect(first?.textContent).toContain('최근 이용 2026년 7월 20일');
+    expect(first?.textContent).toContain('최근 이용 07-20');
+    expect(first?.textContent).not.toContain('2026년 7월 20일');
   });
 
-  it('caps the rendered list at twenty', () => {
-    const placeCount = TOP_PLACES_LIMIT + 2;
+  it('carries the 업종 badge on every row, with the category as text', () => {
+    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
+    const badge = container.querySelector<HTMLElement>('.top-place .place-kind-badge');
+
+    expect(badge?.textContent).toBe('한식');
+    expect(badge?.dataset['kind']).toBe('restaurant');
+  });
+
+  it('pages the list instead of capping it, and says what is held back', () => {
+    const placeCount = COLUMN_PAGE_SIZE * 2 + 3;
     const dataset: PlacesDataset = {
       updatedAt: '2026-08-01',
       places: Array.from({ length: placeCount }, (_, index) => ({
@@ -79,9 +84,161 @@ describe('renderTopPlaces', () => {
       })),
     };
 
-    expect(render(computeTopPlaces(dataset, '1m')).querySelectorAll('li')).toHaveLength(
-      TOP_PLACES_LIMIT,
+    const container = render(computeTopPlaces(dataset, '1m', placeCount));
+    const rowsAfter = (): number => container.querySelectorAll('li').length;
+    const button = (): HTMLButtonElement | null =>
+      container.querySelector<HTMLButtonElement>('.top-places-more-button');
+
+    expect(rowsAfter()).toBe(COLUMN_PAGE_SIZE);
+    expect(container.querySelector('.top-places-count')?.textContent).toBe(
+      renderedCountLabel(COLUMN_PAGE_SIZE, placeCount),
     );
+    expect(button()?.textContent).toBe(moreLabel(placeCount - COLUMN_PAGE_SIZE));
+
+    // The button is the sentinel as well as the control: jsdom has no `IntersectionObserver`, so
+    // this is the path a reader who cannot generate a scroll takes.
+    button()?.dispatchEvent(new MouseEvent('click'));
+    expect(rowsAfter()).toBe(COLUMN_PAGE_SIZE * 2);
+
+    button()?.dispatchEvent(new MouseEvent('click'));
+    expect(rowsAfter()).toBe(placeCount);
+    // Nothing left to load: the control goes rather than sitting there inert.
+    expect(button()).toBeNull();
+    expect(container.querySelector('.top-places-count')?.textContent).toBe(
+      allRenderedLabel(placeCount),
+    );
+  });
+
+  it('watches the button even while the list is still detached from the document', () => {
+    // Every caller renders into a subtree it attaches afterwards — `place-columns.ts` builds all
+    // four cells before appending the grid — so a "is this in the document yet?" guard here left
+    // the observer uncreated on every column, and scrolling loaded nothing.
+    const observed: Element[] = [];
+    class FakeObserver {
+      observe(target: Element): void {
+        observed.push(target);
+      }
+      disconnect(): void {}
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+
+    try {
+      const container = document.createElement('div');
+      expect(container.isConnected).toBe(false);
+
+      renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'), undefined, undefined, {
+        pageSize: 2,
+      });
+
+      expect(observed).toEqual([container.querySelector('.top-places-more-button')]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('never watches a list that has nothing left to load', () => {
+    const observed: Element[] = [];
+    class FakeObserver {
+      observe(target: Element): void {
+        observed.push(target);
+      }
+      disconnect(): void {}
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+
+    try {
+      // Six ranked places, one page of ten: the button is already gone, so there is nothing to
+      // watch and no detached node left behind holding a live observer.
+      render(computeTopPlaces(SAMPLE_DATASET, '1y'));
+
+      expect(observed).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('keeps focus in the list when the last page removes the button under it', () => {
+    // Activating 더 보기 on the final page destroys the focused element; a detached activeElement
+    // drops the caret to the top of the document, throwing the reader to the page header the
+    // moment they asked for the rest of the list.
+    const container = document.createElement('div');
+    document.body.append(container);
+
+    try {
+      renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'), vi.fn(), undefined, {
+        pageSize: 4,
+      });
+      const button = container.querySelector<HTMLButtonElement>('.top-places-more-button');
+      button?.focus();
+      expect(document.activeElement).toBe(button);
+      button?.dispatchEvent(new MouseEvent('click'));
+
+      // The first row of the page that just arrived — where the reader was reading.
+      expect(container.querySelector('.top-places-more-button')).toBeNull();
+      expect(document.activeElement).toBe(
+        container.querySelectorAll('.top-place')[4]?.querySelector('button.top-place-body'),
+      );
+    } finally {
+      container.remove();
+    }
+  });
+
+  it('leaves focus alone when the last page was not requested from the button', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const elsewhere = document.createElement('button');
+    document.body.append(elsewhere);
+
+    try {
+      renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'), vi.fn(), undefined, {
+        pageSize: 4,
+      });
+      elsewhere.focus();
+      container.querySelector<HTMLButtonElement>('.top-places-more-button')?.click();
+
+      // A scroll-driven page must not steal the caret from whatever the reader was using.
+      expect(document.activeElement).toBe(elsewhere);
+    } finally {
+      container.remove();
+      elsewhere.remove();
+    }
+  });
+
+  it('re-arms the observer after a page, and drops it when the container is re-rendered', () => {
+    // `IntersectionObserver` reports a transition, so a sentinel still on screen after a page was
+    // appended emits nothing and auto-paging stalls; and a container rebuilt by the 업종 filter
+    // would otherwise leave its observer watching a detached button, holding the old column alive.
+    const calls: string[] = [];
+    class FakeObserver {
+      observe(): void {
+        calls.push('observe');
+      }
+      unobserve(): void {
+        calls.push('unobserve');
+      }
+      disconnect(): void {
+        calls.push('disconnect');
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+
+    try {
+      const container = document.createElement('div');
+      const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+
+      renderTopPlaces(container, result, undefined, undefined, { pageSize: 2 });
+      expect(calls).toEqual(['observe']);
+
+      container.querySelector<HTMLButtonElement>('.top-places-more-button')?.click();
+      expect(calls).toEqual(['observe', 'unobserve', 'observe']);
+
+      // Same container, fresh render — what `renderPlaceColumns` does on every 업종 change.
+      calls.length = 0;
+      renderTopPlaces(container, result, undefined, undefined, { pageSize: 2 });
+      expect(calls).toEqual(['disconnect', 'observe']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('shows the empty message instead of a bare list when nothing was used', () => {
@@ -98,19 +255,6 @@ describe('rank delta rendering', () => {
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
 
     expect(container.querySelectorAll('.top-place-delta')).toHaveLength(0);
-  });
-
-  it('explains the absence when there is no prior window to compare against', () => {
-    // 1y is the default view and can never have deltas; silence would read as "nothing moved".
-    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
-
-    expect(container.textContent).toContain(NO_COMPARISON_MESSAGE);
-  });
-
-  it('stays quiet when the prior window is available', () => {
-    const container = render(computeTopPlaces(SAMPLE_DATASET, '1m'));
-
-    expect(container.textContent).not.toContain(NO_COMPARISON_MESSAGE);
   });
 
   it('marks the movement direction for styling as well as text', () => {
@@ -198,7 +342,9 @@ describe('framing', () => {
     // scanning rendered output alone would leave them unguarded.
     const strings = [
       EMPTY_MESSAGE,
-      NO_COMPARISON_MESSAGE,
+      allRenderedLabel(6),
+      renderedCountLabel(10, 47),
+      moreLabel(37),
       ...Object.values(PERIOD_LABELS),
       ...[3, 0, -2].map(rankDeltaLabel),
     ];

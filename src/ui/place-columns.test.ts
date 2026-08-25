@@ -1,15 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
-import { LAST_YEAR_MONTH } from '../stats/period';
 import { filterByKind } from '../stats/search';
-import { computeTopPlaces } from '../stats/top-places';
-import { EMPTY_MESSAGE } from './top-places';
+import { COLUMN_PAGE_SIZE, EMPTY_MESSAGE } from './top-places';
+import { PERIOD_ORDER } from './period-labels';
 import {
-  COLUMN_LIMIT,
   COLUMN_ORDER,
   TAB_GROUP_LABEL,
-  columnBasis,
-  columnHeading,
   columnLabel,
   markActiveColumn,
   renderPlaceColumns,
@@ -21,95 +17,51 @@ function render(onSelect = vi.fn()): { root: HTMLElement; onSelect: typeof onSel
   return { root, onSelect };
 }
 
-describe('columnBasis', () => {
-  it('reads the trending column over the month it is measured on', () => {
-    // `docs/conventions.md` → Statistics Rules fixes trending to the recent month, so a place
-    // picked from it must not be shown figures for a window the reader never chose.
-    expect(columnBasis('trending')).toBe('1m');
-  });
-
-  it('reads a ranked column over its own window', () => {
-    expect(columnBasis('6m')).toBe('6m');
-  });
-
-  it('reads the 작년 같은 달 column over that month', () => {
-    expect(columnBasis(LAST_YEAR_MONTH)).toBe(LAST_YEAR_MONTH);
-  });
-});
-
 describe('columnLabel', () => {
-  it('names the month the 작년 같은 달 column covers, not the relation', () => {
-    // Every label beside it reads 최근 N개월; an unnamed month leaves the reader with no way to
-    // check the figures against the disclosure they came from.
-    expect(columnLabel(LAST_YEAR_MONTH, '2026-08-01')).toBe('2025년 8월');
-    expect(columnLabel(LAST_YEAR_MONTH, '2026-01-15')).toBe('2025년 1월');
-  });
-});
-
-describe('columnHeading', () => {
-  it('states the rendered count so a capped column never reads as the whole set', () => {
-    expect(columnHeading('최근 1년', 10)).toBe('최근 1년 상위 10곳');
-  });
-
-  it('names no number when there is nothing to number', () => {
-    expect(columnHeading('최근 1년', 0)).toBe('최근 1년');
+  it('names the window the column reads', () => {
+    expect(columnLabel('1m')).toBe('최근 1개월');
+    expect(columnLabel('1y')).toBe('최근 1년');
   });
 });
 
 describe('renderPlaceColumns', () => {
-  it('renders the five windows in order, each headed by the window it reads', () => {
+  it('renders the four windows in order, each headed by the window it reads', () => {
     const { root } = render();
 
     const columns = [...root.querySelectorAll<HTMLElement>('.place-column')];
     expect(columns.map((column) => column.dataset['column'])).toEqual(COLUMN_ORDER);
-    expect(columns).toHaveLength(5);
-    expect(columns[0]?.querySelector('h2')?.textContent).toBe(
-      columnHeading(
-        columnLabel(LAST_YEAR_MONTH, SAMPLE_DATASET.updatedAt),
-        computeTopPlaces(SAMPLE_DATASET, LAST_YEAR_MONTH, COLUMN_LIMIT).entries.length,
-      ),
-    );
-    // The trending column is ordered by movement, so it carries the bare label: no "TOP N", and
-    // `remainderLabel` is its single statement of the cap.
-    expect(columns[1]?.querySelector('h2')?.textContent).toBe(
-      columnLabel('trending', SAMPLE_DATASET.updatedAt),
-    );
-    expect(columns[4]?.querySelector('h2')?.textContent).toBe(
-      columnHeading(
-        columnLabel('1y', SAMPLE_DATASET.updatedAt),
-        computeTopPlaces(SAMPLE_DATASET, '1y', COLUMN_LIMIT).entries.length,
-      ),
+    // The literal order, not just the membership: every other assertion here is derived from
+    // `COLUMN_ORDER` itself, so reordering it would keep them all green while moving the column a
+    // phone visitor lands on.
+    expect(COLUMN_ORDER).toEqual(PERIOD_ORDER);
+    expect(COLUMN_ORDER).toEqual(['1m', '3m', '6m', '1y']);
+    expect(columns).toHaveLength(4);
+    expect(columns.map((column) => column.querySelector('h2')?.textContent)).toEqual(
+      COLUMN_ORDER.map(columnLabel),
     );
   });
 
-  it('ranks the 작년 같은 달 column over that calendar month alone', () => {
+  it('ranks each column over its own window, not one shared list', () => {
     const { root } = render();
 
-    // 000006's 2025-08-01 payment is the fixture's only visit in 2025-08, and it sits *outside*
-    // the 1y window — so a column reading the wrong window would list a different set entirely.
-    const column = root.querySelector(`.place-column[data-column="${LAST_YEAR_MONTH}"]`);
-    expect(column?.querySelectorAll('.top-place')).toHaveLength(1);
-    expect(column?.textContent).toContain('새터말칼국수');
+    // 황새울분식's visits are all older than the 1m window but inside the 1y one, so a column
+    // reading the wrong window would list a different set entirely.
+    const monthly = root.querySelector('.place-column[data-column="1m"]');
+    const yearly = root.querySelector('.place-column[data-column="1y"]');
+
+    expect(monthly?.textContent).not.toContain('황새울분식');
+    expect(yearly?.textContent).toContain('황새울분식');
   });
 
-  it('shows no rank movement in the 작년 같은 달 column', () => {
-    const { root } = render();
-
-    // The month before it is two years from the anchor — outside any retained file — so every
-    // delta is omitted rather than computed against months nobody collected.
-    const column = root.querySelector(`.place-column[data-column="${LAST_YEAR_MONTH}"]`);
-    expect(column?.querySelectorAll('.top-place-delta')).toHaveLength(0);
-  });
-
-  it('says so plainly when the 작년 같은 달 month holds no visit', () => {
+  it('says so plainly when a window holds no visit', () => {
     const root = document.createElement('div');
 
-    // What ships until the older months are collected: the column is honest rather than absent.
+    // An anchor far past every transaction: the column is honest rather than absent.
     renderPlaceColumns(root, { ...SAMPLE_DATASET, updatedAt: '2028-08-01' }, vi.fn());
 
-    expect(
-      root.querySelector(`.place-column[data-column="${LAST_YEAR_MONTH}"]`)?.textContent,
-    ).toContain(EMPTY_MESSAGE);
+    expect(root.querySelector('.place-column[data-column="1m"]')?.textContent).toContain(
+      EMPTY_MESSAGE,
+    );
   });
 
   it('marks every column active or not, so the phone layout needs no per-key rule', () => {
@@ -158,16 +110,14 @@ describe('renderPlaceColumns', () => {
     expect([...root.querySelectorAll('.place-column-tab')]).toEqual(tabs);
     expect(tabs[3]?.getAttribute('aria-pressed')).toBe('true');
     expect(tabs[0]?.getAttribute('aria-pressed')).toBe('false');
-    expect(root.querySelector<HTMLElement>('.place-columns-grid')?.dataset['active']).toBe('6m');
+    expect(root.querySelector<HTMLElement>('.place-columns-grid')?.dataset['active']).toBe('1y');
   });
 
-  it('caps every column at the same number of rows', () => {
+  it('opens every column on one page, with the rest a scroll away rather than cut off', () => {
     const { root } = render();
 
     for (const column of root.querySelectorAll('.place-column')) {
-      expect(column.querySelectorAll('.top-place, .discovery-place').length).toBeLessThanOrEqual(
-        COLUMN_LIMIT,
-      );
+      expect(column.querySelectorAll('.top-place').length).toBeLessThanOrEqual(COLUMN_PAGE_SIZE);
     }
   });
 
