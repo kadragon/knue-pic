@@ -84,14 +84,14 @@ export function isWithinWindow(date: string, periodWindow: PeriodWindow): boolea
  * Anything before that floor is simply absent, so a window reaching past it is incomplete no
  * matter how many transactions happen to fall inside it.
  *
- * Deliberately **behind** the collector's `ROLLING_WINDOW_MONTHS`, which was widened to 15 so the
- * 작년 같은 달 column has a month to publish. This constant is not a configuration knob but a
- * *claim* — `isPriorWindowComplete` reads it as "there is data this far back" — and the three
- * extra months are not collected yet. Raising it first would have every place count 0 visits in
- * months that were never gathered and render invented ▼ rank drops. Raise it in the same change
- * that lands the backfill, never before (`backlog.md`).
+ * Matches the collector's `ROLLING_WINDOW_MONTHS`, which was widened to 15 so the 작년 같은 달
+ * column has a month to publish. This constant is not a configuration knob but a *claim* —
+ * `isPriorWindowComplete` reads it as "there is data this far back" — so it may only be raised
+ * once the months exist: the 2025-06/07/08 backfill landed with this change, and `data/places.json`
+ * now spans 15 months. Raising it over uncollected months would have every place count 0 visits
+ * there and render invented ▼ rank drops.
  */
-export const RETAINED_MONTHS = 12;
+export const RETAINED_MONTHS = 15;
 
 /**
  * The window immediately preceding `period`'s own.
