@@ -19,7 +19,7 @@ export const TRENDING_HEADING = '최근 이용 변화';
 /**
  * The column reads a fixed window while the ranked ones beside it read 3개월 / 6개월 / 1년 and a
  * calendar month a year back, so the note says which window this one is. Without it, a reader
- * comparing the columns has no way to tell what "뜨는" is measured over, and the list would read as
+ * comparing the columns has no way to tell what 최근 이용 변화 is measured over, and the list would read as
  * an opinion rather than as a count.
  *
  * It states the sort, not a filter: `computeTrendingPlaces` admits every place with ≥2 visits in
@@ -29,7 +29,7 @@ export const TRENDING_HEADING = '최근 이용 변화';
  * which puts a 0 above a −1 and is falsifiable on the rendered page.
  */
 export const TRENDING_NOTE =
-  '최근 1개월 동안 2회 이상 이용한 곳을, 직전 1개월과 비교한 이용 횟수 변화에 따라 보여줍니다.';
+  '최근 1개월 동안 2회 이상 이용한 곳을, 직전 1개월보다 이용이 늘어난 곳부터 줄어든 곳까지 차례로 보여줍니다.';
 
 export const TRENDING_EMPTY_MESSAGE = '최근 1개월 동안 2회 이상 이용한 곳이 없습니다.';
 

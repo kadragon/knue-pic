@@ -56,7 +56,7 @@ describe('renderTopPlaces', () => {
     // 000001 over 1y: 4 visits, most recent 2026-07-20 (hand-checked against the fixture).
     expect(first?.textContent).toContain('한밭식당');
     expect(first?.textContent).toContain('4회 이용');
-    expect(first?.textContent).toContain('최근 이용 2026. 7. 20.');
+    expect(first?.textContent).toContain('최근 이용 2026년 7월 20일');
   });
 
   it('caps the rendered list at twenty', () => {

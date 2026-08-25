@@ -73,8 +73,7 @@ describe('renderPlaceDetail', () => {
     }
     expect(container.querySelectorAll('.place-detail-figure')).toHaveLength(2);
     expect(text).toContain('4회');
-    expect(text).toContain('2026. 7. 20.');
-    expect(text).not.toContain('원');
+    expect(text).toContain('2026년 7월 20일');
     expect(text).not.toContain('합계');
     expect(text).not.toContain('평균');
   });

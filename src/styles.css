@@ -526,11 +526,10 @@ div.top-place-body {
   border-radius: var(--radius-full);
   background: var(--rausch-strong);
   color: var(--on-primary);
-  /* {typography.uppercase-tag}, opened up from 8px — legible is the floor. */
-  font-size: 10px;
+  /* Korean since the badge text became 신규: no uppercase to apply, and CJK needs the size
+     back rather than the tracking — legible is the floor. */
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
 }
 
 /* The remainder line is a footnote to the list, not another row. */
@@ -944,7 +943,6 @@ div.top-place-body {
 @media (max-width: 599px) {
   :root {
     --column-inset: 16px;
-    --header-height: 92px;
   }
 
   #content {

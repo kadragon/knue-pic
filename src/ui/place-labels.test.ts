@@ -6,11 +6,13 @@ describe('place display labels', () => {
     expect(displayCategory('카페,디저트')).toBe('카페·디저트');
   });
 
-  it('formats valid ISO dates for Korean UI copy', () => {
-    expect(displayDate('2026-07-08')).toBe('2026. 7. 8.');
+  it('formats valid ISO dates in the same form as the period headings', () => {
+    expect(displayDate('2026-07-08')).toBe('2026년 7월 8일');
   });
 
   it('keeps malformed values visible rather than inventing a date', () => {
     expect(displayDate('unknown')).toBe('unknown');
+    expect(displayDate('알 수 없-음-값')).toBe('알 수 없-음-값');
+    expect(displayDate('2026-07-08T00:00:00')).toBe('2026-07-08T00:00:00');
   });
 });

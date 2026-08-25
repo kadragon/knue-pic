@@ -28,7 +28,7 @@ export const EMPTY_MESSAGE = '이 기간에는 이용 기록이 없습니다.';
  * prior period is never retained — would show no movement indicators at all, and the absence would
  * read as "nothing moved" rather than "there is nothing to compare against".
  */
-export const NO_COMPARISON_MESSAGE = '비교할 이전 기간 자료가 없어 변동을 표시하지 않습니다.';
+export const NO_COMPARISON_MESSAGE = '비교할 직전 기간 자료가 없어 변동을 표시하지 않습니다.';
 
 export function visitCountLabel(visitCount: number): string {
   return `${visitCount}회 이용`;

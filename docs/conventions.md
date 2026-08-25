@@ -76,6 +76,10 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 - The 업종 filter is page-wide: it narrows the five columns and the search results together, and
   the search's own 상세 분류 options are rebuilt from whatever it left. A control that narrowed one list
   while the other kept listing everything reads as a bug in the list it did not touch.
+- A display transform applied to a stored value (`displayCategory` folds the dataset's comma into
+  the UI's `·`) is also folded inside `filterPlaces`' `normalize`, so a reader can type back exactly
+  what the row showed them. A transform that reaches the label but not the matcher returns nothing
+  for the 92 places whose category carries a comma.
 - Every interactive control has a visible label or an `aria-label`; search is keyboard-operable.
 
 ## Git Conventions

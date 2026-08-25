@@ -15,7 +15,11 @@ export interface PlaceStats {
   /** One transaction is one visit; payments in a single sitting are not merged. */
   visitCount: number;
   totalAmount: number;
-  /** `totalAmount / visitCount` rounded to whole won; `0` when there were no visits. */
+  /**
+   * `totalAmount / visitCount` rounded to whole won; `0` when there were no visits.
+   * Nothing renders it since the detail dialog dropped its amount figures — it is kept, with its
+   * rounding rule in `docs/conventions.md`, so the stat is defined once if a view asks for it.
+   */
   averageAmount: number;
   /** Latest in-window visit date, or `null` when the place has no visits in the window. */
   mostRecentVisit: string | null;

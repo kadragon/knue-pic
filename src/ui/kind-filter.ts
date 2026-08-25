@@ -14,6 +14,10 @@ import { PLACE_KINDS, type PlaceKind } from '../data/types';
 
 export const KIND_FILTER_LABEL = '업종 선택';
 
+/** Visible heading for the group. The group is already named by `KIND_FILTER_LABEL`, so this span
+ * is hidden from assistive tech rather than announced a second time. */
+export const KIND_FILTER_HEADING = '업종';
+
 /** `null` is "no filter" — `ALL_KINDS` in `src/stats/search.ts`, not a member of `PLACE_KINDS`. */
 export type KindSelection = PlaceKind | null;
 
@@ -69,7 +73,8 @@ export function renderKindFilter(
 
   const label = document.createElement('span');
   label.className = 'kind-filter-label';
-  label.textContent = '업종';
+  label.textContent = KIND_FILTER_HEADING;
+  label.setAttribute('aria-hidden', 'true');
   group.append(label);
 
   for (const kind of KIND_OPTIONS) {

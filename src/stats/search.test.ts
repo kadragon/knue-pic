@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PlacesDataset } from '../data/types';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import { displayCategory } from '../ui/place-labels';
 import { ALL_CATEGORIES, ALL_KINDS, filterByKind, filterPlaces, listCategories } from './search';
 
 const NO_FILTER = { text: '', category: ALL_CATEGORIES };
@@ -30,6 +31,22 @@ describe('filterPlaces', () => {
     expect(filterPlaces(SAMPLE_DATASET, { ...NO_FILTER, text: '카페' }).map((p) => p.id)).toEqual([
       'restaurant_000002',
     ]);
+  });
+
+  it('finds a comma category typed back in the form the page rendered it', () => {
+    // The lists show `displayCategory(c)`, so a reader who copies what they see must reach the same
+    // places as the stored spelling — the two separators are folded together inside the matcher.
+    const dataset: PlacesDataset = {
+      ...SAMPLE_DATASET,
+      places: SAMPLE_DATASET.places.map((place, index) =>
+        index === 0 ? { ...place, category: '카페,디저트' } : place,
+      ),
+    };
+
+    expect(filterPlaces(dataset, { ...NO_FILTER, text: '카페,디저트' }).map((p) => p.id)).toEqual(
+      filterPlaces(dataset, { ...NO_FILTER, text: displayCategory('카페,디저트') }).map((p) => p.id),
+    );
+    expect(filterPlaces(dataset, { ...NO_FILTER, text: '카페·디저트' })).toHaveLength(1);
   });
 
   it('ignores case and surrounding whitespace', () => {

@@ -36,7 +36,7 @@ export const NO_RESULTS_MESSAGE = '조건에 맞는 장소가 없습니다.';
  * looking something up, so with nothing entered it says what it can do instead of dumping the file.
  */
 export function searchPromptLabel(total: number): string {
-  return `${total}곳의 이름이나 주소를 검색하거나 상세 분류를 선택하세요.`;
+  return `${total}곳의 이름·분류·주소를 검색하거나 상세 분류를 선택하세요.`;
 }
 
 export const RESET_LABEL = '검색 조건 초기화';

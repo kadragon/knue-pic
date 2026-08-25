@@ -100,16 +100,17 @@ describe('computeTopPlaces ordering', () => {
     expect(idsOf(dataset, '1m')).toEqual(['restaurant_000002', 'restaurant_000009']);
   });
 
-  it('caps the list at twenty while ranking everyone', () => {
+  it('caps the list at the configured limit while ranking everyone', () => {
     const placeCount = TOP_PLACES_LIMIT + 4;
     const dataset: PlacesDataset = {
       updatedAt: '2026-08-01',
       places: Array.from({ length: placeCount }, (_, index) =>
-        // Descending visit counts: 14 visits for the first place down to 1 for the last.
+        // Descending visit counts: `placeCount` visits for the first place down to 1 for the last.
+        // Visits are spread across two months so a limit past 29 cannot build an invalid July date.
         place(
           `restaurant_${String(index + 1).padStart(6, '0')}`,
-            Array.from({ length: placeCount - index }, (__, visit) => ({
-            date: `2026-07-${String(visit + 2).padStart(2, '0')}`,
+          Array.from({ length: placeCount - index }, (__, visit) => ({
+            date: visit < 28 ? `2026-07-${String(visit + 2).padStart(2, '0')}` : `2026-08-${String(visit - 26).padStart(2, '0')}`,
             amount: 1000,
           })),
         ),
