@@ -126,7 +126,8 @@ Two of the nine need a concrete value the invariant list does not carry:
   top of `collector/validate.py`.
 - **The rolling window** is floored on the *calendar month*, not on `updatedAt`'s day: the oldest
   accepted date is the first day of the month `ROLLING_WINDOW_MONTHS - 1` — 14 — before
-  `updatedAt`'s own month. It is wider than the twelve months `src/stats/histogram.ts` renders, and
+  `updatedAt`'s own month. It is wider than the span `src/stats/histogram.ts` renders — twelve
+  months, or thirteen for a card opened from the 작년 같은 달 column — and
   `src/stats/period.ts` -> `retentionFloor` derives the browser's floor with the same formula so
   the two cannot disagree. A day-anchored floor would cut the oldest month in half, and the
   histogram bars would sum to fewer visits than the count printed beside them, with nothing
@@ -161,11 +162,12 @@ dropping a row: `src/stats/` throws on a malformed transaction date, so validati
 before places reach it.
 
 **Rolling window.** The published file keeps the most recent 15 months
-(`ROLLING_WINDOW_MONTHS` in `collector/validate.py`). The collector may retain up to 16 months
-internally so that the 12-month trend and the previous-period rank comparison have a complete prior
-period to compare against. Twelve of those months are what the histogram charts; the three extra
-exist so the 작년 같은 달 column — the calendar month twelve months back — has a month to rank
-instead of sitting on the floor and dropping out on the next monthly run.
+(`ROLLING_WINDOW_MONTHS` in `collector/validate.py`). Nothing bounds what `collector/out/` holds
+locally — `build_places.py`'s `month_dirs()` reads whichever month directories happen to exist —
+so this floor is the only retention rule in the pipeline. It is wider than the span
+`src/stats/histogram.ts` charts: the extra months exist so the 작년 같은 달 column — the calendar
+month twelve months back — has a month to rank instead of sitting on the floor and dropping out on
+the next monthly run.
 
 The window is a **ceiling on what may publish, not a claim that the months were collected.** The
 browser states that claim separately in `RETAINED_MONTHS` (`src/stats/period.ts`), which

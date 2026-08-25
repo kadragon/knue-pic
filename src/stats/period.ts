@@ -46,7 +46,9 @@ function subtractMonths(date: CalendarDate, months: number): CalendarDate {
  * The window covering the `months` calendar months up to (and including) `anchor`.
  *
  * The period selector is not the only consumer of a month window: trending reads one month, newly
- * seen reads two, and the histogram spans twelve of the retained months. Exposing the month count directly
+ * seen reads two, and the histogram spans twelve of the retained months — thirteen for a card opened
+ * from the 작년 같은 달 column (`src/stats/histogram.ts` -> `histogramMonthsFor`). Exposing the month
+ * count directly
  * keeps all of them on the same clamping rule as `resolvePeriodWindow`, which delegates here — a
  * second hand-rolled subtraction is exactly how a window ends up one day off from the one a
  * statistic is compared against.
@@ -156,9 +158,17 @@ export const LAST_YEAR_MONTH = 'lastYearMonth';
 /** Everything a list or the detail dialog can be measured over. */
 export type StatBasis = Period | typeof LAST_YEAR_MONTH;
 
-/** The calendar month twelve months before `anchor`'s own month. */
+/**
+ * How far back the 작년 같은 달 window sits, in whole calendar months.
+ *
+ * A fixed step, not a span: the column is "the same month last year", so this is twelve whatever
+ * else widens. `src/stats/histogram.ts` reads it to size the chart that has to reach that month.
+ */
+export const LAST_YEAR_MONTHS_BACK = 12;
+
+/** The calendar month `LAST_YEAR_MONTHS_BACK` months before `anchor`'s own month. */
 export function lastYearMonthOf(anchor: string): { year: number; month: number } {
-  const { year, month } = subtractMonths(parseIsoDate(anchor), 12);
+  const { year, month } = subtractMonths(parseIsoDate(anchor), LAST_YEAR_MONTHS_BACK);
   return { year, month };
 }
 

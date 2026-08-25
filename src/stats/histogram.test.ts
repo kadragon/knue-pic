@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { PlaceRecord } from '../data/types';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
-import { computeMonthlyHistogram } from './histogram';
+import { LAST_YEAR_MONTH, RETAINED_MONTHS } from './period';
+import {
+  HISTOGRAM_MONTHS,
+  LAST_YEAR_MONTH_HISTOGRAM_MONTHS,
+  computeMonthlyHistogram,
+  histogramMonthsFor,
+} from './histogram';
 
 function findPlace(id: string): PlaceRecord {
   const place = SAMPLE_DATASET.places.find((candidate) => candidate.id === id);
@@ -16,6 +22,32 @@ describe('computeMonthlyHistogram', () => {
     expect(buckets).toHaveLength(12);
     expect(buckets[0]?.month).toBe('2025-09');
     expect(buckets.at(-1)?.month).toBe('2026-08');
+  });
+
+  it('reaches the 작년 같은 달 month when asked for that basis span', () => {
+    const buckets = computeMonthlyHistogram(
+      findPlace('restaurant_000001'),
+      '2026-08-01',
+      histogramMonthsFor(LAST_YEAR_MONTH),
+    );
+
+    expect(buckets).toHaveLength(13);
+    // The month the 작년 같은 달 column ranks — twelve back from the anchor, one outside the
+    // default span.
+    expect(buckets[0]?.month).toBe('2025-08');
+    expect(buckets.at(-1)?.month).toBe('2026-08');
+  });
+
+  it('never asks for more months than the published file retains', () => {
+    // The widened span reaches one month past the 작년 같은 달 window; a bar older than the
+    // retention floor could only ever render empty.
+    expect(LAST_YEAR_MONTH_HISTOGRAM_MONTHS).toBeLessThanOrEqual(RETAINED_MONTHS);
+  });
+
+  it('keeps every other basis on the default span', () => {
+    for (const basis of ['1m', '3m', '6m', '1y'] as const) {
+      expect(histogramMonthsFor(basis)).toBe(HISTOGRAM_MONTHS);
+    }
   });
 
   it('counts each transaction into its calendar month', () => {
