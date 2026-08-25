@@ -56,8 +56,8 @@ export interface PlacesDataset {
 /**
  * A window measured back from the dataset's anchor. Everything is re-derived from `transactions`.
  *
- * The four discovery columns are exactly these four windows, and the detail dialog states the one
- * a place was picked from as its "…기준" line. Every window is measured back from the dataset's
+ * The period selector offers exactly these four windows, and the detail dialog states the one a
+ * place was picked from as its "…기준" line. Every window is measured back from the dataset's
  * anchor, so a calendar month that is not "the last N months" is not expressible here.
  */
 export type Period = '1m' | '3m' | '6m' | '1y';

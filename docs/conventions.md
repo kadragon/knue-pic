@@ -62,7 +62,8 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
   the data that the data does not say. The page opens on `DEFAULT_PERIOD`; pressing a tab rebuilds
   the list below it and never the selector, so the button the reader pressed keeps focus.
   Comparison across time lives inside the row instead of across columns — the rank-movement glyph,
-  and a twelve-bar monthly trend chart whose series is spelled out in its `aria-label`.
+  and a monthly trend chart of `HISTOGRAM_MONTHS` bars whose series is spelled out in its
+  `aria-label`.
 - The place detail is a modal dialog, not a section: it opens over the list the reader is in,
   traps Tab, closes on Escape or scrim click, and returns focus to the control that opened it.
   It was the last section on the page until a UI review found that selecting anything threw the

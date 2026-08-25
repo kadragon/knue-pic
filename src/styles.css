@@ -54,7 +54,7 @@
   --kind-other-bg: #ededed;
   --kind-other-fg: #4a4a4a;
 
-  /* The tint the header and footer bands sit on, and the accent rule under a column heading. */
+  /* The tint the header and footer bands sit on, and the accent rule under the list heading. */
   --band: #fffafb;
 
   --radius-xs: 4px;
@@ -77,9 +77,14 @@
   --shadow-float:
     rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px, rgba(0, 0, 0, 0.1) 0 4px 8px;
 
-  /* The centred column: 1440px wide including a 24px gutter, so the full-bleed header and footer
-     bands line their text up with `#content` without needing a wrapper element. */
-  --column-inset: max(24px, calc(50% - 696px));
+  /* The measure `#content` is capped at, and the inset derived from it.
+     `--column-inset` exists so the full-bleed header and footer bands line their text up with
+     `#content` without needing a wrapper element, which only holds while the two agree on the
+     width. Derived rather than written out: the inset was last a hand-computed literal for a
+     1440px column, and narrowing the column left it 240px out of true at every viewport wider
+     than the measure. The `- 24px` is `#content`'s own gutter. */
+  --content-max: 960px;
+  --column-inset: max(24px, calc(50% - (var(--content-max) / 2 - 24px)));
   /* Height of the sticky header band; the period bar parks directly beneath it. */
   --header-height: 92px;
 
@@ -128,7 +133,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  max-width: 960px;
+  max-width: var(--content-max);
   margin: 0 auto;
   padding: 0 24px var(--space-9);
 }
@@ -209,7 +214,7 @@ body {
 
 /*
  * The page-wide 업종 control. Sits above the search card rather than inside it because it narrows
- * the discovery columns too, and wraps rather than scrolls so all five options stay reachable at
+ * the ranked list too, and wraps rather than scrolls so all five options stay reachable at
  * 360px (PRD §36). Not a card itself: it is a strip of controls over the two cards below it.
  *
  * The label rides on the same baseline row as the chips instead of taking a 100%-wide line of its
@@ -643,19 +648,27 @@ div.top-place-body {
 
 .top-place-trend-bar {
   flex: 1 1 0;
-  /* A floor, not a minimum reading: a month with visits and a month without are told apart by the
-     tone below, so the shared 2px only keeps an empty month's slot visible as a slot. */
-  min-height: 2px;
+  /* Two channels, not one. A month with a single visit against a tall peak scales to well under
+     any floor, so a floor shared with the empty months would leave the two apart by tone alone —
+     colour as a sole carrier, which `docs/conventions.md` → Accessibility bans. A month with
+     visits therefore keeps a 4px floor and an empty month a 1px baseline, so the pair differ in
+     height as well as in tone whatever the peak. */
+  min-height: 4px;
   border-radius: 1px;
   background: var(--ink);
 }
 
 .top-place-trend-bar[data-empty='true'] {
-  background: var(--hairline-soft);
+  min-height: 1px;
+  /* Darker than the card it sits on — #ebebeb was 1.19:1 on white, #dddddd is 1.36:1. Still short
+     of the 3:1 non-text floor, and deliberately not chased further here: the height split above
+     is what carries the distinction, so the tone is a second cue rather than the channel. Under
+     `prefers-contrast: more` the token becomes #767676 (4.54:1). */
+  background: var(--hairline);
 }
 
 /*
- * The foot of a paged column: what is on screen, and the control that fetches the rest.
+ * The foot of the paged list: what is on screen, and the control that fetches the rest.
  *
  * The button doubles as the scroll sentinel (`src/ui/top-places.ts`), so it has to be a real,
  * reachable control rather than a marker — a reader who cannot generate a scroll gets through the

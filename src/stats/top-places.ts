@@ -126,8 +126,10 @@ export function computeTopPlaces(
   // `undefined` means "no cap" rather than a number that happens to be large enough: the previous
   // spelling passed `dataset.places.length`, which is only ever ≥ the ranked count by coincidence
   // of `rankWindow` filtering the same list.
-  // Attached after the cap, not before: the histogram is per-row decoration, so computing it for
-  // places the caller asked to drop would be work nothing renders.
+  // Attached after the cap, not before, so a capped caller pays only for the rows it asked for.
+  // The page's own list passes no cap — it pages through the whole ranking — so this saves nothing
+  // there; it is the ordering that keeps a cap meaningful rather than an optimisation the product
+  // currently collects on.
   const visible = limit === undefined ? ranked : ranked.slice(0, limit);
   return {
     entries: visible.map((entry) => ({

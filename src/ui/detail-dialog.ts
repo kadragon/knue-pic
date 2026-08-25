@@ -41,7 +41,7 @@ export interface DetailDialogHandle {
   /**
    * Re-renders an already-open dialog with new figures for the same selection. A no-op when
    * closed, so a repaint never pops the dialog open on its own. Nothing in the page drives it
-   * today — the window a place is shown under is now fixed by the column it was picked from.
+   * today — the window a place is shown under is the one it was picked from.
    */
   update: (detail: PlaceDetail) => void;
 }

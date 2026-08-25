@@ -237,6 +237,13 @@ export function renderTopPlaces(
   title.textContent = heading;
   section.append(title);
 
+  // Before either branch replaces the container's children, not just before the paged one. The
+  // same container is re-rendered whenever the reader selects another window, so a switch from a
+  // paged window to an empty one used to return below with the previous observer still registered,
+  // watching a `더 보기` button that had just been detached and retaining the whole previous list.
+  sentinelObservers.get(container)?.disconnect();
+  sentinelObservers.delete(container);
+
   if (result.entries.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'top-places-empty';
@@ -322,9 +329,6 @@ export function renderTopPlaces(
 
   footer.append(counter, more);
   section.append(list, footer);
-  // Whatever this container held is about to be discarded; its observer would otherwise outlive it.
-  sentinelObservers.get(container)?.disconnect();
-  sentinelObservers.delete(container);
   container.replaceChildren(section);
 
   appendPage();
@@ -334,11 +338,11 @@ export function renderTopPlaces(
   // jsdom — and any browser without the API — has no `IntersectionObserver`; there the button is
   // the only way through, which is why it is a real control rather than an empty marker div.
   //
-  // The condition is "there are pages left", NOT "the button is in the document": every caller
-  // renders into a detached subtree and attaches it afterwards (`place-list.ts` builds the list
-  // cell before appending the section), so an `isConnected` check here is false on every render
-  // and the observer would never be created. Observing a detached element is fine — it reports
-  // nothing until the node is attached, then behaves normally.
+  // The condition is "there are pages left", NOT "the button is in the document". Observing a
+  // detached element is harmless — the observer reports nothing until the node is attached, then
+  // behaves normally — while an `isConnected` gate is false for any caller that builds its subtree
+  // before attaching it, and silently leaves that list with no auto-paging at all. The invariant is
+  // what the guard rests on; do not re-derive it from whichever caller happens to exist today.
   if (rendered < total && typeof IntersectionObserver !== 'undefined') {
     observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) appendPage();

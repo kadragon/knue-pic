@@ -72,8 +72,14 @@ describe('renderPlaceList', () => {
     tabs[3]?.click();
 
     // Same nodes, new state: a rebuilt group would drop the focus the reader was holding on the
-    // button they just pressed.
-    expect([...root.querySelectorAll('.period-tab')]).toEqual(tabs);
+    // button they just pressed. `toBe` per element, not `toEqual` on the arrays — structural
+    // equality is satisfied by freshly-built buttons carrying identical attributes, which is
+    // exactly the failure this is here to catch.
+    const after = [...root.querySelectorAll('.period-tab')];
+    expect(after).toHaveLength(tabs.length);
+    after.forEach((node, index) => {
+      expect(node).toBe(tabs[index]);
+    });
     expect(tabs[3]?.getAttribute('aria-pressed')).toBe('true');
     expect(tabs[1]?.getAttribute('aria-pressed')).toBe('false');
     expect(root.querySelector('.place-list-body h2')?.textContent).toBe(periodLabel('1y'));

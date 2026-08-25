@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlacesDataset } from '../data/types';
+import { HISTOGRAM_MONTHS } from '../stats/histogram';
 import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
 import {
@@ -112,9 +113,9 @@ describe('renderTopPlaces', () => {
   });
 
   it('watches the button even while the list is still detached from the document', () => {
-    // Every caller renders into a subtree it attaches afterwards — `place-list.ts` fills the list
-    // cell before appending the section — so a "is this in the document yet?" guard here left the
-    // observer uncreated on every render, and scrolling loaded nothing.
+    // A caller is free to build its subtree and attach it afterwards, so a "is this in the
+    // document yet?" guard here would leave such a list with the observer uncreated and no
+    // auto-paging at all.
     const observed: Element[] = [];
     class FakeObserver {
       observe(target: Element): void {
@@ -209,7 +210,7 @@ describe('renderTopPlaces', () => {
   it('re-arms the observer after a page, and drops it when the container is re-rendered', () => {
     // `IntersectionObserver` reports a transition, so a sentinel still on screen after a page was
     // appended emits nothing and auto-paging stalls; and a container rebuilt by the 업종 filter
-    // would otherwise leave its observer watching a detached button, holding the old column alive.
+    // would otherwise leave its observer watching a detached button, holding the old list alive.
     const calls: string[] = [];
     class FakeObserver {
       observe(): void {
@@ -238,6 +239,45 @@ describe('renderTopPlaces', () => {
       calls.length = 0;
       renderTopPlaces(container, result, undefined, undefined, { pageSize: 2 });
       expect(calls).toEqual(['disconnect', 'observe']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('disposes the previous observer when the same container renders an empty window', () => {
+    // The switch a period selector makes: a paged window, then one with no visits at all. The
+    // empty branch returns before the paging machinery is built, so unless the teardown runs
+    // ahead of both branches the old observer keeps watching a `더 보기` button that this render
+    // just detached — and it retains the whole previous list with it.
+    const calls: string[] = [];
+    class FakeObserver {
+      observe(): void {
+        calls.push('observe');
+      }
+      unobserve(): void {
+        calls.push('unobserve');
+      }
+      disconnect(): void {
+        calls.push('disconnect');
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+
+    try {
+      const container = document.createElement('div');
+
+      renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'), undefined, undefined, {
+        pageSize: 2,
+      });
+      expect(calls).toEqual(['observe']);
+
+      calls.length = 0;
+      renderTopPlaces(container, computeTopPlaces(EMPTY_DATASET, '1y'), undefined, undefined, {
+        pageSize: 2,
+      });
+
+      expect(container.textContent).toContain(EMPTY_MESSAGE);
+      expect(calls).toEqual(['disconnect']);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -433,13 +473,16 @@ describe('renderSparkline', () => {
     ).toEqual(['0%', '0%']);
   });
 
-  it('gives every rendered row its trend chart', () => {
+  it('gives every rendered row a full-span trend chart', () => {
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
 
     const rows = [...container.querySelectorAll('.top-place')];
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
-      expect(row.querySelector('.top-place-trend')).not.toBeNull();
+      // The bar count, not merely the chart's presence: a row handed a truncated slice would
+      // still carry a `.top-place-trend`, and the span the chart covers is the thing the label
+      // beside it claims.
+      expect(row.querySelectorAll('.top-place-trend-bar')).toHaveLength(HISTOGRAM_MONTHS);
     }
   });
 });

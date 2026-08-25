@@ -305,23 +305,25 @@ describe('bootstrap place selection', () => {
     );
   });
 
-  it('leaves the columns and the search query untouched when a place is selected', async () => {
+  it('leaves the ranked list and the search query untouched when a place is selected', async () => {
     const root = document.createElement('div');
     document.body.append(root);
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
     const searchInput = root.querySelector<HTMLInputElement>('.place-search-input');
-    const monthlyList = root.querySelector('.place-column[data-column="1m"] .top-places-list');
+    // Captured *after* `firstRow`, which selects a window and so legitimately rebuilds the list:
+    // a node captured before that click is detached by construction and the identity assertion
+    // below would compare two nulls and pass having tested nothing.
     const button = firstRow(root, '1y');
+    const rankedList = root.querySelector('.place-list-body .top-places-list');
+    expect(rankedList).not.toBeNull();
     button?.focus();
     button?.click();
 
-    // Only the dialog body is repainted — an in-progress search query and the columns survive the
-    // selection, asserted by node identity rather than by where focus ended up.
+    // Only the dialog body is repainted — an in-progress search query and the ranked list survive
+    // the selection, asserted by node identity rather than by where focus ended up.
     expect(root.querySelector('.place-search-input')).toBe(searchInput);
-    expect(root.querySelector('.place-column[data-column="1m"] .top-places-list')).toBe(
-      monthlyList,
-    );
+    expect(root.querySelector('.place-list-body .top-places-list')).toBe(rankedList);
     // Focus moves into the dialog so the selection is announced rather than happening off-screen.
     expect(document.activeElement).toBe(root.querySelector('.detail-dialog-panel'));
     root.remove();
@@ -393,7 +395,7 @@ describe('bootstrap map wiring', () => {
     expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE);
     expect(root.querySelector('.search-slot')).not.toBeNull();
   });
-  it('narrows the columns and the search with one 업종 selection', async () => {
+  it('narrows the ranked list and the search with one 업종 selection', async () => {
     const root = document.createElement('div');
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
     typeQuery(root, '식당');

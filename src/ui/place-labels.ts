@@ -34,7 +34,7 @@ export function displayDate(date: string): string {
  *
  * It is a real trade, not a free one. 최근 1년 spans two calendar years, and the dialog opened from
  * search is measured over that same window, so `09-14` there could be either year and the row does
- * not say which. That ambiguity is accepted for the columns; the footer's provenance date keeps its
+ * not say which. That ambiguity is accepted for the list; the footer's provenance date keeps its
  * year, because that one is the reader's only statement of *which* published file they are looking
  * at and a bare `07-08` would not say it.
  */
