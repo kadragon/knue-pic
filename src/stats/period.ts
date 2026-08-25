@@ -46,7 +46,7 @@ function subtractMonths(date: CalendarDate, months: number): CalendarDate {
  * The window covering the `months` calendar months up to (and including) `anchor`.
  *
  * The period selector is not the only consumer of a month window: trending reads one month, newly
- * seen reads two, and the histogram spans the retained twelve. Exposing the month count directly
+ * seen reads two, and the histogram spans twelve of the retained months. Exposing the month count directly
  * keeps all of them on the same clamping rule as `resolvePeriodWindow`, which delegates here — a
  * second hand-rolled subtraction is exactly how a window ends up one day off from the one a
  * statistic is compared against.
@@ -84,14 +84,14 @@ export function isWithinWindow(date: string, periodWindow: PeriodWindow): boolea
  * Anything before that floor is simply absent, so a window reaching past it is incomplete no
  * matter how many transactions happen to fall inside it.
  *
- * Deliberately **behind** the collector's `ROLLING_WINDOW_MONTHS`, which was widened to 15 so the
- * 작년 같은 달 column has a month to publish. This constant is not a configuration knob but a
- * *claim* — `isPriorWindowComplete` reads it as "there is data this far back" — and the three
- * extra months are not collected yet. Raising it first would have every place count 0 visits in
- * months that were never gathered and render invented ▼ rank drops. Raise it in the same change
- * that lands the backfill, never before (`backlog.md`).
+ * Matches the collector's `ROLLING_WINDOW_MONTHS`, which was widened to 15 so the 작년 같은 달
+ * column has a month to publish. This constant is not a configuration knob but a *claim* —
+ * `isPriorWindowComplete` reads it as "there is data this far back" — so it may only be raised
+ * once the months exist: the 2025-06/07/08 backfill landed with this change, and `data/places.json`
+ * now spans 15 months. Raising it over uncollected months would have every place count 0 visits
+ * there and render invented ▼ rank drops.
  */
-export const RETAINED_MONTHS = 12;
+export const RETAINED_MONTHS = 15;
 
 /**
  * The window immediately preceding `period`'s own.
@@ -124,8 +124,23 @@ export function resolvePriorWindow(period: Period, anchor: string): PeriodWindow
  * against retained data and `1y` never can.
  */
 export function isPriorWindowComplete(period: Period, anchor: string): boolean {
-  const floor = subtractMonths(parseIsoDate(anchor), RETAINED_MONTHS);
-  return resolvePriorWindow(period, anchor).start >= formatIsoDate(floor);
+  return resolvePriorWindow(period, anchor).start >= retentionFloor(anchor);
+}
+
+/**
+ * The oldest day the dataset is claimed to cover, anchored to a **month** rather than a day.
+ *
+ * The collector publishes whole calendar months (`collector/validate.py` → `ROLLING_WINDOW_MONTHS`,
+ * whose floor is the first day of the month `ROLLING_WINDOW_MONTHS - 1` back), so the earliest day
+ * the file can hold is that month's first. Stepping `RETAINED_MONTHS` whole months back from the
+ * anchor instead lands up to a month earlier — 2025-05-25 against a file that starts 2025-06-01 —
+ * and every day in that sliver is claimed but absent. It was slack while `RETAINED_MONTHS` sat
+ * below the collector's window; now that the two agree it is an over-claim, so the floor is
+ * computed the way its producer computes it.
+ */
+function retentionFloor(anchor: string): string {
+  const { year, month } = subtractMonths(parseIsoDate(anchor), RETAINED_MONTHS - 1);
+  return formatIsoDate({ year, month, day: 1 });
 }
 
 /**

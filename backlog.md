@@ -6,20 +6,16 @@
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*
 
-### 작년 같은 달 column has no month to rank until the backfill lands (2026-08-23)
+### The "16 months retained internally" figure is stated twice and implemented nowhere (2026-08-25)
 
-- [ ] [feat] Collect 2025-06, 2025-07 and 2025-08 with `knue-expense-collect`, geocode the new
-  venues and approve them in `review_candidates.csv`, then rebuild `data/places.json`. The
-  collector's window already admits 15 months, but `collector/out/` starts at 2025-09, so the
-  first discovery column renders its honest empty message on the live site — the column shipped
-  ahead of its data by explicit decision, not by oversight
-- [ ] [fix] *(blocked by: the backfill above)* Raise `RETAINED_MONTHS` from 12 to 15 in
-  `src/stats/period.ts` so `isPriorWindowComplete` matches what the file actually holds. It must
-  not move first: the constant is read as "there is data this far back", so raising it over
-  uncollected months makes every place count zero visits there and renders invented ▼ rank drops
-  on the 6개월 column. The detail chart is no longer coupled to it — `HISTOGRAM_MONTHS` in
-  `src/stats/histogram.ts` owns the bar count — so this is a one-line change
-  — `src/stats/period.ts:87`
+- [ ] [debt] `docs/architecture.md` → Rolling window and `collector/validate.py` (the
+  `ROLLING_WINDOW_MONTHS` comment) both say the collector may retain 16 months internally while only
+  15 ship. Nothing in `collector/` implements a 16: `build_places.py`'s `month_dirs()` reads
+  whichever `collector/out/<month>/` directories happen to exist, so the internal retention is
+  "whatever was collected", not a bounded 16. Surfaced during the PR #21 review round, which found
+  the neighbouring 11-vs-14 figure in the same paragraph was also false. Either implement the bound
+  or delete the figure — AGENTS.md Golden Principle 5 makes an unread stated value a defect
+  — `docs/architecture.md`, `collector/validate.py`
 
 ### The detail card charts no bar for the 작년 같은 달 month (2026-08-23)
 
@@ -28,8 +24,23 @@
   `HISTOGRAM_MONTHS`, so the very month the count describes has no bar. Not wrong — the card names
   its window, and the bars are labelled — but a reader comparing the two finds the stated month
   missing. Options: widen the chart for that basis only, mark the stated month on it, or say in the
-  chart's heading that it covers the recent 12 months regardless of the figures above
+  chart's heading that it covers the recent 12 months regardless of the figures above. Reachable
+  on the live site since the 2025-06/07/08 backfill: the column now ranks 2025-08 rather than
+  rendering its empty message, so a reader can open a card and meet the gap
   — `src/ui/place-detail.ts`, `src/stats/histogram.ts`
+
+### `fetch_disclosures.py` silently returns the wrong year when backfilling (2026-08-25)
+
+- [ ] [debt] `collect_posts` compares the month number only — the year filter is stage 2's date
+  cells, by design — but the default `--quiet-pages 3` stops the walk three pages after the last
+  hit, so a month more than a few pages down the board is never reached. Backfilling 2025-06
+  returned 21 posts that were all 2026-06, and 2025-08 returned zero; `--quiet-pages 60
+  --max-pages 80` reached them. The wrong-year case is the dangerous one: it reports a plausible
+  post count and stage 2 then finds no target-month rows, which reads as "the layout changed".
+  Either scale the walk from the requested month's distance from today, or refuse a month whose
+  matched posts all carry a different year. SKILL.md's "Run it" block assumes a recent month and
+  documents no backfill invocation — fix the caller and the doc together
+  — `.claude/skills/knue-expense-collect/scripts/fetch_disclosures.py`, `.claude/skills/knue-expense-collect/SKILL.md`
 
 ### `geocode_candidates.py --report` has no test home and tracebacks on operator error (2026-08-23)
 

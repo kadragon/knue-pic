@@ -125,11 +125,12 @@ Two of the nine need a concrete value the invariant list does not carry:
   bounds that make `region_ok` in `review_candidates.csv` mean something. The constants live at the
   top of `collector/validate.py`.
 - **The rolling window** is floored on the *calendar month*, not on `updatedAt`'s day: the oldest
-  accepted date is the first day of the month 11 months before `updatedAt`'s own month. That is the
-  span `src/stats/histogram.ts` renders and it sits inside the half-open window
-  `src/stats/period.ts` -> `isWithinWindow` applies. A day-anchored floor would admit transactions
-  that every 1y view then ignores, so the histogram bars would sum to fewer visits than the count
-  printed beside them, with nothing reporting the gap.
+  accepted date is the first day of the month `ROLLING_WINDOW_MONTHS - 1` — 14 — before
+  `updatedAt`'s own month. It is wider than the twelve months `src/stats/histogram.ts` renders, and
+  `src/stats/period.ts` -> `retentionFloor` derives the browser's floor with the same formula so
+  the two cannot disagree. A day-anchored floor would cut the oldest month in half, and the
+  histogram bars would sum to fewer visits than the count printed beside them, with nothing
+  reporting the gap.
 - **Review status** is joined on the canonical ID, in two hops: the place's `id` names a
   `collector/id_map.json` entry (read in reverse, id → `canonical_name`), and that name names the
   `review_candidates.csv` row whose `status` decides it. `display_name` is display text and is not
@@ -167,10 +168,14 @@ exist so the 작년 같은 달 column — the calendar month twelve months back 
 instead of sitting on the floor and dropping out on the next monthly run.
 
 The window is a **ceiling on what may publish, not a claim that the months were collected.** The
-browser keeps its own, deliberately smaller floor in `RETAINED_MONTHS` (`src/stats/period.ts`,
-currently 12): `isPriorWindowComplete` reads it as "there is data this far back", and raising it
-ahead of the collection would have every place count zero visits in months nobody gathered and
-render invented rank drops. Raise it in the same change that lands the older months.
+browser states that claim separately in `RETAINED_MONTHS` (`src/stats/period.ts`), which
+`isPriorWindowComplete` reads as "there is data this far back". It matches the collector's 15 only
+because the 2025-06/07/08 backfill landed; the standing rule is that it moves in the same change
+that lands the months, never ahead of them — raising it over uncollected months has every place
+count zero visits there and renders invented rank drops. `src/stats/retention.test.ts` is the
+mechanical guard: it reads the committed dataset and fails when the constant outruns it. Both
+floors are anchored to the first day of a calendar month, because whole months are what the file
+holds.
 
 **Canonical ID.** `restaurant_%06d`, assigned once and never reused. A renamed business keeps its
 ID; a different branch of the same brand is a different place with a different ID. The ID map is

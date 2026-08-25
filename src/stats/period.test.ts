@@ -124,11 +124,11 @@ describe('resolvePriorWindow', () => {
 });
 
 describe('isPriorWindowComplete', () => {
-  it('accepts the windows the 12-month retained file can cover', () => {
+  it('accepts the windows the retained file can cover', () => {
     const anchor = SAMPLE_DATASET.updatedAt;
 
     expect(isPriorWindowComplete('1m', anchor)).toBe(true);
-    // Prior 6m starts exactly on the retention floor — the whole window is retained.
+    // Prior 6m starts inside the retention floor — the whole window is retained.
     expect(isPriorWindowComplete('6m', anchor)).toBe(true);
   });
 
