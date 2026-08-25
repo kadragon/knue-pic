@@ -35,11 +35,23 @@ flags are needed:
 python3 $SKILL/fetch_disclosures.py --month 2025-06        # walks back as far as the board needs
 ```
 
-That walk costs one listing request per page, so a month a year back takes noticeably longer than
-last month's. If stage 1 exits with *every dated post found carries a different year*, it stopped
-before reaching the month: raise `--max-pages` (default 200 per traversal, a runaway cap). Pass
-`--allow-title-year-mismatch` only when the posts really are misdated in their titles — the
-authoritative month is still the date cells stage 2 reads.
+Stage 1 makes two traversals (a title search, then the plain listing), so a month a year back
+costs roughly twice its page depth in listing requests and takes noticeably longer than last
+month's. Because the walk matches on the month number and only the date cells decide the year,
+`raw/` will also hold that same month from the years it passed on the way down — expected, not a
+collection bug; stage 2 filters them out.
+
+Stage 1 exits non-zero in three ways, and they mean different things:
+
+| Exit | Message | What it means |
+|---|---|---|
+| 2 | `--month must be YYYY-MM` | Malformed argument; nothing ran |
+| 1 | `no posts matched` | The month was never published, or `--max-pages` ran out first |
+| 3 | `every post found is dated to another year` | The walk ended above the month and would have downloaded another year's posts; nothing was downloaded |
+
+For 1 and 3, raise `--max-pages` (default 200 per traversal, a runaway cap) if the board is
+deeper than that. Pass `--allow-title-year-mismatch` only when the posts really are misdated in
+their titles — the authoritative month is still the date cells stage 2 reads.
 
 Then review the pending rows by hand (below). **After** their `status` is set — not before —
 `--report` proposes the spellings worth merging:
@@ -158,7 +170,8 @@ can tell "the site changed" apart from "my code is wrong". Stage 4 took about 40
 
 | Symptom | Likely cause | What to do |
 |---|---|---|
-| Stage 1 finds 0 posts | Month not published yet, or the board markup changed | Check the board in a browser; widen `--max-pages` |
+| Stage 1 finds 0 posts (exit 1) | Month not published yet, `--max-pages` ran out, or the board markup changed | Check the board in a browser; widen `--max-pages` |
+| Stage 1 refuses on the year (exit 3) | The walk ended above the month, or the month predates what the board still carries | Widen `--max-pages`; see the exit table under *Run it* |
 | A department yields 0 rows | Its header row moved or a column was renamed | Add the new spelling to the synonym tuples at the top of `parse_disclosures.py` |
 | `unsupported spreadsheet` | A new attachment type (e.g. `.hwp`) | Report it; do not hand-transcribe silently |
 | openpyxl `IndexError` on load | A department's export has broken styles | Already handled via `read_only=True`; if it recurs elsewhere, keep that flag |

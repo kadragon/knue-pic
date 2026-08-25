@@ -11,6 +11,9 @@ returning same-month posts from another year.
 Writes <out-dir>/<month>/raw/ with the attachment files and
 <out-dir>/<month>/posts.json describing what was downloaded and what was
 deliberately skipped. Nothing here interprets the spreadsheet contents.
+
+Exit codes: 0 collected; 1 no post matched the month; 2 malformed --month;
+3 every post found is dated to another year, so nothing was downloaded.
 """
 
 from __future__ import annotations
@@ -38,6 +41,13 @@ KEYWORD = "업무추진비"
 # derived from it. Skipping it here keeps stage 2's failure log meaningful.
 SKIP_DEPARTMENTS = {"비서실"}
 
+# One page is not evidence the board has passed the requested month: on the
+# plain listing a page typically carries a single dated 업무추진비 row, and a
+# misdated one ("2025년 7월" on a real 2026-07 post) would satisfy an
+# all-rows-older test on its own. Two consecutive such pages cannot come from
+# one misdated title.
+PAGES_PAST_TARGET = 2
+
 
 def collect_posts(year: int, month: int, max_pages: int, quiet_pages: int) -> list[dict]:
     """Walk title-search results, then plain pages, until the board passes the month.
@@ -46,22 +56,36 @@ def collect_posts(year: int, month: int, max_pages: int, quiet_pages: int) -> li
     the search skips unrelated notices, the plain listing catches posts whose
     title spells 업무추진비 differently or omits it in a combined disclosure.
 
-    The quiet-page budget only becomes a stop rule once the walk has evidence
-    it is at or past the requested month: either the month's own posts have
-    been seen, or a page's dated 업무추진비 rows are all older than it. On its
-    own the budget silently under-walks a backfill — the month simply sits
-    further down the board than the budget reaches, and the run then reports
-    posts from the same month of a different year.
+    The stop rule is positional. The board is ordered newest first, so the
+    quiet-page budget only becomes a stop rule once PAGES_PAST_TARGET pages in
+    a row have carried dated 업무추진비 rows that are *all* older than the
+    requested month. A fixed budget alone silently under-walks a backfill — the
+    month simply sits further down the board than the budget reaches, and the
+    run then reports posts from the same month of a different year.
+
+    Having seen the month's own posts is deliberately NOT arming evidence. A
+    month's departmental posts are spread over several pages and the plain
+    listing interleaves unrelated notices, so a gap wider than the budget
+    between two clusters of the same month would end the walk mid-month — a
+    silent partial collection that the year guard below cannot catch, because
+    the first cluster already carries the right stamp.
     """
     target = (year, month)
     found: dict[str, dict] = {}
     for keyword in (KEYWORD, None):
         misses = 0
-        reached_target = False
+        older_pages = 0
+        past_target = False
+        previous: list[tuple[str, str]] | None = None
         for page in range(1, max_pages + 1):
             rows = parse_rows(fetch_text(list_url(page, keyword)))
-            if not rows:
+            # A board that clamps an out-of-range pageIndex to its last page
+            # serves that page forever; without this the walk would only stop
+            # at --max-pages. Distinct nttNo values make a false match on two
+            # genuinely different pages impossible.
+            if not rows or rows == previous:
                 break
+            previous = rows
             hit_this_page = False
             dated_this_page: list[set[tuple[int, int]]] = []
             for ntt_no, title in rows:
@@ -77,8 +101,6 @@ def collect_posts(year: int, month: int, max_pages: int, quiet_pages: int) -> li
                 if months and month not in {m for _, m in months}:
                     continue
                 hit_this_page = True
-                if (year, month) in months:
-                    reached_target = True
                 found.setdefault(
                     ntt_no,
                     {
@@ -88,27 +110,44 @@ def collect_posts(year: int, month: int, max_pages: int, quiet_pages: int) -> li
                         "titleMonths": sorted(f"{y:04d}-{m:02d}" for y, m in months),
                     },
                 )
-            # Judged per page, not per row: a single mistitled post near the top
-            # of the board would otherwise declare the target passed on page 1.
-            if dated_this_page and all(max(ms) < target for ms in dated_this_page):
-                reached_target = True
-            misses = 0 if hit_this_page else misses + 1
-            if reached_target and misses >= quiet_pages:
+            # Reset on every page that is not itself all-older, undated pages
+            # included: letting an undated page preserve a partial count lets
+            # two lone misdated posts pages apart arm the stop between them.
+            older_pages = (older_pages + 1
+                           if dated_this_page
+                           and all(max(ms) < target for ms in dated_this_page)
+                           else 0)
+            # Latched: two consecutive all-older pages is board ordering, not a
+            # title typo, and the walk does not un-pass a month it has passed.
+            past_target = past_target or older_pages >= PAGES_PAST_TARGET
+            # Quiet pages read before the board passed the month say nothing
+            # about where the walk is, so they must not accumulate: carrying a
+            # stale count across the moment the walk arrives would spend the
+            # whole budget on the first page past the target.
+            misses = (0 if hit_this_page else misses + 1) if past_target else 0
+            if past_target and misses >= quiet_pages:
                 break
     return sorted(found.values(), key=lambda p: -int(p["nttNo"]))
 
 
 def wrong_year_only(posts: list[dict], year: int, month: int) -> bool:
-    """True when every dated post carries a year other than the requested one.
+    """True when every post found is dated and carries a year other than ours.
 
-    This is the failure the positional walk is meant to prevent, kept as a
-    second line: matching on the month number alone makes a short walk return
-    a plausible post count from the wrong year, and stage 2 then finds no rows
-    for the target month — which reads as "the board layout changed".
+    The failure this guards is a walk that stopped above the requested month
+    and returned the same month of a different year: a plausible post count
+    that leaves stage 2 with no rows for the target month, which reads as "the
+    board layout changed".
+
+    A post whose title has no parseable year is indeterminate, not evidence —
+    it is kept precisely because the attachment decides its month. One such
+    post therefore disables the guard rather than being refused alongside the
+    wrong-year ones, and a run where *no* post carries a year cannot be judged
+    here at all; stage 2's date cells remain the authority in both cases.
     """
     stamp = f"{year:04d}-{month:02d}"
-    dated = [p for p in posts if p["titleMonths"]]
-    return bool(dated) and not any(stamp in p["titleMonths"] for p in dated)
+    if any(not p["titleMonths"] for p in posts):
+        return False
+    return bool(posts) and not any(stamp in p["titleMonths"] for p in posts)
 
 
 def drop_superseded(posts: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -157,11 +196,12 @@ def main() -> int:
 
     posts = collect_posts(year, month, args.max_pages, args.quiet_pages)
     if wrong_year_only(posts, year, month) and not args.allow_title_year_mismatch:
-        print(f"{args.month}: every dated post found carries a different year"
-              f" ({', '.join(sorted({m for p in posts for m in p['titleMonths']}))})."
-              " The walk never reached the requested month; raise --max-pages, or pass"
-              " --allow-title-year-mismatch if the titles really are misdated.",
-              file=sys.stderr)
+        years = ', '.join(sorted({m for p in posts for m in p['titleMonths']}))
+        print(f"{args.month}: every post found is dated to another year ({years}), so"
+              " nothing was downloaded. Either the month was never published, or it sits"
+              f" below where the walk ended — raise --max-pages ({args.max_pages}) if the"
+              " board is deeper than that. Pass --allow-title-year-mismatch if the titles"
+              " really are misdated.", file=sys.stderr)
         return 3
     posts, superseded = drop_superseded(posts)
 
