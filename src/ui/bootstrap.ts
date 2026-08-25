@@ -1,6 +1,6 @@
 import { loadPlacesDataset } from '../data/load';
 import type { Period, PlacesDataset } from '../data/types';
-import { computeMonthlyHistogram } from '../stats/histogram';
+import { computeMonthlyHistogram, histogramMonthsFor } from '../stats/histogram';
 import { filterByKind } from '../stats/search';
 import { computePlaceStats } from '../stats/place-stats';
 import { resolveBasisWindow, type StatBasis } from '../stats/period';
@@ -123,7 +123,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
         basis,
         anchor: dataset.updatedAt,
         stats: computePlaceStats(place, resolveBasisWindow(basis, dataset.updatedAt)),
-        histogram: computeMonthlyHistogram(place, dataset.updatedAt),
+        histogram: computeMonthlyHistogram(place, dataset.updatedAt, histogramMonthsFor(basis)),
       };
     }
 
