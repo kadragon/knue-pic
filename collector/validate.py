@@ -46,7 +46,9 @@ KOREA_LNG_MIN = 124.0
 KOREA_LNG_MAX = 132.0
 
 # The published file keeps the most recent 15 months, anchored on `updatedAt`
-# (`docs/architecture.md` -> Rolling window). The collector may retain 16 internally; only 15 ship.
+# (`docs/architecture.md` -> Rolling window). Nothing bounds what `collector/out/` holds locally:
+# `build_places.py`'s `month_dirs()` reads whichever month directories happen to exist, so this
+# floor is the only retention rule there is and it decides what ships, not what was collected.
 #
 # Widened from 12 for the 작년 같은 달 column, which ranks the calendar month twelve months back:
 # under a 12-month window that month sat exactly on the floor and fell out of the file on the next
@@ -170,7 +172,7 @@ def window_floor(anchor: date) -> date:
     would cut a month in half, and the histogram bars would sum to less than the count printed
     beside them with nothing reporting it.
 
-    The floor is ``ROLLING_WINDOW_MONTHS`` (15) wide while the histogram still draws 12 bars: the
+    The floor is ``ROLLING_WINDOW_MONTHS`` (15) wide, wider than the span the histogram draws: the
     extra months exist so the 작년 같은 달 column has a month to rank, not to be charted.
     """
     total = anchor.year * 12 + (anchor.month - 1) - (ROLLING_WINDOW_MONTHS - 1)
