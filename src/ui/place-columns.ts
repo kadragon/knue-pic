@@ -7,7 +7,7 @@ import { PERIOD_ORDER, basisLabel } from './period-labels';
 import { renderTopPlaces } from './top-places';
 
 /**
- * The five discovery columns, side by side: 작년 같은 달, 최근 뜨는 곳, then the three ranked
+ * The five discovery columns, side by side: 작년 같은 달, 최근 이용 변화, then the three ranked
  * windows widening from three months to a year.
  *
  * This replaced a single ranked list behind a 1m/6m/1y switch. Under the switch, comparing the
@@ -80,7 +80,7 @@ export const TAB_GROUP_LABEL = '목록 선택';
  * `remainderLabel`.
  */
 export function columnHeading(label: string, renderedCount: number): string {
-  return renderedCount === 0 ? label : `${label} TOP ${renderedCount}`;
+  return renderedCount === 0 ? label : `${label} 상위 ${renderedCount}곳`;
 }
 
 /**

@@ -4,6 +4,7 @@ import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import {
   NEW_BADGE_LABEL,
   NEW_BADGE_TEXT,
+  TRENDING_HEADING,
   TRENDING_EMPTY_MESSAGE,
   TRENDING_NOTE,
   remainderLabel,
@@ -15,7 +16,7 @@ import {
 const [FIRST] = SAMPLE_DATASET.places;
 
 /** The column supplies both; the list module owns neither. */
-const OPTIONS = { heading: '최근 뜨는 곳 TOP 10', limit: 10 };
+const OPTIONS = { heading: TRENDING_HEADING, limit: 20 };
 
 function trendingEntry(overrides: Partial<TrendingPlace>): TrendingPlace {
   return {
@@ -51,7 +52,7 @@ describe('renderTrendingPlaces', () => {
     expect(container.querySelector('.discovery-new')).toBeNull();
   });
 
-  it('shows a labelled NEW badge instead of a number when the delta is omitted', () => {
+  it('shows a labelled 신규 badge instead of a number when the delta is omitted', () => {
     const container = document.createElement('div');
 
     renderTrendingPlaces(

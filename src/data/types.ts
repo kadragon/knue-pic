@@ -56,7 +56,7 @@ export interface PlacesDataset {
 /**
  * A window measured back from the dataset's anchor. Everything is re-derived from `transactions`.
  *
- * `1m` no longer has a ranked column of its own — the 최근 뜨는 곳 column already reads that
+ * `1m` no longer has a ranked column of its own — the 최근 이용 변화 column already reads that
  * window, so a ranked list beside it repeated the same month. It stays in the union because
  * trending is *computed* over it and the detail dialog states it as the basis for a place picked
  * from that column.

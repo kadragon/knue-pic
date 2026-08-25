@@ -21,7 +21,7 @@ export const PERIOD_LABELS: Record<Period, string> = {
 /**
  * Ranked columns are rendered in this order: shortest window first, so the reader scans widening.
  *
- * `1m` is absent on purpose. The 최근 뜨는 곳 column already reads that month, so a ranked list
+ * `1m` is absent on purpose. The 최근 이용 변화 column already reads that month, so a ranked list
  * beside it stated the same window twice; `1m` survives in `PERIOD_LABELS` because a place picked
  * from the trending column is still shown 최근 1개월 figures.
  */

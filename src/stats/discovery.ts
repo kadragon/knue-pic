@@ -3,7 +3,7 @@ import { computePlaceStats } from './place-stats';
 import { resolveMonthsWindow, resolvePriorWindow } from './period';
 
 /**
- * The 최근 뜨는 곳 column: the recent month measured against the month before it. Pure — dataset
+ * The 최근 이용 변화 column: the recent month measured against the month before it. Pure — dataset
  * in, list out; no DOM, no map.
  *
  * Its window is fixed by `docs/conventions.md` → Statistics Rules rather than chosen: the ranked

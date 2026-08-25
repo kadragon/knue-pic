@@ -69,7 +69,17 @@ function toNfc(value: string): string {
  * dataset carry latin fragments, and a user typing `cafe` should reach `Cafe`.
  */
 function normalize(value: string): string {
-  return toNfc(value).trim().toLowerCase();
+  return foldSeparators(toNfc(value).trim().toLowerCase());
+}
+
+/**
+ * The lists render a category as `카페·디저트` (`src/ui/place-labels.ts` → `displayCategory`) while
+ * the dataset stores `카페,디저트`. Folding both spellings to one form on needle and field alike is
+ * what lets a reader type back what the page showed them; 92 of the published places carry a
+ * comma category, so the mismatch was not hypothetical.
+ */
+function foldSeparators(value: string): string {
+  return value.replace(/[,·]\s*/g, '·');
 }
 
 function matchesText(place: PlaceRecord, text: string): boolean {

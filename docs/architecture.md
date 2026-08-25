@@ -243,7 +243,7 @@ saying so.
    single sitting are not merged.
 2. **Period recomputation.** Every window is derived from `transactions` client-side, at render
    time. There are no precomputed per-period fields in the JSON. The page shows four windows at
-   once — 최근 뜨는 곳 (fixed at the recent month) plus 1m / 6m / 1y — so `src/ui/place-columns.ts`
+   once — 최근 이용 변화 (fixed at the recent month) plus 1m / 6m / 1y — so `src/ui/place-columns.ts`
    runs one aggregation per column on load and none after: nothing on the page switches a window
    any more, and a place selected from a column is shown that column's figures.
 3. **Rank comparison window.** The prior period is the immediately preceding window of the same

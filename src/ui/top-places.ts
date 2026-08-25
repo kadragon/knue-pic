@@ -1,4 +1,5 @@
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
+import { displayCategory, displayDate } from './place-labels';
 
 /**
  * The ranked list view. Takes the numbers `src/stats/top-places.ts` already computed and turns them
@@ -12,12 +13,12 @@ import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
 
 /**
  * The heading counts what the list actually renders. `computeTopPlaces` takes a `limit`, and a
- * short window routinely ranks fewer places than that limit, so a fixed "TOP 10" would name a
+ * short window routinely ranks fewer places than that limit, so a fixed count would name a
  * number the page does not show. With nothing ranked there is no number to name and the empty
  * message carries the explanation.
  */
 export function topPlacesHeading(renderedCount: number): string {
-  return renderedCount === 0 ? '많이 이용한 곳' : `많이 이용한 곳 TOP ${renderedCount}`;
+  return renderedCount === 0 ? '많이 이용한 곳' : `많이 이용한 곳 상위 ${renderedCount}곳`;
 }
 
 export const EMPTY_MESSAGE = '이 기간에는 이용 기록이 없습니다.';
@@ -27,14 +28,14 @@ export const EMPTY_MESSAGE = '이 기간에는 이용 기록이 없습니다.';
  * prior period is never retained — would show no movement indicators at all, and the absence would
  * read as "nothing moved" rather than "there is nothing to compare against".
  */
-export const NO_COMPARISON_MESSAGE = '이전 기간 자료가 없어 변동은 표시하지 않습니다.';
+export const NO_COMPARISON_MESSAGE = '비교할 직전 기간 자료가 없어 변동을 표시하지 않습니다.';
 
 export function visitCountLabel(visitCount: number): string {
-  return `이용횟수 ${visitCount}회`;
+  return `${visitCount}회 이용`;
 }
 
 export function mostRecentLabel(date: string): string {
-  return `최근 이용 ${date}`;
+  return `최근 이용 ${displayDate(date)}`;
 }
 
 /**
@@ -44,8 +45,8 @@ export function mostRecentLabel(date: string): string {
  * banned framing, and the movement itself is a plain fact about the list.
  */
 export function rankDeltaLabel(rankDelta: number): string {
-  if (rankDelta === 0) return '이전 기간과 같은 자리';
-  return rankDelta > 0 ? `이전 기간보다 ${rankDelta}계단 위` : `이전 기간보다 ${-rankDelta}계단 아래`;
+  if (rankDelta === 0) return '직전 기간과 같은 자리';
+  return rankDelta > 0 ? `직전 기간보다 ${rankDelta}계단 상승` : `직전 기간보다 ${-rankDelta}계단 하락`;
 }
 
 function rankDeltaText(rankDelta: number): string {
@@ -88,7 +89,7 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
   meta.className = 'top-place-meta';
   // `mostRecentVisit` is non-null for every ranked place: a place with no in-window visit is not
   // ranked at all. The fallback keeps the type honest without inventing a date.
-  const parts = [entry.place.category, visitCountLabel(entry.stats.visitCount)];
+  const parts = [displayCategory(entry.place.category), visitCountLabel(entry.stats.visitCount)];
   if (entry.stats.mostRecentVisit !== null) {
     parts.push(mostRecentLabel(entry.stats.mostRecentVisit));
   }

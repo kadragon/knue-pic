@@ -37,6 +37,7 @@ describe('renderKindFilter', () => {
     const group = root.querySelector('.kind-filter');
     expect(group?.getAttribute('role')).toBe('group');
     expect(group?.getAttribute('aria-label')).toBe(KIND_FILTER_LABEL);
+    expect(group?.querySelector('.kind-filter-label')?.textContent).toBe('업종');
   });
 
   it('reports the selection the reader pressed', () => {

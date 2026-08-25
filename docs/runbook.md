@@ -102,7 +102,7 @@ The collector's server/search credentials are never Vite variables and never liv
 
 ### Map fails to load, list still renders
 
-**Symptom:** "지도를 불러오지 못했습니다." with a working TOP 10.
+**Symptom:** "지도를 불러오지 못했습니다." with the ranked place list still rendering.
 **Cause:** Client ID missing, or the current origin is not in the key's allowed URLs.
 **Fix:** Check `VITE_NAVER_MAP_CLIENT_ID`, then the key's Web Service URL list. This degradation is
 intended behaviour (PRD §38) — the fix is the key, never removing the fallback.

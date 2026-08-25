@@ -159,6 +159,9 @@ describe('framing vocabulary', () => {
     );
 
     expect(text).toContain('추천');
-    expect(text).not.toContain('평가를 의미하지 않습니다');
+    // Derived from the constant, not retyped: a reworded disclaimer must not quietly turn this
+    // assertion into one that passes because its literal is absent from the sample entirely.
+    expect(stringLiterals(sample)).toContain(DISCLAIMER);
+    expect(text).not.toContain(DISCLAIMER);
   });
 });

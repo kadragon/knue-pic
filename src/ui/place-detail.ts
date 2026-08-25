@@ -3,6 +3,7 @@ import type { HistogramBucket } from '../stats/histogram';
 import type { PlaceStats } from '../stats/place-stats';
 import type { StatBasis } from '../stats/period';
 import { basisLabel } from './period-labels';
+import { displayCategory, displayDate } from './place-labels';
 
 /**
  * The detail card for one selected place: a slot for the location map, the figures for the period
@@ -16,7 +17,7 @@ import { basisLabel } from './period-labels';
 
 export const DETAIL_HEADING = '선택한 곳';
 
-export const DETAIL_EMPTY_MESSAGE = '목록에서 장소를 선택하면 이용 기록을 볼 수 있습니다.';
+export const DETAIL_EMPTY_MESSAGE = '목록에서 장소를 선택하면 이용 횟수를 확인할 수 있습니다.';
 
 /**
  * Names the span the bars actually cover, which is not fixed: a card opened from the 작년 같은 달
@@ -24,25 +25,21 @@ export const DETAIL_EMPTY_MESSAGE = '목록에서 장소를 선택하면 이용 
  * thirteen bars, which is the same class of defect as the missing bar it was widened to fix.
  */
 export function histogramHeading(monthCount: number): string {
-  return `월별 이용 기록 (최근 ${monthCount}개월)`;
+  return `최근 ${monthCount}개월 이용 횟수`;
 }
 
 export const NAVER_LINK_LABEL = '네이버지도에서 보기';
 
-export const NO_VISIT_IN_PERIOD_MESSAGE = '선택한 기간에는 이용 기록이 없습니다.';
+export const NO_VISIT_IN_PERIOD_MESSAGE = '선택한 기간의 이용 기록이 없습니다.';
 
 /**
  * The figure labels, exported like every other string in this module.
  *
- * They are the ones most likely to drift into banned framing — 합계 is one edit away from
- * 지출 합계, which frames the data as expense tracking (`docs/conventions.md` → Framing
- * Vocabulary) — and a banned-phrase test can only assert over strings it can import.
+ * They are exported so the UI tests can assert over every visible figure label.
  */
 export const FIGURE_LABELS = {
-  visitCount: '이용횟수',
-  totalAmount: '합계',
-  averageAmount: '평균',
-  mostRecentVisit: '최근 이용',
+  visitCount: '이용 횟수',
+  mostRecentVisit: '최근 이용일',
 } as const;
 
 /**
@@ -53,11 +50,6 @@ export const FIGURE_LABELS = {
  */
 export function periodStatsHeading(basis: StatBasis, anchor: string): string {
   return `${basisLabel(basis, anchor)} 기준`;
-}
-
-/** Won, with thousands separators. Amount is shown for context only; it never affects ranking. */
-export function amountLabel(amount: number): string {
-  return `${amount.toLocaleString('ko-KR')}원`;
 }
 
 export function visitCountLabel(visitCount: number): string {
@@ -180,7 +172,7 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
 
   const meta = document.createElement('p');
   meta.className = 'place-detail-meta';
-  meta.textContent = [place.category, place.address].join(' · ');
+  meta.textContent = [displayCategory(place.category), place.address].join(' · ');
 
   const periodNote = document.createElement('p');
   periodNote.className = 'place-detail-period';
@@ -204,12 +196,10 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
     figures.className = 'place-detail-figures';
     figures.append(
       renderFigure(FIGURE_LABELS.visitCount, visitCountLabel(stats.visitCount)),
-      renderFigure(FIGURE_LABELS.totalAmount, amountLabel(stats.totalAmount)),
-      renderFigure(FIGURE_LABELS.averageAmount, amountLabel(stats.averageAmount)),
     );
     // Non-null whenever there was a visit; the guard keeps the type honest without inventing a date.
     if (stats.mostRecentVisit !== null) {
-      figures.append(renderFigure(FIGURE_LABELS.mostRecentVisit, stats.mostRecentVisit));
+      figures.append(renderFigure(FIGURE_LABELS.mostRecentVisit, displayDate(stats.mostRecentVisit)));
     }
     section.append(figures);
   }
