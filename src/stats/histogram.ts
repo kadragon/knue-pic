@@ -30,9 +30,9 @@ function monthKey(year: number, month: number): string {
  *
  * Its own constant, not `RETAINED_MONTHS`. That one is a claim about how far back the *data* goes
  * and now reads 15, since the backfill landed the three older months; sharing it would silently
- * redraw this chart with fifteen bars, which `docs/architecture.md` -> Rolling window states the
- * retained window is deliberately wider than. The separation is what lets the retained window
- * widen again without touching the chart.
+ * redraw this chart with fifteen bars; `docs/architecture.md` -> Rolling window states that the
+ * retained window is deliberately wider than the span this chart draws. The separation is what
+ * lets the retained window widen again without touching the chart.
  */
 export const HISTOGRAM_MONTHS = 12;
 

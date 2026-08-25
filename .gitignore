@@ -15,5 +15,8 @@ __pycache__/
 # Local agent-harness maintenance state
 .agents/.maintenance-stamp
 
+# Batch-run git worktrees (`dev:task-next --all`); removed when the run converges
+.worktrees/
+
 # Playwright MCP screenshots and console logs (local verification artifacts)
 .playwright-mcp/
