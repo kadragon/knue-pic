@@ -144,6 +144,18 @@ export interface TopPlacesOptions {
 }
 
 /**
+ * The observer currently watching each container's sentinel.
+ *
+ * A container is re-rendered whenever the page-wide 업종 filter narrows the dataset
+ * (`bootstrap.ts` → `selectKind` rebuilds all four columns), and an `IntersectionObserver` holds
+ * its target alive: without this, every filter change left four observers watching four detached
+ * buttons, each retaining the whole previous column. Keyed on the container rather than returned
+ * as a disposer because the caller replaces the container's children and has no teardown hook to
+ * call one from.
+ */
+const sentinelObservers = new WeakMap<HTMLElement, IntersectionObserver>();
+
+/**
  * `onSelect` is optional: without it the list renders exactly as before, with no controls.
  *
  * `heading` is overridden by `src/ui/place-columns.ts`, where four of these lists sit side by side
@@ -200,27 +212,64 @@ export function renderTopPlaces(
   let rendered = 0;
   let observer: IntersectionObserver | null = null;
 
+  /**
+   * Moves focus off the button before it is removed.
+   *
+   * Activating 더 보기 on the last page destroys the element that has focus, and a detached
+   * `activeElement` drops the caret to the top of the document — the reader is thrown to the page
+   * header having just asked for the rest of the list. Focus lands on the first row this page
+   * added, which is where they were reading; with no `onSelect` there is no button in the list to
+   * take it, so the counter does, and it says what just happened.
+   */
+  function keepFocusInList(firstIndexOfPage: number): void {
+    if (document.activeElement !== more) return;
+
+    const row = list.children[firstIndexOfPage];
+    const target = row?.querySelector<HTMLElement>('button.top-place-body');
+    if (target) {
+      target.focus();
+      return;
+    }
+    counter.tabIndex = -1;
+    counter.focus();
+  }
+
   function appendPage(): void {
+    const firstIndexOfPage = rendered;
     const next = result.entries.slice(rendered, rendered + pageSize);
     list.append(...next.map((entry) => renderEntry(entry, onSelect)));
     rendered += next.length;
 
     if (rendered >= total) {
       counter.textContent = allRenderedLabel(total);
+      keepFocusInList(firstIndexOfPage);
       observer?.disconnect();
       observer = null;
+      sentinelObservers.delete(container);
       more.remove();
       return;
     }
 
     counter.textContent = renderedCountLabel(rendered, total);
     more.textContent = moreLabel(total - rendered);
+
+    // Re-arm: `IntersectionObserver` reports a *transition*, so a sentinel that stays on screen
+    // after a page is appended — a tall viewport, or a column whose ten new rows do not fill it —
+    // emits no second entry and auto-paging stalls with the button still in view. Unobserving and
+    // observing again forces a fresh initial report against the new layout.
+    if (observer) {
+      observer.unobserve(more);
+      observer.observe(more);
+    }
   }
 
   more.addEventListener('click', appendPage);
 
   footer.append(counter, more);
   section.append(list, footer);
+  // Whatever this container held is about to be discarded; its observer would otherwise outlive it.
+  sentinelObservers.get(container)?.disconnect();
+  sentinelObservers.delete(container);
   container.replaceChildren(section);
 
   appendPage();
@@ -240,5 +289,6 @@ export function renderTopPlaces(
       if (entries.some((entry) => entry.isIntersecting)) appendPage();
     });
     observer.observe(more);
+    sentinelObservers.set(container, observer);
   }
 }

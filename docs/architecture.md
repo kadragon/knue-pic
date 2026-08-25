@@ -165,8 +165,10 @@ before places reach it.
 (`ROLLING_WINDOW_MONTHS` in `collector/validate.py`). Nothing bounds what `collector/out/` holds
 locally — `build_places.py`'s `month_dirs()` reads whichever month directories happen to exist —
 so this floor is the only retention rule in the pipeline. It is wider than the span
-`src/stats/histogram.ts` charts: the extra months give the 최근 1년 window a fully covered prior
-period to be compared against rather than sitting on the floor.
+`src/stats/histogram.ts` charts: the extra months are what give the 최근 6개월 window a fully
+covered prior period — that comparison reaches twelve months back, which a 12-month file could not
+retain. 최근 1년 is never covered at any width the collector publishes (its prior period starts 24
+months back), which is why its rows carry no movement glyph.
 
 The window is a **ceiling on what may publish, not a claim that the months were collected.** The
 browser states that claim separately in `RETAINED_MONTHS` (`src/stats/period.ts`), which

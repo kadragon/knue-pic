@@ -157,6 +157,90 @@ describe('renderTopPlaces', () => {
     }
   });
 
+  it('keeps focus in the list when the last page removes the button under it', () => {
+    // Activating 더 보기 on the final page destroys the focused element; a detached activeElement
+    // drops the caret to the top of the document, throwing the reader to the page header the
+    // moment they asked for the rest of the list.
+    const container = document.createElement('div');
+    document.body.append(container);
+
+    try {
+      renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'), vi.fn(), undefined, {
+        pageSize: 4,
+      });
+      const button = container.querySelector<HTMLButtonElement>('.top-places-more-button');
+      button?.focus();
+      expect(document.activeElement).toBe(button);
+      button?.dispatchEvent(new MouseEvent('click'));
+
+      // The first row of the page that just arrived — where the reader was reading.
+      expect(container.querySelector('.top-places-more-button')).toBeNull();
+      expect(document.activeElement).toBe(
+        container.querySelectorAll('.top-place')[4]?.querySelector('button.top-place-body'),
+      );
+    } finally {
+      container.remove();
+    }
+  });
+
+  it('leaves focus alone when the last page was not requested from the button', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const elsewhere = document.createElement('button');
+    document.body.append(elsewhere);
+
+    try {
+      renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'), vi.fn(), undefined, {
+        pageSize: 4,
+      });
+      elsewhere.focus();
+      container.querySelector<HTMLButtonElement>('.top-places-more-button')?.click();
+
+      // A scroll-driven page must not steal the caret from whatever the reader was using.
+      expect(document.activeElement).toBe(elsewhere);
+    } finally {
+      container.remove();
+      elsewhere.remove();
+    }
+  });
+
+  it('re-arms the observer after a page, and drops it when the container is re-rendered', () => {
+    // `IntersectionObserver` reports a transition, so a sentinel still on screen after a page was
+    // appended emits nothing and auto-paging stalls; and a container rebuilt by the 업종 filter
+    // would otherwise leave its observer watching a detached button, holding the old column alive.
+    const calls: string[] = [];
+    class FakeObserver {
+      observe(): void {
+        calls.push('observe');
+      }
+      unobserve(): void {
+        calls.push('unobserve');
+      }
+      disconnect(): void {
+        calls.push('disconnect');
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+
+    try {
+      const container = document.createElement('div');
+      const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+
+      renderTopPlaces(container, result, undefined, undefined, { pageSize: 2 });
+      expect(calls).toEqual(['observe']);
+
+      container.querySelector<HTMLButtonElement>('.top-places-more-button')?.click();
+      expect(calls).toEqual(['observe', 'unobserve', 'observe']);
+
+      // Same container, fresh render — what `renderPlaceColumns` does on every 업종 change.
+      calls.length = 0;
+      renderTopPlaces(container, result, undefined, undefined, { pageSize: 2 });
+      expect(calls).toEqual(['disconnect', 'observe']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('shows the empty message instead of a bare list when nothing was used', () => {
     const container = render(computeTopPlaces(EMPTY_DATASET, '1y'));
 

@@ -31,16 +31,15 @@ export interface RankedPlace {
 }
 
 export interface TopPlacesResult {
-  /** Capped at `limit`, best first. */
+  /** Best first; capped at `limit` when the caller passes one. */
   entries: RankedPlace[];
-  /**
-   * `false` when the prior window predates the dataset's retention floor, in which case every
-   * `rankDelta` is `null`. In practice `1y` is the one window whose prior period is never
-   * retained, so its rows carry no movement glyph at all.
-   */
-  priorWindowComplete: boolean;
 }
 
+/**
+ * The default cap for a caller that wants one. `src/ui/place-columns.ts` passes no limit at all —
+ * it pages through the whole ranking as the reader scrolls, so a cap there would be a ceiling
+ * nobody could scroll past.
+ */
 export const TOP_PLACES_LIMIT = 20;
 
 /**
@@ -87,7 +86,7 @@ function rankWindow(places: PlaceRecord[], periodWindow: PeriodWindow): RankedPl
 export function computeTopPlaces(
   dataset: PlacesDataset,
   basis: Period,
-  limit: number = TOP_PLACES_LIMIT,
+  limit?: number,
 ): TopPlacesResult {
   const ranked = rankWindow(dataset.places, resolvePeriodWindow(basis, dataset.updatedAt));
   const priorWindow = isPriorWindowComplete(basis, dataset.updatedAt)
@@ -108,5 +107,8 @@ export function computeTopPlaces(
     }
   }
 
-  return { entries: ranked.slice(0, limit), priorWindowComplete: priorWindow !== null };
+  // `undefined` means "no cap" rather than a number that happens to be large enough: the previous
+  // spelling passed `dataset.places.length`, which is only ever ≥ the ranked count by coincidence
+  // of `rankWindow` filtering the same list.
+  return { entries: limit === undefined ? ranked : ranked.slice(0, limit) };
 }

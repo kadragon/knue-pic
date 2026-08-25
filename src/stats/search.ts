@@ -18,8 +18,8 @@ export const ALL_KINDS = null;
  * The dataset narrowed to one kind — a `PlacesDataset`, not a place list.
  *
  * Returning the wrapper is what lets the kind filter reach the discovery columns at all: every
- * statistic module takes a dataset (`computeTopPlaces`, `computeTrendingPlaces`) and so does
- * `listCategories`, so applying the kind once here narrows the five columns, the search results
+ * statistic module takes a dataset (`computeTopPlaces`) and so does
+ * `listCategories`, so applying the kind once here narrows the four columns, the search results
  * and the category options the reader can pick from, with no module below knowing a filter exists.
  *
  * `updatedAt` rides along unchanged — it anchors every period window, and recomputing the windows

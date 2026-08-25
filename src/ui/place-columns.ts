@@ -94,9 +94,9 @@ export interface PlaceColumnsOptions {
  * selects a period any more — so a selection or a tab switch touches no list, and the row the
  * reader pressed keeps focus while the detail dialog opens over it.
  *
- * Each column is computed over the *whole* ranking rather than a visible cap: `renderTopPlaces`
- * pages through it as the reader scrolls, so a cap applied here would be a ceiling the reader
- * could never scroll past.
+ * Each column is computed over the *whole* ranking rather than a visible cap — `computeTopPlaces`
+ * is called with no `limit`: `renderTopPlaces` pages through it as the reader scrolls, so a cap
+ * applied here would be a ceiling the reader could never scroll past.
  */
 export function renderPlaceColumns(
   container: HTMLElement,
@@ -116,7 +116,7 @@ export function renderPlaceColumns(
     cell.className = 'place-column';
     cell.dataset['column'] = column;
 
-    const top = computeTopPlaces(dataset, column, dataset.places.length);
+    const top = computeTopPlaces(dataset, column);
     renderTopPlaces(
       cell,
       top,

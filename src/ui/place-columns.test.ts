@@ -30,7 +30,11 @@ describe('renderPlaceColumns', () => {
 
     const columns = [...root.querySelectorAll<HTMLElement>('.place-column')];
     expect(columns.map((column) => column.dataset['column'])).toEqual(COLUMN_ORDER);
+    // The literal order, not just the membership: every other assertion here is derived from
+    // `COLUMN_ORDER` itself, so reordering it would keep them all green while moving the column a
+    // phone visitor lands on.
     expect(COLUMN_ORDER).toEqual(PERIOD_ORDER);
+    expect(COLUMN_ORDER).toEqual(['1m', '3m', '6m', '1y']);
     expect(columns).toHaveLength(4);
     expect(columns.map((column) => column.querySelector('h2')?.textContent)).toEqual(
       COLUMN_ORDER.map(columnLabel),

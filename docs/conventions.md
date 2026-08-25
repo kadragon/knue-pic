@@ -57,7 +57,7 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 - Layout must hold at 360px width; source order is search → the four discovery columns.
 - The four columns — 최근 1개월 / 3개월 / 6개월 / 1년 — are peers: same card, same heading tier,
   same page size. Making one heavier states something about the data that the data does not say.
-  They drop to three columns below 1200px, two below 900px and one below 600px, where a tab group
+  They drop to two columns below 1200px and one below 600px, where a tab group
   (`.place-column-tabs`, hidden above that width so it takes no tab stops) switches between them.
   A column is never split across a reflow: the columns *are* the comparison.
 - The place detail is a modal dialog, not a section: it opens over the list the reader is in,

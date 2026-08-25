@@ -116,11 +116,15 @@ describe('computeTopPlaces ordering', () => {
       ),
     };
 
-    const { entries } = computeTopPlaces(dataset, '1m');
+    const { entries } = computeTopPlaces(dataset, '1m', TOP_PLACES_LIMIT);
 
     expect(entries).toHaveLength(TOP_PLACES_LIMIT);
     expect(entries[0]?.place.id).toBe('restaurant_000001');
     expect(entries[TOP_PLACES_LIMIT - 1]?.rank).toBe(TOP_PLACES_LIMIT);
+
+    // No limit means the whole ranking, not a large default: the columns page through it as the
+    // reader scrolls, so a default cap would be a ceiling nobody could scroll past.
+    expect(computeTopPlaces(dataset, '1m').entries).toHaveLength(placeCount);
   });
 
   it('honours an explicit limit', () => {
@@ -132,7 +136,6 @@ describe('computeTopPlaces rank delta', () => {
   it('omits every delta when the prior window predates the retained range', () => {
     const result = computeTopPlaces(SAMPLE_DATASET, '1y');
 
-    expect(result.priorWindowComplete).toBe(false);
     expect(result.entries.every((entry) => entry.rankDelta === null)).toBe(true);
   });
 
@@ -142,7 +145,6 @@ describe('computeTopPlaces rank delta', () => {
     const result = computeTopPlaces(SAMPLE_DATASET, '1m');
     const byId = new Map(result.entries.map((entry) => [entry.place.id, entry]));
 
-    expect(result.priorWindowComplete).toBe(true);
     expect(byId.get('restaurant_000006')?.rankDelta).toBe(0);
     expect(byId.get('restaurant_000005')?.rankDelta).toBeNull();
     expect(byId.get('restaurant_000001')?.rankDelta).toBeNull();

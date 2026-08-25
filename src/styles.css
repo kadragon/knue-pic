@@ -119,9 +119,9 @@ body {
 /* ── Shell ─────────────────────────────────────────────────────────────────────────────────── */
 
 /*
- * A plain vertical stack: search, then the five columns. The side-by-side arrangement moved down
- * into `.place-columns-grid`, which is the only thing on the page that needs columns — and needs
- * five of them, which is what widened the container from the old 960px.
+ * A plain vertical stack: search, then the four columns. The side-by-side arrangement moved down
+ * into `.place-columns-grid`, which is the only thing on the page that needs columns — four of
+ * them side by side, which is what widened the container from the old 960px.
  */
 #content {
   display: flex;
@@ -1037,15 +1037,14 @@ div.top-place-body {
  * Three columns, then two, before a row gets too narrow to hold a name and a movement label on one
  * line. At 1200px four lists are ~280px wide and a name with a badge beside it starts to wrap, so
  * the switch happens at that width — `max-width: 1200px` is "1200 and below", the same way the
- * 899px and 599px steps below read.
+ * 599px step below reads.
+ *
+ * Two columns, not three: with four columns a three-wide grid puts three on the first row and one
+ * alone on the second, and the empty half-row reads as a missing column rather than as a reflow.
+ * Four splits evenly, so the step from four goes straight to 2×2 and the old 899px step — which
+ * existed only to catch the 5-column layout's own odd remainder — goes with it.
  */
 @media (max-width: 1200px) {
-  .place-columns-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 899px) {
   .place-columns-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
