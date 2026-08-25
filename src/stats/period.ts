@@ -46,7 +46,9 @@ function subtractMonths(date: CalendarDate, months: number): CalendarDate {
  * The window covering the `months` calendar months up to (and including) `anchor`.
  *
  * The period selector is not the only consumer of a month window: trending reads one month, newly
- * seen reads two, and the histogram spans twelve of the retained months. Exposing the month count directly
+ * seen reads two, and the histogram spans twelve of the retained months — thirteen for a card opened
+ * from the 작년 같은 달 column (`src/stats/histogram.ts` -> `histogramMonthsFor`). Exposing the month
+ * count directly
  * keeps all of them on the same clamping rule as `resolvePeriodWindow`, which delegates here — a
  * second hand-rolled subtraction is exactly how a window ends up one day off from the one a
  * statistic is compared against.

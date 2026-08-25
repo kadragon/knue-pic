@@ -126,7 +126,8 @@ Two of the nine need a concrete value the invariant list does not carry:
   top of `collector/validate.py`.
 - **The rolling window** is floored on the *calendar month*, not on `updatedAt`'s day: the oldest
   accepted date is the first day of the month `ROLLING_WINDOW_MONTHS - 1` — 14 — before
-  `updatedAt`'s own month. It is wider than the twelve months `src/stats/histogram.ts` renders, and
+  `updatedAt`'s own month. It is wider than the span `src/stats/histogram.ts` renders — twelve
+  months, or thirteen for a card opened from the 작년 같은 달 column — and
   `src/stats/period.ts` -> `retentionFloor` derives the browser's floor with the same formula so
   the two cannot disagree. A day-anchored floor would cut the oldest month in half, and the
   histogram bars would sum to fewer visits than the count printed beside them, with nothing

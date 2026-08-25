@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
-import { computeMonthlyHistogram } from '../stats/histogram';
+import { computeMonthlyHistogram, histogramMonthsFor } from '../stats/histogram';
 import { computePlaceStats } from '../stats/place-stats';
 import { LAST_YEAR_MONTH, resolveBasisWindow, type StatBasis } from '../stats/period';
 import {
   DETAIL_EMPTY_MESSAGE,
   FIGURE_LABELS,
-  HISTOGRAM_HEADING,
+  histogramHeading,
   NAVER_LINK_LABEL,
   NO_VISIT_IN_PERIOD_MESSAGE,
   amountLabel,
@@ -24,7 +24,7 @@ function detailFor(placeIndex = 0, basis: StatBasis = '1y') {
     basis,
     anchor: SAMPLE_DATASET.updatedAt,
     stats: computePlaceStats(place, resolveBasisWindow(basis, SAMPLE_DATASET.updatedAt)),
-    histogram: computeMonthlyHistogram(place, SAMPLE_DATASET.updatedAt),
+    histogram: computeMonthlyHistogram(place, SAMPLE_DATASET.updatedAt, histogramMonthsFor(basis)),
   };
 }
 
@@ -94,13 +94,28 @@ describe('renderPlaceDetail', () => {
     renderPlaceDetail(container, detailFor(0, '1y'));
     const entries = [...container.querySelectorAll('.place-histogram-entry')];
 
-    expect(container.textContent).toContain(HISTOGRAM_HEADING);
+    expect(container.textContent).toContain(histogramHeading(12));
     expect(entries).toHaveLength(12);
     for (const entry of entries) {
       expect(entry.querySelector('.place-histogram-month')?.textContent).toMatch(/\d+년 \d+월/);
       expect(entry.querySelector('.place-histogram-count')?.textContent).toMatch(/^\d+회$/);
     }
     expect(container.textContent).toContain(`${monthLabel('2026-07')}`);
+  });
+
+  it('charts the 작년 같은 달 month the card names, as the oldest bar', () => {
+    // The card prints "2025년 8월 기준" over these bars; under the 12-month span that month sat one
+    // month outside the chart, so the figures named a month the reader could not find.
+    const container = document.createElement('div');
+
+    renderPlaceDetail(container, detailFor(0, LAST_YEAR_MONTH));
+    const entries = [...container.querySelectorAll('.place-histogram-entry')];
+
+    expect(entries).toHaveLength(13);
+    expect(entries[0]?.querySelector('.place-histogram-month')?.textContent).toBe(
+      monthLabel('2025-08'),
+    );
+    expect(container.textContent).toContain(histogramHeading(13));
   });
 
   it('scales bars without dividing by zero when the place has no charted visit', () => {

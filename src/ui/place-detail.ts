@@ -6,7 +6,7 @@ import { basisLabel } from './period-labels';
 
 /**
  * The detail card for one selected place: a slot for the location map, the figures for the period
- * the place was picked from, a 12-month visit histogram, and a link out to Naver Maps.
+ * the place was picked from, a monthly visit histogram, and a link out to Naver Maps.
  *
  * Every number arrives already computed — `src/stats/place-stats.ts` and `src/stats/histogram.ts`
  * own them — so there is no second definition of a visit count on this screen. Strings are
@@ -18,7 +18,14 @@ export const DETAIL_HEADING = '선택한 곳';
 
 export const DETAIL_EMPTY_MESSAGE = '목록에서 장소를 선택하면 이용 기록을 볼 수 있습니다.';
 
-export const HISTOGRAM_HEADING = '월별 이용 기록 (최근 12개월)';
+/**
+ * Names the span the bars actually cover, which is not fixed: a card opened from the 작년 같은 달
+ * column draws one month more (`histogramMonthsFor`). A constant heading would have said 12 over
+ * thirteen bars, which is the same class of defect as the missing bar it was widened to fix.
+ */
+export function histogramHeading(monthCount: number): string {
+  return `월별 이용 기록 (최근 ${monthCount}개월)`;
+}
 
 export const NAVER_LINK_LABEL = '네이버지도에서 보기';
 
@@ -95,7 +102,9 @@ function renderHistogram(buckets: HistogramBucket[]): HTMLElement {
   section.className = 'place-histogram';
 
   const heading = document.createElement('h4');
-  heading.textContent = HISTOGRAM_HEADING;
+  // Read off the buckets rather than off the basis: the heading then cannot disagree with the bars
+  // it sits above, whatever decided how many there are.
+  heading.textContent = histogramHeading(buckets.length);
 
   const list = document.createElement('ol');
   list.className = 'place-histogram-list';
