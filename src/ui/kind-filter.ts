@@ -67,6 +67,11 @@ export function renderKindFilter(
   group.setAttribute('role', 'group');
   group.setAttribute('aria-label', KIND_FILTER_LABEL);
 
+  const label = document.createElement('span');
+  label.className = 'kind-filter-label';
+  label.textContent = '업종';
+  group.append(label);
+
   for (const kind of KIND_OPTIONS) {
     const button = document.createElement('button');
     button.type = 'button';

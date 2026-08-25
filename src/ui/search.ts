@@ -1,5 +1,6 @@
 import type { PlaceRecord, PlacesDataset } from '../data/types';
 import { ALL_CATEGORIES, filterPlaces, listCategories } from '../stats/search';
+import { displayCategory } from './place-labels';
 
 /**
  * Search and category filter over the whole dataset, with the results list underneath.
@@ -13,18 +14,18 @@ import { ALL_CATEGORIES, filterPlaces, listCategories } from '../stats/search';
  * what comes back.
  */
 
-export const SEARCH_HEADING = '장소 찾기';
+export const SEARCH_HEADING = '장소 검색';
 
-export const SEARCH_INPUT_LABEL = '이름 · 주소 검색';
+export const SEARCH_INPUT_LABEL = '이름 또는 주소';
 
-export const SEARCH_INPUT_PLACEHOLDER = '이름이나 주소를 입력하세요';
+export const SEARCH_INPUT_PLACEHOLDER = '장소 이름이나 주소를 입력하세요';
 
-export const CATEGORY_LABEL = '분류';
+export const CATEGORY_LABEL = '상세 분류';
 
 /** The `<option>` that clears the category filter — not a category name the collector can emit. */
 export const ALL_CATEGORIES_OPTION = '전체';
 
-export const NO_RESULTS_MESSAGE = '조건에 맞는 곳이 없습니다.';
+export const NO_RESULTS_MESSAGE = '조건에 맞는 장소가 없습니다.';
 
 /**
  * The empty-query state.
@@ -35,17 +36,17 @@ export const NO_RESULTS_MESSAGE = '조건에 맞는 곳이 없습니다.';
  * looking something up, so with nothing entered it says what it can do instead of dumping the file.
  */
 export function searchPromptLabel(total: number): string {
-  return `${total}곳 중에서 이름이나 주소로 찾거나, 분류를 선택하세요.`;
+  return `${total}곳의 이름이나 주소를 검색하거나 상세 분류를 선택하세요.`;
 }
 
 export const RESET_LABEL = '검색 조건 초기화';
 
 export function resultCountLabel(count: number): string {
-  return `${count}곳`;
+  return `${count}곳이 검색되었습니다.`;
 }
 
 export function placeSummary(place: PlaceRecord): string {
-  return [place.category, place.address].join(' · ');
+  return [displayCategory(place.category), place.address].join(' · ');
 }
 
 /**
@@ -113,7 +114,7 @@ export function renderPlaceSearch(
     for (const category of listCategories(current)) {
       const option = document.createElement('option');
       option.value = category;
-      option.textContent = category;
+      option.textContent = displayCategory(category);
       options.push(option);
     }
     select.replaceChildren(...options);

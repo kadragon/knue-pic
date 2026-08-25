@@ -100,14 +100,15 @@ describe('computeTopPlaces ordering', () => {
     expect(idsOf(dataset, '1m')).toEqual(['restaurant_000002', 'restaurant_000009']);
   });
 
-  it('caps the list at ten while ranking everyone', () => {
+  it('caps the list at twenty while ranking everyone', () => {
+    const placeCount = TOP_PLACES_LIMIT + 4;
     const dataset: PlacesDataset = {
       updatedAt: '2026-08-01',
-      places: Array.from({ length: 14 }, (_, index) =>
+      places: Array.from({ length: placeCount }, (_, index) =>
         // Descending visit counts: 14 visits for the first place down to 1 for the last.
         place(
           `restaurant_${String(index + 1).padStart(6, '0')}`,
-          Array.from({ length: 14 - index }, (__, visit) => ({
+            Array.from({ length: placeCount - index }, (__, visit) => ({
             date: `2026-07-${String(visit + 2).padStart(2, '0')}`,
             amount: 1000,
           })),
@@ -119,7 +120,7 @@ describe('computeTopPlaces ordering', () => {
 
     expect(entries).toHaveLength(TOP_PLACES_LIMIT);
     expect(entries[0]?.place.id).toBe('restaurant_000001');
-    expect(entries[9]?.rank).toBe(10);
+    expect(entries[TOP_PLACES_LIMIT - 1]?.rank).toBe(TOP_PLACES_LIMIT);
   });
 
   it('honours an explicit limit', () => {
@@ -184,11 +185,11 @@ describe('computeTopPlaces rank delta', () => {
     expect(byId.get('restaurant_000002')?.rankDelta).toBeNull();
   });
 
-  it('compares against the whole prior ranking, not only its top ten', () => {
+  it('compares against the whole prior ranking, not only the visible cap', () => {
     const dataset: PlacesDataset = {
       updatedAt: '2026-08-01',
       places: [
-        // 000001 sat at prior rank 11 behind ten busier places, then led the current window.
+        // 000001 sat at prior rank 11 behind busier places, then led the current window.
         place('restaurant_000001', [
           { date: '2026-06-05', amount: 1000 },
           { date: '2026-07-05', amount: 1000 },

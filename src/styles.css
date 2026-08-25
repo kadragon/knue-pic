@@ -48,15 +48,25 @@
   --radius-lg: 20px;
   --radius-full: 9999px;
 
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+  --space-9: 64px;
+
   /* The spec caps elevation at one tier. Nothing on this page may invent a second. */
   --shadow-float:
     rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px, rgba(0, 0, 0, 0.1) 0 4px 8px;
 
-  /* The centred column: 960px wide including a 24px gutter, so the full-bleed header and footer
+  /* The centred column: 1440px wide including a 24px gutter, so the full-bleed header and footer
      bands line their text up with `#content` without needing a wrapper element. */
-  --column-inset: max(24px, calc(50% - 456px));
+  --column-inset: max(24px, calc(50% - 696px));
   /* Height of the sticky header band; the period bar parks directly beneath it. */
-  --header-height: 104px;
+  --header-height: 92px;
 
   --font-sans:
     'Airbnb Cereal VF', Circular, 'Pretendard Variable', Pretendard, -apple-system,
@@ -101,10 +111,10 @@ body {
 #content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-6);
   max-width: 1440px;
   margin: 0 auto;
-  padding: 0 24px 64px;
+  padding: 0 24px var(--space-9);
 }
 
 /* The dialog inside is `position: fixed`, so the slot must not occupy a grid row of its own. */
@@ -117,7 +127,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: 20px var(--column-inset) 18px;
+  padding: var(--space-5) var(--column-inset) var(--space-4);
   border-bottom: 1px solid var(--hairline);
   background: var(--canvas);
 }
@@ -144,7 +154,7 @@ body {
 }
 
 .shell-footer {
-  padding: 24px var(--column-inset) 48px;
+  padding: var(--space-6) var(--column-inset) var(--space-8);
   border-top: 1px solid var(--hairline);
   background: var(--canvas);
   color: var(--muted);
@@ -174,7 +184,8 @@ body {
  */
 .place-column,
 .place-search {
-  padding: 24px;
+  min-width: 0;
+  padding: var(--space-6);
   border: 1px solid var(--hairline-soft);
   border-radius: var(--radius-lg);
   background: var(--canvas);
@@ -188,8 +199,16 @@ body {
 .kind-filter {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 16px;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.kind-filter-label {
+  flex: 0 0 100%;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .kind-filter-option {
@@ -229,7 +248,7 @@ body {
 
 .place-column h2,
 .place-search h2 {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 20px;
   font-weight: 600;
   line-height: 1.3;
@@ -247,14 +266,14 @@ body {
 .discovery-note,
 .top-places-note,
 .place-search-count {
-  margin: 0 0 8px;
+  margin: var(--space-2) 0 0;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .place-search-count {
-  margin: 0 0 4px;
+  margin-top: var(--space-3);
 }
 
 .top-places-empty,
@@ -262,7 +281,7 @@ body {
 .place-search-empty,
 .place-detail-empty,
 .place-detail-empty-period {
-  margin: 12px 0 0;
+  margin: var(--space-4) 0 0;
   color: var(--muted);
   font-size: 14px;
 }
@@ -312,14 +331,14 @@ a[role='button'] {
 /* ── Discovery columns ─────────────────────────────────────────────────────────────────────── */
 
 /*
- * Four equal columns: 최근 뜨는 곳 and the three ranked windows. Column counts drop at each
+ * Five equal columns: the movement list and four ranked windows. Column counts drop at each
  * breakpoint and rows never reflow — the columns are the comparison, so a list must never be split
  * across two of them.
  */
 .place-columns-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-5);
   align-items: start;
 }
 
@@ -331,8 +350,8 @@ a[role='button'] {
 .place-column-tabs {
   display: none;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 12px;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
 }
 
 /* {component.category-strip}: pill filters, wrapping rather than overflowing at 360px (PRD §36). */
@@ -366,7 +385,7 @@ a[role='button'] {
 .top-places-list,
 .discovery-list,
 .place-search-list {
-  margin: 8px 0 0;
+  margin: var(--space-4) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -380,7 +399,7 @@ a[role='button'] {
 .place-search-list li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   margin: 0 -8px;
   border-radius: var(--radius-md);
   border-bottom: 1px solid var(--hairline-soft);
@@ -449,7 +468,7 @@ button.top-place-body,
   display: block;
   width: 100%;
   min-height: 0;
-  padding: 12px 0;
+  padding: var(--space-3) 0;
   border: 0;
   background: transparent;
   color: inherit;
@@ -459,7 +478,7 @@ button.top-place-body,
 }
 
 div.top-place-body {
-  padding: 12px 0;
+  padding: var(--space-3) 0;
 }
 
 .top-place-name,
@@ -530,7 +549,7 @@ div.top-place-body {
 .place-search-controls {
   display: flex;
   align-items: stretch;
-  margin: 12px 0 12px;
+  margin: var(--space-4) 0 0;
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
   background: var(--canvas);
@@ -542,8 +561,8 @@ div.top-place-body {
   flex: 1 1 60%;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
-  padding: 12px 24px;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-6);
   cursor: text;
 }
 
@@ -619,7 +638,7 @@ div.top-place-body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .detail-dialog[hidden] {
@@ -639,7 +658,7 @@ div.top-place-body {
   max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 28px;
+  padding: var(--space-7);
   border-radius: var(--radius-lg);
   background: var(--canvas);
   box-shadow: rgba(0, 0, 0, 0.28) 0 8px 28px;
@@ -695,7 +714,7 @@ div.top-place-body {
 
 .place-detail-meta,
 .place-detail-period {
-  margin: 0 0 2px;
+  margin: var(--space-1) 0 0;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
@@ -705,9 +724,9 @@ div.top-place-body {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 16px 28px;
-  margin: 20px 0 0;
-  padding-bottom: 20px;
+  gap: var(--space-4) var(--space-7);
+  margin: var(--space-6) 0 0;
+  padding-bottom: var(--space-5);
   border-bottom: 1px solid var(--hairline-soft);
 }
 
@@ -743,7 +762,7 @@ div.top-place-body {
 /* ── Histogram ─────────────────────────────────────────────────────────────────────────────── */
 
 .place-histogram h4 {
-  margin: 20px 0 12px;
+  margin: var(--space-6) 0 var(--space-3);
   font-size: 15px;
   font-weight: 700;
   line-height: 1.35;
@@ -798,7 +817,7 @@ div.top-place-body {
   display: inline-flex;
   align-items: center;
   min-height: 48px;
-  margin-top: 24px;
+  margin-top: var(--space-6);
   padding: 14px 24px;
   border-radius: var(--radius-sm);
   background: var(--rausch-strong);
@@ -820,14 +839,14 @@ div.top-place-body {
 .place-map-canvas {
   width: 100%;
   height: min(60vh, 22rem);
-  margin-top: 12px;
+  margin-top: var(--space-3);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 .place-map-fallback {
-  margin: 12px 0 0;
+  margin: var(--space-3) 0 0;
   padding: 32px 16px;
   border: 1px dashed var(--hairline);
   border-radius: var(--radius-md);
@@ -855,7 +874,7 @@ div.top-place-body {
 
 /* The card's own slot for the map, so the figures below keep their gutter when it fails or loads. */
 .place-detail-map:not(:empty) {
-  margin: 4px 0 12px;
+  margin: var(--space-1) 0 var(--space-3);
 }
 
 /* ── Focus ─────────────────────────────────────────────────────────────────────────────────── */
@@ -929,13 +948,13 @@ div.top-place-body {
   }
 
   #content {
-    padding: 0 16px 48px;
+    padding: 0 16px var(--space-8);
   }
 
   .place-column,
   .place-search,
   .data-state {
-    padding: 20px 16px;
+    padding: var(--space-5) var(--space-4);
     border-radius: var(--radius-md);
   }
 
@@ -949,7 +968,7 @@ div.top-place-body {
   /* The oversized figure takes its own row: at 360px it otherwise sits hard against the next
      figure's label with no gutter between them. */
   .place-detail-figures {
-    gap: 14px 24px;
+    gap: var(--space-3) var(--space-6);
   }
 
   .place-detail-figure:first-child {
@@ -960,7 +979,7 @@ div.top-place-body {
   .detail-dialog-panel {
     width: 100%;
     max-height: 92vh;
-    padding: 24px 16px;
+    padding: var(--space-6) var(--space-4);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 
@@ -977,7 +996,7 @@ div.top-place-body {
   }
 
   .place-search-field {
-    padding: 10px 16px;
+    padding: 10px var(--space-4);
     border-radius: var(--radius-md);
   }
 

@@ -16,7 +16,7 @@ import {
  * `docs/conventions.md` → Statistics Rules live, and it is the only module that knows about them.
  */
 
-/** Ranked over every place with at least one in-window visit, not only the ten that are shown. */
+/** Ranked over every place with at least one in-window visit, not only the visible cap. */
 export interface RankedPlace {
   place: PlaceRecord;
   stats: PlaceStats;
@@ -45,7 +45,7 @@ export interface TopPlacesResult {
   priorWindowComplete: boolean;
 }
 
-export const TOP_PLACES_LIMIT = 10;
+export const TOP_PLACES_LIMIT = 20;
 
 /**
  * Ranking is by visit count alone; amount only ever separates places already tied on count and on
@@ -103,8 +103,8 @@ export function computeTopPlaces(
       : resolvePriorWindow(basis, dataset.updatedAt);
 
   if (priorWindow) {
-    // The prior ranking covers every place, not just its own top ten: a place that entered the
-    // visible list from prior rank 11 has moved, and comparing against a truncated prior list
+    // The prior ranking covers every place, not just the visible cap: a place that entered the
+    // visible list has moved, and comparing against a truncated prior list
     // would report it as a new entrant instead.
     const priorRanks = new Map(
       rankWindow(dataset.places, priorWindow).map((entry) => [entry.place.id, entry.rank]),

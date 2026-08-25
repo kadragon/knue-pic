@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlacesDataset } from '../data/types';
-import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
+import { computeTopPlaces, TOP_PLACES_LIMIT, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
 import {
   EMPTY_MESSAGE,
@@ -24,7 +24,7 @@ describe('renderTopPlaces', () => {
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
 
     // The fixture's 1y window ranks six places, and the heading names that six — not the limit.
-    expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳 TOP 6');
+    expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳 상위 6곳');
     expect(container.querySelectorAll('ol.top-places-list > li')).toHaveLength(6);
   });
 
@@ -32,7 +32,7 @@ describe('renderTopPlaces', () => {
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1y', 3));
 
     expect(container.querySelector('h2')?.textContent).toBe(topPlacesHeading(3));
-    expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳 TOP 3');
+    expect(container.querySelector('h2')?.textContent).toBe('많이 이용한 곳 상위 3곳');
     expect(container.querySelectorAll('ol.top-places-list > li')).toHaveLength(3);
   });
 
@@ -55,14 +55,15 @@ describe('renderTopPlaces', () => {
 
     // 000001 over 1y: 4 visits, most recent 2026-07-20 (hand-checked against the fixture).
     expect(first?.textContent).toContain('한밭식당');
-    expect(first?.textContent).toContain('이용횟수 4회');
-    expect(first?.textContent).toContain('최근 이용 2026-07-20');
+    expect(first?.textContent).toContain('4회 이용');
+    expect(first?.textContent).toContain('최근 이용 2026. 7. 20.');
   });
 
-  it('caps the rendered list at ten', () => {
+  it('caps the rendered list at twenty', () => {
+    const placeCount = TOP_PLACES_LIMIT + 2;
     const dataset: PlacesDataset = {
       updatedAt: '2026-08-01',
-      places: Array.from({ length: 12 }, (_, index) => ({
+      places: Array.from({ length: placeCount }, (_, index) => ({
         id: `restaurant_${String(index + 1).padStart(6, '0')}`,
         name: `가게 ${index + 1}`,
         category: '기타',
@@ -71,14 +72,16 @@ describe('renderTopPlaces', () => {
         lat: 36.6,
         lng: 127.3,
         naverUrl: 'https://map.naver.com/p/search/x',
-        transactions: Array.from({ length: 12 - index }, (__, visit) => ({
+        transactions: Array.from({ length: placeCount - index }, (__, visit) => ({
           date: `2026-07-${String(visit + 2).padStart(2, '0')}`,
           amount: 1000,
         })),
       })),
     };
 
-    expect(render(computeTopPlaces(dataset, '1m')).querySelectorAll('li')).toHaveLength(10);
+    expect(render(computeTopPlaces(dataset, '1m')).querySelectorAll('li')).toHaveLength(
+      TOP_PLACES_LIMIT,
+    );
   });
 
   it('shows the empty message instead of a bare list when nothing was used', () => {
@@ -171,9 +174,9 @@ describe('rank delta rendering', () => {
   });
 
   it('labels movement in both directions', () => {
-    expect(rankDeltaLabel(3)).toBe('이전 기간보다 3계단 위');
-    expect(rankDeltaLabel(-2)).toBe('이전 기간보다 2계단 아래');
-    expect(rankDeltaLabel(0)).toBe('이전 기간과 같은 자리');
+    expect(rankDeltaLabel(3)).toBe('직전 기간보다 3계단 상승');
+    expect(rankDeltaLabel(-2)).toBe('직전 기간보다 2계단 하락');
+    expect(rankDeltaLabel(0)).toBe('직전 기간과 같은 자리');
   });
 });
 

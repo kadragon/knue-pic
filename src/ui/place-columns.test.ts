@@ -48,7 +48,7 @@ describe('columnLabel', () => {
 
 describe('columnHeading', () => {
   it('states the rendered count so a capped column never reads as the whole set', () => {
-    expect(columnHeading('최근 1년', 10)).toBe('최근 1년 TOP 10');
+    expect(columnHeading('최근 1년', 10)).toBe('최근 1년 상위 10곳');
   });
 
   it('names no number when there is nothing to number', () => {

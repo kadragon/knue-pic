@@ -1,7 +1,8 @@
 import type { TrendingPlace } from '../stats/discovery';
+import { displayCategory } from './place-labels';
 
 /**
- * The 최근 뜨는 곳 list. Takes what `src/stats/discovery.ts` already computed and turns it into
+ * The 최근 이용 변화 list. Takes what `src/stats/discovery.ts` already computed and turns it into
  * DOM — no counting happens here.
  *
  * It is one of the five columns in `src/ui/place-columns.ts`, and the only one ordered by movement
@@ -13,7 +14,7 @@ import type { TrendingPlace } from '../stats/discovery';
  * and never the spending the usage was derived from.
  */
 
-export const TRENDING_HEADING = '최근 뜨는 곳';
+export const TRENDING_HEADING = '최근 이용 변화';
 
 /**
  * The column reads a fixed window while the ranked ones beside it read 3개월 / 6개월 / 1년 and a
@@ -27,22 +28,23 @@ export const TRENDING_HEADING = '최근 뜨는 곳';
  * riser filter the stats module does not apply, and "변동이 큰 순" claimed ordering by magnitude,
  * which puts a 0 above a −1 and is falsifiable on the rendered page.
  */
-export const TRENDING_NOTE = '최근 1개월에 두 번 이상 이용한 곳을, 이전 1개월 대비 많이 늘어난 순으로 보여줍니다.';
+export const TRENDING_NOTE =
+  '최근 1개월 동안 2회 이상 이용한 곳을, 직전 1개월과 비교한 이용 횟수 변화에 따라 보여줍니다.';
 
-export const TRENDING_EMPTY_MESSAGE = '최근 1개월에 두 번 이상 이용한 곳이 없습니다.';
+export const TRENDING_EMPTY_MESSAGE = '최근 1개월 동안 2회 이상 이용한 곳이 없습니다.';
 
-export const NEW_BADGE_TEXT = 'NEW';
+export const NEW_BADGE_TEXT = '신규';
 
-/** The badge is two latin letters, so the fact it carries is spelled out for a screen reader. */
-export const NEW_BADGE_LABEL = '이전 1개월에는 이용 기록이 없던 곳';
+/** The compact badge is expanded into a full sentence for a screen reader. */
+export const NEW_BADGE_LABEL = '직전 1개월에는 이용 기록이 없는 곳';
 
 /** Shown only when the section is holding rows back, so the list never reads as the whole set. */
 export function remainderLabel(hiddenCount: number): string {
-  return `이 밖에 ${hiddenCount}곳이 더 있습니다.`;
+  return `그 밖에 ${hiddenCount}곳이 더 있습니다.`;
 }
 
 export function recentVisitsLabel(recentVisits: number): string {
-  return `최근 1개월 ${recentVisits}회`;
+  return `최근 1개월 ${recentVisits}회 이용`;
 }
 
 /**
@@ -54,10 +56,10 @@ export function recentVisitsLabel(recentVisits: number): string {
  * as its label — the same split `rankDeltaLabel` / `rankDeltaText` makes in `top-places.ts`.
  */
 export function visitDeltaLabel(visitDelta: number): string {
-  if (visitDelta === 0) return '이전 1개월과 같습니다';
+  if (visitDelta === 0) return '직전 1개월과 같습니다';
   return visitDelta > 0
-    ? `이전 1개월보다 ${visitDelta}회 늘었습니다`
-    : `이전 1개월보다 ${-visitDelta}회 줄었습니다`;
+    ? `직전 1개월보다 ${visitDelta}회 늘었습니다`
+    : `직전 1개월보다 ${-visitDelta}회 줄었습니다`;
 }
 
 /** The glyph form. It says nothing on its own, which is why `visitDeltaLabel` always accompanies it. */
@@ -160,7 +162,7 @@ export function renderTrendingPlaces(
   for (const entry of trending.slice(0, limit)) {
     const item = renderSelectableEntry(
       entry.place.name,
-      [entry.place.category, recentVisitsLabel(entry.recentVisits)].join(' · '),
+      [displayCategory(entry.place.category), recentVisitsLabel(entry.recentVisits)].join(' · '),
       onSelect,
       entry.place.id,
     );

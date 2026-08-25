@@ -7,6 +7,7 @@ import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
 import { COLUMN_ORDER, columnHeading, columnLabel } from './place-columns';
 import { periodStatsHeading } from './place-detail';
+import { displayDate } from './place-labels';
 import { KIND_LABELS, ALL_KINDS_LABEL } from './kind-filter';
 import { NO_RESULTS_MESSAGE, resultCountLabel } from './search';
 import { DISCLAIMER, SOURCE_LINE } from './shell';
@@ -74,7 +75,7 @@ describe('bootstrap', () => {
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
-    expect(root.textContent).toContain(`최근 데이터 업데이트: ${SAMPLE_DATASET.updatedAt}`);
+    expect(root.textContent).toContain(`최근 데이터 업데이트: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
     expect(root.textContent).not.toContain(LOADING_MESSAGE);
     expect(root.querySelector('#content')?.textContent).toContain(
       columnHeading(PERIOD_LABELS['1y'], 6),
@@ -116,7 +117,7 @@ describe('bootstrap', () => {
     await vi.waitFor(() => expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE));
 
     expect(load).toHaveBeenCalledTimes(2);
-    expect(root.textContent).toContain(`최근 데이터 업데이트: ${SAMPLE_DATASET.updatedAt}`);
+    expect(root.textContent).toContain(`최근 데이터 업데이트: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
   });
 });
 
@@ -177,7 +178,7 @@ describe('bootstrap accessibility', () => {
     expect(root.querySelector('.shell-header')).toBe(header);
     // The provenance line is written into the existing footer exactly once.
     expect(root.querySelectorAll('.shell-updated')).toHaveLength(1);
-    expect(root.textContent).toContain(`최근 데이터 업데이트: ${SAMPLE_DATASET.updatedAt}`);
+    expect(root.textContent).toContain(`최근 데이터 업데이트: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
   });
 
   it('returns focus to the retry control when a retry fails again', async () => {

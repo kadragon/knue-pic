@@ -1,9 +1,11 @@
+import { displayDate } from './place-labels';
+
 /** Strings shown on every screen. PRD §21 requires both the source line and the disclaimer. */
 export const SOURCE_LINE = '데이터 기준: 한국교원대학교 업무추진비 공개자료';
 
 export const DISCLAIMER =
-  '이용횟수는 공개된 업무추진비 결제내역을 기준으로 산정합니다. ' +
-  '이용횟수가 해당 업체에 대한 공식적인 추천이나 평가를 의미하지 않습니다.';
+  '이용 횟수는 공개된 업무추진비 결제 내역을 기준으로 계산합니다. ' +
+  '특정 장소에 대한 공식적인 추천이나 평가를 뜻하지 않습니다.';
 
 export interface ShellOptions {
   /** `updatedAt` from data/places.json, once the dataset is wired in. */
@@ -57,7 +59,7 @@ export function setShellUpdatedAt(root: HTMLElement, updatedAt: string): void {
   const footer = root.querySelector<HTMLElement>('.shell-footer');
   if (!footer) return;
 
-  const text = `최근 데이터 업데이트: ${updatedAt}`;
+  const text = `최근 데이터 업데이트: ${displayDate(updatedAt)}`;
   const existing = footer.querySelector<HTMLParagraphElement>('.shell-updated');
   if (existing) {
     existing.textContent = text;

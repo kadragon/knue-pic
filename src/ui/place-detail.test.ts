@@ -9,7 +9,6 @@ import {
   histogramHeading,
   NAVER_LINK_LABEL,
   NO_VISIT_IN_PERIOD_MESSAGE,
-  amountLabel,
   monthLabel,
   periodStatsHeading,
   renderPlaceDetail,
@@ -59,7 +58,7 @@ describe('renderPlaceDetail', () => {
     expect(periodStatsHeading(LAST_YEAR_MONTH, '2026-08-22')).toBe('2025년 8월 기준');
   });
 
-  it('shows the visit count, total, average, and most recent visit', () => {
+  it('shows visit counts and the most recent visit without amount figures', () => {
     const container = document.createElement('div');
     const detail = detailFor(0, '1y');
 
@@ -72,10 +71,12 @@ describe('renderPlaceDetail', () => {
     for (const label of Object.values(FIGURE_LABELS)) {
       expect(text).toContain(label);
     }
+    expect(container.querySelectorAll('.place-detail-figure')).toHaveLength(2);
     expect(text).toContain('4회');
-    expect(text).toContain(amountLabel(157000));
-    expect(text).toContain(amountLabel(39250));
-    expect(text).toContain('2026-07-20');
+    expect(text).toContain('2026. 7. 20.');
+    expect(text).not.toContain('원');
+    expect(text).not.toContain('합계');
+    expect(text).not.toContain('평균');
   });
 
   it('says so when the selected period holds no visit, instead of showing zeros', () => {

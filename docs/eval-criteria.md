@@ -22,7 +22,7 @@ monthly histogram by hand from the JSON; compare against the UI for 3m, 6m, 1y, 
 달 column (the whole calendar month twelve months before `updatedAt`'s own month). The chart is
 twelve bars everywhere except a card opened from that column, which draws thirteen so the month
 its figures name is the oldest bar (`src/stats/histogram.ts` -> `histogramMonthsFor`). 1m has no ranked
-column of its own — check it through the detail card opened from 최근 뜨는 곳.
+column of its own — check it through the detail card opened from 최근 이용 변화.
 
 ### 2. Framing Compliance (weight: 20%)
 
