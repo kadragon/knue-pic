@@ -46,6 +46,19 @@ describe('renderPlaceSearch', () => {
     expect(container.textContent).toContain(searchPromptLabel(SAMPLE_DATASET.places.length));
   });
 
+  it('carries the 업종 badge on every result row, category spelled out', () => {
+    const container = document.createElement('div');
+
+    renderPlaceSearch(container, SAMPLE_DATASET, vi.fn());
+    const select = categorySelect(container);
+    select.value = '한식';
+    select.dispatchEvent(new Event('change'));
+    const badge = container.querySelector<HTMLElement>('.place-search-list .place-kind-badge');
+
+    expect(badge?.textContent).toBe('한식');
+    expect(badge?.dataset['kind']).toBe('restaurant');
+  });
+
   it('lists a category on its own, with no text typed', () => {
     const container = document.createElement('div');
 

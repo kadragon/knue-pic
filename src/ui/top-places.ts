@@ -1,5 +1,5 @@
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
-import { displayCategory, displayDate } from './place-labels';
+import { displayShortDate, renderKindBadge } from './place-labels';
 
 /**
  * The ranked list view. Takes the numbers `src/stats/top-places.ts` already computed and turns them
@@ -12,30 +12,44 @@ import { displayCategory, displayDate } from './place-labels';
  */
 
 /**
- * The heading counts what the list actually renders. `computeTopPlaces` takes a `limit`, and a
- * short window routinely ranks fewer places than that limit, so a fixed count would name a
- * number the page does not show. With nothing ranked there is no number to name and the empty
- * message carries the explanation.
+ * The heading no longer counts anything: the list grows as the reader scrolls, so a number in the
+ * heading would be stale the moment it did. What is on screen and what is held back are stated
+ * together, once, by the counter under the list.
  */
-export function topPlacesHeading(renderedCount: number): string {
-  return renderedCount === 0 ? '많이 이용한 곳' : `많이 이용한 곳 상위 ${renderedCount}곳`;
+export function topPlacesHeading(): string {
+  return '많이 이용한 곳';
 }
 
 export const EMPTY_MESSAGE = '이 기간에는 이용 기록이 없습니다.';
 
 /**
- * Shown when `priorWindowComplete` is false. Without it the default 1y view — the one window whose
- * prior period is never retained — would show no movement indicators at all, and the absence would
- * read as "nothing moved" rather than "there is nothing to compare against".
+ * How many rows a column shows before the reader asks for more, and how many each further page
+ * adds.
+ *
+ * Ten is a screenful on a phone. The rest are not withheld — they are one scroll away — so this is
+ * a pacing decision rather than the cap it replaced, and nothing about the data is claimed by it.
  */
-export const NO_COMPARISON_MESSAGE = '비교할 직전 기간 자료가 없어 변동을 표시하지 않습니다.';
+export const COLUMN_PAGE_SIZE = 10;
+
+/** States both halves — what is rendered and what the window actually ranked. */
+export function renderedCountLabel(rendered: number, total: number): string {
+  return `${total}곳 중 ${rendered}곳 표시`;
+}
+
+export function allRenderedLabel(total: number): string {
+  return `${total}곳 모두 표시`;
+}
+
+export function moreLabel(remaining: number): string {
+  return `${remaining}곳 더 보기`;
+}
 
 export function visitCountLabel(visitCount: number): string {
   return `${visitCount}회 이용`;
 }
 
 export function mostRecentLabel(date: string): string {
-  return `최근 이용 ${displayDate(date)}`;
+  return `최근 이용 ${displayShortDate(date)}`;
 }
 
 /**
@@ -56,7 +70,8 @@ function rankDeltaText(rankDelta: number): string {
 
 /**
  * The rank badge carries the number as text, not as a colour or a size — marker and list importance
- * must never be conveyed by colour alone (`docs/conventions.md` → Accessibility).
+ * must never be conveyed by colour alone (`docs/conventions.md` → Accessibility). The 업종 badge
+ * beside the metadata follows the same rule: it spells its category out.
  */
 function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): HTMLLIElement {
   const item = document.createElement('li');
@@ -80,20 +95,25 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
 
   // `<span>`, not `<p>`: when `onSelect` is supplied the body is a `<button>`, whose content model
   // admits phrasing content only. `styles.css` gives both spans `display: block` so the row looks
-  // identical either way — the same shape `.place-select` uses in `discovery.ts` and `search.ts`.
+  // identical either way — the same shape `.place-select` uses in `search.ts`.
   const name = document.createElement('span');
   name.className = 'top-place-name';
   name.textContent = entry.place.name;
 
   const meta = document.createElement('span');
   meta.className = 'top-place-meta';
+  meta.append(renderKindBadge(entry.place));
+
+  const figures = document.createElement('span');
+  figures.className = 'top-place-figures';
   // `mostRecentVisit` is non-null for every ranked place: a place with no in-window visit is not
   // ranked at all. The fallback keeps the type honest without inventing a date.
-  const parts = [displayCategory(entry.place.category), visitCountLabel(entry.stats.visitCount)];
+  const parts = [visitCountLabel(entry.stats.visitCount)];
   if (entry.stats.mostRecentVisit !== null) {
     parts.push(mostRecentLabel(entry.stats.mostRecentVisit));
   }
-  meta.textContent = parts.join(' · ');
+  figures.textContent = parts.join(' · ');
+  meta.append(figures);
 
   body.append(name, meta);
   item.append(badge, body);
@@ -118,21 +138,31 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
   return item;
 }
 
+export interface TopPlacesOptions {
+  /** Rows in the first page, and in every page after it. */
+  pageSize?: number;
+}
+
 /**
  * `onSelect` is optional: without it the list renders exactly as before, with no controls.
  *
  * `heading` is overridden by `src/ui/place-columns.ts`, where four of these lists sit side by side
- * and the window each one reads — a calendar month a year back, then 3개월 / 6개월 / 1년 — is the
- * thing that tells them apart. The
- * override still has to state the rendered count, so `columnHeading` builds it the same way
- * `topPlacesHeading` does.
+ * and the window each one reads — 최근 1개월 / 3개월 / 6개월 / 1년 — is the thing that tells them
+ * apart.
+ *
+ * The list is paged rather than capped: `pageSize` rows are rendered, and the reader gets the rest
+ * by scrolling the button into view or by pressing it. Both paths call the same `appendPage`, so
+ * a reader who cannot generate a scroll — a keyboard or screen-reader user, or a browser without
+ * `IntersectionObserver` — is never stranded on the first page.
  */
 export function renderTopPlaces(
   container: HTMLElement,
   result: TopPlacesResult,
   onSelect?: (placeId: string) => void,
-  heading: string = topPlacesHeading(result.entries.length),
+  heading: string = topPlacesHeading(),
+  options: TopPlacesOptions = {},
 ): void {
+  const { pageSize = COLUMN_PAGE_SIZE } = options;
   const section = document.createElement('section');
   section.className = 'top-places';
 
@@ -145,19 +175,70 @@ export function renderTopPlaces(
     empty.className = 'top-places-empty';
     empty.textContent = EMPTY_MESSAGE;
     section.append(empty);
-  } else {
-    if (!result.priorWindowComplete) {
-      const note = document.createElement('p');
-      note.className = 'top-places-note';
-      note.textContent = NO_COMPARISON_MESSAGE;
-      section.append(note);
-    }
-
-    const list = document.createElement('ol');
-    list.className = 'top-places-list';
-    list.append(...result.entries.map((entry) => renderEntry(entry, onSelect)));
-    section.append(list);
+    container.replaceChildren(section);
+    return;
   }
 
+  const total = result.entries.length;
+  const list = document.createElement('ol');
+  list.className = 'top-places-list';
+
+  const footer = document.createElement('div');
+  footer.className = 'top-places-more';
+
+  // Created once and only its text rewritten: a live region replaced on every page announces
+  // nothing, so a screen-reader user would never hear that more rows arrived.
+  const counter = document.createElement('p');
+  counter.className = 'top-places-count';
+  counter.setAttribute('aria-live', 'polite');
+  counter.setAttribute('aria-atomic', 'true');
+
+  const more = document.createElement('button');
+  more.type = 'button';
+  more.className = 'top-places-more-button';
+
+  let rendered = 0;
+  let observer: IntersectionObserver | null = null;
+
+  function appendPage(): void {
+    const next = result.entries.slice(rendered, rendered + pageSize);
+    list.append(...next.map((entry) => renderEntry(entry, onSelect)));
+    rendered += next.length;
+
+    if (rendered >= total) {
+      counter.textContent = allRenderedLabel(total);
+      observer?.disconnect();
+      observer = null;
+      more.remove();
+      return;
+    }
+
+    counter.textContent = renderedCountLabel(rendered, total);
+    more.textContent = moreLabel(total - rendered);
+  }
+
+  more.addEventListener('click', appendPage);
+
+  footer.append(counter, more);
+  section.append(list, footer);
   container.replaceChildren(section);
+
+  appendPage();
+
+  // The button is the sentinel: it sits exactly where the next page belongs, and it is removed the
+  // moment there is nothing left to load, so there is no stray node to observe. Guarded because
+  // jsdom — and any browser without the API — has no `IntersectionObserver`; there the button is
+  // the only way through, which is why it is a real control rather than an empty marker div.
+  //
+  // The condition is "there are pages left", NOT "the button is in the document": every caller
+  // renders into a detached subtree and attaches it afterwards (`place-columns.ts` builds all four
+  // cells before appending the grid), so an `isConnected` check here is false for every column on
+  // the page and the observer is never created. Observing a detached element is fine — it reports
+  // nothing until the node is attached, then behaves normally.
+  if (rendered < total && typeof IntersectionObserver !== 'undefined') {
+    observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) appendPage();
+    });
+    observer.observe(more);
+  }
 }

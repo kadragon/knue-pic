@@ -1,12 +1,10 @@
-import type { PlaceRecord, PlacesDataset } from '../data/types';
+import type { Period, PlaceRecord, PlacesDataset } from '../data/types';
 import { computePlaceStats, type PlaceStats } from './place-stats';
 import {
-  LAST_YEAR_MONTH,
   isPriorWindowComplete,
-  resolveBasisWindow,
+  resolvePeriodWindow,
   resolvePriorWindow,
   type PeriodWindow,
-  type StatBasis,
 } from './period';
 
 /**
@@ -37,10 +35,8 @@ export interface TopPlacesResult {
   entries: RankedPlace[];
   /**
    * `false` when the prior window predates the dataset's retention floor, in which case every
-   * `rankDelta` is `null`. Surfaced so the UI can explain the absence instead of guessing.
-   *
-   * Always `false` for `LAST_YEAR_MONTH`: its prior window is a month two years back, which no
-   * published dataset has ever retained.
+   * `rankDelta` is `null`. In practice `1y` is the one window whose prior period is never
+   * retained, so its rows carry no movement glyph at all.
    */
   priorWindowComplete: boolean;
 }
@@ -90,17 +86,13 @@ function rankWindow(places: PlaceRecord[], periodWindow: PeriodWindow): RankedPl
 
 export function computeTopPlaces(
   dataset: PlacesDataset,
-  basis: StatBasis,
+  basis: Period,
   limit: number = TOP_PLACES_LIMIT,
 ): TopPlacesResult {
-  const ranked = rankWindow(dataset.places, resolveBasisWindow(basis, dataset.updatedAt));
-  // 작년 같은 달 has no comparable prior window: `resolvePriorWindow` only steps back a `Period`,
-  // and the month before that one is two years from the anchor either way — outside retention. So
-  // there is nothing to compare against and every delta is omitted rather than invented.
-  const priorWindow =
-    basis === LAST_YEAR_MONTH || !isPriorWindowComplete(basis, dataset.updatedAt)
-      ? null
-      : resolvePriorWindow(basis, dataset.updatedAt);
+  const ranked = rankWindow(dataset.places, resolvePeriodWindow(basis, dataset.updatedAt));
+  const priorWindow = isPriorWindowComplete(basis, dataset.updatedAt)
+    ? resolvePriorWindow(basis, dataset.updatedAt)
+    : null;
 
   if (priorWindow) {
     // The prior ranking covers every place, not just the visible cap: a place that entered the

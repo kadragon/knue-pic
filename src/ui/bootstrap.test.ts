@@ -5,7 +5,7 @@ import { MAP_ERROR_MESSAGE, renderPlaceLocationMap } from '../map/place-map';
 import { bootstrap } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
-import { COLUMN_ORDER, columnHeading, columnLabel } from './place-columns';
+import { COLUMN_ORDER, columnLabel } from './place-columns';
 import { periodStatsHeading } from './place-detail';
 import { displayDate } from './place-labels';
 import { KIND_LABELS, ALL_KINDS_LABEL } from './kind-filter';
@@ -70,16 +70,15 @@ describe('bootstrap', () => {
     await pending;
   });
 
-  it('shows the dataset update date and the five columns once loaded', async () => {
+  it('shows the dataset update date and the four columns once loaded', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
     expect(root.textContent).toContain(`최근 데이터 업데이트: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
     expect(root.textContent).not.toContain(LOADING_MESSAGE);
-    expect(root.querySelector('#content')?.textContent).toContain(
-      columnHeading(PERIOD_LABELS['1y'], 6),
-    );
+    expect(root.querySelector('#content')?.textContent).toContain(PERIOD_LABELS['1y']);
+    expect(root.querySelectorAll('.place-column')).toHaveLength(COLUMN_ORDER.length);
   });
 
   it('shows a plain Korean failure state, not a raw error, when the dataset is missing', async () => {
@@ -199,7 +198,7 @@ describe('bootstrap accessibility', () => {
 });
 
 describe('bootstrap columns', () => {
-  it('renders the five windows side by side, in order', async () => {
+  it('renders the four windows side by side, in order', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
@@ -208,7 +207,7 @@ describe('bootstrap columns', () => {
     expect(columns.map((column) => column.dataset['column'])).toEqual(COLUMN_ORDER);
     for (const column of columns) {
       expect(column.querySelector('h2')?.textContent).toContain(
-        columnLabel(column.dataset['column'] as (typeof COLUMN_ORDER)[number], SAMPLE_DATASET.updatedAt),
+        columnLabel(column.dataset['column'] as (typeof COLUMN_ORDER)[number]),
       );
     }
   });
@@ -218,16 +217,12 @@ describe('bootstrap columns', () => {
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
-    // 1y ranks all six fixture places; 3m ranks four — 000003 and 000001's 2025 visits fall
-    // outside that window, and 황새울분식 has nothing recent at all.
+    // 1y ranks all six fixture places; 3m ranks five — 황새울분식 has nothing recent at all, so a
+    // column reading one shared window would list it in both.
     expect(root.querySelectorAll('.place-column[data-column="1y"] .top-place')).toHaveLength(6);
     expect(root.querySelector('.place-column[data-column="3m"]')?.textContent).not.toContain(
       '황새울분식',
     );
-    // The 작년 같은 달 column reads a month the 1y window excludes, so it cannot be a subset of it.
-    expect(
-      root.querySelectorAll('.place-column[data-column="lastYearMonth"] .top-place'),
-    ).toHaveLength(1);
   });
 
   it('shows the picked column\'s window in the dialog', async () => {
@@ -237,20 +232,17 @@ describe('bootstrap columns', () => {
     firstRow(root, '6m')?.click();
 
     expect(root.querySelector('.detail-slot')?.textContent).toContain(
-      periodStatsHeading('6m', SAMPLE_DATASET.updatedAt),
+      periodStatsHeading('6m'),
     );
   });
 
-  it('shows a place picked from the trending column over the month it trended in', async () => {
+  it('shows a place picked from the monthly column over that month', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    firstRow(root, 'trending')?.click();
+    firstRow(root, '1m')?.click();
 
-    // Trending is measured over the recent month, so those are the figures the dialog states.
-    expect(root.querySelector('.detail-slot')?.textContent).toContain(
-      periodStatsHeading('1m', SAMPLE_DATASET.updatedAt),
-    );
+    expect(root.querySelector('.detail-slot')?.textContent).toContain(periodStatsHeading('1m'));
   });
 
   it('shows a place found by search over the full retained window', async () => {
@@ -268,19 +260,18 @@ describe('bootstrap columns', () => {
 
     expect(root.querySelector('.detail-slot')?.textContent).toContain('황새울분식');
     expect(root.querySelector('.detail-slot')?.textContent).toContain(
-      periodStatsHeading('1y', SAMPLE_DATASET.updatedAt),
+      periodStatsHeading('1y'),
     );
   });
 
-  it('opens the tab switch on the trending column and flips it in place', async () => {
+  it('opens the tab switch on the first column and flips it in place', async () => {
     const root = document.createElement('div');
     document.body.append(root);
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    // Trending, not `COLUMN_ORDER[0]`: below 600px the active column is the only one on screen,
-    // and the column the grid leads with is the one most likely to hold nothing.
-    expect(pressedTab(root)?.textContent).toBe(columnLabel('trending', SAMPLE_DATASET.updatedAt));
-    expect(COLUMN_ORDER[0]).not.toBe('trending');
+    // Below 600px the active column is the only one on screen, so the tab the page opens on is
+    // what a phone visitor actually lands in.
+    expect(pressedTab(root)?.textContent).toBe(columnLabel(COLUMN_ORDER[0]!));
 
     const button = columnTab(root, PERIOD_LABELS['6m']);
     button?.focus();
@@ -317,7 +308,7 @@ describe('bootstrap place selection', () => {
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
     const searchInput = root.querySelector<HTMLInputElement>('.place-search-input');
-    const trendingList = root.querySelector('.place-column[data-column="trending"] .discovery-list');
+    const monthlyList = root.querySelector('.place-column[data-column="1m"] .top-places-list');
     const button = firstRow(root, '1y');
     button?.focus();
     button?.click();
@@ -325,8 +316,8 @@ describe('bootstrap place selection', () => {
     // Only the dialog body is repainted — an in-progress search query and the columns survive the
     // selection, asserted by node identity rather than by where focus ended up.
     expect(root.querySelector('.place-search-input')).toBe(searchInput);
-    expect(root.querySelector('.place-column[data-column="trending"] .discovery-list')).toBe(
-      trendingList,
+    expect(root.querySelector('.place-column[data-column="1m"] .top-places-list')).toBe(
+      monthlyList,
     );
     // Focus moves into the dialog so the selection is announced rather than happening off-screen.
     expect(document.activeElement).toBe(root.querySelector('.detail-dialog-panel'));
@@ -395,7 +386,7 @@ describe('bootstrap map wiring', () => {
     expect(root.querySelector('.detail-slot')?.textContent).toContain(MAP_ERROR_MESSAGE);
     // The statistics are what the dialog is for; the map failing may never take them with it.
     expect(root.querySelector('.place-detail-figures')).not.toBeNull();
-    expect(root.textContent).toContain(columnHeading(PERIOD_LABELS['1y'], 6));
+    expect(root.textContent).toContain(PERIOD_LABELS['1y']);
     expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE);
     expect(root.querySelector('.search-slot')).not.toBeNull();
   });
@@ -429,7 +420,7 @@ describe('bootstrap map wiring', () => {
     const root = document.createElement('div');
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
     typeQuery(root, '카페');
-    columnTab(root, columnLabel('1y', SAMPLE_DATASET.updatedAt))?.click();
+    columnTab(root, columnLabel('1y'))?.click();
     const input = searchField(root);
 
     kindOption(root, KIND_LABELS.cafe)?.click();

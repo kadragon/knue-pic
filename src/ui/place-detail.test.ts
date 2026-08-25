@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
-import { computeMonthlyHistogram, histogramMonthsFor } from '../stats/histogram';
+import { computeMonthlyHistogram } from '../stats/histogram';
 import { computePlaceStats } from '../stats/place-stats';
-import { LAST_YEAR_MONTH, resolveBasisWindow, type StatBasis } from '../stats/period';
+import { resolvePeriodWindow } from '../stats/period';
+import type { Period } from '../data/types';
 import {
   DETAIL_EMPTY_MESSAGE,
   FIGURE_LABELS,
@@ -16,14 +17,13 @@ import {
 
 const PLACE = SAMPLE_DATASET.places[0]!; // 한밭식당
 
-function detailFor(placeIndex = 0, basis: StatBasis = '1y') {
+function detailFor(placeIndex = 0, basis: Period = '1y') {
   const place = SAMPLE_DATASET.places[placeIndex]!;
   return {
     place,
     basis,
-    anchor: SAMPLE_DATASET.updatedAt,
-    stats: computePlaceStats(place, resolveBasisWindow(basis, SAMPLE_DATASET.updatedAt)),
-    histogram: computeMonthlyHistogram(place, SAMPLE_DATASET.updatedAt, histogramMonthsFor(basis)),
+    stats: computePlaceStats(place, resolvePeriodWindow(basis, SAMPLE_DATASET.updatedAt)),
+    histogram: computeMonthlyHistogram(place, SAMPLE_DATASET.updatedAt),
   };
 }
 
@@ -42,20 +42,21 @@ describe('renderPlaceDetail', () => {
 
     renderPlaceDetail(container, detailFor(0, '6m'));
 
-    expect(container.textContent).toContain(periodStatsHeading('6m', SAMPLE_DATASET.updatedAt));
+    expect(container.textContent).toContain(periodStatsHeading('6m'));
+    expect(periodStatsHeading('6m')).toBe('최근 6개월 기준');
   });
 
-  it('names the month itself for a place picked from the 작년 같은 달 column', () => {
+  it('carries the place\u0027s 업종 badge with its category spelled out', () => {
     const container = document.createElement('div');
+    const detail = detailFor(0, '1y');
 
-    renderPlaceDetail(container, detailFor(0, LAST_YEAR_MONTH));
+    renderPlaceDetail(container, detail);
+    const badge = container.querySelector<HTMLElement>('.place-kind-badge');
 
-    // The label has to spell the month out: every other basis on the page reads 최근 N개월, so
-    // "작년 같은 달 기준" would leave the reader unable to check the figure against a disclosure.
-    expect(container.textContent).toContain(
-      periodStatsHeading(LAST_YEAR_MONTH, SAMPLE_DATASET.updatedAt),
-    );
-    expect(periodStatsHeading(LAST_YEAR_MONTH, '2026-08-22')).toBe('2025년 8월 기준');
+    // Colour alone may not carry the classification, so the category is text on the badge and the
+    // kind reaches the stylesheet as data rather than as a colour picked here.
+    expect(badge?.textContent).toBe(detail.place.category.replace(/,\s*/g, '\u00b7'));
+    expect(badge?.dataset['kind']).toBe(detail.place.kind);
   });
 
   it('shows visit counts and the most recent visit without amount figures', () => {
@@ -73,7 +74,9 @@ describe('renderPlaceDetail', () => {
     }
     expect(container.querySelectorAll('.place-detail-figure')).toHaveLength(2);
     expect(text).toContain('4회');
-    expect(text).toContain('2026년 7월 20일');
+    expect(text).toContain('07-20');
+    // The year is the footer's job, not a row's: every date here sits inside the named window.
+    expect(text).not.toContain('2026년 7월 20일');
     expect(text).not.toContain('합계');
     expect(text).not.toContain('평균');
   });
@@ -101,21 +104,6 @@ describe('renderPlaceDetail', () => {
       expect(entry.querySelector('.place-histogram-count')?.textContent).toMatch(/^\d+회$/);
     }
     expect(container.textContent).toContain(`${monthLabel('2026-07')}`);
-  });
-
-  it('charts the 작년 같은 달 month the card names, as the oldest bar', () => {
-    // The card prints "2025년 8월 기준" over these bars; under the 12-month span that month sat one
-    // month outside the chart, so the figures named a month the reader could not find.
-    const container = document.createElement('div');
-
-    renderPlaceDetail(container, detailFor(0, LAST_YEAR_MONTH));
-    const entries = [...container.querySelectorAll('.place-histogram-entry')];
-
-    expect(entries).toHaveLength(13);
-    expect(entries[0]?.querySelector('.place-histogram-month')?.textContent).toBe(
-      monthLabel('2025-08'),
-    );
-    expect(container.textContent).toContain(histogramHeading(13));
   });
 
   it('scales bars without dividing by zero when the place has no charted visit', () => {
