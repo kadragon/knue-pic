@@ -16,6 +16,20 @@
   larger of the two — a test harness for `.claude/skills/*/scripts/` would cover every stage, not just
   this flag — `.claude/skills/knue-expense-collect/scripts/geocode_candidates.py`, `collector/tests/`
 
+### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
+
+- [ ] [debt] Three limits QA reproduced on PR #23 and the contract sanctioned, none of them
+  data-corrupting but all undocumented. (a) A target-month cluster sitting below two legitimately
+  older pages — a late-publishing department — is missed and the run still exits 0, because
+  `PAGES_PAST_TARGET` is 2 and the year guard sees the first cluster's correct stamp. (b) The
+  repeat-page guard compares only the immediately preceding page, so a board clamping an
+  out-of-range `pageIndex` to a *cycle* rather than its last page still walks to `--max-pages`.
+  (c) A month older than everything the board carries, or a board whose 업무추진비 titles are all
+  undated, never arms the stop and costs the full 200-page cap on both traversals. (a) is the only
+  one that can lose data; consider documenting it in SKILL.md rather than widening the rule
+  — `.claude/skills/knue-expense-collect/scripts/fetch_disclosures.py`,
+  `.claude/skills/knue-expense-collect/SKILL.md`
+
 ## Someday
 
 - [ ] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget

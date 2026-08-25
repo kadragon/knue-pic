@@ -27,9 +27,9 @@ python3 $SKILL/normalize_places.py   --month 2026-07         # 3. merge spelling
 python3 $SKILL/geocode_candidates.py --month 2026-07         # 4. append to the review queue
 ```
 
-**Backfilling an older month** takes the same commands — stage 1 reads down the board until it
-passes the requested month, rather than stopping after a fixed number of quiet pages, so no page
-flags are needed:
+**Backfilling an older month** takes the same commands — stage 1 spends its quiet-page budget
+only after the board has passed the requested month, so the walk reaches back as far as it needs
+and no page flags are required:
 
 ```bash
 python3 $SKILL/fetch_disclosures.py --month 2025-06        # walks back as far as the board needs
@@ -45,7 +45,7 @@ Stage 1 exits non-zero in three ways, and they mean different things:
 
 | Exit | Message | What it means |
 |---|---|---|
-| 2 | `--month must be YYYY-MM` | Malformed argument; nothing ran |
+| 2 | `--month must be YYYY-MM` / `--month must name a real month` | Malformed argument; nothing ran |
 | 1 | `no posts matched` | The month was never published, or `--max-pages` ran out first |
 | 3 | `every post found is dated to another year` | The walk ended above the month and would have downloaded another year's posts; nothing was downloaded |
 
