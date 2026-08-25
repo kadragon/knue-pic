@@ -12,7 +12,7 @@ export function displayCategory(category: string): string {
 
 /**
  * Converts an ISO date into the same Korean date form the period headings use
- * (`place-detail.ts` → `monthLabel`), so one dialog never carries two date formats. The shape
+ * (`monthLabel`, below), so one dialog never carries two date formats. The shape
  * guard is on the whole string, not on the field count: `2026-07-08T00:00:00` splits into three
  * truthy parts and would otherwise render a `NaN` day.
  *
@@ -62,4 +62,16 @@ export function renderKindBadge(place: PlaceRecord): HTMLSpanElement {
   badge.dataset['kind'] = place.kind;
   badge.textContent = displayCategory(place.category);
   return badge;
+}
+
+/**
+ * `2026-07` → `2026년 7월`, so a month axis reads as months rather than as a code.
+ *
+ * Lives here rather than in either view: the detail card's chart labels every bar with it and the
+ * ranked row's trend bars name their months with it, and a second copy is how the two charts end
+ * up spelling the same month differently.
+ */
+export function monthLabel(month: string): string {
+  const [year, index] = month.split('-');
+  return `${year}년 ${Number(index)}월`;
 }

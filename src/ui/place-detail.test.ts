@@ -10,10 +10,10 @@ import {
   histogramHeading,
   NAVER_LINK_LABEL,
   NO_VISIT_IN_PERIOD_MESSAGE,
-  monthLabel,
   periodStatsHeading,
   renderPlaceDetail,
 } from './place-detail';
+import { monthLabel } from './place-labels';
 
 const PLACE = SAMPLE_DATASET.places[0]!; // 한밭식당
 

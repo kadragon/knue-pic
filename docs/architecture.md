@@ -243,11 +243,13 @@ saying so.
 1. **Transaction = visit.** One disclosed payment is one visit (PRD §22). Multiple payments in a
    single sitting are not merged.
 2. **Period recomputation.** Every window is derived from `transactions` client-side, at render
-   time. There are no precomputed per-period fields in the JSON. The page shows four windows at
-   once — 1m / 3m / 6m / 1y — so `src/ui/place-columns.ts` runs one aggregation per column on load
-   and none after: nothing on the page switches a window any more, and a place selected from a
-   column is shown that column's figures. Each aggregation ranks the *whole* window; the view pages
-   through it as the reader scrolls, so no cap is applied at compute time.
+   time. There are no precomputed per-period fields in the JSON. The page shows one window at a
+   time — 1m / 3m / 6m / 1y, chosen with the period selector — so `src/ui/place-list.ts` runs one
+   aggregation on load and one more per switch, and a place selected from the list is shown the
+   selected window's figures. Each aggregation ranks the *whole* window; the view pages through it
+   as the reader scrolls, so no cap is applied at compute time. `computeTopPlaces` also attaches
+   each visible row's monthly histogram: the four windows are cumulative, so a shape drawn from
+   them would rise monotonically for every place, and calendar months are what actually vary.
 3. **Rank comparison window.** The prior period is the immediately preceding window of the same
    length. When that window's data is incomplete, the rank delta is omitted — never guessed.
 4. **Approval queue.** `review_candidates.csv` is the human gate between geocoding and publication;

@@ -5,12 +5,14 @@ import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
 import {
   allRenderedLabel,
-  COLUMN_PAGE_SIZE,
   EMPTY_MESSAGE,
+  LIST_PAGE_SIZE,
   moreLabel,
   rankDeltaLabel,
   renderedCountLabel,
+  renderSparkline,
   renderTopPlaces,
+  sparklineLabel,
   topPlacesHeading,
 } from './top-places';
 
@@ -65,7 +67,7 @@ describe('renderTopPlaces', () => {
   });
 
   it('pages the list instead of capping it, and says what is held back', () => {
-    const placeCount = COLUMN_PAGE_SIZE * 2 + 3;
+    const placeCount = LIST_PAGE_SIZE * 2 + 3;
     const dataset: PlacesDataset = {
       updatedAt: '2026-08-01',
       places: Array.from({ length: placeCount }, (_, index) => ({
@@ -89,16 +91,16 @@ describe('renderTopPlaces', () => {
     const button = (): HTMLButtonElement | null =>
       container.querySelector<HTMLButtonElement>('.top-places-more-button');
 
-    expect(rowsAfter()).toBe(COLUMN_PAGE_SIZE);
+    expect(rowsAfter()).toBe(LIST_PAGE_SIZE);
     expect(container.querySelector('.top-places-count')?.textContent).toBe(
-      renderedCountLabel(COLUMN_PAGE_SIZE, placeCount),
+      renderedCountLabel(LIST_PAGE_SIZE, placeCount),
     );
-    expect(button()?.textContent).toBe(moreLabel(placeCount - COLUMN_PAGE_SIZE));
+    expect(button()?.textContent).toBe(moreLabel(placeCount - LIST_PAGE_SIZE));
 
     // The button is the sentinel as well as the control: jsdom has no `IntersectionObserver`, so
     // this is the path a reader who cannot generate a scroll takes.
     button()?.dispatchEvent(new MouseEvent('click'));
-    expect(rowsAfter()).toBe(COLUMN_PAGE_SIZE * 2);
+    expect(rowsAfter()).toBe(LIST_PAGE_SIZE * 2);
 
     button()?.dispatchEvent(new MouseEvent('click'));
     expect(rowsAfter()).toBe(placeCount);
@@ -110,9 +112,9 @@ describe('renderTopPlaces', () => {
   });
 
   it('watches the button even while the list is still detached from the document', () => {
-    // Every caller renders into a subtree it attaches afterwards — `place-columns.ts` builds all
-    // four cells before appending the grid — so a "is this in the document yet?" guard here left
-    // the observer uncreated on every column, and scrolling loaded nothing.
+    // Every caller renders into a subtree it attaches afterwards — `place-list.ts` fills the list
+    // cell before appending the section — so a "is this in the document yet?" guard here left the
+    // observer uncreated on every render, and scrolling loaded nothing.
     const observed: Element[] = [];
     class FakeObserver {
       observe(target: Element): void {
@@ -232,7 +234,7 @@ describe('renderTopPlaces', () => {
       container.querySelector<HTMLButtonElement>('.top-places-more-button')?.click();
       expect(calls).toEqual(['observe', 'unobserve', 'observe']);
 
-      // Same container, fresh render — what `renderPlaceColumns` does on every 업종 change.
+      // Same container, fresh render — what `renderPlaceList` does on every 업종 change.
       calls.length = 0;
       renderTopPlaces(container, result, undefined, undefined, { pageSize: 2 });
       expect(calls).toEqual(['disconnect', 'observe']);
@@ -379,5 +381,65 @@ describe('renderTopPlaces selection', () => {
 
     expect(container.querySelector('button')).toBeNull();
     expect(container.querySelector('.top-place-body')).toBeInstanceOf(HTMLDivElement);
+  });
+});
+
+describe('sparklineLabel', () => {
+  it('names every charted month, including the empty ones', () => {
+    const label = sparklineLabel([
+      { month: '2026-06', visitCount: 2 },
+      { month: '2026-07', visitCount: 0 },
+      { month: '2026-08', visitCount: 1 },
+    ]);
+
+    // The quiet month is the whole reason the label exists: bars convey a gap by height alone, and
+    // dropping it here would leave a screen reader hearing an uninterrupted run.
+    expect(label).toBe('최근 3개월 월별 이용: 2026년 6월 2회, 2026년 7월 0회, 2026년 8월 1회');
+  });
+});
+
+describe('renderSparkline', () => {
+  it('draws one bar per bucket, scaled against the place\'s own busiest month', () => {
+    const chart = renderSparkline([
+      { month: '2026-06', visitCount: 2 },
+      { month: '2026-07', visitCount: 0 },
+      { month: '2026-08', visitCount: 4 },
+    ]);
+
+    const bars = [...chart.querySelectorAll<HTMLElement>('.top-place-trend-bar')];
+    expect(bars).toHaveLength(3);
+    expect(bars.map((bar) => bar.style.height)).toEqual(['50%', '0%', '100%']);
+    expect(bars.map((bar) => bar.dataset['empty'])).toEqual(['false', 'true', 'false']);
+  });
+
+  it('carries the series as text a screen reader can reach', () => {
+    const buckets = [{ month: '2026-08', visitCount: 3 }];
+    const chart = renderSparkline(buckets);
+
+    // `role="img"` is load-bearing: WAI-ARIA prohibits naming a bare span, so without it the
+    // label is dropped and the chart exists for sighted readers only.
+    expect(chart.getAttribute('role')).toBe('img');
+    expect(chart.getAttribute('aria-label')).toBe(sparklineLabel(buckets));
+  });
+
+  it('writes no NaN width when nothing was charted', () => {
+    const chart = renderSparkline([
+      { month: '2026-07', visitCount: 0 },
+      { month: '2026-08', visitCount: 0 },
+    ]);
+
+    expect(
+      [...chart.querySelectorAll<HTMLElement>('.top-place-trend-bar')].map((bar) => bar.style.height),
+    ).toEqual(['0%', '0%']);
+  });
+
+  it('gives every rendered row its trend chart', () => {
+    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
+
+    const rows = [...container.querySelectorAll('.top-place')];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.querySelector('.top-place-trend')).not.toBeNull();
+    }
   });
 });

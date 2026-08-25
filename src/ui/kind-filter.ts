@@ -7,7 +7,7 @@ import { PLACE_KINDS, type PlaceKind } from '../data/types';
  * "show me only the cafés" — and a control that narrowed one list while the other kept listing
  * everything would read as a bug in the list it did not touch.
  *
- * The button group is the same shape as `place-columns.ts`'s tab strip, and for the same reason:
+ * The button group is the same shape as `place-list.ts`'s period selector, and for the same reason:
  * the pressed state is flipped in place. Re-rendering the group would replace the button the reader
  * just activated and drop keyboard focus to the top of the document.
  */

@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import type { Period } from '../data/types';
 import { createFakeNaverApi } from '../map/fake-naver-api';
 import { MAP_ERROR_MESSAGE, renderPlaceLocationMap } from '../map/place-map';
 import { bootstrap } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
-import { COLUMN_ORDER, columnLabel } from './place-columns';
+import { DEFAULT_PERIOD, PERIOD_TABS, periodLabel } from './place-list';
 import { periodStatsHeading } from './place-detail';
 import { displayDate } from './place-labels';
 import { KIND_LABELS, ALL_KINDS_LABEL } from './kind-filter';
@@ -16,24 +17,26 @@ function retryButton(root: HTMLElement): HTMLButtonElement | null {
   return root.querySelector<HTMLButtonElement>('.data-state-retry');
 }
 
-function columnTab(root: HTMLElement, label: string): HTMLButtonElement | undefined {
-  return [...root.querySelectorAll<HTMLButtonElement>('.place-column-tab')].find(
+function periodTab(root: HTMLElement, label: string): HTMLButtonElement | undefined {
+  return [...root.querySelectorAll<HTMLButtonElement>('.period-tab')].find(
     (button) => button.textContent === label,
   );
 }
 
 function pressedTab(root: HTMLElement): HTMLButtonElement | undefined {
-  return [...root.querySelectorAll<HTMLButtonElement>('.place-column-tab')].find(
+  return [...root.querySelectorAll<HTMLButtonElement>('.period-tab')].find(
     (button) => button.getAttribute('aria-pressed') === 'true',
   );
 }
 
-/** The first row of one column, which is how every selection case opens the dialog. */
-function firstRow(root: HTMLElement, column: string): HTMLButtonElement | null {
-  return root.querySelector<HTMLButtonElement>(
-    `.place-column[data-column="${column}"] .top-place-body, ` +
-      `.place-column[data-column="${column}"] .place-select`,
-  );
+/**
+ * Selects a window and returns the first row of the list it produced, which is how every selection
+ * case opens the dialog. Only one list is on screen at a time, so the period has to be chosen
+ * before the row exists.
+ */
+function firstRow(root: HTMLElement, period: Period): HTMLButtonElement | null {
+  periodTab(root, periodLabel(period))?.click();
+  return root.querySelector<HTMLButtonElement>('.place-list-body .top-place-body');
 }
 
 function kindOption(root: HTMLElement, label: string): HTMLButtonElement | undefined {
@@ -70,15 +73,15 @@ describe('bootstrap', () => {
     await pending;
   });
 
-  it('shows the dataset update date and the four columns once loaded', async () => {
+  it('shows the dataset update date and the ranked list once loaded', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
     expect(root.textContent).toContain(`최근 데이터 업데이트: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
     expect(root.textContent).not.toContain(LOADING_MESSAGE);
-    expect(root.querySelector('#content')?.textContent).toContain(PERIOD_LABELS['1y']);
-    expect(root.querySelectorAll('.place-column')).toHaveLength(COLUMN_ORDER.length);
+    expect(root.querySelectorAll('.period-tab')).toHaveLength(PERIOD_TABS.length);
+    expect(root.querySelectorAll('.place-list-body .top-places')).toHaveLength(1);
   });
 
   it('shows a plain Korean failure state, not a raw error, when the dataset is missing', async () => {
@@ -197,35 +200,35 @@ describe('bootstrap accessibility', () => {
   });
 });
 
-describe('bootstrap columns', () => {
-  it('renders the four windows side by side, in order', async () => {
+describe('bootstrap ranked list', () => {
+  it('offers every window as a tab and opens on the default one', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
-    const columns = [...root.querySelectorAll<HTMLElement>('.place-column')];
-    expect(columns.map((column) => column.dataset['column'])).toEqual(COLUMN_ORDER);
-    for (const column of columns) {
-      expect(column.querySelector('h2')?.textContent).toContain(
-        columnLabel(column.dataset['column'] as (typeof COLUMN_ORDER)[number]),
-      );
-    }
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('.period-tab')];
+    expect(tabs.map((tab) => tab.dataset['period'])).toEqual(PERIOD_TABS);
+    expect(pressedTab(root)?.dataset['period']).toBe(DEFAULT_PERIOD);
+    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(
+      PERIOD_LABELS[DEFAULT_PERIOD],
+    );
   });
 
-  it('ranks each column over its own window', async () => {
+  it('ranks the selected window alone', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
     // 1y ranks all six fixture places; 3m ranks five — 황새울분식 has nothing recent at all, so a
-    // column reading one shared window would list it in both.
-    expect(root.querySelectorAll('.place-column[data-column="1y"] .top-place')).toHaveLength(6);
-    expect(root.querySelector('.place-column[data-column="3m"]')?.textContent).not.toContain(
-      '황새울분식',
-    );
+    // list reading one shared window would show it under both.
+    periodTab(root, periodLabel('1y'))?.click();
+    expect(root.querySelectorAll('.place-list-body .top-place')).toHaveLength(6);
+
+    periodTab(root, periodLabel('3m'))?.click();
+    expect(root.querySelector('.place-list-body')?.textContent).not.toContain('황새울분식');
   });
 
-  it('shows the picked column\'s window in the dialog', async () => {
+  it('shows the picked window in the dialog', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
@@ -236,7 +239,7 @@ describe('bootstrap columns', () => {
     );
   });
 
-  it('shows a place picked from the monthly column over that month', async () => {
+  it('shows a place picked under 최근 1개월 over that month', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
@@ -264,22 +267,22 @@ describe('bootstrap columns', () => {
     );
   });
 
-  it('opens the tab switch on the first column and flips it in place', async () => {
+  it('opens on the default window and flips the selector in place', async () => {
     const root = document.createElement('div');
     document.body.append(root);
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    // Below 600px the active column is the only one on screen, so the tab the page opens on is
-    // what a phone visitor actually lands in.
-    expect(pressedTab(root)?.textContent).toBe(columnLabel(COLUMN_ORDER[0]!));
+    // One list is on screen at a time, so the window the page opens on is the only ranking a
+    // visitor sees before touching anything.
+    expect(pressedTab(root)?.textContent).toBe(periodLabel(DEFAULT_PERIOD));
 
-    const button = columnTab(root, PERIOD_LABELS['6m']);
+    const button = periodTab(root, PERIOD_LABELS['6m']);
     button?.focus();
     button?.click();
 
     expect(pressedTab(root)).toBe(button);
-    expect(root.querySelector<HTMLElement>('.place-columns-grid')?.dataset['active']).toBe('6m');
-    // Rebuilding the tabs on every change would drop focus to the document body.
+    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(PERIOD_LABELS['6m']);
+    // Rebuilding the selector on every change would drop focus to the document body.
     expect(document.activeElement).toBe(button);
     root.remove();
   });
@@ -400,9 +403,9 @@ describe('bootstrap map wiring', () => {
 
     // Both views answer the same question afterwards; a control that moved one and not the other
     // would read as a bug in whichever list kept showing everything.
-    const columns = root.querySelector('.place-columns-slot');
-    expect(columns?.textContent).toContain('청람카페');
-    expect(columns?.textContent).not.toContain('한밭식당');
+    const list = root.querySelector('.place-list-slot');
+    expect(list?.textContent).toContain('청람카페');
+    expect(list?.textContent).not.toContain('한밭식당');
     expect(root.querySelector('.search-slot')?.textContent).toContain(NO_RESULTS_MESSAGE);
   });
 
@@ -413,14 +416,14 @@ describe('bootstrap map wiring', () => {
     kindOption(root, KIND_LABELS.cafe)?.click();
     kindOption(root, ALL_KINDS_LABEL)?.click();
 
-    expect(root.querySelector('.place-columns-slot')?.textContent).toContain('한밭식당');
+    expect(root.querySelector('.place-list-slot')?.textContent).toContain('한밭식당');
   });
 
-  it('keeps the typed query and the open column across a 업종 change', async () => {
+  it('keeps the typed query and the selected window across a 업종 change', async () => {
     const root = document.createElement('div');
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
     typeQuery(root, '카페');
-    columnTab(root, columnLabel('1y'))?.click();
+    periodTab(root, periodLabel('1y'))?.click();
     const input = searchField(root);
 
     kindOption(root, KIND_LABELS.cafe)?.click();
@@ -428,7 +431,7 @@ describe('bootstrap map wiring', () => {
     // The same input node: a rebuild would throw away what the reader typed and move the caret.
     expect(searchField(root)).toBe(input);
     expect(searchField(root).value).toBe('카페');
-    expect(pressedTab(root)?.dataset['column']).toBe('1y');
+    expect(pressedTab(root)?.dataset['period']).toBe('1y');
   });
 
   it('still opens the detail dialog for a place listed under a narrowed 업종', async () => {

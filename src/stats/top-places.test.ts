@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlaceRecord, PlacesDataset } from '../data/types';
+import { computeMonthlyHistogram, HISTOGRAM_MONTHS } from './histogram';
 import { computeTopPlaces, TOP_PLACES_LIMIT } from './top-places';
 
 /**
@@ -218,3 +219,22 @@ describe('computeTopPlaces rank delta', () => {
   });
 });
 
+describe('computeTopPlaces trend chart', () => {
+  it('attaches the same monthly series the detail card charts', () => {
+    const entry = computeTopPlaces(SAMPLE_DATASET, '1y').entries[0]!;
+
+    expect(entry.histogram).toEqual(computeMonthlyHistogram(entry.place, SAMPLE_DATASET.updatedAt));
+    expect(entry.histogram).toHaveLength(HISTOGRAM_MONTHS);
+    expect(entry.histogram.at(-1)?.month).toBe(SAMPLE_DATASET.updatedAt.slice(0, 7));
+  });
+
+  it('does not chart the places a cap dropped', () => {
+    // The series is per-row decoration, so computing it for entries nothing renders is pure waste.
+    const capped = computeTopPlaces(SAMPLE_DATASET, '1y', 2);
+
+    expect(capped.entries).toHaveLength(2);
+    for (const entry of capped.entries) {
+      expect(entry.histogram).toHaveLength(HISTOGRAM_MONTHS);
+    }
+  });
+});
