@@ -161,11 +161,12 @@ dropping a row: `src/stats/` throws on a malformed transaction date, so validati
 before places reach it.
 
 **Rolling window.** The published file keeps the most recent 15 months
-(`ROLLING_WINDOW_MONTHS` in `collector/validate.py`). The collector may retain up to 16 months
-internally so that the 12-month trend and the previous-period rank comparison have a complete prior
-period to compare against. Twelve of those months are what the histogram charts; the three extra
-exist so the 작년 같은 달 column — the calendar month twelve months back — has a month to rank
-instead of sitting on the floor and dropping out on the next monthly run.
+(`ROLLING_WINDOW_MONTHS` in `collector/validate.py`). Nothing bounds what `collector/out/` holds
+locally — `build_places.py`'s `month_dirs()` reads whichever month directories happen to exist —
+so this floor is the only retention rule in the pipeline. It is wider than the span
+`src/stats/histogram.ts` charts: the extra months exist so the 작년 같은 달 column — the calendar
+month twelve months back — has a month to rank instead of sitting on the floor and dropping out on
+the next monthly run.
 
 The window is a **ceiling on what may publish, not a claim that the months were collected.** The
 browser states that claim separately in `RETAINED_MONTHS` (`src/stats/period.ts`), which
