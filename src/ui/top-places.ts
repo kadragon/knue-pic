@@ -1,5 +1,6 @@
+import type { HistogramBucket } from '../stats/histogram';
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
-import { displayShortDate, renderKindBadge } from './place-labels';
+import { displayShortDate, monthLabel, renderKindBadge } from './place-labels';
 
 /**
  * The ranked list view. Takes the numbers `src/stats/top-places.ts` already computed and turns them
@@ -23,13 +24,13 @@ export function topPlacesHeading(): string {
 export const EMPTY_MESSAGE = '이 기간에는 이용 기록이 없습니다.';
 
 /**
- * How many rows a column shows before the reader asks for more, and how many each further page
+ * How many rows the list shows before the reader asks for more, and how many each further page
  * adds.
  *
  * Ten is a screenful on a phone. The rest are not withheld — they are one scroll away — so this is
  * a pacing decision rather than the cap it replaced, and nothing about the data is claimed by it.
  */
-export const COLUMN_PAGE_SIZE = 10;
+export const LIST_PAGE_SIZE = 10;
 
 /** States both halves — what is rendered and what the window actually ranked. */
 export function renderedCountLabel(rendered: number, total: number): string {
@@ -66,6 +67,58 @@ export function rankDeltaLabel(rankDelta: number): string {
 function rankDeltaText(rankDelta: number): string {
   if (rankDelta === 0) return '–';
   return rankDelta > 0 ? `▲${rankDelta}` : `▼${-rankDelta}`;
+}
+
+/**
+ * Spoken form of the whole trend, month by month.
+ *
+ * Every bucket is named — including the empty ones. The bars themselves are the only other carrier
+ * of this series and they convey it by height alone, which `docs/conventions.md` → Accessibility
+ * bans as a sole channel; dropping the quiet months from the label would also turn an interrupted
+ * run into a steady one, the same distortion `computeMonthlyHistogram` keeps zero buckets to avoid.
+ */
+export function sparklineLabel(buckets: HistogramBucket[]): string {
+  const months = buckets
+    .map((bucket) => `${monthLabel(bucket.month)} ${bucket.visitCount}회`)
+    .join(', ');
+  return `최근 ${buckets.length}개월 월별 이용: ${months}`;
+}
+
+/**
+ * The row's trend bars: one bar per calendar month, oldest at the left.
+ *
+ * Heights are scaled against the busiest month of *this place* rather than of the list, so a quiet
+ * place still shows its own shape — the same choice the detail card's chart makes. The comparison
+ * the bars invite is therefore within a row, never across rows, and no number is claimed by them:
+ * the figures line beside them states the counts the ranking actually used.
+ *
+ * `role="img"` is what lets the label reach a screen reader. A bare `<span>` has the implicit role
+ * `generic`, which WAI-ARIA 1.2 prohibits naming, so `aria-label` alone would be dropped and the
+ * series would exist for sighted readers only.
+ */
+export function renderSparkline(buckets: HistogramBucket[]): HTMLElement {
+  const chart = document.createElement('span');
+  chart.className = 'top-place-trend';
+  chart.setAttribute('role', 'img');
+  chart.setAttribute('aria-label', sparklineLabel(buckets));
+
+  // Guarded: a place whose charted months are all empty would otherwise divide by zero and write
+  // `NaN%` heights. It cannot happen for a ranked place today — ranking requires an in-window
+  // visit, and every window is inside the charted span — but the guard costs nothing and the
+  // charted span is free to widen past the windows later.
+  const busiest = buckets.reduce((max, bucket) => Math.max(max, bucket.visitCount), 0);
+
+  for (const bucket of buckets) {
+    const bar = document.createElement('span');
+    bar.className = 'top-place-trend-bar';
+    // A month with no visit keeps its slot and renders as the track alone, so the gap is visible
+    // as a gap rather than as a missing bar the eye closes up.
+    bar.dataset['empty'] = String(bucket.visitCount === 0);
+    bar.style.height = busiest === 0 ? '0%' : `${(bucket.visitCount / busiest) * 100}%`;
+    chart.append(bar);
+  }
+
+  return chart;
 }
 
 /**
@@ -117,6 +170,10 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
 
   body.append(name, meta);
   item.append(badge, body);
+  // A sibling of the button, never a child. The accessible name of a `<button>` is computed from
+  // its contents, so nesting the chart here would append twelve months of label text to the name
+  // of every row — the same reason the rank-delta badge below sits outside it.
+  item.append(renderSparkline(entry.histogram));
 
   // Omitted, not zero: `rankDelta` is null when the prior window is outside the retained range or
   // the place was not in it. Rendering nothing is the whole point of that distinction.
@@ -146,21 +203,19 @@ export interface TopPlacesOptions {
 /**
  * The observer currently watching each container's sentinel.
  *
- * A container is re-rendered whenever the page-wide 업종 filter narrows the dataset
- * (`bootstrap.ts` → `selectKind` rebuilds all four columns), and an `IntersectionObserver` holds
- * its target alive: without this, every filter change left four observers watching four detached
- * buttons, each retaining the whole previous column. Keyed on the container rather than returned
- * as a disposer because the caller replaces the container's children and has no teardown hook to
- * call one from.
+ * A container is re-rendered whenever the page-wide 업종 filter narrows the dataset or the reader
+ * selects another period, and an `IntersectionObserver` holds its target alive: without this,
+ * every one of those changes left an observer watching a detached button that retained the whole
+ * previous list. Keyed on the container rather than returned as a disposer because the caller
+ * replaces the container's children and has no teardown hook to call one from.
  */
 const sentinelObservers = new WeakMap<HTMLElement, IntersectionObserver>();
 
 /**
  * `onSelect` is optional: without it the list renders exactly as before, with no controls.
  *
- * `heading` is overridden by `src/ui/place-columns.ts`, where four of these lists sit side by side
- * and the window each one reads — 최근 1개월 / 3개월 / 6개월 / 1년 — is the thing that tells them
- * apart.
+ * `heading` is overridden by `src/ui/place-list.ts`, which names the window the reader selected —
+ * 최근 1개월 / 3개월 / 6개월 / 1년 — so the heading always agrees with the pressed period button.
  *
  * The list is paged rather than capped: `pageSize` rows are rendered, and the reader gets the rest
  * by scrolling the button into view or by pressing it. Both paths call the same `appendPage`, so
@@ -174,13 +229,20 @@ export function renderTopPlaces(
   heading: string = topPlacesHeading(),
   options: TopPlacesOptions = {},
 ): void {
-  const { pageSize = COLUMN_PAGE_SIZE } = options;
+  const { pageSize = LIST_PAGE_SIZE } = options;
   const section = document.createElement('section');
   section.className = 'top-places';
 
   const title = document.createElement('h2');
   title.textContent = heading;
   section.append(title);
+
+  // Before either branch replaces the container's children, not just before the paged one. The
+  // same container is re-rendered whenever the reader selects another window, so a switch from a
+  // paged window to an empty one used to return below with the previous observer still registered,
+  // watching a `더 보기` button that had just been detached and retaining the whole previous list.
+  sentinelObservers.get(container)?.disconnect();
+  sentinelObservers.delete(container);
 
   if (result.entries.length === 0) {
     const empty = document.createElement('p');
@@ -254,7 +316,7 @@ export function renderTopPlaces(
     more.textContent = moreLabel(total - rendered);
 
     // Re-arm: `IntersectionObserver` reports a *transition*, so a sentinel that stays on screen
-    // after a page is appended — a tall viewport, or a column whose ten new rows do not fill it —
+    // after a page is appended — a tall viewport, or ten new rows that do not fill it —
     // emits no second entry and auto-paging stalls with the button still in view. Unobserving and
     // observing again forces a fresh initial report against the new layout.
     if (observer) {
@@ -267,9 +329,6 @@ export function renderTopPlaces(
 
   footer.append(counter, more);
   section.append(list, footer);
-  // Whatever this container held is about to be discarded; its observer would otherwise outlive it.
-  sentinelObservers.get(container)?.disconnect();
-  sentinelObservers.delete(container);
   container.replaceChildren(section);
 
   appendPage();
@@ -279,11 +338,11 @@ export function renderTopPlaces(
   // jsdom — and any browser without the API — has no `IntersectionObserver`; there the button is
   // the only way through, which is why it is a real control rather than an empty marker div.
   //
-  // The condition is "there are pages left", NOT "the button is in the document": every caller
-  // renders into a detached subtree and attaches it afterwards (`place-columns.ts` builds all four
-  // cells before appending the grid), so an `isConnected` check here is false for every column on
-  // the page and the observer is never created. Observing a detached element is fine — it reports
-  // nothing until the node is attached, then behaves normally.
+  // The condition is "there are pages left", NOT "the button is in the document". Observing a
+  // detached element is harmless — the observer reports nothing until the node is attached, then
+  // behaves normally — while an `isConnected` gate is false for any caller that builds its subtree
+  // before attaching it, and silently leaves that list with no auto-paging at all. The invariant is
+  // what the guard rests on; do not re-derive it from whichever caller happens to exist today.
   if (rendered < total && typeof IntersectionObserver !== 'undefined') {
     observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) appendPage();

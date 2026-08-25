@@ -18,8 +18,9 @@ Do the displayed numbers follow from `data/places.json`?
 | 1 | Ranking uses amount, or unapproved/unlocated places appear |
 
 **How to test:** pick one place, compute visit count, total, average, most recent visit, and the
-monthly histogram by hand from the JSON; compare against the UI for each of the four columns —
-1m, 3m, 6m, 1y. The chart is `HISTOGRAM_MONTHS` bars whatever column the card was opened from
+monthly histogram by hand from the JSON; compare against the UI under each of the four windows the
+period selector offers — 1m, 3m, 6m, 1y. The chart is `HISTOGRAM_MONTHS` bars whatever window the
+card was opened from, and the row's trend chart draws that same series
 (`src/stats/histogram.ts`).
 
 ### 2. Framing Compliance (weight: 20%)

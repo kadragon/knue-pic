@@ -16,6 +16,19 @@
   larger of the two — a test harness for `.claude/skills/*/scripts/` would cover every stage, not just
   this flag — `.claude/skills/knue-expense-collect/scripts/geocode_candidates.py`, `collector/tests/`
 
+### Row trend chart and the 1년 ranking window cover different spans (2026-08-25)
+
+- [ ] [debt] The ranked row now prints a `N회 이용` figure and a 12-bar monthly trend chart side by
+  side, but they measure different spans. `resolvePeriodWindow('1y', anchor)` is half-open
+  `(anchor − 12 months, anchor]` while `computeMonthlyHistogram` charts whole calendar months ending
+  in the anchor's own month, so with `updatedAt: 2026-08-25` the window opens 2025-08-25 and the
+  first bar is 2025-09: a visit on 2025-08-26..31 counts toward the figure and lands in no bar, and
+  `sparklineLabel` reads every month aloud so the label can sum to less than the figure beside it.
+  Pre-existing between the detail card's chart and its figures; this change is what puts the two in
+  one row. Either chart the ranking window when 1년 is selected, or name the charted span in the
+  label so it is not read as the same period (source: PR #26 review, `code-review` P3 conf 85) —
+  `src/stats/histogram.ts`, `src/stats/period.ts`, `src/ui/top-places.ts`
+
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
 - [ ] [debt] Three limits QA reproduced on PR #23 and the contract sanctioned, none of them

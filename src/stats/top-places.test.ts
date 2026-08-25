@@ -1,7 +1,20 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlaceRecord, PlacesDataset } from '../data/types';
+import { computeMonthlyHistogram, HISTOGRAM_MONTHS } from './histogram';
 import { computeTopPlaces, TOP_PLACES_LIMIT } from './top-places';
+
+/**
+ * The real function, counted. Whether the histogram is attached before or after the cap is not
+ * observable in the returned entries — a capped result holds `limit` entries either way — so the
+ * only thing that differs between the two orderings is how many times this is called. Spying is
+ * what makes that difference assertable; the wrapper delegates, so every other test in this file
+ * sees the genuine series.
+ */
+vi.mock('./histogram', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./histogram')>();
+  return { ...actual, computeMonthlyHistogram: vi.fn(actual.computeMonthlyHistogram) };
+});
 
 /**
  * Expected orders below are computed by hand from `SAMPLE_DATASET` (`docs/eval-criteria.md` §1),
@@ -122,7 +135,7 @@ describe('computeTopPlaces ordering', () => {
     expect(entries[0]?.place.id).toBe('restaurant_000001');
     expect(entries[TOP_PLACES_LIMIT - 1]?.rank).toBe(TOP_PLACES_LIMIT);
 
-    // No limit means the whole ranking, not a large default: the columns page through it as the
+    // No limit means the whole ranking, not a large default: the list pages through it as the
     // reader scrolls, so a default cap would be a ceiling nobody could scroll past.
     expect(computeTopPlaces(dataset, '1m').entries).toHaveLength(placeCount);
   });
@@ -218,3 +231,32 @@ describe('computeTopPlaces rank delta', () => {
   });
 });
 
+describe('computeTopPlaces trend chart', () => {
+  it('attaches the same monthly series the detail card charts', () => {
+    const entry = computeTopPlaces(SAMPLE_DATASET, '1y').entries[0]!;
+
+    expect(entry.histogram).toEqual(computeMonthlyHistogram(entry.place, SAMPLE_DATASET.updatedAt));
+    expect(entry.histogram).toHaveLength(HISTOGRAM_MONTHS);
+    expect(entry.histogram.at(-1)?.month).toBe(SAMPLE_DATASET.updatedAt.slice(0, 7));
+  });
+
+  it('charts only as many places as the cap kept', () => {
+    const charted = vi.mocked(computeMonthlyHistogram);
+
+    charted.mockClear();
+    const uncapped = computeTopPlaces(SAMPLE_DATASET, '1y');
+    const uncappedCalls = charted.mock.calls.length;
+
+    charted.mockClear();
+    const capped = computeTopPlaces(SAMPLE_DATASET, '1y', 2);
+    const cappedCalls = charted.mock.calls.length;
+
+    // Counting calls, not entries: `capped.entries` is 2 long under either ordering, so an
+    // assertion over the returned array cannot tell "attached after the slice" from "attached
+    // before it". The call count is the only place the two differ.
+    expect(uncapped.entries.length).toBeGreaterThan(2);
+    expect(uncappedCalls).toBe(uncapped.entries.length);
+    expect(cappedCalls).toBe(2);
+    expect(capped.entries).toHaveLength(2);
+  });
+});

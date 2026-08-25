@@ -2,7 +2,7 @@ import type { Period, PlaceRecord } from '../data/types';
 import type { HistogramBucket } from '../stats/histogram';
 import type { PlaceStats } from '../stats/place-stats';
 import { PERIOD_LABELS } from './period-labels';
-import { displayShortDate, renderKindBadge } from './place-labels';
+import { displayShortDate, monthLabel, renderKindBadge } from './place-labels';
 
 /**
  * The detail card for one selected place: a slot for the location map, the figures for the period
@@ -40,19 +40,13 @@ export const FIGURE_LABELS = {
   mostRecentVisit: '최근 이용일',
 } as const;
 
-/** Names the window the figures below it were counted over — the column the place was picked from. */
+/** Names the window the figures below it were counted over — the one the place was picked from. */
 export function periodStatsHeading(basis: Period): string {
   return `${PERIOD_LABELS[basis]} 기준`;
 }
 
 export function visitCountLabel(visitCount: number): string {
   return `${visitCount}회`;
-}
-
-/** `2026-07` → `2026년 7월`, so the axis reads as months rather than as a code. */
-export function monthLabel(month: string): string {
-  const [year, index] = month.split('-');
-  return `${year}년 ${Number(index)}월`;
 }
 
 /** `new URL` throws on anything it cannot parse, which is itself a rejection. */
@@ -129,7 +123,7 @@ export interface PlaceDetail {
   place: PlaceRecord;
   /** Computed over `basis`'s window. */
   stats: PlaceStats;
-  /** The window the place was picked from — the column's own. */
+  /** The window the place was picked from — whichever the selector had active, or the search's own. */
   basis: Period;
   histogram: HistogramBucket[];
 }

@@ -7,7 +7,7 @@ import { displayCategory, renderKindBadge } from './place-labels';
  *
  * The controls are built once and never rebuilt: only the results container is replaced as the
  * query changes. Re-rendering the text input on every keystroke would move the caret to the end
- * and drop focus — the same failure `place-columns.ts` avoids by flipping `aria-pressed` in
+ * and drop focus — the same failure `place-list.ts` avoids by flipping `aria-pressed` in
  * place rather than re-rendering its buttons.
  *
  * Filtering itself lives in `src/stats/search.ts`; this module only reads the controls and paints

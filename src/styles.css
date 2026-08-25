@@ -54,7 +54,7 @@
   --kind-other-bg: #ededed;
   --kind-other-fg: #4a4a4a;
 
-  /* The tint the header and footer bands sit on, and the accent rule under a column heading. */
+  /* The tint the header and footer bands sit on, and the accent rule under the list heading. */
   --band: #fffafb;
 
   --radius-xs: 4px;
@@ -77,9 +77,14 @@
   --shadow-float:
     rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px, rgba(0, 0, 0, 0.1) 0 4px 8px;
 
-  /* The centred column: 1440px wide including a 24px gutter, so the full-bleed header and footer
-     bands line their text up with `#content` without needing a wrapper element. */
-  --column-inset: max(24px, calc(50% - 696px));
+  /* The measure `#content` is capped at, and the inset derived from it.
+     `--column-inset` exists so the full-bleed header and footer bands line their text up with
+     `#content` without needing a wrapper element, which only holds while the two agree on the
+     width. Derived rather than written out: the inset was last a hand-computed literal for a
+     1440px column, and narrowing the column left it 240px out of true at every viewport wider
+     than the measure. The `- 24px` is `#content`'s own gutter. */
+  --content-max: 960px;
+  --column-inset: max(24px, calc(50% - (var(--content-max) / 2 - 24px)));
   /* Height of the sticky header band; the period bar parks directly beneath it. */
   --header-height: 92px;
 
@@ -119,15 +124,16 @@ body {
 /* ── Shell ─────────────────────────────────────────────────────────────────────────────────── */
 
 /*
- * A plain vertical stack: search, then the four columns. The side-by-side arrangement moved down
- * into `.place-columns-grid`, which is the only thing on the page that needs columns — four of
- * them side by side, which is what widened the container from the old 960px.
+ * A plain vertical stack: search, then the ranked list. Nothing on the page sits side by side any
+ * more, so the container is back to a single readable measure — the 1440px it carried existed only
+ * to fit four rankings across, and a lone list stretched that wide puts a row's name and its
+ * figures at opposite ends of the screen.
  */
 #content {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  max-width: 1440px;
+  max-width: var(--content-max);
   margin: 0 auto;
   padding: 0 24px var(--space-9);
 }
@@ -189,16 +195,15 @@ body {
 /* ── Section surfaces ──────────────────────────────────────────────────────────────────────── */
 
 /*
- * Two tiers now, not three. The four columns are peers — the page exists so they can be compared —
- * so any surface that made one heavier than another would read as a claim about the data rather
- * than about the layout. The card is therefore on `.place-column`, identically for all four, and
- * the list inside it carries no surface of its own.
+ * Two tiers, not three. The surface belongs to the list as a whole rather than to the window it is
+ * currently measuring: a card that changed with the selected period would read as a claim about
+ * the data instead of about the layout.
  *
- * Tier 1 — the four columns: white cards on the tinted floor (white on #f7f7f7 is 1.07:1 on its
+ * Tier 1 — the ranked list: a white card on the tinted floor (white on #f7f7f7 is 1.07:1 on its
  * own, so the hairline is what actually separates them).
  * Tier 2 — search: the same card, softer border, because it answers a different question.
  */
-.place-column,
+.place-list-body,
 .place-search {
   min-width: 0;
   padding: var(--space-6);
@@ -209,7 +214,7 @@ body {
 
 /*
  * The page-wide 업종 control. Sits above the search card rather than inside it because it narrows
- * the discovery columns too, and wraps rather than scrolls so all five options stay reachable at
+ * the ranked list too, and wraps rather than scrolls so all five options stay reachable at
  * 360px (PRD §36). Not a card itself: it is a strip of controls over the two cards below it.
  *
  * The label rides on the same baseline row as the chips instead of taking a 100%-wide line of its
@@ -343,16 +348,16 @@ body {
   color: var(--kind-lunchbox-fg);
 }
 
-.place-column {
+.place-list-body {
   border-color: var(--hairline);
 }
 
-/* The card is the column; the list inside it is a bare heading over rows. */
+/* The card is the list body; the list inside it is a bare heading over rows. */
 .top-places {
   padding: 0;
 }
 
-.place-column h2,
+.place-list-body h2,
 .place-search h2 {
   margin: 0;
   font-size: 20px;
@@ -361,9 +366,9 @@ body {
   letter-spacing: -0.18px;
 }
 
-/* An accent rule under each column heading. Decorative — the heading text already names the
-   window, so nothing is carried by the colour. */
-.place-column h2 {
+/* An accent rule under the list heading. Decorative — the heading text already names the window,
+   so nothing is carried by the colour. */
+.place-list-body h2 {
   padding-bottom: var(--space-2);
   border-bottom: 2px solid var(--rausch);
 }
@@ -439,33 +444,22 @@ a[role='button'] {
   color: var(--muted);
 }
 
-/* ── Discovery columns ─────────────────────────────────────────────────────────────────────── */
+/* ── Period selector ───────────────────────────────────────────────────────────────────────── */
 
 /*
- * Four equal columns, one per ranked window. Column counts drop at each breakpoint and rows never
- * reflow — the columns are the comparison, so a list must never be split across two of them.
+ * The window selector, on screen at every width. It used to appear only below 600px, where the
+ * four-column grid collapsed; now it is the only way to reach a window at any width, so hiding it
+ * anywhere would leave the reader stuck on whichever list happened to be rendered.
  */
-.place-columns-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-5);
-  align-items: start;
-}
-
-/*
- * The tab switch exists only where the grid collapses to one column; above that every column is on
- * screen and there is nothing to switch between. `display: none` rather than visual hiding, so the
- * buttons leave the tab order entirely instead of being four dead stops.
- */
-.place-column-tabs {
-  display: none;
+.period-tabs {
+  display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   margin: 0 0 var(--space-4);
 }
 
 /* {component.category-strip}: pill filters, wrapping rather than overflowing at 360px (PRD §36). */
-.place-column-tab {
+.period-tab {
   padding: 10px 20px;
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
@@ -477,13 +471,13 @@ a[role='button'] {
   transition: border-color 120ms ease, color 120ms ease;
 }
 
-.place-column-tab:hover {
+.period-tab:hover {
   border-color: var(--ink);
   color: var(--ink);
 }
 
-/* The active column is marked by weight, fill and border as well as colour, never colour alone. */
-.place-column-tab[aria-pressed='true'] {
+/* The active window is marked by weight, fill and border as well as colour, never colour alone. */
+.period-tab[aria-pressed='true'] {
   border-color: var(--ink);
   background: var(--ink);
   color: var(--on-primary);
@@ -633,7 +627,48 @@ div.top-place-body {
 }
 
 /*
- * The foot of a paged column: what is on screen, and the control that fetches the rest.
+ * The row's trend chart: twelve monthly bars, oldest at the left.
+ *
+ * Bars only — no axis, no numbers. Everything the shape says is also written out in the chart's
+ * `aria-label` (`sparklineLabel`), which is what keeps it from conveying the series by height
+ * alone, and the figures beside it state the counts the ranking actually used.
+ *
+ * Neutral ink, never a rising/falling colour pair: a decline rendered in the system's error colour
+ * would be a judgement about the business, the framing `docs/conventions.md` forbids and the one
+ * no banned-phrase test can catch because it is not a string.
+ */
+.top-place-trend {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-end;
+  gap: 2px;
+  width: 84px;
+  height: 26px;
+}
+
+.top-place-trend-bar {
+  flex: 1 1 0;
+  /* Two channels, not one. A month with a single visit against a tall peak scales to well under
+     any floor, so a floor shared with the empty months would leave the two apart by tone alone —
+     colour as a sole carrier, which `docs/conventions.md` → Accessibility bans. A month with
+     visits therefore keeps a 4px floor and an empty month a 1px baseline, so the pair differ in
+     height as well as in tone whatever the peak. */
+  min-height: 4px;
+  border-radius: 1px;
+  background: var(--ink);
+}
+
+.top-place-trend-bar[data-empty='true'] {
+  min-height: 1px;
+  /* Darker than the card it sits on — #ebebeb was 1.19:1 on white, #dddddd is 1.36:1. Still short
+     of the 3:1 non-text floor, and deliberately not chased further here: the height split above
+     is what carries the distinction, so the tone is a second cue rather than the channel. Under
+     `prefers-contrast: more` the token becomes #767676 (4.54:1). */
+  background: var(--hairline);
+}
+
+/*
+ * The foot of the paged list: what is on screen, and the control that fetches the rest.
  *
  * The button doubles as the scroll sentinel (`src/ui/top-places.ts`), so it has to be a real,
  * reachable control rather than a marker — a reader who cannot generate a scroll gets through the
@@ -1015,7 +1050,7 @@ div.top-place-body {
 
 /*
  * No `border-radius` here. It used to set 4px, which — at equal specificity and later in the file —
- * won against `.place-column-tab` (a pill) and `.place-detail-link`, so tabbing to them visibly
+ * won against `.period-tab` (a pill) and `.place-detail-link`, so tabbing to them visibly
  * squared off their corners. The outline follows each element's own radius on its own.
  */
 :focus-visible {
@@ -1033,47 +1068,6 @@ div.top-place-body {
 
 /* ── Narrow screens ────────────────────────────────────────────────────────────────────────── */
 
-/*
- * Three columns, then two, before a row gets too narrow to hold a name and a movement label on one
- * line. At 1200px four lists are ~280px wide and a name with a badge beside it starts to wrap, so
- * the switch happens at that width — `max-width: 1200px` is "1200 and below", the same way the
- * 599px step below reads.
- *
- * Two columns, not three: with four columns a three-wide grid puts three on the first row and one
- * alone on the second, and the empty half-row reads as a missing column rather than as a reflow.
- * Four splits evenly, so the step from four goes straight to 2×2 and the old 899px step — which
- * existed only to catch the 5-column layout's own odd remainder — goes with it.
- */
-@media (max-width: 1200px) {
-  .place-columns-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/*
- * One column, and the tab switch appears with it: four stacked lists would be four screens of
- * scrolling, and the comparison the page is for would be gone either way. The tabs keep every
- * column one tap away instead (`docs/conventions.md` → Accessibility & Responsive).
- */
-@media (max-width: 599px) {
-  .place-columns-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .place-column-tabs {
-    display: flex;
-  }
-
-  /*
-   * Structural, not enumerated: `markActiveColumn` stamps `data-active` on every column, so a new
-   * column key needs no CSS at all. The list of keys used to live here as one selector pair each,
-   * where a forgotten key was a column that stayed hidden on a phone whatever tab was pressed.
-   */
-  .place-column[data-active='false'] {
-    display: none;
-  }
-}
-
 @media (max-width: 599px) {
   :root {
     --column-inset: 16px;
@@ -1083,7 +1077,14 @@ div.top-place-body {
     padding: 0 16px var(--space-8);
   }
 
-  .place-column,
+  /* Narrower, not hidden: the shape is the row's only account of when the visits happened, and
+     dropping it on a phone would leave the smallest screen with the least of the data. */
+  .top-place-trend {
+    width: 56px;
+    height: 22px;
+  }
+
+  .place-list-body,
   .place-search,
   .data-state {
     padding: var(--space-5) var(--space-4);

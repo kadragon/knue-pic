@@ -1,16 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlacesDataset } from '../data/types';
+import { HISTOGRAM_MONTHS } from '../stats/histogram';
 import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
 import {
   allRenderedLabel,
-  COLUMN_PAGE_SIZE,
   EMPTY_MESSAGE,
+  LIST_PAGE_SIZE,
   moreLabel,
   rankDeltaLabel,
   renderedCountLabel,
+  renderSparkline,
   renderTopPlaces,
+  sparklineLabel,
   topPlacesHeading,
 } from './top-places';
 
@@ -65,7 +68,7 @@ describe('renderTopPlaces', () => {
   });
 
   it('pages the list instead of capping it, and says what is held back', () => {
-    const placeCount = COLUMN_PAGE_SIZE * 2 + 3;
+    const placeCount = LIST_PAGE_SIZE * 2 + 3;
     const dataset: PlacesDataset = {
       updatedAt: '2026-08-01',
       places: Array.from({ length: placeCount }, (_, index) => ({
@@ -89,16 +92,16 @@ describe('renderTopPlaces', () => {
     const button = (): HTMLButtonElement | null =>
       container.querySelector<HTMLButtonElement>('.top-places-more-button');
 
-    expect(rowsAfter()).toBe(COLUMN_PAGE_SIZE);
+    expect(rowsAfter()).toBe(LIST_PAGE_SIZE);
     expect(container.querySelector('.top-places-count')?.textContent).toBe(
-      renderedCountLabel(COLUMN_PAGE_SIZE, placeCount),
+      renderedCountLabel(LIST_PAGE_SIZE, placeCount),
     );
-    expect(button()?.textContent).toBe(moreLabel(placeCount - COLUMN_PAGE_SIZE));
+    expect(button()?.textContent).toBe(moreLabel(placeCount - LIST_PAGE_SIZE));
 
     // The button is the sentinel as well as the control: jsdom has no `IntersectionObserver`, so
     // this is the path a reader who cannot generate a scroll takes.
     button()?.dispatchEvent(new MouseEvent('click'));
-    expect(rowsAfter()).toBe(COLUMN_PAGE_SIZE * 2);
+    expect(rowsAfter()).toBe(LIST_PAGE_SIZE * 2);
 
     button()?.dispatchEvent(new MouseEvent('click'));
     expect(rowsAfter()).toBe(placeCount);
@@ -110,9 +113,9 @@ describe('renderTopPlaces', () => {
   });
 
   it('watches the button even while the list is still detached from the document', () => {
-    // Every caller renders into a subtree it attaches afterwards — `place-columns.ts` builds all
-    // four cells before appending the grid — so a "is this in the document yet?" guard here left
-    // the observer uncreated on every column, and scrolling loaded nothing.
+    // A caller is free to build its subtree and attach it afterwards, so a "is this in the
+    // document yet?" guard here would leave such a list with the observer uncreated and no
+    // auto-paging at all.
     const observed: Element[] = [];
     class FakeObserver {
       observe(target: Element): void {
@@ -207,7 +210,7 @@ describe('renderTopPlaces', () => {
   it('re-arms the observer after a page, and drops it when the container is re-rendered', () => {
     // `IntersectionObserver` reports a transition, so a sentinel still on screen after a page was
     // appended emits nothing and auto-paging stalls; and a container rebuilt by the 업종 filter
-    // would otherwise leave its observer watching a detached button, holding the old column alive.
+    // would otherwise leave its observer watching a detached button, holding the old list alive.
     const calls: string[] = [];
     class FakeObserver {
       observe(): void {
@@ -232,10 +235,49 @@ describe('renderTopPlaces', () => {
       container.querySelector<HTMLButtonElement>('.top-places-more-button')?.click();
       expect(calls).toEqual(['observe', 'unobserve', 'observe']);
 
-      // Same container, fresh render — what `renderPlaceColumns` does on every 업종 change.
+      // Same container, fresh render — what `renderPlaceList` does on every 업종 change.
       calls.length = 0;
       renderTopPlaces(container, result, undefined, undefined, { pageSize: 2 });
       expect(calls).toEqual(['disconnect', 'observe']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('disposes the previous observer when the same container renders an empty window', () => {
+    // The switch a period selector makes: a paged window, then one with no visits at all. The
+    // empty branch returns before the paging machinery is built, so unless the teardown runs
+    // ahead of both branches the old observer keeps watching a `더 보기` button that this render
+    // just detached — and it retains the whole previous list with it.
+    const calls: string[] = [];
+    class FakeObserver {
+      observe(): void {
+        calls.push('observe');
+      }
+      unobserve(): void {
+        calls.push('unobserve');
+      }
+      disconnect(): void {
+        calls.push('disconnect');
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+
+    try {
+      const container = document.createElement('div');
+
+      renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'), undefined, undefined, {
+        pageSize: 2,
+      });
+      expect(calls).toEqual(['observe']);
+
+      calls.length = 0;
+      renderTopPlaces(container, computeTopPlaces(EMPTY_DATASET, '1y'), undefined, undefined, {
+        pageSize: 2,
+      });
+
+      expect(container.textContent).toContain(EMPTY_MESSAGE);
+      expect(calls).toEqual(['disconnect']);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -379,5 +421,68 @@ describe('renderTopPlaces selection', () => {
 
     expect(container.querySelector('button')).toBeNull();
     expect(container.querySelector('.top-place-body')).toBeInstanceOf(HTMLDivElement);
+  });
+});
+
+describe('sparklineLabel', () => {
+  it('names every charted month, including the empty ones', () => {
+    const label = sparklineLabel([
+      { month: '2026-06', visitCount: 2 },
+      { month: '2026-07', visitCount: 0 },
+      { month: '2026-08', visitCount: 1 },
+    ]);
+
+    // The quiet month is the whole reason the label exists: bars convey a gap by height alone, and
+    // dropping it here would leave a screen reader hearing an uninterrupted run.
+    expect(label).toBe('최근 3개월 월별 이용: 2026년 6월 2회, 2026년 7월 0회, 2026년 8월 1회');
+  });
+});
+
+describe('renderSparkline', () => {
+  it('draws one bar per bucket, scaled against the place\'s own busiest month', () => {
+    const chart = renderSparkline([
+      { month: '2026-06', visitCount: 2 },
+      { month: '2026-07', visitCount: 0 },
+      { month: '2026-08', visitCount: 4 },
+    ]);
+
+    const bars = [...chart.querySelectorAll<HTMLElement>('.top-place-trend-bar')];
+    expect(bars).toHaveLength(3);
+    expect(bars.map((bar) => bar.style.height)).toEqual(['50%', '0%', '100%']);
+    expect(bars.map((bar) => bar.dataset['empty'])).toEqual(['false', 'true', 'false']);
+  });
+
+  it('carries the series as text a screen reader can reach', () => {
+    const buckets = [{ month: '2026-08', visitCount: 3 }];
+    const chart = renderSparkline(buckets);
+
+    // `role="img"` is load-bearing: WAI-ARIA prohibits naming a bare span, so without it the
+    // label is dropped and the chart exists for sighted readers only.
+    expect(chart.getAttribute('role')).toBe('img');
+    expect(chart.getAttribute('aria-label')).toBe(sparklineLabel(buckets));
+  });
+
+  it('writes no NaN width when nothing was charted', () => {
+    const chart = renderSparkline([
+      { month: '2026-07', visitCount: 0 },
+      { month: '2026-08', visitCount: 0 },
+    ]);
+
+    expect(
+      [...chart.querySelectorAll<HTMLElement>('.top-place-trend-bar')].map((bar) => bar.style.height),
+    ).toEqual(['0%', '0%']);
+  });
+
+  it('gives every rendered row a full-span trend chart', () => {
+    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
+
+    const rows = [...container.querySelectorAll('.top-place')];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      // The bar count, not merely the chart's presence: a row handed a truncated slice would
+      // still carry a `.top-place-trend`, and the span the chart covers is the thing the label
+      // beside it claims.
+      expect(row.querySelectorAll('.top-place-trend-bar')).toHaveLength(HISTOGRAM_MONTHS);
+    }
   });
 });

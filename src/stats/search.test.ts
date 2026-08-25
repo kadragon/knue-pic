@@ -131,7 +131,7 @@ describe('filterByKind', () => {
 
   it('keeps updatedAt, which anchors every period window', () => {
     // Recomputing the anchor from the subset would move the window boundaries the visit counts are
-    // measured against, so a narrowed column would show different numbers for the same month.
+    // measured against, so a narrowed list would show different numbers for the same month.
     expect(filterByKind(SAMPLE_DATASET, 'cafe').updatedAt).toBe(SAMPLE_DATASET.updatedAt);
   });
 

@@ -1,4 +1,5 @@
 import type { Period, PlaceRecord, PlacesDataset } from '../data/types';
+import { computeMonthlyHistogram, type HistogramBucket } from './histogram';
 import { computePlaceStats, type PlaceStats } from './place-stats';
 import {
   isPriorWindowComplete,
@@ -28,6 +29,18 @@ export interface RankedPlace {
    * would be invented rather than measured.
    */
   rankDelta: number | null;
+  /**
+   * Visits per calendar month over the trailing `HISTOGRAM_MONTHS`, oldest first — the row's trend
+   * bars.
+   *
+   * Deliberately *not* derived from the four period windows. Those all end at the dataset's anchor
+   * and only differ in how far back they start, so their visit counts rise monotonically by
+   * construction (`1m ≤ 3m ≤ 6m ≤ 1y`) and a shape drawn from them would slope up identically for
+   * every place. Calendar months do not overlap, so a quiet stretch reads as a quiet stretch.
+   *
+   * It is the same series the detail card charts, so the row and the card can never disagree.
+   */
+  histogram: HistogramBucket[];
 }
 
 export interface TopPlacesResult {
@@ -36,11 +49,14 @@ export interface TopPlacesResult {
 }
 
 /**
- * The default cap for a caller that wants one. `src/ui/place-columns.ts` passes no limit at all —
+ * The default cap for a caller that wants one. `src/ui/place-list.ts` passes no limit at all —
  * it pages through the whole ranking as the reader scrolls, so a cap there would be a ceiling
  * nobody could scroll past.
  */
 export const TOP_PLACES_LIMIT = 20;
+
+/** Everything a ranked entry has before its trend chart is attached, which happens after the cap. */
+type RankedWindowEntry = Omit<RankedPlace, 'histogram'>;
 
 /**
  * Ranking is by visit count alone; amount only ever separates places already tied on count and on
@@ -48,7 +64,7 @@ export const TOP_PLACES_LIMIT = 20;
  * one of the product's tie-break rules — it is there so two places identical on all three real keys
  * still get a stable, reproducible order rather than one that depends on input order.
  */
-function compareRanked(a: RankedPlace, b: RankedPlace): number {
+function compareRanked(a: RankedWindowEntry, b: RankedWindowEntry): number {
   if (a.stats.visitCount !== b.stats.visitCount) return b.stats.visitCount - a.stats.visitCount;
 
   // Both are non-null: a place with no in-window visit never reaches the ranking.
@@ -66,7 +82,7 @@ function compareRanked(a: RankedPlace, b: RankedPlace): number {
  * about but nobody visited this period has no position, and showing it at rank 47 would read as a
  * standing worse than "not in this window at all".
  */
-function rankWindow(places: PlaceRecord[], periodWindow: PeriodWindow): RankedPlace[] {
+function rankWindow(places: PlaceRecord[], periodWindow: PeriodWindow): RankedWindowEntry[] {
   const ranked = places
     .map((place) => ({
       place,
@@ -110,5 +126,15 @@ export function computeTopPlaces(
   // `undefined` means "no cap" rather than a number that happens to be large enough: the previous
   // spelling passed `dataset.places.length`, which is only ever ≥ the ranked count by coincidence
   // of `rankWindow` filtering the same list.
-  return { entries: limit === undefined ? ranked : ranked.slice(0, limit) };
+  // Attached after the cap, not before, so a capped caller pays only for the rows it asked for.
+  // The page's own list passes no cap — it pages through the whole ranking — so this saves nothing
+  // there; it is the ordering that keeps a cap meaningful rather than an optimisation the product
+  // currently collects on.
+  const visible = limit === undefined ? ranked : ranked.slice(0, limit);
+  return {
+    entries: visible.map((entry) => ({
+      ...entry,
+      histogram: computeMonthlyHistogram(entry.place, dataset.updatedAt),
+    })),
+  };
 }

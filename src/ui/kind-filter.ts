@@ -1,13 +1,13 @@
 import { PLACE_KINDS, type PlaceKind } from '../data/types';
 
 /**
- * The page-wide 업종 control: it narrows the four discovery columns and the search results at once.
+ * The page-wide 업종 control: it narrows the ranked list and the search results at once.
  *
  * It sits above both rather than inside either because it answers a question about the whole page —
  * "show me only the cafés" — and a control that narrowed one list while the other kept listing
  * everything would read as a bug in the list it did not touch.
  *
- * The button group is the same shape as `place-columns.ts`'s tab strip, and for the same reason:
+ * The button group is the same shape as `place-list.ts`'s period selector, and for the same reason:
  * the pressed state is flipped in place. Re-rendering the group would replace the button the reader
  * just activated and drop keyboard focus to the top of the document.
  */
@@ -52,7 +52,7 @@ function kindValue(kind: KindSelection): string {
 /**
  * Flips `aria-pressed` without rebuilding the buttons, so the pressed one keeps focus.
  *
- * Exported because the selection is owned by `bootstrap.ts`: it is what the columns and the search
+ * Exported because the selection is owned by `bootstrap.ts`: it is what the list and the search
  * are rendered from, so the control cannot be the only thing that knows it.
  */
 export function markActiveKind(container: HTMLElement, active: KindSelection): void {
