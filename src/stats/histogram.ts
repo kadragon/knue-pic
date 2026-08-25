@@ -1,6 +1,6 @@
 import type { PlaceRecord } from '../data/types';
 import { formatIsoDate, parseIsoDate } from '../data/iso-date';
-import { LAST_YEAR_MONTH, type StatBasis } from './period';
+import { LAST_YEAR_MONTH, LAST_YEAR_MONTHS_BACK, type StatBasis } from './period';
 
 /**
  * Visits per calendar month for one place, for the detail card's monthly chart. Pure — no DOM.
@@ -37,14 +37,20 @@ function monthKey(year: number, month: number): string {
 export const HISTOGRAM_MONTHS = 12;
 
 /**
- * The span for a card opened from the 작년 같은 달 column: one month wider, so the calendar month
- * twelve months back — the month that column's figures are counted over, and the month the card
- * prints above the chart — is the oldest bar instead of falling one month outside it.
+ * The span for a card opened from the 작년 같은 달 column, so the month that column's figures are
+ * counted over — the month the card prints above the chart — is the oldest bar rather than falling
+ * outside it.
  *
- * Derived from `HISTOGRAM_MONTHS` rather than written as 13, because the gap it closes is exactly
- * the distance between the charted span and that month; widening the chart must not reopen it.
+ * Derived from `LAST_YEAR_MONTHS_BACK`, the window's own fixed step, not from `HISTOGRAM_MONTHS`:
+ * the distance to cover is a property of that window, so a chart widened past it needs no extra
+ * month and a chart narrowed below it still reaches. `HISTOGRAM_MONTHS + 1` would be right only
+ * while the chart happens to draw twelve, and at fifteen it would ask for a sixteenth bar the
+ * published file cannot fill (`RETAINED_MONTHS`).
  */
-export const LAST_YEAR_MONTH_HISTOGRAM_MONTHS = HISTOGRAM_MONTHS + 1;
+export const LAST_YEAR_MONTH_HISTOGRAM_MONTHS = Math.max(
+  HISTOGRAM_MONTHS,
+  LAST_YEAR_MONTHS_BACK + 1,
+);
 
 /**
  * How many bars a card opened from `basis` draws.

@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { PlaceRecord } from '../data/types';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
-import { LAST_YEAR_MONTH } from './period';
-import { HISTOGRAM_MONTHS, computeMonthlyHistogram, histogramMonthsFor } from './histogram';
+import { LAST_YEAR_MONTH, RETAINED_MONTHS } from './period';
+import {
+  HISTOGRAM_MONTHS,
+  LAST_YEAR_MONTH_HISTOGRAM_MONTHS,
+  computeMonthlyHistogram,
+  histogramMonthsFor,
+} from './histogram';
 
 function findPlace(id: string): PlaceRecord {
   const place = SAMPLE_DATASET.places.find((candidate) => candidate.id === id);
@@ -31,6 +36,12 @@ describe('computeMonthlyHistogram', () => {
     // default span.
     expect(buckets[0]?.month).toBe('2025-08');
     expect(buckets.at(-1)?.month).toBe('2026-08');
+  });
+
+  it('never asks for more months than the published file retains', () => {
+    // The widened span reaches one month past the 작년 같은 달 window; a bar older than the
+    // retention floor could only ever render empty.
+    expect(LAST_YEAR_MONTH_HISTOGRAM_MONTHS).toBeLessThanOrEqual(RETAINED_MONTHS);
   });
 
   it('keeps every other basis on the default span', () => {

@@ -158,9 +158,17 @@ export const LAST_YEAR_MONTH = 'lastYearMonth';
 /** Everything a list or the detail dialog can be measured over. */
 export type StatBasis = Period | typeof LAST_YEAR_MONTH;
 
-/** The calendar month twelve months before `anchor`'s own month. */
+/**
+ * How far back the 작년 같은 달 window sits, in whole calendar months.
+ *
+ * A fixed step, not a span: the column is "the same month last year", so this is twelve whatever
+ * else widens. `src/stats/histogram.ts` reads it to size the chart that has to reach that month.
+ */
+export const LAST_YEAR_MONTHS_BACK = 12;
+
+/** The calendar month `LAST_YEAR_MONTHS_BACK` months before `anchor`'s own month. */
 export function lastYearMonthOf(anchor: string): { year: number; month: number } {
-  const { year, month } = subtractMonths(parseIsoDate(anchor), 12);
+  const { year, month } = subtractMonths(parseIsoDate(anchor), LAST_YEAR_MONTHS_BACK);
   return { year, month };
 }
 
