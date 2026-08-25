@@ -27,11 +27,11 @@ function monthKey(year: number, month: number): string {
 /**
  * How many monthly bars the detail card draws.
  *
- * Its own constant, not `RETAINED_MONTHS`. That one is a claim about how far back the *data* goes,
- * and `backlog.md` already queues raising it to 15 once the older months are collected; sharing it
- * would silently redraw this chart with fifteen bars and contradict `docs/architecture.md`, which
- * states that twelve of the retained months are what the histogram charts. The two numbers agree
- * today by coincidence, not by definition.
+ * Its own constant, not `RETAINED_MONTHS`. That one is a claim about how far back the *data* goes
+ * and now reads 15, since the backfill landed the three older months; sharing it would silently
+ * redraw this chart with fifteen bars and contradict `docs/architecture.md`, which states that
+ * twelve of the retained months are what the histogram charts. The separation is what lets the
+ * retained window widen again without touching the chart.
  */
 export const HISTOGRAM_MONTHS = 12;
 

@@ -51,8 +51,9 @@ KOREA_LNG_MAX = 132.0
 # Widened from 12 for the 작년 같은 달 column, which ranks the calendar month twelve months back:
 # under a 12-month window that month sat exactly on the floor and fell out of the file on the next
 # monthly run. This is a *ceiling* on what may publish, not a promise that the months exist --
-# `RETAINED_MONTHS` in `src/stats/period.ts` is the browser's separate, deliberately smaller claim
-# about what has actually been collected.
+# `RETAINED_MONTHS` in `src/stats/period.ts` is the browser's separate claim about what has actually
+# been collected. The two read 15 alike now that the backfill landed; what keeps them honest is
+# `src/stats/retention.test.ts`, which fails when the browser's claim outruns the committed file.
 ROLLING_WINDOW_MONTHS = 15
 
 # `naverUrl` is the one dataset string the site puts in an `href`, so `src/data/load.ts` demands
