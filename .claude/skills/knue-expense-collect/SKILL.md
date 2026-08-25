@@ -27,6 +27,20 @@ python3 $SKILL/normalize_places.py   --month 2026-07         # 3. merge spelling
 python3 $SKILL/geocode_candidates.py --month 2026-07         # 4. append to the review queue
 ```
 
+**Backfilling an older month** takes the same commands — stage 1 reads down the board until it
+passes the requested month, rather than stopping after a fixed number of quiet pages, so no page
+flags are needed:
+
+```bash
+python3 $SKILL/fetch_disclosures.py --month 2025-06        # walks back as far as the board needs
+```
+
+That walk costs one listing request per page, so a month a year back takes noticeably longer than
+last month's. If stage 1 exits with *every dated post found carries a different year*, it stopped
+before reaching the month: raise `--max-pages` (default 200 per traversal, a runaway cap). Pass
+`--allow-title-year-mismatch` only when the posts really are misdated in their titles — the
+authoritative month is still the date cells stage 2 reads.
+
 Then review the pending rows by hand (below). **After** their `status` is set — not before —
 `--report` proposes the spellings worth merging:
 
