@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
-import { displayCategory, displayDate, displayShortDate, renderKindBadge } from './place-labels';
+import {
+  displayCategory,
+  displayDate,
+  displayShortDate,
+  histogramSpanLabel,
+  monthLabel,
+  renderKindBadge,
+} from './place-labels';
 
 describe('place display labels', () => {
   it('normalizes comma-separated categories to the UI separator', () => {
@@ -40,5 +47,31 @@ describe('renderKindBadge', () => {
     expect(badge.textContent).toBe(displayCategory(cafe.category));
     expect(badge.dataset['kind']).toBe('cafe');
     expect(badge.className).toBe('place-kind-badge');
+  });
+});
+
+describe('histogramSpanLabel', () => {
+  it('names the span from the bucket ends, not from how many there are', () => {
+    const buckets = [
+      { month: '2025-09', visitCount: 0 },
+      { month: '2025-10', visitCount: 3 },
+      { month: '2026-08', visitCount: 1 },
+    ];
+
+    // Derived, not hardcoded: shifting the ends has to move the label, or the label would be free
+    // to state a span the chart does not draw.
+    expect(histogramSpanLabel(buckets)).toBe(`${monthLabel('2025-09')}~${monthLabel('2026-08')}`);
+    expect(histogramSpanLabel(buckets.slice(1))).toBe(
+      `${monthLabel('2025-10')}~${monthLabel('2026-08')}`,
+    );
+  });
+
+  it('states a single charted month once rather than as a range onto itself', () => {
+    expect(histogramSpanLabel([{ month: '2026-08', visitCount: 2 }])).toBe(monthLabel('2026-08'));
+  });
+
+  it('names no span at all when there are no buckets', () => {
+    // A span invented for an empty chart would be a claim about data that is not there.
+    expect(histogramSpanLabel([])).toBe('');
   });
 });

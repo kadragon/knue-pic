@@ -97,7 +97,11 @@ describe('renderPlaceDetail', () => {
     renderPlaceDetail(container, detailFor(0, '1y'));
     const entries = [...container.querySelectorAll('.place-histogram-entry')];
 
-    expect(container.textContent).toContain(histogramHeading(12));
+    const buckets = detailFor(0, '1y').histogram;
+    expect(container.textContent).toContain(histogramHeading(buckets));
+    // Months, not a count: `최근 12개월` reads as the 최근 1년 window above it, which covers a
+    // different span than these whole calendar months.
+    expect(container.textContent).not.toContain(`최근 ${buckets.length}개월 이용 횟수`);
     expect(entries).toHaveLength(12);
     for (const entry of entries) {
       expect(entry.querySelector('.place-histogram-month')?.textContent).toMatch(/\d+년 \d+월/);

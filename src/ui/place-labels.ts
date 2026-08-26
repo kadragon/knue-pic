@@ -1,4 +1,5 @@
 import type { PlaceRecord } from '../data/types';
+import type { HistogramBucket } from '../stats/histogram';
 
 /** Small display transforms shared by every place list and the detail dialog. */
 
@@ -74,4 +75,27 @@ export function renderKindBadge(place: PlaceRecord): HTMLSpanElement {
 export function monthLabel(month: string): string {
   const [year, index] = month.split('-');
   return `${year}년 ${Number(index)}월`;
+}
+
+/**
+ * The concrete span a bucket array covers — `2025년 9월~2026년 8월`.
+ *
+ * Named from the buckets' own ends rather than from a month count, because a count reads as the
+ * selected period and is not one. `resolvePeriodWindow('1y', anchor)` is half-open by *day* —
+ * with `updatedAt: 2026-08-25` it opens 2025-08-25 — while `computeMonthlyHistogram` charts whole
+ * calendar months, so its first bar is 2025-09. Both would print `최근 12개월`, and a visit in the
+ * uncovered sliver counts toward the figure beside the chart while landing in no bar. Naming the
+ * months makes the two spans legibly different instead of apparently identical.
+ *
+ * Derived from the array so the label can never state a span the chart does not draw. Callers pass
+ * a non-empty array: `computeMonthlyHistogram` emits one bucket per charted month, zeros included.
+ */
+export function histogramSpanLabel(buckets: readonly HistogramBucket[]): string {
+  const first = buckets[0];
+  const last = buckets[buckets.length - 1];
+  // A caller with no buckets has no span to name, and inventing one would be a claim about data
+  // that is not there.
+  if (!first || !last) return '';
+  if (first.month === last.month) return monthLabel(first.month);
+  return `${monthLabel(first.month)}~${monthLabel(last.month)}`;
 }
