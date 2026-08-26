@@ -500,11 +500,12 @@ describe('trendSpanNote', () => {
 
 describe('renderSparkline', () => {
   it('draws one bar per bucket, scaled against the place\'s own busiest month', () => {
-    const chart = renderSparkline([
+    const buckets: MonthlyHistogram = [
       { month: '2026-06', visitCount: 2 },
       { month: '2026-07', visitCount: 0 },
       { month: '2026-08', visitCount: 4 },
-    ] as MonthlyHistogram);
+    ];
+    const chart = renderSparkline(buckets);
 
     const bars = [...chart.querySelectorAll<HTMLElement>('.top-place-trend-bar')];
     expect(bars).toHaveLength(3);
@@ -523,10 +524,11 @@ describe('renderSparkline', () => {
   });
 
   it('writes no NaN width when nothing was charted', () => {
-    const chart = renderSparkline([
+    const quiet: MonthlyHistogram = [
       { month: '2026-07', visitCount: 0 },
       { month: '2026-08', visitCount: 0 },
-    ] as MonthlyHistogram);
+    ];
+    const chart = renderSparkline(quiet);
 
     expect(
       [...chart.querySelectorAll<HTMLElement>('.top-place-trend-bar')].map((bar) => bar.style.height),

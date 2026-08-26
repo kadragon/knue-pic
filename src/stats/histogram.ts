@@ -21,10 +21,10 @@ export interface HistogramBucket {
 /**
  * A charted series, guaranteed non-empty by its own type.
  *
- * Every label derived from a series names its ends (`histogramSpan`), and an empty series has no
- * ends to name — the label would either invent a span or print a blank one. Stating the
- * non-emptiness here rather than in a doc comment is what lets `src/ui/place-labels.ts` read the
- * first and last bucket without an empty branch.
+ * Every label derived from a series names its ends, and an empty series has no ends to name — the
+ * label would either invent a span or print a blank one. Stating the non-emptiness here rather
+ * than in a doc comment is what lets `histogramSpan` below read the first and last bucket without
+ * an empty branch, and what leaves `src/ui/place-labels.ts` with no empty case to answer.
  */
 export type MonthlyHistogram = readonly [HistogramBucket, ...HistogramBucket[]];
 

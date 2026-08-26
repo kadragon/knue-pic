@@ -107,6 +107,11 @@ describe('charted months and their span', () => {
     // empty series; every label derived from one reads its ends without an empty branch.
     expect(() => chartedMonths('2026-08-01', 0)).toThrow(RangeError);
     expect(() => chartedMonths('2026-08-01', -1)).toThrow(RangeError);
+    // The integer half of the guard too, or weakening it to a bare `monthCount < 1` would still
+    // pass: a fractional count charts a fractional number of bars, and `NaN` charts none at all.
+    expect(() => chartedMonths('2026-08-01', 1.5)).toThrow(RangeError);
+    expect(() => chartedMonths('2026-08-01', Number.NaN)).toThrow(RangeError);
+    expect(() => chartedMonths('2026-08-01', Number.POSITIVE_INFINITY)).toThrow(RangeError);
     expect(() => computeMonthlyHistogram(findPlace('restaurant_000001'), '2026-08-01', 0)).toThrow(
       RangeError,
     );

@@ -151,8 +151,9 @@ export function computeTopPlaces(
       ...entry,
       histogram: computeMonthlyHistogram(entry.place, dataset.updatedAt),
     })),
-    // Read from the same anchor and month count each row is charted with, so the span and the bars
-    // it names cannot drift apart.
+    // Read from the same anchor each row is charted from. Neither call passes a month count and
+    // `computeTopPlaces` exposes none, so both fall through to the one `HISTOGRAM_MONTHS` default
+    // and the span cannot name months the bars do not draw.
     chartedSpan: histogramSpanFor(dataset.updatedAt),
   };
 }

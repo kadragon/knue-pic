@@ -70,12 +70,15 @@ describe('histogramSpanLabel', () => {
     expect(histogramSpanLabel({ first: '2026-08', last: '2026-08' })).toBe(monthLabel('2026-08'));
   });
 
-  it('takes a span, so there is no empty chart for it to name', () => {
-    // The `''` this used to return for an empty bucket array would have rendered `" 이용 횟수"`
-    // and `"월별 막대는  기준"`. A span has two ends by its type, and `src/stats/histogram.ts` is
-    // where a series is proven non-empty before one is derived from it.
-    expect(histogramSpanLabel(histogramSpan(computeMonthlyHistogram(SAMPLE_DATASET.places[0]!, '2026-08-01', 1)))).toBe(
-      monthLabel('2026-08'),
-    );
+  it('names both ends of a producer-built series, never the blank the empty branch used to give', () => {
+    // The round trip a real caller makes — producer to span to label — over the default charted
+    // window. The `''` this used to return for an empty bucket array rendered `" 이용 횟수"` and
+    // `"월별 막대는  기준"`, so the absence of a leading or doubled space is the regression being
+    // held, not merely the presence of a range.
+    const buckets = computeMonthlyHistogram(SAMPLE_DATASET.places[0]!, '2026-08-01');
+    const label = histogramSpanLabel(histogramSpan(buckets));
+
+    expect(label).toBe(`${monthLabel('2025-09')}~${monthLabel('2026-08')}`);
+    expect(`${label} 이용 횟수`).not.toMatch(/^\s|\s\s/);
   });
 });
