@@ -448,6 +448,14 @@ body {
   line-height: 1.3;
 }
 
+/*
+ * Names the span the row trend bars cover, once above the list.
+ *
+ * Sits under the heading rather than beside each row's bars: it is one fact about the whole list,
+ * and the heading immediately above it names the *ranking* window, so the two spans are read
+ * together and cannot be mistaken for one.
+ */
+.top-places-trend-note,
 .top-places-count,
 .place-search-count {
   margin: var(--space-2) 0 0;

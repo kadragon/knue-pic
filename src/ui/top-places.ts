@@ -1,6 +1,6 @@
 import type { HistogramBucket } from '../stats/histogram';
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
-import { displayShortDate, monthLabel, renderKindBadge } from './place-labels';
+import { displayShortDate, histogramSpanLabel, monthLabel, renderKindBadge } from './place-labels';
 
 /**
  * The ranked list view. Takes the numbers `src/stats/top-places.ts` already computed and turns them
@@ -81,7 +81,21 @@ export function sparklineLabel(buckets: HistogramBucket[]): string {
   const months = buckets
     .map((bucket) => `${monthLabel(bucket.month)} ${bucket.visitCount}회`)
     .join(', ');
-  return `최근 ${buckets.length}개월 월별 이용: ${months}`;
+  return `${histogramSpanLabel(buckets)} 월별 이용: ${months}`;
+}
+
+/**
+ * The sighted reader's counterpart to `sparklineLabel`'s span — stated once for the list.
+ *
+ * The bars carry no period claim of their own, so the only thing naming their span is their
+ * adjacency to the `N회 이용` figure, which is counted over the *selected* window. Those two spans
+ * are not the same (`histogramSpanLabel`), so the row would otherwise invite a reader to sum the
+ * bars and find less than the figure beside them. Per list rather than per row: every entry's
+ * buckets come from the same anchor and month count, so a copy on each row would repeat one fact
+ * as many times as there are places.
+ */
+export function trendSpanNote(buckets: HistogramBucket[]): string {
+  return `월별 막대는 ${histogramSpanLabel(buckets)} 기준`;
 }
 
 /**
@@ -103,9 +117,10 @@ export function renderSparkline(buckets: HistogramBucket[]): HTMLElement {
   chart.setAttribute('aria-label', sparklineLabel(buckets));
 
   // Guarded: a place whose charted months are all empty would otherwise divide by zero and write
-  // `NaN%` heights. It cannot happen for a ranked place today — ranking requires an in-window
-  // visit, and every window is inside the charted span — but the guard costs nothing and the
-  // charted span is free to widen past the windows later.
+  // `NaN%` heights. It can happen: ranking requires an in-window visit, but the 1년 window opens
+  // mid-month — `(anchor − 12 months, anchor]` — while the first bar is a whole calendar month
+  // later, so a place ranked solely on a visit in that sliver charts twelve zeros. The note above
+  // the list is what keeps that from reading as a contradiction of the figure beside it.
   const busiest = buckets.reduce((max, bucket) => Math.max(max, bucket.visitCount), 0);
 
   for (const bucket of buckets) {
@@ -252,6 +267,14 @@ export function renderTopPlaces(
     container.replaceChildren(section);
     return;
   }
+
+  // After the empty-state return, so a list with no rows states no span: there are no bars to
+  // name. Read off the first entry's buckets — every entry is charted from the same anchor and the
+  // same month count, so any of them names the same span.
+  const note = document.createElement('p');
+  note.className = 'top-places-trend-note';
+  note.textContent = trendSpanNote(result.entries[0]!.histogram);
+  section.append(note);
 
   const total = result.entries.length;
   const list = document.createElement('ol');

@@ -4,6 +4,7 @@ import type { PlacesDataset } from '../data/types';
 import { HISTOGRAM_MONTHS } from '../stats/histogram';
 import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
+import { histogramSpanLabel } from './place-labels';
 import {
   allRenderedLabel,
   EMPTY_MESSAGE,
@@ -15,6 +16,7 @@ import {
   renderTopPlaces,
   sparklineLabel,
   topPlacesHeading,
+  trendSpanNote,
 } from './top-places';
 
 function render(result: TopPlacesResult): HTMLElement {
@@ -288,6 +290,19 @@ describe('renderTopPlaces', () => {
 
     expect(container.textContent).toContain(EMPTY_MESSAGE);
     expect(container.querySelector('ol')).toBeNull();
+    // No bars were drawn, so there is no span to name. Stating one would claim a charted range
+    // that does not exist.
+    expect(container.querySelector('.top-places-trend-note')).toBeNull();
+  });
+
+  it('names the charted span once for the list, not once per row', () => {
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+    const container = render(result);
+
+    const notes = [...container.querySelectorAll('.top-places-trend-note')];
+    expect(result.entries.length).toBeGreaterThan(1);
+    expect(notes).toHaveLength(1);
+    expect(notes[0]?.textContent).toBe(trendSpanNote(result.entries[0]!.histogram));
   });
 });
 
@@ -434,7 +449,32 @@ describe('sparklineLabel', () => {
 
     // The quiet month is the whole reason the label exists: bars convey a gap by height alone, and
     // dropping it here would leave a screen reader hearing an uninterrupted run.
-    expect(label).toBe('최근 3개월 월별 이용: 2026년 6월 2회, 2026년 7월 0회, 2026년 8월 1회');
+    expect(label).toBe(
+      '2026년 6월~2026년 8월 월별 이용: 2026년 6월 2회, 2026년 7월 0회, 2026년 8월 1회',
+    );
+  });
+
+  it('names the charted months rather than counting them, so it cannot be read as the period', () => {
+    const buckets = [
+      { month: '2025-09', visitCount: 1 },
+      { month: '2026-08', visitCount: 2 },
+    ];
+
+    // A count — `최근 12개월` — spells the same thing as the 최근 1년 period button, whose window
+    // opens mid-month and covers a different span than these whole calendar months.
+    expect(sparklineLabel(buckets)).toContain(histogramSpanLabel(buckets));
+    expect(sparklineLabel(buckets)).not.toContain(`최근 ${buckets.length}개월`);
+  });
+});
+
+describe('trendSpanNote', () => {
+  it('states the same span the spoken label states', () => {
+    const buckets = [
+      { month: '2025-09', visitCount: 1 },
+      { month: '2026-08', visitCount: 2 },
+    ];
+
+    expect(trendSpanNote(buckets)).toContain(histogramSpanLabel(buckets));
   });
 });
 

@@ -2,7 +2,7 @@ import type { Period, PlaceRecord } from '../data/types';
 import type { HistogramBucket } from '../stats/histogram';
 import type { PlaceStats } from '../stats/place-stats';
 import { PERIOD_LABELS } from './period-labels';
-import { displayShortDate, monthLabel, renderKindBadge } from './place-labels';
+import { displayShortDate, histogramSpanLabel, monthLabel, renderKindBadge } from './place-labels';
 
 /**
  * The detail card for one selected place: a slot for the location map, the figures for the period
@@ -19,11 +19,15 @@ export const DETAIL_HEADING = '선택한 곳';
 export const DETAIL_EMPTY_MESSAGE = '목록에서 장소를 선택하면 이용 횟수를 확인할 수 있습니다.';
 
 /**
- * Names the span the bars actually cover. Passed rather than fixed so the heading can never state
- * a number the chart does not draw.
+ * Names the span the bars actually cover. Derived from the buckets rather than fixed so the
+ * heading can never state a span the chart does not draw.
+ *
+ * The months are spelled out instead of counted: `최근 12개월` reads as the 최근 1년 period button,
+ * and the figures above this chart are counted over that window, which starts mid-month and so
+ * covers a different span than the whole calendar months charted here (`histogramSpanLabel`).
  */
-export function histogramHeading(monthCount: number): string {
-  return `최근 ${monthCount}개월 이용 횟수`;
+export function histogramHeading(buckets: readonly HistogramBucket[]): string {
+  return `${histogramSpanLabel(buckets)} 이용 횟수`;
 }
 
 export const NAVER_LINK_LABEL = '네이버지도에서 보기';
@@ -83,7 +87,7 @@ function renderHistogram(buckets: HistogramBucket[]): HTMLElement {
   const heading = document.createElement('h4');
   // Read off the buckets rather than off the basis: the heading then cannot disagree with the bars
   // it sits above, whatever decided how many there are.
-  heading.textContent = histogramHeading(buckets.length);
+  heading.textContent = histogramHeading(buckets);
 
   const list = document.createElement('ol');
   list.className = 'place-histogram-list';
