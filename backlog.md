@@ -2,6 +2,22 @@
 
 ## Review Backlog
 
+### `histogramSpanLabel`'s preconditions are documented but not enforced (2026-08-26)
+
+- [ ] [debt] Two findings from the review of PR #28, both unreachable in today's code and both a
+  precondition that lives only in a doc comment. (a) `histogramSpanLabel([])` returns `''` by
+  design, so an empty bucket array would render `" 이용 횟수"` as the detail card's heading,
+  `" 월별 이용: "` as the sparkline `aria-label` and `"월별 막대는  기준"` as the list caption. No
+  production caller can produce one — `computeMonthlyHistogram` always emits `HISTOGRAM_MONTHS`
+  buckets, zeros included — so the empty branch is a half-stated contract rather than a live
+  defect: either assert non-emptiness at the producer or have each caller handle `''`. (b)
+  `renderTopPlaces` derives the one caption from `result.entries[0]!.histogram`, but its parameter
+  is any `TopPlacesResult`; the "every entry shares an anchor and a month count" invariant lives in
+  `computeTopPlaces`, not in the renderer's input type, so a future caller that merged or partially
+  recomputed entries would label every row's bars with the first row's span — the exact wrong-period
+  claim PR #28 exists to remove (source: PR #28 review, `code-review` + contract QA, both low) —
+  `src/ui/place-labels.ts`, `src/ui/top-places.ts`, `src/stats/histogram.ts`
+
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*

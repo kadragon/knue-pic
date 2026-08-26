@@ -475,6 +475,9 @@ describe('trendSpanNote', () => {
     ];
 
     expect(trendSpanNote(buckets)).toContain(histogramSpanLabel(buckets));
+    // The frame is pinned too, not just the span: a note reduced to the bare range would still
+    // satisfy the assertion above while losing the words that say what the range belongs to.
+    expect(trendSpanNote(buckets)).toBe(`월별 막대는 ${histogramSpanLabel(buckets)} 기준`);
   });
 });
 
