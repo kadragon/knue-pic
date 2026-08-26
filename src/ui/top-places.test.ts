@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlacesDataset } from '../data/types';
-import { HISTOGRAM_MONTHS } from '../stats/histogram';
+import { HISTOGRAM_MONTHS, histogramSpan, type MonthlyHistogram } from '../stats/histogram';
 import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
-import { histogramSpanLabel } from './place-labels';
+import { histogramSpanLabel, monthLabel } from './place-labels';
 import {
   allRenderedLabel,
   EMPTY_MESSAGE,
@@ -302,7 +302,22 @@ describe('renderTopPlaces', () => {
     const notes = [...container.querySelectorAll('.top-places-trend-note')];
     expect(result.entries.length).toBeGreaterThan(1);
     expect(notes).toHaveLength(1);
-    expect(notes[0]?.textContent).toBe(trendSpanNote(result.entries[0]!.histogram));
+    expect(notes[0]?.textContent).toBe(trendSpanNote(result.chartedSpan));
+  });
+
+  it('reads the caption from the result span rather than from the first row', () => {
+    // The invariant that every entry is charted together belongs to `computeTopPlaces`, not to
+    // `TopPlacesResult`. A caller that merged or partially recomputed entries would otherwise have
+    // the whole list labelled with whatever the top row happens to cover — the wrong-period claim
+    // the span exists to remove. Row 0 is given a span nothing else shares, so the assertion fails
+    // if the caption is ever inferred from it again.
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+    const stale: MonthlyHistogram = [{ month: '2019-01', visitCount: 7 }];
+    const container = render({ ...result, entries: [{ ...result.entries[0]!, histogram: stale }] });
+
+    const note = container.querySelector('.top-places-trend-note');
+    expect(note?.textContent).toBe(trendSpanNote(result.chartedSpan));
+    expect(note?.textContent).not.toContain(monthLabel('2019-01'));
   });
 });
 
@@ -455,29 +470,31 @@ describe('sparklineLabel', () => {
   });
 
   it('names the charted months rather than counting them, so it cannot be read as the period', () => {
-    const buckets = [
+    const buckets: MonthlyHistogram = [
       { month: '2025-09', visitCount: 1 },
       { month: '2026-08', visitCount: 2 },
     ];
 
     // A count — `최근 12개월` — spells the same thing as the 최근 1년 period button, whose window
     // opens mid-month and covers a different span than these whole calendar months.
-    expect(sparklineLabel(buckets)).toContain(histogramSpanLabel(buckets));
+    expect(sparklineLabel(buckets)).toContain(histogramSpanLabel(histogramSpan(buckets)));
     expect(sparklineLabel(buckets)).not.toContain(`최근 ${buckets.length}개월`);
   });
 });
 
 describe('trendSpanNote', () => {
   it('states the same span the spoken label states', () => {
-    const buckets = [
+    const buckets: MonthlyHistogram = [
       { month: '2025-09', visitCount: 1 },
       { month: '2026-08', visitCount: 2 },
     ];
+    const span = histogramSpan(buckets);
 
-    expect(trendSpanNote(buckets)).toContain(histogramSpanLabel(buckets));
+    expect(trendSpanNote(span)).toContain(histogramSpanLabel(span));
+    expect(sparklineLabel(buckets)).toContain(histogramSpanLabel(span));
     // The frame is pinned too, not just the span: a note reduced to the bare range would still
     // satisfy the assertion above while losing the words that say what the range belongs to.
-    expect(trendSpanNote(buckets)).toBe(`월별 막대는 ${histogramSpanLabel(buckets)} 기준`);
+    expect(trendSpanNote(span)).toBe(`월별 막대는 ${histogramSpanLabel(span)} 기준`);
   });
 });
 
@@ -487,7 +504,7 @@ describe('renderSparkline', () => {
       { month: '2026-06', visitCount: 2 },
       { month: '2026-07', visitCount: 0 },
       { month: '2026-08', visitCount: 4 },
-    ]);
+    ] as MonthlyHistogram);
 
     const bars = [...chart.querySelectorAll<HTMLElement>('.top-place-trend-bar')];
     expect(bars).toHaveLength(3);
@@ -496,7 +513,7 @@ describe('renderSparkline', () => {
   });
 
   it('carries the series as text a screen reader can reach', () => {
-    const buckets = [{ month: '2026-08', visitCount: 3 }];
+    const buckets: MonthlyHistogram = [{ month: '2026-08', visitCount: 3 }];
     const chart = renderSparkline(buckets);
 
     // `role="img"` is load-bearing: WAI-ARIA prohibits naming a bare span, so without it the
@@ -509,7 +526,7 @@ describe('renderSparkline', () => {
     const chart = renderSparkline([
       { month: '2026-07', visitCount: 0 },
       { month: '2026-08', visitCount: 0 },
-    ]);
+    ] as MonthlyHistogram);
 
     expect(
       [...chart.querySelectorAll<HTMLElement>('.top-place-trend-bar')].map((bar) => bar.style.height),

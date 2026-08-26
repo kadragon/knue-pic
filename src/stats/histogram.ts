@@ -18,6 +18,22 @@ export interface HistogramBucket {
   visitCount: number;
 }
 
+/**
+ * A charted series, guaranteed non-empty by its own type.
+ *
+ * Every label derived from a series names its ends (`histogramSpan`), and an empty series has no
+ * ends to name — the label would either invent a span or print a blank one. Stating the
+ * non-emptiness here rather than in a doc comment is what lets `src/ui/place-labels.ts` read the
+ * first and last bucket without an empty branch.
+ */
+export type MonthlyHistogram = readonly [HistogramBucket, ...HistogramBucket[]];
+
+/** The two ends of a charted series, as `YYYY-MM`. */
+export interface HistogramSpan {
+  first: string;
+  last: string;
+}
+
 function monthKey(year: number, month: number): string {
   return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
 }
@@ -34,6 +50,58 @@ function monthKey(year: number, month: number): string {
 export const HISTOGRAM_MONTHS = 12;
 
 /**
+ * The `YYYY-MM` months a chart anchored at `anchor` covers, oldest first.
+ *
+ * The single source for *which* months are charted: `computeMonthlyHistogram` buckets into them
+ * and `histogramSpanFor` names their ends, so a span and the bars it labels can never be built
+ * from two different month sequences.
+ *
+ * A `monthCount` below 1 is rejected rather than returning an empty sequence, which is what makes
+ * `MonthlyHistogram` non-empty by construction instead of by convention. `RangeError` matches how
+ * a malformed date already fails in this module.
+ */
+export function chartedMonths(
+  anchor: string,
+  monthCount: number = HISTOGRAM_MONTHS,
+): readonly [string, ...string[]] {
+  if (!Number.isInteger(monthCount) || monthCount < 1) {
+    throw new RangeError(`monthCount must be an integer of at least 1, received ${monthCount}`);
+  }
+
+  const end = parseIsoDate(anchor);
+  const monthAt = (offset: number): string => {
+    const shifted = end.year * 12 + (end.month - 1) - offset;
+    return monthKey(Math.floor(shifted / 12), (shifted % 12) + 1);
+  };
+
+  // The oldest month is placed before the loop rather than pushed inside it, so the tuple is
+  // non-empty to the type checker without an assertion or an unreachable guard.
+  const months: [string, ...string[]] = [monthAt(monthCount - 1)];
+  for (let offset = monthCount - 2; offset >= 0; offset -= 1) months.push(monthAt(offset));
+  return months;
+}
+
+/** The span a concrete series covers — the ends of the bars actually drawn. */
+export function histogramSpan(buckets: MonthlyHistogram): HistogramSpan {
+  return { first: buckets[0].month, last: buckets[buckets.length - 1]!.month };
+}
+
+/**
+ * The span a charted window covers, with no place involved.
+ *
+ * For a caller that names one span over a whole list: the months depend on the anchor and the
+ * month count alone, so the span is a fact about the window rather than about whichever place
+ * happens to sit in the first row.
+ */
+export function histogramSpanFor(
+  anchor: string,
+  monthCount: number = HISTOGRAM_MONTHS,
+): HistogramSpan {
+  const months = chartedMonths(anchor, monthCount);
+  return { first: months[0], last: months[months.length - 1]! };
+}
+
+/**
  * `monthCount` buckets, oldest first, ending with the anchor's own month.
  *
  * Months with no visit keep a zero bucket instead of being dropped: a gap is a fact about the
@@ -44,17 +112,19 @@ export function computeMonthlyHistogram(
   place: PlaceRecord,
   anchor: string,
   monthCount: number = HISTOGRAM_MONTHS,
-): HistogramBucket[] {
+): MonthlyHistogram {
+  const months = chartedMonths(anchor, monthCount);
   const end = parseIsoDate(anchor);
 
-  const buckets: HistogramBucket[] = [];
   const byMonth = new Map<string, HistogramBucket>();
+  const oldest: HistogramBucket = { month: months[0], visitCount: 0 };
+  byMonth.set(oldest.month, oldest);
 
-  for (let offset = monthCount - 1; offset >= 0; offset -= 1) {
-    const shifted = end.year * 12 + (end.month - 1) - offset;
-    const bucket = { month: monthKey(Math.floor(shifted / 12), (shifted % 12) + 1), visitCount: 0 };
+  const buckets: [HistogramBucket, ...HistogramBucket[]] = [oldest];
+  for (const month of months.slice(1)) {
+    const bucket: HistogramBucket = { month, visitCount: 0 };
     buckets.push(bucket);
-    byMonth.set(bucket.month, bucket);
+    byMonth.set(month, bucket);
   }
 
   const anchorIso = formatIsoDate(end);

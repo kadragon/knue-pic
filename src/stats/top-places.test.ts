@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlaceRecord, PlacesDataset } from '../data/types';
-import { computeMonthlyHistogram, HISTOGRAM_MONTHS } from './histogram';
+import { computeMonthlyHistogram, HISTOGRAM_MONTHS, histogramSpan } from './histogram';
 import { computeTopPlaces, TOP_PLACES_LIMIT } from './top-places';
 
 /**
@@ -238,6 +238,18 @@ describe('computeTopPlaces trend chart', () => {
     expect(entry.histogram).toEqual(computeMonthlyHistogram(entry.place, SAMPLE_DATASET.updatedAt));
     expect(entry.histogram).toHaveLength(HISTOGRAM_MONTHS);
     expect(entry.histogram.at(-1)?.month).toBe(SAMPLE_DATASET.updatedAt.slice(0, 7));
+  });
+
+  it('states the charted span once, and every row is charted over it', () => {
+    // The span is the list's fact, not the first row's. Checked against all of them so the field
+    // cannot quietly become a copy of `entries[0]`.
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+
+    expect(result.entries.length).toBeGreaterThan(1);
+    expect(result.chartedSpan).toEqual({ first: '2025-09', last: '2026-08' });
+    for (const entry of result.entries) {
+      expect(histogramSpan(entry.histogram)).toEqual(result.chartedSpan);
+    }
   });
 
   it('charts only as many places as the cap kept', () => {

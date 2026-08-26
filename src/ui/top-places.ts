@@ -1,4 +1,4 @@
-import type { HistogramBucket } from '../stats/histogram';
+import { histogramSpan, type HistogramSpan, type MonthlyHistogram } from '../stats/histogram';
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
 import { displayShortDate, histogramSpanLabel, monthLabel, renderKindBadge } from './place-labels';
 
@@ -77,11 +77,11 @@ function rankDeltaText(rankDelta: number): string {
  * bans as a sole channel; dropping the quiet months from the label would also turn an interrupted
  * run into a steady one, the same distortion `computeMonthlyHistogram` keeps zero buckets to avoid.
  */
-export function sparklineLabel(buckets: HistogramBucket[]): string {
+export function sparklineLabel(buckets: MonthlyHistogram): string {
   const months = buckets
     .map((bucket) => `${monthLabel(bucket.month)} ${bucket.visitCount}회`)
     .join(', ');
-  return `${histogramSpanLabel(buckets)} 월별 이용: ${months}`;
+  return `${histogramSpanLabel(histogramSpan(buckets))} 월별 이용: ${months}`;
 }
 
 /**
@@ -93,9 +93,13 @@ export function sparklineLabel(buckets: HistogramBucket[]): string {
  * bars and find less than the figure beside them. Per list rather than per row: every entry's
  * buckets come from the same anchor and month count, so a copy on each row would repeat one fact
  * as many times as there are places.
+ *
+ * Takes the span itself, not a row's buckets: it is the *list's* claim, and deriving it from one
+ * row would label every row's bars with that row's span the moment a caller assembled a result
+ * whose entries were not all charted together.
  */
-export function trendSpanNote(buckets: HistogramBucket[]): string {
-  return `월별 막대는 ${histogramSpanLabel(buckets)} 기준`;
+export function trendSpanNote(span: HistogramSpan): string {
+  return `월별 막대는 ${histogramSpanLabel(span)} 기준`;
 }
 
 /**
@@ -110,7 +114,7 @@ export function trendSpanNote(buckets: HistogramBucket[]): string {
  * `generic`, which WAI-ARIA 1.2 prohibits naming, so `aria-label` alone would be dropped and the
  * series would exist for sighted readers only.
  */
-export function renderSparkline(buckets: HistogramBucket[]): HTMLElement {
+export function renderSparkline(buckets: MonthlyHistogram): HTMLElement {
   const chart = document.createElement('span');
   chart.className = 'top-place-trend';
   chart.setAttribute('role', 'img');
@@ -269,11 +273,11 @@ export function renderTopPlaces(
   }
 
   // After the empty-state return, so a list with no rows states no span: there are no bars to
-  // name. Read off the first entry's buckets — every entry is charted from the same anchor and the
-  // same month count, so any of them names the same span.
+  // name. Read from the result's own `chartedSpan` rather than off the first row, so the caption
+  // states the window the result was charted over instead of whatever the top row happens to cover.
   const note = document.createElement('p');
   note.className = 'top-places-trend-note';
-  note.textContent = trendSpanNote(result.entries[0]!.histogram);
+  note.textContent = trendSpanNote(result.chartedSpan);
   section.append(note);
 
   const total = result.entries.length;

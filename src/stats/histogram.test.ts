@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { PlaceRecord } from '../data/types';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { RETAINED_MONTHS } from './period';
-import { HISTOGRAM_MONTHS, computeMonthlyHistogram } from './histogram';
+import {
+  HISTOGRAM_MONTHS,
+  chartedMonths,
+  computeMonthlyHistogram,
+  histogramSpan,
+  histogramSpanFor,
+} from './histogram';
 
 function findPlace(id: string): PlaceRecord {
   const place = SAMPLE_DATASET.places.find((candidate) => candidate.id === id);
@@ -92,5 +98,31 @@ describe('computeMonthlyHistogram', () => {
     ] };
 
     expect(() => computeMonthlyHistogram(broken, '2026-08-01')).toThrow(RangeError);
+  });
+});
+
+describe('charted months and their span', () => {
+  it('refuses a month count that would chart nothing', () => {
+    // The non-emptiness `MonthlyHistogram` states is only true if the producer refuses to build an
+    // empty series; every label derived from one reads its ends without an empty branch.
+    expect(() => chartedMonths('2026-08-01', 0)).toThrow(RangeError);
+    expect(() => chartedMonths('2026-08-01', -1)).toThrow(RangeError);
+    expect(() => computeMonthlyHistogram(findPlace('restaurant_000001'), '2026-08-01', 0)).toThrow(
+      RangeError,
+    );
+  });
+
+  it('names the same span whether it is read from the window or from the drawn bars', () => {
+    const buckets = computeMonthlyHistogram(findPlace('restaurant_000001'), '2026-08-01');
+
+    // The two are used in different places — a list states its span once from the anchor, a detail
+    // card states it from the series it drew — so a drift between them is a caption naming months
+    // the chart beside it does not draw.
+    expect(histogramSpanFor('2026-08-01')).toEqual(histogramSpan(buckets));
+    expect(histogramSpanFor('2026-08-01')).toEqual({ first: '2025-09', last: '2026-08' });
+  });
+
+  it('states one month as both ends when only one is charted', () => {
+    expect(histogramSpanFor('2026-08-01', 1)).toEqual({ first: '2026-08', last: '2026-08' });
   });
 });

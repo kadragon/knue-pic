@@ -1,5 +1,5 @@
 import type { Period, PlaceRecord } from '../data/types';
-import type { HistogramBucket } from '../stats/histogram';
+import { histogramSpan, type MonthlyHistogram } from '../stats/histogram';
 import type { PlaceStats } from '../stats/place-stats';
 import { PERIOD_LABELS } from './period-labels';
 import { displayShortDate, histogramSpanLabel, monthLabel, renderKindBadge } from './place-labels';
@@ -26,8 +26,8 @@ export const DETAIL_EMPTY_MESSAGE = '목록에서 장소를 선택하면 이용 
  * and the figures above this chart are counted over that window, which starts mid-month and so
  * covers a different span than the whole calendar months charted here (`histogramSpanLabel`).
  */
-export function histogramHeading(buckets: readonly HistogramBucket[]): string {
-  return `${histogramSpanLabel(buckets)} 이용 횟수`;
+export function histogramHeading(buckets: MonthlyHistogram): string {
+  return `${histogramSpanLabel(histogramSpan(buckets))} 이용 횟수`;
 }
 
 export const NAVER_LINK_LABEL = '네이버지도에서 보기';
@@ -80,7 +80,7 @@ function renderFigure(term: string, value: string): HTMLElement {
  * behind sighted, precise-width perception — `docs/conventions.md` → Accessibility bans conveying
  * importance by visual channel alone, and the same reasoning covers a chart.
  */
-function renderHistogram(buckets: HistogramBucket[]): HTMLElement {
+function renderHistogram(buckets: MonthlyHistogram): HTMLElement {
   const section = document.createElement('section');
   section.className = 'place-histogram';
 
@@ -129,7 +129,7 @@ export interface PlaceDetail {
   stats: PlaceStats;
   /** The window the place was picked from — whichever the selector had active, or the search's own. */
   basis: Period;
-  histogram: HistogramBucket[];
+  histogram: MonthlyHistogram;
 }
 
 /** `null` renders the placeholder — the card is always on the page, empty until a place is picked. */
