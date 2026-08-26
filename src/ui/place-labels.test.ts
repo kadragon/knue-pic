@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import { computeMonthlyHistogram, histogramSpan } from '../stats/histogram';
 import {
   displayCategory,
   displayDate,
@@ -51,27 +52,33 @@ describe('renderKindBadge', () => {
 });
 
 describe('histogramSpanLabel', () => {
-  it('names the span from the bucket ends, not from how many there are', () => {
-    const buckets = [
-      { month: '2025-09', visitCount: 0 },
-      { month: '2025-10', visitCount: 3 },
-      { month: '2026-08', visitCount: 1 },
-    ];
-
-    // Derived, not hardcoded: shifting the ends has to move the label, or the label would be free
-    // to state a span the chart does not draw.
-    expect(histogramSpanLabel(buckets)).toBe(`${monthLabel('2025-09')}~${monthLabel('2026-08')}`);
-    expect(histogramSpanLabel(buckets.slice(1))).toBe(
+  it('names the span from its ends, not from how many months lie between them', () => {
+    // Derived, not hardcoded: moving an end has to move the label, or the label would be free to
+    // state a span the chart does not draw.
+    expect(histogramSpanLabel({ first: '2025-09', last: '2026-08' })).toBe(
+      `${monthLabel('2025-09')}~${monthLabel('2026-08')}`,
+    );
+    expect(histogramSpanLabel({ first: '2025-10', last: '2026-08' })).toBe(
       `${monthLabel('2025-10')}~${monthLabel('2026-08')}`,
     );
+    // Pinned literally once as well, so a reword of `monthLabel` cannot leave both sides of the
+    // assertions above agreeing on a form no reader ever sees.
+    expect(histogramSpanLabel({ first: '2025-09', last: '2026-08' })).toBe('2025년 9월~2026년 8월');
   });
 
   it('states a single charted month once rather than as a range onto itself', () => {
-    expect(histogramSpanLabel([{ month: '2026-08', visitCount: 2 }])).toBe(monthLabel('2026-08'));
+    expect(histogramSpanLabel({ first: '2026-08', last: '2026-08' })).toBe(monthLabel('2026-08'));
   });
 
-  it('names no span at all when there are no buckets', () => {
-    // A span invented for an empty chart would be a claim about data that is not there.
-    expect(histogramSpanLabel([])).toBe('');
+  it('names both ends of a producer-built series, never the blank the empty branch used to give', () => {
+    // The round trip a real caller makes — producer to span to label — over the default charted
+    // window. The `''` this used to return for an empty bucket array rendered `" 이용 횟수"` and
+    // `"월별 막대는  기준"`, so the absence of a leading or doubled space is the regression being
+    // held, not merely the presence of a range.
+    const buckets = computeMonthlyHistogram(SAMPLE_DATASET.places[0]!, '2026-08-01');
+    const label = histogramSpanLabel(histogramSpan(buckets));
+
+    expect(label).toBe(`${monthLabel('2025-09')}~${monthLabel('2026-08')}`);
+    expect(`${label} 이용 횟수`).not.toMatch(/^\s|\s\s/);
   });
 });

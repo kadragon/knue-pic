@@ -2,21 +2,23 @@
 
 ## Review Backlog
 
-### `histogramSpanLabel`'s preconditions are documented but not enforced (2026-08-26)
+### `HistogramSpan` is unbranded, so a blank span is still hand-constructible (2026-08-26)
 
-- [ ] [debt] Two findings from the review of PR #28, both unreachable in today's code and both a
-  precondition that lives only in a doc comment. (a) `histogramSpanLabel([])` returns `''` by
-  design, so an empty bucket array would render `" 이용 횟수"` as the detail card's heading,
-  `" 월별 이용: "` as the sparkline `aria-label` and `"월별 막대는  기준"` as the list caption. No
-  production caller can produce one — `computeMonthlyHistogram` always emits `HISTOGRAM_MONTHS`
-  buckets, zeros included — so the empty branch is a half-stated contract rather than a live
-  defect: either assert non-emptiness at the producer or have each caller handle `''`. (b)
-  `renderTopPlaces` derives the one caption from `result.entries[0]!.histogram`, but its parameter
-  is any `TopPlacesResult`; the "every entry shares an anchor and a month count" invariant lives in
-  `computeTopPlaces`, not in the renderer's input type, so a future caller that merged or partially
-  recomputed entries would label every row's bars with the first row's span — the exact wrong-period
-  claim PR #28 exists to remove (source: PR #28 review, `code-review` + contract QA, both low) —
-  `src/ui/place-labels.ts`, `src/ui/top-places.ts`, `src/stats/histogram.ts`
+- [ ] [debt] PR #29 closed the empty-bucket-array hole in the type (`MonthlyHistogram`), but
+  `HistogramSpan` is a plain `{ first: string; last: string }`: a hand-written
+  `histogramSpanLabel({ first: '', last: '' })` still renders `년 NaN월` through `monthLabel`.
+  Nothing in production builds a span by hand — both producers are `histogramSpan` and
+  `histogramSpanFor` — so "no blank span is reachable" now rests on discipline at two call sites
+  rather than on the type. Branding the fields as a `YYYY-MM` template-literal type would close it,
+  but the ripple reaches `monthKey` and `HistogramBucket.month`, which is why it was left out of
+  #29 (source: PR #29 contract QA, non-blocking) — `src/stats/histogram.ts`, `src/ui/place-labels.ts`
+
+### `docs/architecture.md` still describes the four discovery windows (2026-08-26)
+
+- [ ] [docs] `docs/architecture.md:251` says "the four windows are cumulative", describing the
+  discovery columns PR #26 replaced with one ranked list and a period selector. Pre-existing and
+  unrelated to any current diff, so it needs its own docs pass (source: PR #29 contract QA,
+  out of scope there) — `docs/architecture.md`
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 

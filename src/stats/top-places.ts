@@ -1,5 +1,10 @@
 import type { Period, PlaceRecord, PlacesDataset } from '../data/types';
-import { computeMonthlyHistogram, type HistogramBucket } from './histogram';
+import {
+  computeMonthlyHistogram,
+  histogramSpanFor,
+  type HistogramSpan,
+  type MonthlyHistogram,
+} from './histogram';
 import { computePlaceStats, type PlaceStats } from './place-stats';
 import {
   isPriorWindowComplete,
@@ -40,12 +45,22 @@ export interface RankedPlace {
    *
    * It is the same series the detail card charts, so the row and the card can never disagree.
    */
-  histogram: HistogramBucket[];
+  histogram: MonthlyHistogram;
 }
 
 export interface TopPlacesResult {
   /** Best first; capped at `limit` when the caller passes one. */
   entries: RankedPlace[];
+  /**
+   * The span every entry's trend bars cover — one fact about the charted window, stated once.
+   *
+   * A field rather than something a consumer reads off `entries[0]`: "every entry shares an anchor
+   * and a month count" is an invariant of `computeTopPlaces`, not of the `TopPlacesResult` type, so
+   * a result assembled any other way — merged lists, partially recomputed entries — would have a
+   * renderer label every row with the first row's span. Carrying the span here makes it something
+   * such a caller has to state rather than something a view infers.
+   */
+  chartedSpan: HistogramSpan;
 }
 
 /**
@@ -136,5 +151,9 @@ export function computeTopPlaces(
       ...entry,
       histogram: computeMonthlyHistogram(entry.place, dataset.updatedAt),
     })),
+    // Read from the same anchor each row is charted from. Neither call passes a month count and
+    // `computeTopPlaces` exposes none, so both fall through to the one `HISTOGRAM_MONTHS` default
+    // and the span cannot name months the bars do not draw.
+    chartedSpan: histogramSpanFor(dataset.updatedAt),
   };
 }
