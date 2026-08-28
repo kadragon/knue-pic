@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PlaceRecord } from '../data/types';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import { monthKey } from '../data/iso-date';
 import { RETAINED_MONTHS } from './period';
 import {
   HISTOGRAM_MONTHS,
@@ -47,9 +48,9 @@ describe('computeMonthlyHistogram', () => {
       ]),
     );
 
-    expect(byMonth.get('2026-07')).toBe(2);
-    expect(byMonth.get('2026-05')).toBe(1);
-    expect(byMonth.get('2025-11')).toBe(1);
+    expect(byMonth.get(monthKey(2026, 7))).toBe(2);
+    expect(byMonth.get(monthKey(2026, 5))).toBe(1);
+    expect(byMonth.get(monthKey(2025, 11))).toBe(1);
   });
 
   it('keeps a zero bucket for a month with no visit rather than dropping it', () => {
@@ -88,7 +89,7 @@ describe('computeMonthlyHistogram', () => {
     const buckets = computeMonthlyHistogram(place, '2026-08-15');
     const byMonth = new Map(buckets.map((bucket) => [bucket.month, bucket.visitCount]));
 
-    expect(byMonth.get('2026-08')).toBe(1);
+    expect(byMonth.get(monthKey(2026, 8))).toBe(1);
     expect(buckets.reduce((total, bucket) => total + bucket.visitCount, 0)).toBe(1);
   });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import { monthKey } from '../data/iso-date';
 import { computeMonthlyHistogram } from '../stats/histogram';
 import { computePlaceStats } from '../stats/place-stats';
 import { resolvePeriodWindow } from '../stats/period';
@@ -107,7 +108,7 @@ describe('renderPlaceDetail', () => {
       expect(entry.querySelector('.place-histogram-month')?.textContent).toMatch(/\d+년 \d+월/);
       expect(entry.querySelector('.place-histogram-count')?.textContent).toMatch(/^\d+회$/);
     }
-    expect(container.textContent).toContain(`${monthLabel('2026-07')}`);
+    expect(container.textContent).toContain(`${monthLabel(monthKey(2026, 7))}`);
   });
 
   it('scales bars without dividing by zero when the place has no charted visit', () => {

@@ -2,22 +2,16 @@
 
 ## Review Backlog
 
-### `MonthKey`'s year half is `${number}`, so a malformed year still renders (2026-08-28)
+### `as MonthKey` bypasses the brand, and only prose says not to (2026-08-28)
 
-- [ ] [debt] PR #30 branded the month key, which closed `''` and every malformed *month*
-  (`'2026-8'`, `'2026-13'`). The year half is `${number}` — TypeScript's numeric-literal matcher,
-  not four digits — so `'-1-08'`, `'1e3-08'`, `'1.5-08'` and `'12345-08'` are all assignable to
-  `MonthKey` and a hand-written `HistogramSpan` renders `년 1월` / `1e3년 8월` / `12345년 8월`.
-  `'-1-08'`'s blank year is the same class of label the PR set out to make unconstructible. The
-  four-digit rule currently lives only at runtime, in `monthKey`'s guards and `MONTH_KEY`; the type
-  and the guard therefore disagree about what a `MonthKey` is. Spelling the year digit-by-digit is
-  not available — `${D}${D}${D}${D}-${MonthOfYear}` is 120,000 union members and `tsc` rejects it
-  with TS2590 (verified). Closing it needs a nominal brand
-  (`string & { readonly __monthKey: unique symbol }`) minted only by `monthKey`, which also makes
-  `isMonthKey` reachable — but that changes ~20 existing test call sites that pass bare `'2026-08'`
-  literals, so it is its own sprint (source: PR #30 review panel — code-review, Codex and contract
-  QA independently, plus contract QA's runtime probe of the rendered labels) —
-  `src/data/iso-date.ts`, `src/stats/histogram.ts`, `src/ui/place-labels.ts`
+- [ ] [constraint] PR #31 branded `MonthKey`, so no *implicit* assignment from a string can produce
+  one — but `x as MonthKey` still can, and nothing mechanical restricts the cast to the checked mint
+  point. The doc comments were softened to say so rather than to overclaim, which leaves the
+  guarantee verbal: an eslint `no-restricted-syntax` rule banning a `TSAsExpression` to `MonthKey`
+  outside `src/data/iso-date.ts` would make "one checked mint point" enforced instead of asserted
+  (source: PR #31 review panel — code-review, plus contract QA independently; declined there as
+  outside the sprint's scope, which named no eslint config) — `eslint.config.js`,
+  `src/data/iso-date.ts`
 
 ### `docs/architecture.md` still describes the four discovery windows (2026-08-26)
 

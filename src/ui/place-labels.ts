@@ -75,13 +75,14 @@ export function renderKindBadge(place: PlaceRecord): HTMLSpanElement {
  *
  * Takes a `MonthKey`, not a `string`: an `''` reaching here rendered `년 NaN월`, and
  * `src/data/iso-date.ts` is where a month is shaped before one exists. The destructuring stays
- * unguarded because TypeScript does not narrow `.split()` against a template-literal type — the
- * guarantee is at the boundary, not here.
+ * unguarded because `.split()` on a branded string tells TypeScript nothing about the halves —
+ * the guarantee is at the boundary, not here.
  *
- * That boundary is not airtight in the type alone: `MonthKey`'s year half admits `'-1-08'` and
- * `'1e3-08'`, which render `년 1월` and `1e3년 8월`. Every month this app builds comes from
- * `monthKey`, which rejects both, so no such value is reachable — but the guarantee is the
- * producer's, not this signature's.
+ * `MonthKey` is a nominal brand minted by `monthKey` and `isMonthKey`, both of which enforce a
+ * four-digit year, so the `'-1-08'` and `'1e3-08'` that used to render `년 1월` and `1e3년 8월` can
+ * no longer be handed to this function by writing the literal. A brand is forgeable by an explicit
+ * `as MonthKey`, so the guarantee is "no accidental month, and one checked mint point" — not
+ * airtightness.
  */
 export function monthLabel(month: MonthKey): string {
   const [year, index] = month.split('-');
