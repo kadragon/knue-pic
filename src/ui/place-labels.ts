@@ -78,9 +78,11 @@ export function renderKindBadge(place: PlaceRecord): HTMLSpanElement {
  * unguarded because `.split()` on a branded string tells TypeScript nothing about the halves —
  * the guarantee is at the boundary, not here.
  *
- * That boundary is airtight in the type: `MonthKey` is a nominal brand minted only by `monthKey`
- * and `isMonthKey`, both of which enforce a four-digit year, so the `'-1-08'` and `'1e3-08'` that
- * used to render `년 1월` and `1e3년 8월` are no longer writable at all.
+ * `MonthKey` is a nominal brand minted by `monthKey` and `isMonthKey`, both of which enforce a
+ * four-digit year, so the `'-1-08'` and `'1e3-08'` that used to render `년 1월` and `1e3년 8월` can
+ * no longer be handed to this function by writing the literal. A brand is forgeable by an explicit
+ * `as MonthKey`, so the guarantee is "no accidental month, and one checked mint point" — not
+ * airtightness.
  */
 export function monthLabel(month: MonthKey): string {
   const [year, index] = month.split('-');

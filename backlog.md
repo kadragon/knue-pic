@@ -2,6 +2,17 @@
 
 ## Review Backlog
 
+### `as MonthKey` bypasses the brand, and only prose says not to (2026-08-28)
+
+- [ ] [constraint] PR #31 branded `MonthKey`, so no *implicit* assignment from a string can produce
+  one — but `x as MonthKey` still can, and nothing mechanical restricts the cast to the checked mint
+  point. The doc comments were softened to say so rather than to overclaim, which leaves the
+  guarantee verbal: an eslint `no-restricted-syntax` rule banning a `TSAsExpression` to `MonthKey`
+  outside `src/data/iso-date.ts` would make "one checked mint point" enforced instead of asserted
+  (source: PR #31 review panel — code-review, plus contract QA independently; declined there as
+  outside the sprint's scope, which named no eslint config) — `eslint.config.js`,
+  `src/data/iso-date.ts`
+
 ### `docs/architecture.md` still describes the four discovery windows (2026-08-26)
 
 - [ ] [docs] `docs/architecture.md:251` says "the four windows are cumulative", describing the

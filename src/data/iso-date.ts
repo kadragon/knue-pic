@@ -74,9 +74,13 @@ export function isIsoDate(value: unknown): value is string {
  * `${number}-${MonthOfYear}` still admitted `'-1-08'`, `'1e3-08'`, `'1.5-08'` and `'12345-08'`,
  * each of which renders a blank or absurd year. Spelling the year out is not available either —
  * `${D}${D}${D}${D}-${MonthOfYear}` is 120,000 union members and TypeScript rejects it with
- * TS2590. The brand makes the two functions below the only way in, so `MONTH_KEY` and `monthKey`'s
- * guards are now the single definition of the shape at both compile time and runtime, and no
- * string literal — not even a well-formed `'2026-08'` — is assignable without passing one of them.
+ * TS2590. The brand rejects every string literal alike — a well-formed `'2026-08'` as firmly as
+ * `''` — so `MONTH_KEY` and `monthKey`'s guards below are the single definition of the shape, and
+ * the only way to obtain a value of this type is to pass one of them.
+ *
+ * It is a brand, not a proof: `x as MonthKey` still bypasses it, exactly as `monthKey` itself does
+ * one line below. What the brand buys is that no *implicit* assignment can, so a bypass has to be
+ * written down as a cast — and the only one in `src/` is the checked one below.
  */
 export type MonthKey = string & { readonly __monthKey: unique symbol };
 
