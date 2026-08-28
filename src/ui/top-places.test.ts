@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import { monthKey } from '../data/iso-date';
 import type { PlacesDataset } from '../data/types';
 import { HISTOGRAM_MONTHS, histogramSpan, type MonthlyHistogram } from '../stats/histogram';
 import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
@@ -312,12 +313,12 @@ describe('renderTopPlaces', () => {
     // the span exists to remove. Row 0 is given a span nothing else shares, so the assertion fails
     // if the caption is ever inferred from it again.
     const result = computeTopPlaces(SAMPLE_DATASET, '1y');
-    const stale: MonthlyHistogram = [{ month: '2019-01', visitCount: 7 }];
+    const stale: MonthlyHistogram = [{ month: monthKey(2019, 1), visitCount: 7 }];
     const container = render({ ...result, entries: [{ ...result.entries[0]!, histogram: stale }] });
 
     const note = container.querySelector('.top-places-trend-note');
     expect(note?.textContent).toBe(trendSpanNote(result.chartedSpan));
-    expect(note?.textContent).not.toContain(monthLabel('2019-01'));
+    expect(note?.textContent).not.toContain(monthLabel(monthKey(2019, 1)));
   });
 });
 
@@ -457,9 +458,9 @@ describe('renderTopPlaces selection', () => {
 describe('sparklineLabel', () => {
   it('names every charted month, including the empty ones', () => {
     const label = sparklineLabel([
-      { month: '2026-06', visitCount: 2 },
-      { month: '2026-07', visitCount: 0 },
-      { month: '2026-08', visitCount: 1 },
+      { month: monthKey(2026, 6), visitCount: 2 },
+      { month: monthKey(2026, 7), visitCount: 0 },
+      { month: monthKey(2026, 8), visitCount: 1 },
     ]);
 
     // The quiet month is the whole reason the label exists: bars convey a gap by height alone, and
@@ -471,8 +472,8 @@ describe('sparklineLabel', () => {
 
   it('names the charted months rather than counting them, so it cannot be read as the period', () => {
     const buckets: MonthlyHistogram = [
-      { month: '2025-09', visitCount: 1 },
-      { month: '2026-08', visitCount: 2 },
+      { month: monthKey(2025, 9), visitCount: 1 },
+      { month: monthKey(2026, 8), visitCount: 2 },
     ];
 
     // A count — `최근 12개월` — spells the same thing as the 최근 1년 period button, whose window
@@ -485,8 +486,8 @@ describe('sparklineLabel', () => {
 describe('trendSpanNote', () => {
   it('states the same span the spoken label states', () => {
     const buckets: MonthlyHistogram = [
-      { month: '2025-09', visitCount: 1 },
-      { month: '2026-08', visitCount: 2 },
+      { month: monthKey(2025, 9), visitCount: 1 },
+      { month: monthKey(2026, 8), visitCount: 2 },
     ];
     const span = histogramSpan(buckets);
 
@@ -501,9 +502,9 @@ describe('trendSpanNote', () => {
 describe('renderSparkline', () => {
   it('draws one bar per bucket, scaled against the place\'s own busiest month', () => {
     const buckets: MonthlyHistogram = [
-      { month: '2026-06', visitCount: 2 },
-      { month: '2026-07', visitCount: 0 },
-      { month: '2026-08', visitCount: 4 },
+      { month: monthKey(2026, 6), visitCount: 2 },
+      { month: monthKey(2026, 7), visitCount: 0 },
+      { month: monthKey(2026, 8), visitCount: 4 },
     ];
     const chart = renderSparkline(buckets);
 
@@ -514,7 +515,7 @@ describe('renderSparkline', () => {
   });
 
   it('carries the series as text a screen reader can reach', () => {
-    const buckets: MonthlyHistogram = [{ month: '2026-08', visitCount: 3 }];
+    const buckets: MonthlyHistogram = [{ month: monthKey(2026, 8), visitCount: 3 }];
     const chart = renderSparkline(buckets);
 
     // `role="img"` is load-bearing: WAI-ARIA prohibits naming a bare span, so without it the
@@ -525,8 +526,8 @@ describe('renderSparkline', () => {
 
   it('writes no NaN width when nothing was charted', () => {
     const quiet: MonthlyHistogram = [
-      { month: '2026-07', visitCount: 0 },
-      { month: '2026-08', visitCount: 0 },
+      { month: monthKey(2026, 7), visitCount: 0 },
+      { month: monthKey(2026, 8), visitCount: 0 },
     ];
     const chart = renderSparkline(quiet);
 

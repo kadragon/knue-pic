@@ -63,37 +63,30 @@ export function isIsoDate(value: unknown): value is string {
 }
 
 /**
- * The two-digit month half of a `YYYY-MM` key. Written out rather than derived from `${number}`
- * because `${number}` accepts `8` and `13` as readily as `08`, which is the whole point of the
- * shape being checked. Both halves cannot be spelled digit-by-digit — the resulting union is a
- * million members and past what TypeScript will expand.
- */
-type MonthOfYear = '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
-
-/**
  * A calendar month as `YYYY-MM`, checked by its type rather than by discipline at the call sites.
  *
  * `src/stats/histogram.ts` buckets and spans by month, and `src/ui/place-labels.ts` renders a
  * month by splitting on `-` and calling `Number` on the halves — so a value that is merely a
  * `string` renders `년 NaN월` for `''`, and nothing but convention stopped one from being written.
- * Every month a chart or a span carries is this type, so `''` has no way in.
  *
- * What it does NOT close: `${number}` is TypeScript's own numeric-literal matcher, not four
- * digits, so `'-1-08'`, `'1e3-08'`, `'1.5-08'` and `'12345-08'` are all assignable and render
- * `년 1월`, `1e3년 8월`, `1.5년 8월`, `12345년 8월`. Spelling the year digit-by-digit is not an
- * option — `${D}${D}${D}${D}-${MonthOfYear}` is 120,000 union members and TypeScript rejects it
- * with TS2590 — so the four-digit rule is enforced by `monthKey` and `MONTH_KEY` below, at
- * runtime, and not by this type. Closing it in the type needs a nominal brand; see backlog.
+ * A nominal brand rather than a template-literal type, because no template literal can say "four
+ * digits": `${number}` is TypeScript's numeric-literal matcher, so the previous
+ * `${number}-${MonthOfYear}` still admitted `'-1-08'`, `'1e3-08'`, `'1.5-08'` and `'12345-08'`,
+ * each of which renders a blank or absurd year. Spelling the year out is not available either —
+ * `${D}${D}${D}${D}-${MonthOfYear}` is 120,000 union members and TypeScript rejects it with
+ * TS2590. The brand makes the two functions below the only way in, so `MONTH_KEY` and `monthKey`'s
+ * guards are now the single definition of the shape at both compile time and runtime, and no
+ * string literal — not even a well-formed `'2026-08'` — is assignable without passing one of them.
  */
-export type MonthKey = `${number}-${MonthOfYear}`;
+export type MonthKey = string & { readonly __monthKey: unique symbol };
 
 /**
  * `2026`, `8` -> `2026-08`. The only way to build a `MonthKey` from numbers.
  *
- * The cast is unavoidable — `padStart` returns `string`, so the template widens and TypeScript
- * cannot see the shape it just produced — which is why both halves are checked first. Without the
- * checks the cast would assert a shape nothing verified, and `RangeError` is how a month that does
- * not exist already fails in `parseIsoDate` above.
+ * The cast is unavoidable — a branded type is by construction not something a value can be seen to
+ * have — which is why both halves are checked first. Without the checks the cast would assert a
+ * shape nothing verified, and `RangeError` is how a month that does not exist already fails in
+ * `parseIsoDate` above.
  *
  * The year is range-checked as well as the month, because `padStart` pads rather than truncates:
  * `monthKey(-1, 8)` would otherwise return `'00-1-08'` — a value this module's own `isMonthKey`
@@ -117,9 +110,9 @@ export function monthKey(year: number, month: number): MonthKey {
 /**
  * True when `value` is a string naming a real calendar month. Never throws.
  *
- * Deliberately stricter than `MonthKey` itself, whose year half cannot express "four digits" (see
- * there). It is the runtime half of the shape rule, and agrees exactly with `monthKey`'s guards
- * above — check both together when either changes.
+ * The only way to obtain a `MonthKey` from a string the app did not build itself, now that the
+ * type is branded. It agrees exactly with `monthKey`'s guards above — check both together when
+ * either changes.
  */
 export function isMonthKey(value: unknown): value is MonthKey {
   return typeof value === 'string' && MONTH_KEY.test(value);

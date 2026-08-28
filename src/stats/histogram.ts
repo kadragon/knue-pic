@@ -36,9 +36,8 @@ export type MonthlyHistogram = readonly [HistogramBucket, ...HistogramBucket[]];
  * typecheck and print `년 NaN월`. Both producers below derive their ends from months this module
  * built, so neither relies on the type to catch it.
  *
- * The type closes the blank and the malformed month; it does not close every malformed *year* a
- * hand-written span could still name — see `MonthKey` in `src/data/iso-date.ts` for what remains
- * open and why.
+ * `MonthKey` is branded, so the type now closes every malformed end — blank, unpadded month and
+ * malformed year alike: the only way to write one is through `monthKey` or `isMonthKey`.
  */
 export interface HistogramSpan {
   first: MonthKey;

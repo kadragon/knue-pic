@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
+import { monthKey } from '../data/iso-date';
 import { computeMonthlyHistogram, histogramSpan } from '../stats/histogram';
 import type { HistogramSpan } from '../stats/histogram';
 import {
@@ -56,19 +57,23 @@ describe('histogramSpanLabel', () => {
   it('names the span from its ends, not from how many months lie between them', () => {
     // Derived, not hardcoded: moving an end has to move the label, or the label would be free to
     // state a span the chart does not draw.
-    expect(histogramSpanLabel({ first: '2025-09', last: '2026-08' })).toBe(
-      `${monthLabel('2025-09')}~${monthLabel('2026-08')}`,
+    expect(histogramSpanLabel({ first: monthKey(2025, 9), last: monthKey(2026, 8) })).toBe(
+      `${monthLabel(monthKey(2025, 9))}~${monthLabel(monthKey(2026, 8))}`,
     );
-    expect(histogramSpanLabel({ first: '2025-10', last: '2026-08' })).toBe(
-      `${monthLabel('2025-10')}~${monthLabel('2026-08')}`,
+    expect(histogramSpanLabel({ first: monthKey(2025, 10), last: monthKey(2026, 8) })).toBe(
+      `${monthLabel(monthKey(2025, 10))}~${monthLabel(monthKey(2026, 8))}`,
     );
     // Pinned literally once as well, so a reword of `monthLabel` cannot leave both sides of the
     // assertions above agreeing on a form no reader ever sees.
-    expect(histogramSpanLabel({ first: '2025-09', last: '2026-08' })).toBe('2025년 9월~2026년 8월');
+    expect(histogramSpanLabel({ first: monthKey(2025, 9), last: monthKey(2026, 8) })).toBe(
+      '2025년 9월~2026년 8월',
+    );
   });
 
   it('states a single charted month once rather than as a range onto itself', () => {
-    expect(histogramSpanLabel({ first: '2026-08', last: '2026-08' })).toBe(monthLabel('2026-08'));
+    expect(histogramSpanLabel({ first: monthKey(2026, 8), last: monthKey(2026, 8) })).toBe(
+      monthLabel(monthKey(2026, 8)),
+    );
   });
 
   it('names both ends of a producer-built series, never the blank the empty branch used to give', () => {
@@ -79,7 +84,7 @@ describe('histogramSpanLabel', () => {
     const buckets = computeMonthlyHistogram(SAMPLE_DATASET.places[0]!, '2026-08-01');
     const label = histogramSpanLabel(histogramSpan(buckets));
 
-    expect(label).toBe(`${monthLabel('2025-09')}~${monthLabel('2026-08')}`);
+    expect(label).toBe(`${monthLabel(monthKey(2025, 9))}~${monthLabel(monthKey(2026, 8))}`);
     expect(`${label} 이용 횟수`).not.toMatch(/^\s|\s\s/);
   });
 

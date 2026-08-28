@@ -63,10 +63,18 @@ describe('isMonthKey', () => {
  * `MonthKey` were widened back to `string`, so the branding is asserted here instead: each line
  * fails the build if the assignment ever starts compiling.
  */
-describe('MonthKey rejects a malformed month at compile time', () => {
-  it('accepts a zero-padded literal and nothing else', () => {
-    const valid: MonthKey = '2026-08';
+describe('MonthKey rejects every string literal at compile time', () => {
+  it('is reachable only through the constructor', () => {
+    const valid: MonthKey = monthKey(2026, 8);
 
+    // @ts-expect-error the brand is what makes the constructor the only way in — a well-formed
+    // literal is no longer a `MonthKey` either
+    const wellFormed: MonthKey = '2026-08';
+
+    expect([valid, wellFormed]).toHaveLength(2);
+  });
+
+  it('rejects the malformed months the template-literal type already closed', () => {
     // @ts-expect-error a blank month is what rendered `년 NaN월`
     const blank: MonthKey = '';
     // @ts-expect-error an unpadded month is not the shape the charts build
@@ -76,6 +84,23 @@ describe('MonthKey rejects a malformed month at compile time', () => {
     // @ts-expect-error a full ISO date is a different shape
     const fullDate: MonthKey = '2026-08-01';
 
-    expect([valid, blank, unpadded, overflow, fullDate]).toHaveLength(5);
+    expect([blank, unpadded, overflow, fullDate]).toHaveLength(4);
+  });
+
+  it('rejects the malformed years `${number}` let through', () => {
+    // The hole this sprint closes. `${number}` is TypeScript's numeric-literal matcher, not four
+    // digits, so each of these was assignable to the old `MonthKey` and rendered through
+    // `monthLabel` as `년 1월`, `1e3년 8월`, `1.5년 8월` and `12345년 8월`.
+
+    // @ts-expect-error a negative year renders a blank year half
+    const negative: MonthKey = '-1-08';
+    // @ts-expect-error exponent notation is a numeric literal, not a four-digit year
+    const exponent: MonthKey = '1e3-08';
+    // @ts-expect-error a fractional year is a numeric literal too
+    const fractional: MonthKey = '1.5-08';
+    // @ts-expect-error five digits is not a four-digit year
+    const tooLong: MonthKey = '12345-08';
+
+    expect([negative, exponent, fractional, tooLong]).toHaveLength(4);
   });
 });
