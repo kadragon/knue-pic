@@ -1,5 +1,6 @@
 import type { PlaceRecord } from '../data/types';
-import { formatIsoDate, parseIsoDate } from '../data/iso-date';
+import type { MonthKey } from '../data/iso-date';
+import { formatIsoDate, monthKey, parseIsoDate } from '../data/iso-date';
 
 /**
  * Visits per calendar month for one place, for the detail card's monthly chart. Pure — no DOM.
@@ -13,8 +14,7 @@ import { formatIsoDate, parseIsoDate } from '../data/iso-date';
  */
 
 export interface HistogramBucket {
-  /** `YYYY-MM`. */
-  month: string;
+  month: MonthKey;
   visitCount: number;
 }
 
@@ -28,14 +28,21 @@ export interface HistogramBucket {
  */
 export type MonthlyHistogram = readonly [HistogramBucket, ...HistogramBucket[]];
 
-/** The two ends of a charted series, as `YYYY-MM`. */
+/**
+ * The two ends of a charted series.
+ *
+ * `MonthKey` rather than `string` is what makes a blank span unwritable: `histogramSpanLabel`
+ * renders its ends through `monthLabel`, and a `{ first: '', last: '' }` written by hand used to
+ * typecheck and print `년 NaN월`. Both producers below derive their ends from months this module
+ * built, so neither relies on the type to catch it.
+ *
+ * The type closes the blank and the malformed month; it does not close every malformed *year* a
+ * hand-written span could still name — see `MonthKey` in `src/data/iso-date.ts` for what remains
+ * open and why.
+ */
 export interface HistogramSpan {
-  first: string;
-  last: string;
-}
-
-function monthKey(year: number, month: number): string {
-  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
+  first: MonthKey;
+  last: MonthKey;
 }
 
 /**
@@ -63,20 +70,20 @@ export const HISTOGRAM_MONTHS = 12;
 export function chartedMonths(
   anchor: string,
   monthCount: number = HISTOGRAM_MONTHS,
-): readonly [string, ...string[]] {
+): readonly [MonthKey, ...MonthKey[]] {
   if (!Number.isInteger(monthCount) || monthCount < 1) {
     throw new RangeError(`monthCount must be an integer of at least 1, received ${monthCount}`);
   }
 
   const end = parseIsoDate(anchor);
-  const monthAt = (offset: number): string => {
+  const monthAt = (offset: number): MonthKey => {
     const shifted = end.year * 12 + (end.month - 1) - offset;
     return monthKey(Math.floor(shifted / 12), (shifted % 12) + 1);
   };
 
   // The oldest month is placed before the loop rather than pushed inside it, so the tuple is
   // non-empty to the type checker without an assertion or an unreachable guard.
-  const months: [string, ...string[]] = [monthAt(monthCount - 1)];
+  const months: [MonthKey, ...MonthKey[]] = [monthAt(monthCount - 1)];
   for (let offset = monthCount - 2; offset >= 0; offset -= 1) months.push(monthAt(offset));
   return months;
 }

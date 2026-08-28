@@ -1,4 +1,5 @@
 import type { PlaceRecord } from '../data/types';
+import type { MonthKey } from '../data/iso-date';
 import type { HistogramSpan } from '../stats/histogram';
 
 /** Small display transforms shared by every place list and the detail dialog. */
@@ -71,8 +72,18 @@ export function renderKindBadge(place: PlaceRecord): HTMLSpanElement {
  * Lives here rather than in either view: the detail card's chart labels every bar with it and the
  * ranked row's trend bars name their months with it, and a second copy is how the two charts end
  * up spelling the same month differently.
+ *
+ * Takes a `MonthKey`, not a `string`: an `''` reaching here rendered `년 NaN월`, and
+ * `src/data/iso-date.ts` is where a month is shaped before one exists. The destructuring stays
+ * unguarded because TypeScript does not narrow `.split()` against a template-literal type — the
+ * guarantee is at the boundary, not here.
+ *
+ * That boundary is not airtight in the type alone: `MonthKey`'s year half admits `'-1-08'` and
+ * `'1e3-08'`, which render `년 1월` and `1e3년 8월`. Every month this app builds comes from
+ * `monthKey`, which rejects both, so no such value is reachable — but the guarantee is the
+ * producer's, not this signature's.
  */
-export function monthLabel(month: string): string {
+export function monthLabel(month: MonthKey): string {
   const [year, index] = month.split('-');
   return `${year}년 ${Number(index)}월`;
 }

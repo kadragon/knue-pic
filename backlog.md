@@ -2,16 +2,22 @@
 
 ## Review Backlog
 
-### `HistogramSpan` is unbranded, so a blank span is still hand-constructible (2026-08-26)
+### `MonthKey`'s year half is `${number}`, so a malformed year still renders (2026-08-28)
 
-- [ ] [debt] PR #29 closed the empty-bucket-array hole in the type (`MonthlyHistogram`), but
-  `HistogramSpan` is a plain `{ first: string; last: string }`: a hand-written
-  `histogramSpanLabel({ first: '', last: '' })` still renders `년 NaN월` through `monthLabel`.
-  Nothing in production builds a span by hand — both producers are `histogramSpan` and
-  `histogramSpanFor` — so "no blank span is reachable" now rests on discipline at two call sites
-  rather than on the type. Branding the fields as a `YYYY-MM` template-literal type would close it,
-  but the ripple reaches `monthKey` and `HistogramBucket.month`, which is why it was left out of
-  #29 (source: PR #29 contract QA, non-blocking) — `src/stats/histogram.ts`, `src/ui/place-labels.ts`
+- [ ] [debt] PR #30 branded the month key, which closed `''` and every malformed *month*
+  (`'2026-8'`, `'2026-13'`). The year half is `${number}` — TypeScript's numeric-literal matcher,
+  not four digits — so `'-1-08'`, `'1e3-08'`, `'1.5-08'` and `'12345-08'` are all assignable to
+  `MonthKey` and a hand-written `HistogramSpan` renders `년 1월` / `1e3년 8월` / `12345년 8월`.
+  `'-1-08'`'s blank year is the same class of label the PR set out to make unconstructible. The
+  four-digit rule currently lives only at runtime, in `monthKey`'s guards and `MONTH_KEY`; the type
+  and the guard therefore disagree about what a `MonthKey` is. Spelling the year digit-by-digit is
+  not available — `${D}${D}${D}${D}-${MonthOfYear}` is 120,000 union members and `tsc` rejects it
+  with TS2590 (verified). Closing it needs a nominal brand
+  (`string & { readonly __monthKey: unique symbol }`) minted only by `monthKey`, which also makes
+  `isMonthKey` reachable — but that changes ~20 existing test call sites that pass bare `'2026-08'`
+  literals, so it is its own sprint (source: PR #30 review panel — code-review, Codex and contract
+  QA independently, plus contract QA's runtime probe of the rendered labels) —
+  `src/data/iso-date.ts`, `src/stats/histogram.ts`, `src/ui/place-labels.ts`
 
 ### `docs/architecture.md` still describes the four discovery windows (2026-08-26)
 
