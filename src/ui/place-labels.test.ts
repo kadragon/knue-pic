@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { computeMonthlyHistogram, histogramSpan } from '../stats/histogram';
+import type { HistogramSpan } from '../stats/histogram';
 import {
   displayCategory,
   displayDate,
@@ -80,5 +81,18 @@ describe('histogramSpanLabel', () => {
 
     expect(label).toBe(`${monthLabel('2025-09')}~${monthLabel('2026-08')}`);
     expect(`${label} 이용 횟수`).not.toMatch(/^\s|\s\s/);
+  });
+
+  it('refuses a hand-written blank span at compile time, not at render time', () => {
+    // The hole this closes: `HistogramSpan.first`/`.last` were plain `string`, so the literal
+    // below typechecked and printed `년 NaN월`. The runtime assertion alone would keep passing if
+    // the fields were widened back, so the `@ts-expect-error` is the half that holds the type.
+
+    // @ts-expect-error a span's ends are `MonthKey`, and `''` is not one
+    const blank: HistogramSpan = { first: '', last: '' };
+    // @ts-expect-error an unpadded month is not a `MonthKey` either
+    const unpadded: HistogramSpan = { first: '2025-9', last: '2026-8' };
+
+    expect([blank, unpadded]).toHaveLength(2);
   });
 });

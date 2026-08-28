@@ -2,17 +2,6 @@
 
 ## Review Backlog
 
-### `HistogramSpan` is unbranded, so a blank span is still hand-constructible (2026-08-26)
-
-- [ ] [debt] PR #29 closed the empty-bucket-array hole in the type (`MonthlyHistogram`), but
-  `HistogramSpan` is a plain `{ first: string; last: string }`: a hand-written
-  `histogramSpanLabel({ first: '', last: '' })` still renders `년 NaN월` through `monthLabel`.
-  Nothing in production builds a span by hand — both producers are `histogramSpan` and
-  `histogramSpanFor` — so "no blank span is reachable" now rests on discipline at two call sites
-  rather than on the type. Branding the fields as a `YYYY-MM` template-literal type would close it,
-  but the ripple reaches `monthKey` and `HistogramBucket.month`, which is why it was left out of
-  #29 (source: PR #29 contract QA, non-blocking) — `src/stats/histogram.ts`, `src/ui/place-labels.ts`
-
 ### `docs/architecture.md` still describes the four discovery windows (2026-08-26)
 
 - [ ] [docs] `docs/architecture.md:251` says "the four windows are cumulative", describing the
