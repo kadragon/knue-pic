@@ -38,9 +38,10 @@ export type MonthlyHistogram = readonly [HistogramBucket, ...HistogramBucket[]];
  *
  * `MonthKey` is branded, so no literal end — blank, unpadded month or malformed year — can be
  * written here implicitly; and `eslint.config.js` confines the forgeries that spell the name —
- * cast, angle-bracket assertion, alias, ambient declaration — to `src/data/iso-date.ts`. So a
- * value here has come from `monthKey` or `isMonthKey` short of a bypass someone had to write
- * down; see that file's `MonthKey` comment for what the rule cannot reach.
+ * cast, angle-bracket assertion, alias, ambient declaration — to `src/data/iso-date.ts`. That
+ * makes an accidental `MonthKey` here unlikely, not impossible: a value the rule never sees named
+ * — an untyped `JSON.parse` assigned straight to the annotation — still reaches this type. See
+ * that file's `MonthKey` comment for the full list of what the rule cannot reach.
  */
 export interface HistogramSpan {
   first: MonthKey;

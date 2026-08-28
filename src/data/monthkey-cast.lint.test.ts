@@ -52,6 +52,8 @@ describe('the MonthKey forgery ban', () => {
     ['an ambient binding', 'declare const m: MonthKey;\nexport const e = m;'],
     ['an ambient function', 'declare function mint(x: string): MonthKey;\nexport const f = mint(s);'],
     ['an ambient class member', 'declare class C { static m: MonthKey }\nexport const g = C.m;'],
+    ['an ambient module binding', "declare module 'x' { export const q: MonthKey }"],
+    ['an interface method returning one', 'interface Mint { mint(x: string): MonthKey }\ndeclare const mk: Mint;\nexport const h = mk.mint(s);'],
   ])('rejects %s outside the mint point', async (_label, statement) => {
     const ids = await ruleIdsFor(
       `import type { MonthKey } from '../data/iso-date';\ndeclare const s: string;\n${statement}\n`,
@@ -61,14 +63,18 @@ describe('the MonthKey forgery ban', () => {
   }, LINT_TIMEOUT_MS);
 
   /**
-   * The ban is on giving the type a second name or an unchecked value — not on using it. A
-   * `MonthKey` inside a composite type, and a cast to anything else, must stay legal or the rule
-   * would be unusable and get disabled.
+   * The ban is on giving the type a second name or an unchecked value — not on *using* it. A
+   * `MonthKey` in a parameter position consumes one and is the entire point of the type, so an
+   * ambient signature that merely accepts one must stay legal; an earlier revision of the ambient
+   * selector matched any descendant and rejected those, which is the shape that gets a rule
+   * disabled rather than obeyed.
    */
   it.each([
     ['a cast to an unrelated type', 'export const g = s as string;'],
     ['a MonthKey inside a composite type', 'export type Row = { month: MonthKey; visits: number };'],
     ['a plain re-export of the name', 'export type { MonthKey };'],
+    ['a MonthKey parameter on an overload signature', 'export function f(m: MonthKey): string;\nexport function f(m: string): string;\nexport function f(m: string): string { return m; }'],
+    ['a MonthKey parameter on an ambient function', 'declare function consume(m: MonthKey): void;\nexport const use = consume;'],
   ])('allows %s', async (_label, statement) => {
     const ids = await ruleIdsFor(
       `import type { MonthKey } from '../data/iso-date';\ndeclare const s: string;\n${statement}\n`,

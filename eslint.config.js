@@ -46,12 +46,19 @@ const MONTH_KEY_FORGERY = [
     message: `Do not alias MonthKey to a second name — an alias escapes the cast ban. ${MONTH_KEY_ADVICE}`,
   },
   {
-    // `declare const m: MonthKey` / `declare function mint(): MonthKey` / `declare class C { static m: MonthKey }`
-    // mint one with no cast at all. `TSDeclareFunction` also covers a non-ambient overload
-    // signature returning `MonthKey`, which is the same unchecked promise written a second way.
+    // `declare const m: MonthKey` / `declare class C { static m: MonthKey }` inside an ambient
+    // context: a binding whose *type* is the brand, promised without a check.
     selector:
-      ':matches(VariableDeclaration[declare=true], ClassDeclaration[declare=true], TSDeclareFunction, TSModuleDeclaration) Identifier[name="MonthKey"]',
+      ':matches(VariableDeclaration[declare=true], ClassDeclaration[declare=true], TSModuleDeclaration) :matches(VariableDeclarator > Identifier > TSTypeAnnotation, PropertyDefinition > TSTypeAnnotation, TSPropertySignature > TSTypeAnnotation) Identifier[name="MonthKey"]',
     message: `Do not declare a MonthKey into existence — an ambient declaration is unchecked. ${MONTH_KEY_ADVICE}`,
+  },
+  {
+    // A signature that *returns* the brand with no body to check it: `declare function mint(): MonthKey`,
+    // a non-ambient overload, or a method signature reached through a `declare const`. Only the
+    // return position — a `MonthKey` **parameter** consumes one and is exactly what the type is for.
+    selector:
+      ':matches(TSDeclareFunction, TSMethodSignature, TSFunctionType, MethodDefinition) > TSTypeAnnotation.returnType Identifier[name="MonthKey"]',
+    message: `Do not promise a MonthKey from an unchecked signature. ${MONTH_KEY_ADVICE}`,
   },
 ];
 
@@ -63,7 +70,7 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
     ignores: [MONTH_KEY_MINT],
     rules: {
       'no-restricted-syntax': ['error', ...MONTH_KEY_FORGERY],

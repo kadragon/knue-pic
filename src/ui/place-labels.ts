@@ -84,7 +84,8 @@ export function renderKindBadge(place: PlaceRecord): HTMLSpanElement {
  * possible, which is why `eslint.config.js` confines the routes that spell the name — cast,
  * angle-bracket assertion, alias, ambient declaration — to `src/data/iso-date.ts`: the guarantee
  * is "no accidental month, and one checked mint point", the second of them held by a lint rule
- * whose limits that file documents.
+ * whose limits that file documents — an untyped value assigned to a `MonthKey` annotation is
+ * outside them.
  */
 export function monthLabel(month: MonthKey): string {
   const [year, index] = month.split('-');

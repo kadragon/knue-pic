@@ -84,16 +84,22 @@ export function isIsoDate(value: unknown): value is string {
  * the cast rules do not recognise (`import`/`export { MonthKey as MK }`, `type MK = MonthKey`),
  * and an ambient `declare` that mints one with no cast at all.
  *
- * That is a floor, not a proof, and the difference is worth stating rather than rounding off. The
- * rule reaches the name only where it is written *directly* in one of those positions — in the
- * cast itself, in an import/export specifier, as a bare type alias's whole right-hand side, or in
- * the ambient declaration itself. Put it one step away and it gets through: a type named
- * indirectly (`Parameters<typeof monthLabel>[0]`), an alias whose right-hand side is a composite
- * (`type MK = MonthKey & {}`), a type-parameter default (`type Box<T = MonthKey> = T`), a return
- * type spelled in a method signature the `declare` merely refers to
- * (`interface Mint { mint(x: string): MonthKey }`) — and so does an `eslint-disable`. Each is
- * contrived enough to be visible in review, which is the point: the cheap forgeries fail the
- * build, and the rest cannot be written by accident.
+ * That is a floor, not a proof, and the difference is worth stating rather than rounding off,
+ * because the cheapest way past it is not contrived at all.
+ *
+ * The rule reaches the name only where it is *written*, so anything that produces a `MonthKey`
+ * without naming it is invisible to it — above all an untyped value flowing into an annotation:
+ * `const m: MonthKey = JSON.parse(raw)` is `any` on the right, and `JSON.parse` is exactly how
+ * this app reads `data/places.json`. `parseDataset(raw: unknown)` in `src/data/load.ts` is what
+ * stands between that file and the rest of the app, and it is doing that job here — this rule is
+ * no part of it, and is not a reason to trust an unvalidated parse. `s as unknown as never` and
+ * an `eslint-disable` reach the type the same unseen way.
+ *
+ * The rest are genuinely roundabout, and they are all a step away from a name the rule can see: a
+ * type named indirectly (`Parameters<typeof monthLabel>[0]`), an alias whose right-hand side is a
+ * composite (`type MK = MonthKey & {}`), a type-parameter default (`type Box<T = MonthKey> = T`).
+ * Those cannot be written by accident, which is the point: what the rule buys is that the cheap,
+ * legible forgeries fail the build.
  * `src/data/monthkey-cast.lint.test.ts` runs the real config over every banned route, so a rename
  * cannot leave a selector matching nothing.
  */
