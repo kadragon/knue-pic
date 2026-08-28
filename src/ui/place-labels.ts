@@ -80,9 +80,12 @@ export function renderKindBadge(place: PlaceRecord): HTMLSpanElement {
  *
  * `MonthKey` is a nominal brand minted by `monthKey` and `isMonthKey`, both of which enforce a
  * four-digit year, so the `'-1-08'` and `'1e3-08'` that used to render `년 1월` and `1e3년 8월` can
- * no longer be handed to this function by writing the literal. A brand is forgeable by an explicit
- * `as MonthKey`, so the guarantee is "no accidental month, and one checked mint point" — not
- * airtightness.
+ * no longer be handed to this function by writing the literal. Forging one is still syntactically
+ * possible, which is why `eslint.config.js` confines the routes that spell the name — cast,
+ * angle-bracket assertion, alias, ambient declaration — to `src/data/iso-date.ts`: the guarantee
+ * is "no accidental month, and one checked mint point", the second of them held by a lint rule
+ * whose limits that file documents — an untyped value assigned to a `MonthKey` annotation is
+ * outside them.
  */
 export function monthLabel(month: MonthKey): string {
   const [year, index] = month.split('-');

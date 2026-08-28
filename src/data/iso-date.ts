@@ -78,9 +78,30 @@ export function isIsoDate(value: unknown): value is string {
  * `''` — so `MONTH_KEY` and `monthKey`'s guards below are the single definition of the shape, and
  * the only way to obtain a value of this type is to pass one of them.
  *
- * It is a brand, not a proof: `x as MonthKey` still bypasses it, exactly as `monthKey` itself does
- * one line below. What the brand buys is that no *implicit* assignment can, so a bypass has to be
- * written down as a cast — and the only one in `src/` is the checked one below.
+ * The brand stops implicit assignment, not a cast — `monthKey` itself forges one a few lines
+ * below. So a forgery is what the guarantee rests on, and `eslint.config.js` bans the ones that
+ * write the name: `as MonthKey` and `<MonthKey>x`, an alias that would give the type a second name
+ * the cast rules do not recognise (`import`/`export { MonthKey as MK }`, `type MK = MonthKey`),
+ * and an ambient `declare` that mints one with no cast at all.
+ *
+ * That is a floor, not a proof, and the difference is worth stating rather than rounding off,
+ * because the cheapest way past it is not contrived at all.
+ *
+ * The rule reaches the name only where it is *written*, so anything that produces a `MonthKey`
+ * without naming it is invisible to it — above all an untyped value flowing into an annotation:
+ * `const m: MonthKey = JSON.parse(raw)` is `any` on the right, and `JSON.parse` is exactly how
+ * this app reads `data/places.json`. `parseDataset(raw: unknown)` in `src/data/load.ts` is what
+ * stands between that file and the rest of the app, and it is doing that job here — this rule is
+ * no part of it, and is not a reason to trust an unvalidated parse. `s as unknown as never` and
+ * an `eslint-disable` reach the type the same unseen way.
+ *
+ * The rest are genuinely roundabout, and they are all a step away from a name the rule can see: a
+ * type named indirectly (`Parameters<typeof monthLabel>[0]`), an alias whose right-hand side is a
+ * composite (`type MK = MonthKey & {}`), a type-parameter default (`type Box<T = MonthKey> = T`).
+ * Those cannot be written by accident, which is the point: what the rule buys is that the cheap,
+ * legible forgeries fail the build.
+ * `src/data/monthkey-cast.lint.test.ts` runs the real config over every banned route, so a rename
+ * cannot leave a selector matching nothing.
  */
 export type MonthKey = string & { readonly __monthKey: unique symbol };
 
