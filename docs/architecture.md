@@ -248,8 +248,12 @@ saying so.
    aggregation on load and one more per switch, and a place selected from the list is shown the
    selected window's figures. Each aggregation ranks the *whole* window; the view pages through it
    as the reader scrolls, so no cap is applied at compute time. `computeTopPlaces` also attaches
-   each visible row's monthly histogram: the four windows are cumulative, so a shape drawn from
-   them would rise monotonically for every place, and calendar months are what actually vary.
+   each visible row's monthly histogram, bucketed by *calendar* month rather than by the selected
+   period: the selector's windows nest (1m inside 3m inside 6m inside 1y), so a series drawn from
+   them would rise monotonically for every place, and a bar labelled 2026년 3월 has to mean March
+   rather than "the month-long window ending at `updatedAt`", whose two ends move with the anchor
+   instead of with the calendar. The chart's span is therefore independent of the selected period,
+   which is why `chartedSpan` is named and rendered separately.
 3. **Rank comparison window.** The prior period is the immediately preceding window of the same
    length. When that window's data is incomplete, the rank delta is omitted — never guessed.
 4. **Approval queue.** `review_candidates.csv` is the human gate between geocoding and publication;
