@@ -56,7 +56,10 @@ const MONTH_KEY_FORGERY = [
 ];
 
 export default [
-  { ignores: ['dist/', 'collector/', 'node_modules/'] },
+  // `.worktrees/` holds checkouts of this same repo (`dev:task-next --all`). Linting them makes
+  // every file ambiguous to the TS parser — "multiple candidate TSConfigRootDirs" — so `npm run
+  // lint` fails locally for anyone mid-batch even though CI, which has no worktrees, is green.
+  { ignores: ['dist/', 'collector/', 'node_modules/', '.worktrees/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
