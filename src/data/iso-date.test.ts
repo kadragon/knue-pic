@@ -15,6 +15,16 @@ describe('monthKey', () => {
     expect(() => monthKey(2026, -1)).toThrow(RangeError);
   });
 
+  it('rejects a year outside 0000-9999 rather than padding one into a malformed key', () => {
+    // `padStart` pads, it does not truncate: without this guard `monthKey(-1, 8)` returned
+    // `'00-1-08'` — a value `isMonthKey` below reports false for and `monthLabel` renders with a
+    // blank year. The bound is what makes the `as MonthKey` cast agree with `MONTH_KEY`.
+    expect(() => monthKey(-1, 8)).toThrow(RangeError);
+    expect(() => monthKey(10000, 8)).toThrow(RangeError);
+    expect(monthKey(0, 1)).toBe('0000-01');
+    expect(monthKey(9999, 12)).toBe('9999-12');
+  });
+
   it('rejects a non-integer year or month', () => {
     expect(() => monthKey(2026, 1.5)).toThrow(RangeError);
     expect(() => monthKey(2026.5, 1)).toThrow(RangeError);

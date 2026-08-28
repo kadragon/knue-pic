@@ -34,7 +34,11 @@ export type MonthlyHistogram = readonly [HistogramBucket, ...HistogramBucket[]];
  * `MonthKey` rather than `string` is what makes a blank span unwritable: `histogramSpanLabel`
  * renders its ends through `monthLabel`, and a `{ first: '', last: '' }` written by hand used to
  * typecheck and print `년 NaN월`. Both producers below derive their ends from months this module
- * built, so nothing is asserted here that the type does not already carry.
+ * built, so neither relies on the type to catch it.
+ *
+ * The type closes the blank and the malformed month; it does not close every malformed *year* a
+ * hand-written span could still name — see `MonthKey` in `src/data/iso-date.ts` for what remains
+ * open and why.
  */
 export interface HistogramSpan {
   first: MonthKey;
