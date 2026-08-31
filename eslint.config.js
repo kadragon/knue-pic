@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { relative, resolve, sep } from 'node:path';
 
 import js from '@eslint/js';
+import ts from 'typescript';
 import tseslint from 'typescript-eslint';
 import noMonthKeyForgery from './eslint-rules/no-monthkey-forgery.js';
 
@@ -20,26 +20,67 @@ const MONTH_KEY_MINT = 'src/data/iso-date.ts';
 const PROBE = 'probe.ts';
 
 /**
- * Typed linting reaches exactly the files `tsconfig.json` includes, because that file is what
- * grants them type information — so the globs are derived from it rather than restated here.
+ * The files `tsconfig.json` grants type information to, repo-relative, as TypeScript itself
+ * resolves them — `include` minus `exclude`, through any `extends`, from a file that is allowed to
+ * carry comments and trailing commas.
+ *
+ * Exported for `src/data/monthkey-cast.lint.test.ts`, which runs it against fixture projects; the
+ * `dir` parameter exists for that and defaults to this repo.
+ *
+ * It is a list of files that exist, not a glob, so a *synthetic* `src/...` path — one handed to
+ * `ESLint.lintText` for a file that is not on disk — is not in it, and the type-aware rules are
+ * silently not applied there. That reads exactly like a rule correctly staying quiet, so a test
+ * probing a forgery must use `PROBE` or a real on-disk path, never an invented `src/` one.
+ *
+ * `ts.parseJsonConfigFileContent` rather than `JSON.parse`: tsconfig.json is JSONC, so one comment
+ * — in a repo as comment-dense as this one — made `JSON.parse` abort the entire ESLint run with a
+ * bare `SyntaxError` before a single file was linted. That is the same "one misconfigured path
+ * costs the lint of the rest of the repo, named by neither cause nor fix" failure this config's
+ * `noTypeInformation` change removes from rule-time; hand-parsing merely moved it to config-load
+ * time. Reading `include` alone had the same shape of bug in the other direction: an `exclude`d
+ * path stayed in the typed set with no project behind it, which is exactly the
+ * `... was not found by the project service` parse error being fixed here.
+ */
+export function typedFilesFromTsconfig(dir = import.meta.dirname) {
+  // Absolute, because TypeScript resolves an `include` entry against this base itself and finds no
+  // inputs at all when handed a relative one — the fixture cases pass a repo-relative path.
+  const base = resolve(dir);
+  const configPath = resolve(base, 'tsconfig.json');
+  const { config, error } = ts.readConfigFile(configPath, ts.sys.readFile);
+  if (error) {
+    throw new Error(
+      `eslint.config.js cannot read ${configPath}: ${ts.flattenDiagnosticMessageText(error.messageText, ' ')}`,
+    );
+  }
+  // `configPath` as the 5th argument, not just the base: it is what a relative `extends` resolves
+  // against, and an unresolved `extends` reads as an absent `include`.
+  const parsed = ts.parseJsonConfigFileContent(config, ts.sys, base, undefined, configPath);
+  if (parsed.errors.length > 0) {
+    throw new Error(
+      `eslint.config.js cannot resolve the file list in ${configPath}: ${parsed.errors
+        .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, ' '))
+        .join('; ')}`,
+    );
+  }
+  // ESLint matches `files` against repo-relative POSIX paths; `fileNames` are absolute and native.
+  return parsed.fileNames.map((file) => relative(base, file).split(sep).join('/'));
+}
+
+/**
+ * Typed linting reaches exactly the files `tsconfig.json` grants type information to, because that
+ * grant is what makes the type-aware rules resolvable — so the list is derived from it rather than
+ * restated here.
  *
  * Claiming more is not a wider net, it is a broken run: the project service answers a file it was
  * given no project for with `... was not found by the project service`, a parse error that fails
  * `npm run lint` naming neither cause nor fix. The previous glob claimed every TS file in the repo
- * while `include` granted two paths, so the first root-level script or `scripts/` file hits it.
+ * while the config granted two paths, so the first root-level script or `scripts/` file hits it.
  *
  * To bring a new TS file under typed linting, add it to `include` in `tsconfig.json`, or give its
  * directory a `tsconfig.json` of its own — the project service discovers a nested one. Until then
  * it is linted untyped, which is a smaller guarantee and not a failure.
  */
-const TYPED_FILES = [
-  ...JSON.parse(readFileSync(join(import.meta.dirname, 'tsconfig.json'), 'utf8')).include.map(
-    (entry) =>
-      // A `include` entry is a directory, a file, or already a glob. Only the first needs expanding.
-      /[*?]/.test(entry) || /\.[cm]?tsx?$/.test(entry) ? entry : `${entry}/**/*.{ts,tsx,mts,cts}`,
-  ),
-  PROBE,
-];
+const TYPED_FILES = [...typedFilesFromTsconfig(), PROBE];
 
 export default [
   // `.worktrees/` holds checkouts of this same repo (`dev:task-next --all`). Linting them makes

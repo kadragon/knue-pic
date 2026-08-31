@@ -1,0 +1,5 @@
+{
+  // A comment, which `tsc` accepts and `JSON.parse` does not.
+  "extends": "./base.json",
+  "exclude": ["src/generated"], /* a trailing comma follows, also legal here */
+}

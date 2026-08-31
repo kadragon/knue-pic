@@ -1,5 +1,10 @@
 import { ESLint, Linter } from 'eslint';
 
+// eslint.config.js is plain JS too, but it exports `typedFilesFromTsconfig` deliberately for the
+// fixture cases below — the same untyped-module caveat applies.
+// @ts-expect-error -- untyped JS module
+import { typedFilesFromTsconfig } from '../../eslint.config.js';
+
 // `eslint-rules/` is plain JS outside `tsconfig.json`'s include, so it ships no declarations; the
 // rule's own `@type {import('eslint').Rule.RuleModule}` JSDoc is the contract this relies on.
 // @ts-expect-error -- untyped JS module
@@ -227,11 +232,6 @@ describe('the MonthKey forgery ban', () => {
   }, LINT_TIMEOUT_MS);
 
   /**
-   * `monthKey()` mints the brand with an `as MonthKey` of its own, after checking both halves.
-   * Exempting the file by path is the whole design; if this went red the rule would have banned
-   * the only legitimate construction.
-   */
-  /**
    * A TS file `tsconfig.json` does not include is an *unlinted* file, not a broken run. The typed
    * block no longer claims it, so it parses untyped and the forgery rule — which needs types — is
    * simply not applied. Fatal messages are asserted rather than rule ids because the old failure
@@ -247,8 +247,8 @@ describe('the MonthKey forgery ban', () => {
   }, LINT_TIMEOUT_MS);
 
   /**
-   * The other direction of the same change: deriving the globs from `include` must not have
-   * narrowed the reach that matters. `src/**` is the code the guard exists for.
+   * The other direction of the same change: deriving the typed set from `tsconfig.json` must not
+   * have narrowed the reach that matters. `src/**` is the code the guard exists for.
    */
   it('still reports a forgery at an on-disk src/ path', async () => {
     const ids = await ruleIdsFor(`${SRC_PREAMBLE}\nexport const a = s as MonthKey;\n`, SRC_HOST);
@@ -271,6 +271,11 @@ describe('the MonthKey forgery ban', () => {
     expect(messages[0]?.message).toContain('tsconfig.json');
   });
 
+  /**
+   * `monthKey()` mints the brand with an `as MonthKey` of its own, after checking both halves.
+   * Exempting the file by path is the whole design; if this went red the rule would have banned
+   * the only legitimate construction.
+   */
   it('allows the checked mint point in src/data/iso-date.ts', async () => {
     const ids = await ruleIdsFor(
       'export type MonthKey = string & { readonly __monthKey: unique symbol };\ndeclare const s: string;\nexport const m = s as MonthKey;\n',
@@ -278,4 +283,47 @@ describe('the MonthKey forgery ban', () => {
     );
     expect(ids).not.toContain(MONTH_KEY_RULE);
   }, LINT_TIMEOUT_MS);
+});
+
+/**
+ * The derivation behind `TYPED_FILES` in `eslint.config.js`, run against a fixture project rather
+ * than this repo's own `tsconfig.json` — which is the only way to reach the three shapes that broke
+ * the hand-rolled `JSON.parse(...).include` it replaced. None of them is reachable from the real
+ * config without editing it, and all three fail the same way: `npm run lint` dies at config load,
+ * or lints a file the project service has no project for.
+ */
+describe('the typed-lint file set derived from tsconfig.json', () => {
+  /**
+   * `eslint-rules/fixtures/tsconfig-shapes/` — comments, a trailing comma, an `include` reached
+   * through `extends`, and an excluded `src/generated`. Relative because `typedFilesFromTsconfig`
+   * joins it, and vitest runs from the repo root.
+   */
+  const FIXTURE = 'eslint-rules/fixtures/tsconfig-shapes';
+
+  /**
+   * `tsconfig.json` is JSONC — `tsc` accepts comments and trailing commas, and this repo comments
+   * densely enough that one landing there is a matter of time. `JSON.parse` threw a bare
+   * `SyntaxError` at config load, aborting `npm run lint` before a single file was linted: the same
+   * nameless whole-run failure the `noTypeInformation` report above exists to prevent, just moved
+   * from rule time to config-load time.
+   */
+  it('reads a tsconfig.json carrying comments and a trailing comma', () => {
+    // The whole list, not just `not.toThrow()`: a helper that swallowed the fixture and returned
+    // `[]` would satisfy a bare throw-check, which is a test that cannot fail for the right reason.
+    expect(typedFilesFromTsconfig(FIXTURE)).toEqual(['src/a.ts']);
+  });
+
+  /** `include` may arrive through `extends`, where a direct `.include` read finds `undefined`. */
+  it('resolves an include inherited through extends', () => {
+    expect(typedFilesFromTsconfig(FIXTURE)).toContain('src/a.ts');
+  });
+
+  /**
+   * Reading `include` alone made the claim true in one direction only. An `exclude`d path stayed in
+   * the typed set with no project behind it — precisely the `... was not found by the project
+   * service` parse error this change removes, reintroduced through the other direction.
+   */
+  it('drops a path excluded by tsconfig.json', () => {
+    expect(typedFilesFromTsconfig(FIXTURE)).not.toContain('src/generated/b.ts');
+  });
 });
