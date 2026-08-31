@@ -2,21 +2,19 @@
 
 ## Review Backlog
 
-### `MonthKey` forgery routes the lint rule cannot reach (2026-08-28)
+### Typed linting has a narrower reach than `eslint.config.js` claims (2026-09-01)
 
-- [ ] [debt] The `no-restricted-syntax` rules PR #32 added match the identifier *text*, so they
-  reach `MonthKey` only where it is written directly in a cast, an import/export specifier, a bare
-  type alias's whole right-hand side, or an ambient declaration. QA reproduced five routes that
-  still forge one and pass both `npx eslint .` and `npx tsc --noEmit`: `s as Parameters<typeof
-  monthLabel>[0]`, `type MK = MonthKey & {}`, `type MK = string extends string ? MonthKey : never`,
-  `type Box<T = MonthKey> = T`, and — the only cheap one — an untyped value assigned straight to
-  the annotation, `const m: MonthKey = JSON.parse(raw)`. Each was verified to reach `monthLabel`
-  with `'1e3-08'`, which renders `1e3년 8월`. Closing them by selector is an arms race the first
-  two win outright: no text selector can see a type that is never named. The real options are a
-  type-aware rule (`@typescript-eslint` with type information, which would also subsume the
-  syntactic ones) or accepting the floor. The limits are documented on `MonthKey` in
-  `src/data/iso-date.ts`; this item is the decision, not a bug (source: PR #32 contract QA and
-  review panel, deliberately declined there) — `eslint.config.js`, `src/data/iso-date.ts`
+- [ ] [debt] PR #34 turned on `projectService` for `**/*.ts`, but `tsconfig.json` includes only
+  `["src", "vite.config.ts"]`. A TS file outside that set — a root-level script, anything under a
+  future `scripts/` — is a parse error rather than an unlinted file: `... was not found by the
+  project service`, which fails `npm run lint` and CI with a message naming neither cause nor fix.
+  `local/no-monthkey-forgery` compounds it: `create()` throws when type information is missing, so
+  one unconfigured file aborts the whole ESLint run instead of skipping a rule. Nothing hits this
+  today (`npx eslint .` is green, and the repo has no such file), which is why it was left out of
+  PR #34's scope — `tsconfig.json` was not in that Sprint Contract. Decide between widening the
+  include, adding a second tsconfig for tooling, and scoping the typed block to `src/**`; the
+  `create()` throw should become a rule-level report either way (source: PR #34 review panel,
+  P3/confidence 95) — `eslint.config.js`, `tsconfig.json`, `eslint-rules/no-monthkey-forgery.js`
 
 ### `1m` test title echoes the span figure the comment dropped (2026-08-31)
 
