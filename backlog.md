@@ -18,14 +18,14 @@
   `src/data/iso-date.ts`; this item is the decision, not a bug (source: PR #32 contract QA and
   review panel, deliberately declined there) — `eslint.config.js`, `src/data/iso-date.ts`
 
-### `1m` window length is misdescribed in a source comment (2026-08-28)
+### `1m` test title echoes the span figure the comment dropped (2026-08-31)
 
-- [ ] [docs] `src/stats/period.ts:23` says the half-open bound "keeps a `1m` window at 31 days
-  rather than 32". The span is 28-31 days depending on the anchor: 2026-03-15 gives 28, and a
-  month-end anchor gives the anchor's own month length via the day-clamping in `subtractMonths`
-  (2026-03-31 → start 2026-02-28 → 31). PR #32 rewrote the `docs/architecture.md` paragraph that
-  would have inherited the figure, so this comment is now the only place it is stated (source: PR
-  #32 contract QA, out of scope there) — `src/stats/period.ts`
+- [ ] [docs] `src/stats/period.test.ts:89` is named `'spans 31 days for 1m rather than 32'`. The
+  assertion is sound — it pins a single anchor (`2026-08-01`, whose window is August's 31 days) —
+  but the title reads as the general claim PR #33 removed from the `PeriodWindow` comment, where
+  the span is 28-31 and set by the anchor. Rename it to name its anchor rather than a universal
+  figure, so a reader does not re-generalize the number the comment just stopped asserting
+  (source: PR #33 contract QA, non-blocking and out of scope there) — `src/stats/period.test.ts`
 
 ### `docs/architecture.md` still opens by calling the repo empty (2026-08-28)
 
