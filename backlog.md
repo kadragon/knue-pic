@@ -18,15 +18,6 @@
   `src/data/iso-date.ts`; this item is the decision, not a bug (source: PR #32 contract QA and
   review panel, deliberately declined there) — `eslint.config.js`, `src/data/iso-date.ts`
 
-### `1m` window length is misdescribed in a source comment (2026-08-28)
-
-- [ ] [docs] `src/stats/period.ts:23` says the half-open bound "keeps a `1m` window at 31 days
-  rather than 32". The span is 28-31 days depending on the anchor: 2026-03-15 gives 28, and a
-  month-end anchor gives the anchor's own month length via the day-clamping in `subtractMonths`
-  (2026-03-31 → start 2026-02-28 → 31). PR #32 rewrote the `docs/architecture.md` paragraph that
-  would have inherited the figure, so this comment is now the only place it is stated (source: PR
-  #32 contract QA, out of scope there) — `src/stats/period.ts`
-
 ### `docs/architecture.md` still opens by calling the repo empty (2026-08-28)
 
 - [ ] [docs] `docs/architecture.md:3-5` says "The repo is currently empty apart from the harness —
