@@ -1,4 +1,9 @@
-import { ESLint } from 'eslint';
+import { ESLint, Linter } from 'eslint';
+
+// `eslint-rules/` is plain JS outside `tsconfig.json`'s include, so it ships no declarations; the
+// rule's own `@type {import('eslint').Rule.RuleModule}` JSDoc is the contract this relies on.
+// @ts-expect-error -- untyped JS module
+import noMonthKeyForgery from '../../eslint-rules/no-monthkey-forgery.js';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
@@ -43,6 +48,24 @@ const LINT_TIMEOUT_MS = 30_000;
  * this one file in `allowDefaultProject` so lint-time type information is available for it.
  */
 const PROBE = 'probe.ts';
+
+/**
+ * A root-level TS path `tsconfig.json` does not include, standing in for the first tooling script
+ * this repo grows. Before the globs were derived from `include`, the typed block claimed it and the
+ * project service answered `... was not found by the project service` — a parse error that failed
+ * the whole of `npm run lint`.
+ */
+const OUTSIDE_INCLUDE = 'tool.ts';
+
+/**
+ * An on-disk file under `src/`, where typed linting genuinely applies. `src/data/iso-date.ts` is
+ * exempt by path, so proving `src/**` still has reach needs a different host — otherwise a
+ * narrowing of the derived globs would read exactly like a rule that correctly stayed silent.
+ */
+const SRC_HOST = 'src/data/load.ts';
+
+/** `SRC_HOST`'s preamble: the same brand, imported the way a sibling of `iso-date.ts` reaches it. */
+const SRC_PREAMBLE = ["import type { MonthKey } from './iso-date';", 'declare const s: string;'].join('\n');
 
 /**
  * The probe's preamble: the real `MonthKey`, the two values a forgery starts from, and one key that
@@ -208,6 +231,46 @@ describe('the MonthKey forgery ban', () => {
    * Exempting the file by path is the whole design; if this went red the rule would have banned
    * the only legitimate construction.
    */
+  /**
+   * A TS file `tsconfig.json` does not include is an *unlinted* file, not a broken run. The typed
+   * block no longer claims it, so it parses untyped and the forgery rule — which needs types — is
+   * simply not applied. Fatal messages are asserted rather than rule ids because the old failure
+   * arrived as a parse error, which carries no rule id at all.
+   */
+  it('lints a TS file outside the tsconfig include set without a parse error', async () => {
+    const [result] = await eslint.lintText('export const n: number = 1;\n', {
+      filePath: OUTSIDE_INCLUDE,
+    });
+    const messages = result?.messages ?? [];
+    expect(messages.filter((message) => message.fatal === true)).toEqual([]);
+    expect(messages.map((message) => message.ruleId)).not.toContain(MONTH_KEY_RULE);
+  }, LINT_TIMEOUT_MS);
+
+  /**
+   * The other direction of the same change: deriving the globs from `include` must not have
+   * narrowed the reach that matters. `src/**` is the code the guard exists for.
+   */
+  it('still reports a forgery at an on-disk src/ path', async () => {
+    const ids = await ruleIdsFor(`${SRC_PREAMBLE}\nexport const a = s as MonthKey;\n`, SRC_HOST);
+    expect(ids).toContain(MONTH_KEY_RULE);
+  }, LINT_TIMEOUT_MS);
+
+  /**
+   * The rule used to throw when `parserServices` was missing, which ESLint turns into an aborted
+   * run: one misconfigured file cost the lint of every other, and reported as a stack trace naming
+   * neither the file nor the fix. It now reports, so the cost is one located finding.
+   */
+  it('reports rather than throws when type information is missing', () => {
+    const linter = new Linter();
+    const messages = linter.verify('const x = 1;\n', {
+      languageOptions: { ecmaVersion: 2022, sourceType: 'module' },
+      plugins: { local: { rules: { 'no-monthkey-forgery': noMonthKeyForgery } } },
+      rules: { 'local/no-monthkey-forgery': 'error' },
+    });
+    expect(messages.map((message) => message.ruleId)).toEqual([MONTH_KEY_RULE]);
+    expect(messages[0]?.message).toContain('tsconfig.json');
+  });
+
   it('allows the checked mint point in src/data/iso-date.ts', async () => {
     const ids = await ruleIdsFor(
       'export type MonthKey = string & { readonly __monthKey: unique symbol };\ndeclare const s: string;\nexport const m = s as MonthKey;\n',
