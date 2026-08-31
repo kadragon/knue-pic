@@ -18,6 +18,15 @@
   `src/data/iso-date.ts`; this item is the decision, not a bug (source: PR #32 contract QA and
   review panel, deliberately declined there) — `eslint.config.js`, `src/data/iso-date.ts`
 
+### `1m` test title echoes the span figure the comment dropped (2026-08-31)
+
+- [ ] [docs] `src/stats/period.test.ts:89` is named `'spans 31 days for 1m rather than 32'`. The
+  assertion is sound — it pins a single anchor (`2026-08-01`, whose window is August's 31 days) —
+  but the title reads as the general claim PR #33 removed from the `PeriodWindow` comment, where
+  the span is 28-31 and set by the anchor. Rename it to name its anchor rather than a universal
+  figure, so a reader does not re-generalize the number the comment just stopped asserting
+  (source: PR #33 contract QA, non-blocking and out of scope there) — `src/stats/period.test.ts`
+
 ### `docs/architecture.md` still opens by calling the repo empty (2026-08-28)
 
 - [ ] [docs] `docs/architecture.md:3-5` says "The repo is currently empty apart from the harness —

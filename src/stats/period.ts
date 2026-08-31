@@ -21,8 +21,10 @@ import { daysInMonth, formatIsoDate, parseIsoDate, type CalendarDate } from '../
  * were inclusive the two windows would share their boundary day and the rank-delta comparison
  * would count that day's transactions twice. It also keeps a `1m` window one day shorter than the
  * same span with both ends included; the span itself is 28-31 days, set by the anchor rather than
- * fixed — 2026-03-15 gives 28, and a month-end anchor gives its own month's length through the
- * day-clamping in `subtractMonths` (2026-03-31 starts at 2026-02-28, so 31).
+ * fixed. It is the *preceding* month's length when the anchor's day fits in that month
+ * (2026-03-15 starts at 2026-02-15, so 28), and the anchor's own day-of-month when
+ * `subtractMonths` has to clamp (2026-03-31 starts at 2026-02-28, so 31). A month-end anchor is
+ * not special on its own: 2026-04-30 needs no clamping and spans 31, not April's 30.
  */
 export interface PeriodWindow {
   /** Exclusive lower bound — the day the window starts *after*. */
