@@ -11,7 +11,8 @@
  *
  * Resolving the type closes all of them at once, and closes the alias routes the old selectors
  * needed their own arms for: `import { MonthKey as MK }` and `type MK = MonthKey` resolve to the
- * same type, so there is no second name to chase.
+ * same type, so there is no second name to chase — and naming the type is no longer the offence,
+ * only producing one is.
  *
  * What it still does not reach is stated on `MonthKey` in `src/data/iso-date.ts` — this rule is a
  * floor, not a proof, and nothing here should be read as making the brand unforgeable.
@@ -23,54 +24,78 @@ const ADVICE =
 /** The brand's witness property. Structural, so every alias of the type answers the same. */
 const BRAND_PROPERTY = '__monthKey';
 
-/**
- * True when the brand is reachable inside `type` at all — as the type itself, a union or
- * intersection member, a type argument (`MonthKey[]`, `Box<MonthKey>`, a tuple slot) or a property.
- *
- * Reaching *into* the type is what the predecessor selectors did by accident and this rule has to
- * do on purpose: `[s] as MonthKey[]` asserts an array, and `s as { month: MonthKey }` an object,
- * yet both hand out an unchecked `MonthKey` the moment they are indexed. Nothing about the
- * container makes the brand inside it checked.
- *
- * `getProperties()` already flattens an intersection, so the explicit member walk matters for a
- * *union*, whose property list holds only what every member shares. `seen` is what makes the walk
- * terminate on a recursive type.
- */
-function containsMonthKey(type, checker, seen = new Set()) {
-  if (!type || seen.has(type)) return false;
-  seen.add(type);
-
-  const properties = type.getProperties();
-  if (properties.some((property) => property.name === BRAND_PROPERTY)) return true;
-
-  if (type.isUnionOrIntersection?.()) {
-    if (type.types.some((member) => containsMonthKey(member, checker, seen))) return true;
-  }
-
-  const typeArguments = checker.getTypeArguments?.(type) ?? [];
-  if (typeArguments.some((argument) => containsMonthKey(argument, checker, seen))) return true;
-
-  return properties.some((property) => {
-    const declaration = property.valueDeclaration ?? property.declarations?.[0];
-    if (!declaration) return false;
-    return containsMonthKey(checker.getTypeOfSymbolAtLocation(property, declaration), checker, seen);
-  });
+/** True when `type` itself — or a union/intersection member of it — is the brand. */
+function isBrand(type) {
+  if (!type) return false;
+  if (type.getProperties().some((property) => property.name === BRAND_PROPERTY)) return true;
+  return type.isUnionOrIntersection?.() ? type.types.some(isBrand) : false;
 }
 
 /**
- * The nearest enclosing node that makes its subtree ambient (`declare` / `declare module`).
+ * True when the brand is reachable anywhere inside `type` — as the type itself, a union or
+ * intersection member, a type argument (`MonthKey[]`, `Box<MonthKey>`, a tuple slot), a property or
+ * an index signature (`Record<string, MonthKey>`).
  *
- * An `interface` is deliberately not one: `interface HistogramBucket { month: MonthKey }` in
- * `src/stats/histogram.ts` *consumes* a `MonthKey` the caller already had to mint, which is what
- * the type is for. Only a declaration that promises a binding into existence with no code to check
- * it is a forgery.
+ * Reaching *into* the type is what a cast needs: `[s] as MonthKey[]` asserts an array and
+ * `s as { month: MonthKey }` an object, yet both hand out an unchecked `MonthKey` the moment they
+ * are indexed. Nothing about the container makes the brand inside it checked.
+ *
+ * `getTypeOfPropertyOfType` rather than `getTypeOfSymbolAtLocation`: a mapped or synthetic property
+ * (`Record<'month', MonthKey>`) has no declaration to locate a type at, and skipping those left the
+ * whole `Record` shape invisible. `seen` is what makes the walk terminate on a recursive type.
+ */
+function containsBrand(type, checker, seen = new Set()) {
+  if (!type || seen.has(type)) return false;
+  seen.add(type);
+
+  if (isBrand(type)) return true;
+
+  if (type.isUnionOrIntersection?.()) {
+    if (type.types.some((member) => containsBrand(member, checker, seen))) return true;
+  }
+
+  const typeArguments = checker.getTypeArguments?.(type) ?? [];
+  if (typeArguments.some((argument) => containsBrand(argument, checker, seen))) return true;
+
+  for (const indexType of [checker.getIndexTypeOfType?.(type, 0), checker.getIndexTypeOfType?.(type, 1)]) {
+    if (containsBrand(indexType, checker, seen)) return true;
+  }
+
+  return type
+    .getProperties()
+    .some((property) =>
+      containsBrand(checker.getTypeOfPropertyOfType?.(type, property.name), checker, seen),
+    );
+}
+
+/**
+ * The nearest enclosing node that makes its subtree ambient — a `declare`d binding, or the body of
+ * a `declare module` / `declare namespace`.
+ *
+ * The `declare` flag is required on the module too. A plain `namespace N { export const m: MonthKey
+ * = monthKey(2026, 8) }` is real code the checker verifies end to end, and treating every
+ * `TSModuleDeclaration` as ambient rejected exactly that — the checked mint point itself, reported
+ * as an unchecked declaration.
  */
 function inAmbientContext(node) {
   for (let current = node; current; current = current.parent) {
     if (current.declare === true) return true;
-    if (current.type === 'TSModuleDeclaration') return true;
   }
   return false;
+}
+
+/** The enclosing function-ish node whose return type a `return` statement answers to. */
+function enclosingSignature(node) {
+  for (let current = node.parent; current; current = current.parent) {
+    if (
+      current.type === 'FunctionDeclaration' ||
+      current.type === 'FunctionExpression' ||
+      current.type === 'ArrowFunctionExpression'
+    ) {
+      return current;
+    }
+  }
+  return undefined;
 }
 
 /** @type {import('eslint').Rule.RuleModule} */
@@ -84,7 +109,7 @@ export default {
     schema: [],
     messages: {
       cast: `Do not cast to MonthKey. ${ADVICE}`,
-      untypedInit: `Do not assign an untyped value to a MonthKey — \`any\` is not a check. ${ADVICE}`,
+      untypedInit: `Do not give a MonthKey an untyped value — \`any\` is not a check. ${ADVICE}`,
       ambient: `Do not declare a MonthKey into existence — an ambient declaration is unchecked. ${ADVICE}`,
       uncheckedReturn: `Do not promise a MonthKey from an unchecked signature. ${ADVICE}`,
     },
@@ -99,8 +124,8 @@ export default {
     }
     const checker = services.program.getTypeChecker();
 
-    /** `containsMonthKey` with this file's checker already bound. */
-    const isMonthKey = (type) => containsMonthKey(type, checker);
+    /** `containsBrand` with this file's checker already bound. */
+    const reachesBrand = (type) => containsBrand(type, checker);
 
     /** The resolved type at `node`, or `undefined` when the node is not in the TS node map. */
     const typeAt = (node) => {
@@ -109,46 +134,95 @@ export default {
     };
 
     /**
-     * A cast is a forgery only when it *produces* the brand. `m as MonthKey` where `m` already is
-     * one narrows nothing and mints nothing, and banning it would make the type harder to use than
-     * to bypass — the shape that gets a rule disabled rather than obeyed.
+     * True when the value is `any`, or a container whose *element* is — `any[]` flowing into a
+     * `MonthKey[]` annotation is the case `typeToString(t) === 'any'` alone missed.
+     *
+     * Deliberately does not walk properties, unlike `containsBrand`. `HTMLElement` reaches an `any`
+     * somewhere in `lib.dom`, so a property walk reported
+     * `const v: { month: MonthKey; el: HTMLElement } = { month: minted, el }` — fully checked code,
+     * in a DOM app, told its value was untyped. An `any` nested in a property of an otherwise
+     * checked object is also not the route this guards: the brand there came from somewhere the
+     * rule already inspected.
+     */
+    const reachesAny = (type, seen = new Set()) => {
+      if (!type || seen.has(type)) return false;
+      seen.add(type);
+      if (checker.typeToString(type) === 'any') return true;
+      if (type.isUnionOrIntersection?.() && type.types.some((member) => reachesAny(member, seen))) return true;
+      if ((checker.getTypeArguments?.(type) ?? []).some((argument) => reachesAny(argument, seen))) return true;
+      return [checker.getIndexTypeOfType?.(type, 0), checker.getIndexTypeOfType?.(type, 1)].some((indexType) =>
+        reachesAny(indexType, seen),
+      );
+    };
+
+    /**
+     * A cast is a forgery unless the value already is what it claims to be — assignable to the
+     * asserted type, and not `any`. Both halves were learned by getting them wrong:
+     *
+     * - reaching *into* the operand (`reachesBrand`) let `{ a: minted, b: s } as { a: MonthKey;
+     *   b: MonthKey }` through on the strength of the one real key, while `b` stayed an arbitrary
+     *   string;
+     * - bare assignability exempted every `any`, since `any` is assignable to everything, which
+     *   reopened `JSON.parse(raw) as MonthKey` — the cheapest forgery there is, and the one route
+     *   this whole guard exists for;
+     * - requiring the operand to *be* the brand (`isBrand`) rejected every cast of a container that
+     *   merely holds one: an identity cast of a `HistogramBucket[]`, a `readonly` widening, and
+     *   `{ month: minted, visits: 1 } as const` — ordinary code with nothing forged in it.
      */
     const checkAssertion = (node) => {
-      if (!isMonthKey(typeAt(node))) return;
-      if (isMonthKey(typeAt(node.expression))) return;
+      const asserted = typeAt(node);
+      if (!reachesBrand(asserted)) return;
+      const operand = typeAt(node.expression);
+      if (operand && asserted && !reachesAny(operand) && checker.isTypeAssignableTo?.(operand, asserted)) return;
       context.report({ node, messageId: 'cast' });
     };
 
     /**
-     * The route that needs no cast at all: `const m: MonthKey = JSON.parse(raw)`. Assignability
-     * already rejects every initializer but `any` (and `never`, which no expression produces
-     * without an assertion this rule has already reported), so `any` is the whole hole here — and
-     * `JSON.parse` is exactly how this app reads `data/places.json`.
+     * The route that needs no cast at all: a declared `MonthKey` receiving an `any`. Assignability
+     * already rejects every other initializer, so `any` is the whole hole — and `JSON.parse` is
+     * exactly how this app reads `data/places.json`.
+     *
+     * Every position that can receive one is checked, because they are one keyword apart:
+     * an initializer, a class field, a parameter default, a later assignment, and a `return`.
      */
-    const checkAnnotatedBinding = (node, typeAnnotation, init) => {
-      if (!typeAnnotation || !init) return;
-      if (!isMonthKey(typeAt(typeAnnotation.typeAnnotation))) return;
-      const initType = typeAt(init);
-      // `flags & TypeFlags.Any` without importing typescript: `any` is the only type whose
-      // `typeToString` is `any` and which assigns to a brand.
-      if (checker.typeToString(initType) !== 'any') return;
+    const checkUntypedValue = (node, declaredType, valueNode) => {
+      if (!declaredType || !valueNode) return;
+      if (!reachesBrand(declaredType)) return;
+      if (!reachesAny(typeAt(valueNode))) return;
       context.report({ node, messageId: 'untypedInit' });
     };
 
-    /** A binding whose *type* is the brand, promised by a declaration with nothing to check it. */
+    const checkAnnotated = (node, typeAnnotation, valueNode) => {
+      if (!typeAnnotation) return;
+      checkUntypedValue(node, typeAt(typeAnnotation.typeAnnotation), valueNode);
+    };
+
+    /**
+     * A binding whose type *reaches* the brand, promised by a declaration with nothing to check it.
+     *
+     * Deliberately deeper than the return-position check below: `declare const hist:
+     * MonthlyHistogram` hands out `MonthKey`s that no code ever minted, whereas a *signature*
+     * returning the same container is implemented by code the checker verifies. The declaration is
+     * the promise; the signature is a shape something else has to satisfy.
+     */
     const checkAmbientBinding = (node, typeAnnotation) => {
       if (!typeAnnotation || !inAmbientContext(node)) return;
-      if (!isMonthKey(typeAt(typeAnnotation.typeAnnotation))) return;
+      if (!reachesBrand(typeAt(typeAnnotation.typeAnnotation))) return;
       context.report({ node, messageId: 'ambient' });
     };
 
     /**
      * A signature that returns the brand with no body to check it. Return position only — a
      * `MonthKey` **parameter** consumes one and is the entire point of the type.
+     *
+     * `isBrand`, not `reachesBrand`: a signature returning a *container* that carries one —
+     * `() => MonthlyHistogram`, whose buckets hold `MonthKey`s — promises nothing unchecked, since
+     * whatever implements it had to mint those keys through the checked path. Reaching into the
+     * return type made an ordinary callback type fail the build with a message that did not apply.
      */
     const checkUncheckedReturn = (node) => {
       if (!node.returnType) return;
-      if (!isMonthKey(typeAt(node.returnType.typeAnnotation))) return;
+      if (!isBrand(typeAt(node.returnType.typeAnnotation))) return;
       context.report({ node: node.returnType, messageId: 'uncheckedReturn' });
     };
 
@@ -157,15 +231,33 @@ export default {
       TSTypeAssertion: checkAssertion,
 
       VariableDeclarator(node) {
-        checkAnnotatedBinding(node, node.id.typeAnnotation, node.init);
+        checkAnnotated(node, node.id.typeAnnotation, node.init);
         checkAmbientBinding(node, node.id.typeAnnotation);
       },
       PropertyDefinition(node) {
-        checkAnnotatedBinding(node, node.typeAnnotation, node.value);
+        checkAnnotated(node, node.typeAnnotation, node.value);
         checkAmbientBinding(node, node.typeAnnotation);
       },
-      TSPropertySignature(node) {
-        checkAmbientBinding(node, node.typeAnnotation);
+      // A parameter default: `function h(m: MonthKey = JSON.parse(raw))`.
+      AssignmentPattern(node) {
+        checkAnnotated(node, node.left.typeAnnotation, node.right);
+      },
+      // A later assignment: `let m: MonthKey; m = JSON.parse(raw);` — and `this.m = JSON.parse(raw)`.
+      AssignmentExpression(node) {
+        if (node.operator !== '=') return;
+        checkUntypedValue(node, typeAt(node.left), node.right);
+      },
+      // `function f(): MonthKey { return JSON.parse(raw); }` — the annotation is on the signature,
+      // so the initializer visitors above never see the value that fills it.
+      ReturnStatement(node) {
+        const signature = enclosingSignature(node);
+        if (!signature?.returnType) return;
+        checkUntypedValue(node, typeAt(signature.returnType.typeAnnotation), node.argument);
+      },
+      // The expression body of an arrow: `const g = (): MonthKey => JSON.parse(raw);`.
+      ArrowFunctionExpression(node) {
+        if (!node.returnType || node.body.type === 'BlockStatement') return;
+        checkUntypedValue(node, typeAt(node.returnType.typeAnnotation), node.body);
       },
 
       TSDeclareFunction: checkUncheckedReturn,
@@ -174,6 +266,11 @@ export default {
       MethodDefinition(node) {
         // An overload signature or an ambient method: `value` is a function with no body.
         if (node.value?.body) return;
+        if (node.value?.returnType) checkUncheckedReturn(node.value);
+      },
+      // typescript-eslint emits this rather than `MethodDefinition` for an abstract member, so the
+      // body-less branch above never sees `abstract mint(x: string): MonthKey`.
+      TSAbstractMethodDefinition(node) {
         if (node.value?.returnType) checkUncheckedReturn(node.value);
       },
     };

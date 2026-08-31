@@ -80,9 +80,11 @@ export function isIsoDate(value: unknown): value is string {
  *
  * The brand stops implicit assignment, not a cast — `monthKey` itself forges one a few lines
  * below. So a forgery is what the guarantee rests on, and `local/no-monthkey-forgery` in
- * `eslint.config.js` confines them to this file: a cast or angle-bracket assertion that produces
- * the brand, an untyped value assigned straight to the annotation, an ambient `declare` that mints
- * one with no cast at all, and any signature that promises one with no body to check it.
+ * `eslint.config.js` confines them to this file. It reports a cast or angle-bracket assertion whose
+ * value is not already assignable to what it claims to be, an `any` reaching a *declared* `MonthKey`
+ * (an initializer, a class field, an annotated parameter default, a later assignment, a `return`),
+ * an ambient `declare` that mints one with no cast at all, and a signature that promises one with no
+ * body to check it.
  *
  * The rule resolves the *type* rather than matching the name, which is what closes the routes an
  * earlier text-matching version could not see: a type reached without naming it
@@ -93,13 +95,32 @@ export function isIsoDate(value: unknown): value is string {
  * same reason: it resolves to the same type, so it is caught where it is used to forge, not where
  * it is named.
  *
- * That is a floor, not a proof, and the difference is worth stating rather than rounding off.
- * An `eslint-disable`, a laundering through `never` (`s as unknown as never` assigned to the
- * annotation), and any route through a file the rule does not lint all still reach this type.
+ * That is a floor, not a proof, and the difference is worth stating rather than rounding off. These
+ * were run against the rule as it stands and report nothing:
+ *
+ * - an `any` handed straight to a parameter — `monthLabel(JSON.parse(raw))`, `new Holder(...)`,
+ *   `take.call(undefined, ...)`. A visitor for this existed briefly and cost ~26s of a ~29s
+ *   `npm run lint`, because judging every argument of every call means walking whole structural
+ *   type graphs; the guard is not worth a 9x lint. `parseDataset` is what actually stands here.
+ * - a value with no annotation of its own to check: a destructuring default
+ *   (`const { m = JSON.parse(raw) } = o`) and a contextually-typed parameter default.
+ * - a laundering through `never` (`const m: MonthKey = s as unknown as never`), which is not `any`
+ *   and so passes the value check.
+ * - a generic returning its own parameter (`function id<T>(x: any): T`, called as `id<MonthKey>(s)`),
+ *   where no annotation in either body or call site names the brand.
+ * - a `yield` in a `Generator<MonthKey>`, and a definite-assignment field (`class Q { m!: MonthKey }`),
+ *   which promises one with no initializer to inspect.
+ * - an `eslint-disable`, and any route through a file the rule does not lint.
+ *
+ * The list is what was probed, not a proof that nothing else remains. In the other direction there
+ * is one known false positive: widening a `readonly` container of `MonthKey`s
+ * (`b as HistogramBucket[]` where `b` is `readonly HistogramBucket[]`), which assignability refuses
+ * in that direction. No file does this today; `as unknown as` is the escape if one ever needs to.
+ *
  * Above all, the rule is no part of validating what the app reads: `JSON.parse` of
  * `data/places.json` is `any`, and `parseDataset(raw: unknown)` in `src/data/load.ts` is what
- * stands between that file and the rest of the app. The lint rule closing the annotation route is
- * not a reason to trust an unvalidated parse.
+ * stands between that file and the rest of the app. The lint rule closing the `any` routes it can
+ * see is not a reason to trust an unvalidated parse.
  *
  * `src/data/monthkey-cast.lint.test.ts` runs the real config over every route it claims to close
  * and every use it must leave legal, so a refactor cannot leave the guard reporting nothing.

@@ -17,6 +17,15 @@ async function ruleIdsFor(code: string, filePath: string): Promise<(string | nul
   return (result?.messages ?? []).map((message) => message.ruleId);
 }
 
+/**
+ * How many times the forgery rule fires on `code` — which `ruleIdsFor` cannot express, since
+ * `toContain` is satisfied by any number above zero. One construct reporting twice is noise rather
+ * than a hole, but it is the kind that makes a later count assertion lie, so it is pinned here.
+ */
+async function forgeryReportCount(code: string, filePath: string): Promise<number> {
+  return (await ruleIdsFor(code, filePath)).filter((id) => id === MONTH_KEY_RULE).length;
+}
+
 const MONTH_KEY_RULE = 'local/no-monthkey-forgery';
 
 /**
@@ -35,11 +44,19 @@ const LINT_TIMEOUT_MS = 30_000;
  */
 const PROBE = 'probe.ts';
 
-/** The probe's preamble: the real `MonthKey`, plus the two values a forgery starts from. */
+/**
+ * The probe's preamble: the real `MonthKey`, the two values a forgery starts from, and one key that
+ * was actually minted — the cases that pin the *allow* direction need a legitimate `MonthKey` to
+ * distinguish "already is one" from "claims to be one".
+ */
 const PREAMBLE = [
   "import type { MonthKey } from './src/data/iso-date';",
+  "import { monthKey } from './src/data/iso-date';",
+  "import type { HistogramBucket, MonthlyHistogram } from './src/stats/histogram';",
   'declare const s: string;',
   'declare const raw: string;',
+  'const minted = monthKey(2026, 8);',
+  'void minted;',
 ].join('\n');
 
 describe('the MonthKey forgery ban', () => {
@@ -92,6 +109,31 @@ describe('the MonthKey forgery ban', () => {
     ],
     ['a type-parameter default', 'type Box<T = MonthKey> = T;\nexport const o = s as Box;'],
     ['an untyped value assigned to the annotation', 'export const p: MonthKey = JSON.parse(raw);'],
+
+    // — routes the first revision of this rule left open, found by the PR #34 review panel —
+    [
+      'a container cast carrying one real key and one forged',
+      'export const r = { a: minted, b: s } as { a: MonthKey; b: MonthKey };',
+    ],
+    ['a tuple cast carrying one real key and one forged', 'export const t = [minted, s] as [MonthKey, MonthKey];'],
+    ['an untyped value behind an index signature', 'export const u: Record<string, MonthKey> = JSON.parse(raw);'],
+    ['an untyped value returned from a body', 'export function v(): MonthKey { return JSON.parse(raw); }'],
+    ['an untyped value returned from an arrow', 'export const w = (): MonthKey => JSON.parse(raw);'],
+    ['an untyped value as a parameter default', 'export function x(m: MonthKey = JSON.parse(raw)) { return m; }'],
+    [
+      'an untyped value assigned after declaration',
+      'export let y: MonthKey;\ny = JSON.parse(raw);\nexport const usedY = y;',
+    ],
+    ['an abstract method returning one', 'export abstract class Z { abstract mint(x: string): MonthKey; }'],
+
+    // — routes the second revision reopened, found by re-verification: `any` is assignable to
+    //   everything, so exempting an assignable operand exempted every `any` —
+    ['a cast whose operand is untyped', 'export const aa = JSON.parse(raw) as MonthKey;'],
+    ['an angle-bracket assertion on an untyped value', 'export const ab = <MonthKey>JSON.parse(raw);'],
+    ['a cast laundered through any', 'export const ac = s as any as MonthKey;'],
+    ['a cast of an untyped value to an array of them', 'export const ad = JSON.parse(raw) as MonthKey[];'],
+    ['an untyped array assigned to an array of them', 'declare const anys: any[];\nexport const ae: MonthKey[] = anys;'],
+
   ])('rejects %s outside the mint point', async (_label, statement) => {
     const ids = await ruleIdsFor(`${PREAMBLE}\n${statement}\n`, PROBE);
     expect(ids).toContain(MONTH_KEY_RULE);
@@ -121,13 +163,44 @@ describe('the MonthKey forgery ban', () => {
       'export function f(m: MonthKey): string;\nexport function f(m: string): string;\nexport function f(m: string): string { return m; }',
     ],
     ['a MonthKey parameter on an ambient function', 'declare function consume(m: MonthKey): void;\nexport const use = consume;'],
+    ['re-asserting a value that is already one', 'export const b = minted as MonthKey;'],
     [
-      're-asserting a value that is already one',
-      "import { monthKey } from './src/data/iso-date';\nexport const b = monthKey(2026, 8) as MonthKey;",
+      'a renaming re-export that never forges one',
+      "export type { MonthKey as MK } from './src/data/iso-date';",
     ],
+    [
+      'a namespace that mints through the checked path',
+      'export namespace N { export const nm: MonthKey = monthKey(2026, 8); }',
+    ],
+    ['an interface inside a namespace', 'export namespace N2 { export interface B { month: MonthKey } }'],
+    ['a callback type returning a container that carries one', 'export type Load = () => MonthlyHistogram;'],
+    ['an interface method returning such a container', 'export interface Repo { load(): MonthlyHistogram }'],
+
+    // — code the guard rejected while it was being tightened, pinned so a later revision cannot
+    //   quietly start rejecting ordinary work again (PR #34 review rounds 2 and 3) —
+    ['a frozen literal', 'export const ah = { month: minted, visitCount: 1 } as const;'],
+    ['an identity cast of a container of them', 'export function ai(b: HistogramBucket[]) { return b as HistogramBucket[]; }'],
+    [
+      'a container of them beside a DOM node',
+      'declare const el: HTMLElement;\nexport const aj: { month: MonthKey; el: HTMLElement } = { month: minted, el };',
+    ],
+
   ])('allows %s', async (_label, statement) => {
     const ids = await ruleIdsFor(`${PREAMBLE}\n${statement}\n`, PROBE);
     expect(ids).not.toContain(MONTH_KEY_RULE);
+  }, LINT_TIMEOUT_MS);
+
+  /**
+   * One construct, one report. An ambient binding whose type *carries* a `MonthKey` is reachable
+   * from two visitors, and an earlier revision reported it from both — harmless in itself, but it
+   * is what a later "reports exactly once" assertion would quietly get wrong.
+   */
+  it('reports an ambient binding carrying one exactly once', async () => {
+    const count = await forgeryReportCount(
+      `${PREAMBLE}\ndeclare const o: { month: MonthKey };\nexport const uo = o;\n`,
+      PROBE,
+    );
+    expect(count).toBe(1);
   }, LINT_TIMEOUT_MS);
 
   /**

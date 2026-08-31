@@ -2,6 +2,20 @@
 
 ## Review Backlog
 
+### Typed linting has a narrower reach than `eslint.config.js` claims (2026-09-01)
+
+- [ ] [debt] PR #34 turned on `projectService` for `**/*.ts`, but `tsconfig.json` includes only
+  `["src", "vite.config.ts"]`. A TS file outside that set — a root-level script, anything under a
+  future `scripts/` — is a parse error rather than an unlinted file: `... was not found by the
+  project service`, which fails `npm run lint` and CI with a message naming neither cause nor fix.
+  `local/no-monthkey-forgery` compounds it: `create()` throws when type information is missing, so
+  one unconfigured file aborts the whole ESLint run instead of skipping a rule. Nothing hits this
+  today (`npx eslint .` is green, and the repo has no such file), which is why it was left out of
+  PR #34's scope — `tsconfig.json` was not in that Sprint Contract. Decide between widening the
+  include, adding a second tsconfig for tooling, and scoping the typed block to `src/**`; the
+  `create()` throw should become a rule-level report either way (source: PR #34 review panel,
+  P3/confidence 95) — `eslint.config.js`, `tsconfig.json`, `eslint-rules/no-monthkey-forgery.js`
+
 ### `1m` test title echoes the span figure the comment dropped (2026-08-31)
 
 - [ ] [docs] `src/stats/period.test.ts:89` is named `'spans 31 days for 1m rather than 32'`. The
