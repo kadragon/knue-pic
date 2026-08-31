@@ -1,66 +1,13 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import noMonthKeyForgery from './eslint-rules/no-monthkey-forgery.js';
 
 /**
  * The one file allowed to assert a `MonthKey` into existence. `monthKey()` there checks both
- * halves before its cast, so keeping the cheap forgeries out is what moves "one checked mint
- * point" from asserted toward enforced — the brand itself only stops *implicit* assignment, and
- * the rules below reach less than everything (see their own comment).
+ * halves before its cast, so keeping the forgeries out is what moves "one checked mint point"
+ * from asserted toward enforced — the brand itself only stops *implicit* assignment.
  */
 const MONTH_KEY_MINT = 'src/data/iso-date.ts';
-
-const MONTH_KEY_ADVICE =
-  'Build one with monthKey(year, month) or narrow a string with isMonthKey(); src/data/iso-date.ts is the only checked mint point.';
-
-/**
- * The routes to a `MonthKey` that *spell the name* and that the type checker cannot refuse. They
- * are listed separately rather than merged into one selector because each needs its own message,
- * and because a merged selector is the kind that quietly stops matching one arm.
- *
- * `no-restricted-syntax` matches on the identifier *text*, which is why the alias routes are
- * banned too: without them, `import { MonthKey as MK }` or `type MK = MonthKey` would give the
- * type a second name the cast rules do not recognise, and the ban would be one rename deep.
- *
- * Matching on text is also this rule's ceiling, and the reason no claim of exhaustiveness belongs
- * here or in the doc comments that cite it. `x as Parameters<typeof monthLabel>[0]` names the type
- * without writing it, and `type MK = MonthKey & {}` puts it somewhere the alias selector does not
- * reach — closing those needs type information this rule does not have. What the rule buys is that
- * the short, obvious forgeries fail the build, and the roundabout ones are contrived enough that
- * review sees them.
- */
-const MONTH_KEY_FORGERY = [
-  {
-    // `x as MonthKey`, `x as unknown as MonthKey`, `x as MonthKey[]`, and the `<MonthKey>x` form.
-    selector:
-      ':matches(TSAsExpression, TSTypeAssertion) > .typeAnnotation Identifier[name="MonthKey"]',
-    message: `Do not cast to MonthKey. ${MONTH_KEY_ADVICE}`,
-  },
-  {
-    selector:
-      ':matches(ImportSpecifier[imported.name="MonthKey"][local.name!="MonthKey"], ExportSpecifier[local.name="MonthKey"][exported.name!="MonthKey"])',
-    message: `Do not rename MonthKey on import or re-export — an alias escapes the cast ban. ${MONTH_KEY_ADVICE}`,
-  },
-  {
-    // `type MK = MonthKey;` only. A MonthKey *inside* a composite type is untouched.
-    selector: 'TSTypeAliasDeclaration > TSTypeReference.typeAnnotation > Identifier[name="MonthKey"]',
-    message: `Do not alias MonthKey to a second name — an alias escapes the cast ban. ${MONTH_KEY_ADVICE}`,
-  },
-  {
-    // `declare const m: MonthKey` / `declare class C { static m: MonthKey }` inside an ambient
-    // context: a binding whose *type* is the brand, promised without a check.
-    selector:
-      ':matches(VariableDeclaration[declare=true], ClassDeclaration[declare=true], TSModuleDeclaration) :matches(VariableDeclarator > Identifier > TSTypeAnnotation, PropertyDefinition > TSTypeAnnotation, TSPropertySignature > TSTypeAnnotation) Identifier[name="MonthKey"]',
-    message: `Do not declare a MonthKey into existence — an ambient declaration is unchecked. ${MONTH_KEY_ADVICE}`,
-  },
-  {
-    // A signature that *returns* the brand with no body to check it: `declare function mint(): MonthKey`,
-    // a non-ambient overload, or a method signature reached through a `declare const`. Only the
-    // return position — a `MonthKey` **parameter** consumes one and is exactly what the type is for.
-    selector:
-      ':matches(TSDeclareFunction, TSMethodSignature, TSFunctionType, MethodDefinition) > TSTypeAnnotation.returnType Identifier[name="MonthKey"]',
-    message: `Do not promise a MonthKey from an unchecked signature. ${MONTH_KEY_ADVICE}`,
-  },
-];
 
 export default [
   // `.worktrees/` holds checkouts of this same repo (`dev:task-next --all`). Linting them makes
@@ -70,10 +17,45 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Type information for every TS file, `MONTH_KEY_MINT` included — the rule below is exempted
+    // there by path, not by being left unable to resolve a type.
+    //
+    // `allowDefaultProject` names one path, `probe.ts`, and it exists for
+    // `src/data/monthkey-cast.lint.test.ts`: that test lints synthetic source through *this*
+    // config, which is the only way it can prove the real guard holds, and the project service
+    // refuses a path that is not on disk. Without it the test could only assert against a config
+    // it built itself — a guard testing its own copy.
+    //
+    // The glob is that single name rather than `*.ts` because a file the project service already
+    // claims may not also be allowed here: `*.ts` matches `vite.config.ts`, which `tsconfig.json`
+    // includes, and every lint of it then fails to parse.
+    files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: { allowDefaultProject: ['probe.ts'] },
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    /**
+     * Forging a `MonthKey` is banned by *type*, not by the identifier's text. The predecessor rule
+     * matched the name with esquery selectors, which reach a forgery only where the source spells
+     * `MonthKey` — `s as Parameters<typeof monthLabel>[0]` and `type MK = MonthKey & {}` both got
+     * past it, and so did an untyped `JSON.parse` assigned straight to the annotation. Resolving
+     * the type closes those, and removes the need to ban aliases separately: an alias resolves to
+     * the same type, so it is no longer a second name to chase.
+     *
+     * What the rule still cannot reach is documented on `MonthKey` itself in `src/data/iso-date.ts`,
+     * where the limits belong next to the type they qualify.
+     * `src/data/monthkey-cast.lint.test.ts` runs this config over every route, in both directions,
+     * so a refactor cannot leave the guard reporting nothing.
+     */
     files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
     ignores: [MONTH_KEY_MINT],
+    plugins: { local: { rules: { 'no-monthkey-forgery': noMonthKeyForgery } } },
     rules: {
-      'no-restricted-syntax': ['error', ...MONTH_KEY_FORGERY],
+      'local/no-monthkey-forgery': 'error',
     },
   },
 ];

@@ -2,10 +2,11 @@ import { ESLint } from 'eslint';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
- * The `no-restricted-syntax` rules in `eslint.config.js` are what turn "one checked mint point"
- * from a doc-comment claim into an enforced one. Their selectors are esquery strings that nothing
- * type-checks, so a rename or a config refactor can leave one matching nothing and the guard would
- * pass silently. These cases run the real config and assert both directions.
+ * `local/no-monthkey-forgery` in `eslint.config.js` is what turns "one checked mint point" from a
+ * doc-comment claim into an enforced one. It resolves types through the TypeScript program, so
+ * nothing type-checks the shape of what it inspects: a refactor can leave a visitor reporting
+ * nothing and the guard would pass silently. These cases run the real config and assert both
+ * directions.
  */
 
 const eslint = new ESLint();
@@ -16,18 +17,30 @@ async function ruleIdsFor(code: string, filePath: string): Promise<(string | nul
   return (result?.messages ?? []).map((message) => message.ruleId);
 }
 
-const MONTH_KEY_RULE = 'no-restricted-syntax';
+const MONTH_KEY_RULE = 'local/no-monthkey-forgery';
 
 /**
- * The first lint loads the flat config and the TypeScript parser — a cost paid once per process,
- * and one that timed out this file at vitest's 5s default on a cold run here before `beforeAll`
- * existed. It does not reproduce on a warm cache, which is the argument for a budget rather than
- * against one: the load is unrelated to what these cases assert, so it must not be able to report
- * itself as a rule failure. `beforeAll` puts the cost where it is attributed.
+ * The first lint loads the flat config, the TypeScript parser and the project service — a cost
+ * paid once per process, and one that timed out this file at vitest's 5s default on a cold run
+ * here before `beforeAll` existed. Type-aware linting only made that first load heavier. The load
+ * is unrelated to what these cases assert, so it must not be able to report itself as a rule
+ * failure; `beforeAll` puts the cost where it is attributed.
  */
 const LINT_TIMEOUT_MS = 30_000;
 
-const PROBE = 'src/ui/probe.ts';
+/**
+ * A root-level path, not one under `src/`, because the project service refuses a `filePath` that is
+ * not on disk — `src/ui/probe.ts` fails to parse before any rule runs. `eslint.config.js` names
+ * this one file in `allowDefaultProject` so lint-time type information is available for it.
+ */
+const PROBE = 'probe.ts';
+
+/** The probe's preamble: the real `MonthKey`, plus the two values a forgery starts from. */
+const PREAMBLE = [
+  "import type { MonthKey } from './src/data/iso-date';",
+  'declare const s: string;',
+  'declare const raw: string;',
+].join('\n');
 
 describe('the MonthKey forgery ban', () => {
   beforeAll(async () => {
@@ -35,51 +48,85 @@ describe('the MonthKey forgery ban', () => {
   }, LINT_TIMEOUT_MS);
 
   /**
-   * Every route the rules claim to close. `<MonthKey>s` and the alias forms are the ones a
-   * cast-only selector misses: each typechecks, and each puts a `'1e3-08'` into `monthLabel`,
-   * which renders it `1e3년 8월`. Routes the rules deliberately do *not* close are documented on
-   * `MonthKey` in `src/data/iso-date.ts`; they are absent here on purpose, so this list stays a
-   * description of the guard rather than a wish for one.
+   * Every route the rule claims to close. The first block is what the predecessor
+   * `no-restricted-syntax` selectors already closed — kept verbatim so replacing them cannot
+   * quietly drop coverage. The second block is the five routes PR #32's QA reproduced *past* those
+   * selectors: each typechecks, and each puts a `'1e3-08'` into `monthLabel`, which renders it
+   * `1e3년 8월`. They are the reason this rule resolves types instead of matching the name.
+   *
+   * Routes the rule still does not close are documented on `MonthKey` in `src/data/iso-date.ts`;
+   * they are absent here on purpose, so this list stays a description of the guard rather than a
+   * wish for one.
    */
   it.each([
+    // — closed by the predecessor selectors, and still closed —
     ['a direct cast', 'export const a = s as MonthKey;'],
     ['a cast through unknown', 'export const b = s as unknown as MonthKey;'],
     ['an array element cast', 'export const c = [s] as MonthKey[];'],
     ['an angle-bracket assertion', 'export const d = <MonthKey>s;'],
-    ['a renaming import', 'import type { MonthKey as MK } from "../data/iso-date";\nexport type Alias = MK;'],
-    ['a renaming re-export', 'export type { MonthKey as MK } from "../data/iso-date";'],
-    ['a local type alias', 'type MK = MonthKey;\nexport type Alias = MK;'],
-    ['an ambient binding', 'declare const m: MonthKey;\nexport const e = m;'],
-    ['an ambient function', 'declare function mint(x: string): MonthKey;\nexport const f = mint(s);'],
-    ['an ambient class member', 'declare class C { static m: MonthKey }\nexport const g = C.m;'],
+    [
+      'a cast through a renaming import',
+      "import type { MonthKey as MK } from './src/data/iso-date';\nexport const e = s as MK;",
+    ],
+    ['a cast through a local type alias', 'type MK = MonthKey;\nexport const f = s as MK;'],
+    ['an ambient binding', 'declare const m: MonthKey;\nexport const g = m;'],
+    ['an ambient function', 'declare function mint(x: string): MonthKey;\nexport const h = mint(s);'],
+    ['an ambient class member', 'declare class C { static m: MonthKey }\nexport const i = C.m;'],
     ['an ambient module binding', "declare module 'x' { export const q: MonthKey }"],
-    ['an interface method returning one', 'interface Mint { mint(x: string): MonthKey }\ndeclare const mk: Mint;\nexport const h = mk.mint(s);'],
+    [
+      'an interface method returning one',
+      'interface Mint { mint(x: string): MonthKey }\ndeclare const mk: Mint;\nexport const j = mk.mint(s);',
+    ],
+    ['a function type returning one', 'export type Mint = (x: string) => MonthKey;'],
+    ['a cast to an object that carries one', 'export const q = { month: s } as { month: MonthKey };'],
+
+    // — the five routes the text selectors could not see (PR #32 contract QA) —
+    [
+      'a type reached without naming it',
+      "import { monthLabel } from './src/ui/place-labels';\nexport const k = s as Parameters<typeof monthLabel>[0];",
+    ],
+    ['an alias whose right-hand side is a composite', 'type MK = MonthKey & {};\nexport const l = s as MK;'],
+    [
+      'an alias behind a conditional type',
+      'type MK = string extends string ? MonthKey : never;\nexport const n = s as MK;',
+    ],
+    ['a type-parameter default', 'type Box<T = MonthKey> = T;\nexport const o = s as Box;'],
+    ['an untyped value assigned to the annotation', 'export const p: MonthKey = JSON.parse(raw);'],
   ])('rejects %s outside the mint point', async (_label, statement) => {
-    const ids = await ruleIdsFor(
-      `import type { MonthKey } from '../data/iso-date';\ndeclare const s: string;\n${statement}\n`,
-      PROBE,
-    );
+    const ids = await ruleIdsFor(`${PREAMBLE}\n${statement}\n`, PROBE);
     expect(ids).toContain(MONTH_KEY_RULE);
   }, LINT_TIMEOUT_MS);
 
   /**
-   * The ban is on giving the type a second name or an unchecked value — not on *using* it. A
-   * `MonthKey` in a parameter position consumes one and is the entire point of the type, so an
-   * ambient signature that merely accepts one must stay legal; an earlier revision of the ambient
-   * selector matched any descendant and rejected those, which is the shape that gets a rule
+   * The ban is on *producing* the brand without a check — not on using or carrying one. A
+   * `MonthKey` in a parameter position consumes one and is the entire point of the type, and an
+   * interface field holding one is how `HistogramBucket` in `src/stats/histogram.ts` is written; an
+   * earlier revision of the ambient check rejected both, which is the shape that gets a rule
    * disabled rather than obeyed.
+   *
+   * Naming the type is likewise not the offence any more: `import { MonthKey as MK }` and
+   * `type MK = MonthKey` had to be banned outright while the guard matched text, because an alias
+   * gave the cast rules a name they did not recognise. Resolving the type removes that need — the
+   * alias is caught where it is used to forge, which the reject block above pins.
    */
   it.each([
-    ['a cast to an unrelated type', 'export const g = s as string;'],
+    ['a cast to an unrelated type', 'export const a = s as string;'],
     ['a MonthKey inside a composite type', 'export type Row = { month: MonthKey; visits: number };'],
+    ['a MonthKey field on an interface', 'export interface Bucket { month: MonthKey; visits: number }'],
     ['a plain re-export of the name', 'export type { MonthKey };'],
-    ['a MonthKey parameter on an overload signature', 'export function f(m: MonthKey): string;\nexport function f(m: string): string;\nexport function f(m: string): string { return m; }'],
+    ['a renaming import that never forges one', "import type { MonthKey as MK } from './src/data/iso-date';\nexport type Row = { month: MK };"],
+    ['a local alias that never forges one', 'type MK = MonthKey;\nexport type Row = { month: MK };'],
+    [
+      'a MonthKey parameter on an overload signature',
+      'export function f(m: MonthKey): string;\nexport function f(m: string): string;\nexport function f(m: string): string { return m; }',
+    ],
     ['a MonthKey parameter on an ambient function', 'declare function consume(m: MonthKey): void;\nexport const use = consume;'],
+    [
+      're-asserting a value that is already one',
+      "import { monthKey } from './src/data/iso-date';\nexport const b = monthKey(2026, 8) as MonthKey;",
+    ],
   ])('allows %s', async (_label, statement) => {
-    const ids = await ruleIdsFor(
-      `import type { MonthKey } from '../data/iso-date';\ndeclare const s: string;\n${statement}\n`,
-      PROBE,
-    );
+    const ids = await ruleIdsFor(`${PREAMBLE}\n${statement}\n`, PROBE);
     expect(ids).not.toContain(MONTH_KEY_RULE);
   }, LINT_TIMEOUT_MS);
 
