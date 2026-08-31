@@ -43,6 +43,18 @@ reasonable", so the rules are stated once here and asserted in `src/stats/` test
 | Period values | `1m` \| `3m` \| `6m` \| `1y` | — |
 | List basis | a `Period` — the selector *is* the four periods | `Period` |
 
+## Test Files
+
+`tsconfig.json` sets `"types": ["vite/client"]` and the repo has no `@types/node`, so a test under
+`src/` **cannot import a `node:` builtin** — `tsc --noEmit` fails it with TS2591 even though vitest
+would run it fine. A test needing files on disk uses a committed fixture directory rather than
+`node:fs` (see `eslint-rules/fixtures/tsconfig-shapes/`); reach for `@types/node` only if the app
+itself ever needs it, since adding it widens the build's dependency surface for a test's sake.
+
+A fixture that carries its own `tsconfig.json` lives **outside `src/`**. Inside, the root config
+would claim its files while the ESLint project service also discovers the nested one, which is the
+ambiguity `eslint.config.js` derives its typed-file list to avoid.
+
 ## Accessibility & Responsive (PRD §36–§37)
 
 - Importance is never conveyed by colour alone: a rank carries a number badge, a movement glyph

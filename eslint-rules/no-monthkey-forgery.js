@@ -112,15 +112,24 @@ export default {
       untypedInit: `Do not give a MonthKey an untyped value — \`any\` is not a check. ${ADVICE}`,
       ambient: `Do not declare a MonthKey into existence — an ambient declaration is unchecked. ${ADVICE}`,
       uncheckedReturn: `Do not promise a MonthKey from an unchecked signature. ${ADVICE}`,
+      noTypeInformation:
+        'local/no-monthkey-forgery cannot check this file: it has no type information, because ' +
+        '`tsconfig.json` does not include it. Add it to `include`, or give its directory a ' +
+        '`tsconfig.json` of its own — the project service discovers a nested one.',
     },
   },
 
   create(context) {
     const services = context.sourceCode.parserServices;
+    /**
+     * Report rather than throw. A throw here is not this file's failure, it is every file's: ESLint
+     * aborts the whole run on it, so one misconfigured path costs the lint of the rest of the repo
+     * and reports as a stack trace naming neither the file nor the fix. `eslint.config.js` derives
+     * this rule's `files` from `tsconfig.json` so the case should be unreachable — which is exactly
+     * why the failure mode has to be cheap if it is ever reached again.
+     */
     if (!services?.program || !services.esTreeNodeToTSNodeMap) {
-      throw new Error(
-        'local/no-monthkey-forgery needs type information — set parserOptions.projectService for this file.',
-      );
+      return { Program: (node) => context.report({ node, messageId: 'noTypeInformation' }) };
     }
     const checker = services.program.getTypeChecker();
 

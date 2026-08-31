@@ -10,7 +10,7 @@ KNUE staff used most, from the university's public expense disclosures. It reads
 |------|--------------|
 | `docs/runbook.md` | Build, test, deploy commands; monthly data update; failure modes |
 | `docs/architecture.md` | Before adding a module, changing the data pipeline, or touching `places.json` schema |
-| `docs/conventions.md` | Before writing UI strings, stat logic, commits, or branches |
+| `docs/conventions.md` | Before writing UI strings, stat logic, tests, commits, or branches |
 | `docs/workflows.md` | When starting any implementation cycle |
 | `docs/eval-criteria.md` | When writing a Sprint Contract or grading a finished feature |
 
