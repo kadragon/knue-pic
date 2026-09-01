@@ -27,6 +27,15 @@ const MONTH_KEY_ADVICE =
  * reach — closing those needs type information this rule does not have. What the rule buys is that
  * the short, obvious forgeries fail the build, and the roundabout ones are contrived enough that
  * review sees them.
+ *
+ * That ceiling is a decision, not an oversight. Raising it means type information: either
+ * typescript-eslint's `recommended-type-checked` set, or a local type-aware rule that refuses a
+ * `MonthKey` produced outside the mint. Both make every lint run a typed one, and both are
+ * maintained forever to close routes that cannot be written by accident — `src/data/iso-date.ts`
+ * enumerates the five that stay open, and the one cheap route among them (`const m: MonthKey =
+ * JSON.parse(raw)`) is already guarded where it matters, by `parseDataset` in `src/data/load.ts`.
+ * So the floor stands as-is. Revisit it if an unchecked `MonthKey` ever reaches `monthLabel` in
+ * shipped code — that would be evidence the cost is now worth paying.
  */
 const MONTH_KEY_FORGERY = [
   {

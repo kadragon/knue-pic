@@ -19,8 +19,10 @@ import { daysInMonth, formatIsoDate, parseIsoDate, type CalendarDate } from '../
  * That asymmetry is what lets consecutive windows tile without overlapping. `docs/architecture.md`
  * defines the prior period as the immediately preceding window of the same length, so if both ends
  * were inclusive the two windows would share their boundary day and the rank-delta comparison
- * would count that day's transactions twice. It also keeps a `1m` window at 31 days rather
- * than 32.
+ * would count that day's transactions twice. It is also what keeps a `1m` window at the length of
+ * the calendar interval itself rather than one day more: 28-31 days depending on the anchor
+ * (2026-03-15 -> 28, 2026-07-15 -> 30, and a month-end anchor gives its own month's length via the
+ * day-clamping in `subtractMonths`, so 2026-03-31 -> start 2026-02-28 -> 31).
  */
 export interface PeriodWindow {
   /** Exclusive lower bound — the day the window starts *after*. */
