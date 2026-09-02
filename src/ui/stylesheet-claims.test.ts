@@ -76,6 +76,71 @@ const declarations = (selector: string): string =>
     .map(([, block]) => block)
     .join(' ');
 
+/**
+ * Every rule in the sheet whose selector reaches `element`, `@media` blocks included: `RULES` is
+ * built from the innermost braces, so a rule nested in a media prelude arrives here as a plain
+ * selector, indistinguishable from a top-level one. That is what this guard wants — an override is
+ * an override whichever block it sits in.
+ *
+ * Matched against the *last* compound of each comma-separated part, on a class-name boundary. Last
+ * compound, because that is the one the rule actually styles: `.top-place-meta .top-place-distance`
+ * and `.top-place-distance[data-band='far']` are overrides of this element and count, while
+ * `.top-place-delta .delta-icon` styles a child that merely sits inside it and does not. A
+ * substring test over the whole selector reads all four as overrides and turns legitimate CSS into
+ * a red build naming the wrong element. `:not(…)` is stripped first for the same reason:
+ * `.foo:not(.top-place-distance)` is the one form that names the class in order to exclude it.
+ *
+ * **What this cannot see.** A selector reaching one of these elements without naming its class —
+ * `.top-place-meta > span` — is invisible here, and nothing in the suite catches it: matching that
+ * form means resolving selectors against a rendered tree, and jsdom applies no stylesheet. This is
+ * a guard over the rules that name the token, which is where every override in this sheet has been
+ * written so far. The unnamed-selector case stays open by design, not by oversight.
+ */
+const reachingRules = (element: string): string[] => {
+  const name = element.replace(/^\./, '');
+  const reaches = new RegExp(String.raw`\.${name}(?![\w-])`);
+  const target = (part: string): string =>
+    (part.replaceAll(/:not\([^)]*\)/g, '').split(/[\s>+~]+/).filter(Boolean).pop() ?? '');
+  return RULES.filter(([selector]) =>
+    selector.split(',').some((part) => reaches.test(target(part))),
+  ).map(([, block]) => block);
+};
+
+/**
+ * The properties that decide whether a token may break, as `white-space` and the two longhand
+ * spellings that supersede it. `white-space-collapse` is the shorthand's *other* half and governs
+ * runs of whitespace, not wrapping, so it stays out — `overflow-wrap` and `word-break` likewise
+ * act on where a break lands, never on whether one is allowed.
+ */
+const WRAPPING_PROPERTIES = /(?:white-space|text-wrap|text-wrap-mode)\s*:\s*([^;]+)/g;
+
+/**
+ * Every value a wrapping property is given on `element`, across all the rules above.
+ *
+ * The declared-value guard below reads one named rule set; this reads the whole sheet, because
+ * `white-space: nowrap` in the base rule is worth nothing if a later, more specific rule — or the
+ * same selector inside a `@media` block — hands the element `normal` back at some viewport. That
+ * is the gap the declared-value guard leaves open, one cascade level up.
+ *
+ * A conflicting override is rejected rather than resolved: deciding which of two rules actually
+ * wins means computing specificity and source order, and a guard that got that arithmetic subtly
+ * wrong would be worse than one that simply refuses to let both exist. If a future rule genuinely
+ * needs one of these tokens to wrap, this test is where that decision gets argued.
+ *
+ * Lower-cased and stripped of `!important` before comparison: CSS is case-insensitive in both
+ * halves of a declaration, so an exact-string test misses `WHITE-SPACE: normal` while failing on
+ * `nowrap !important` — a rule that *strengthens* the very invariant this guards.
+ */
+const whiteSpaceValues = (element: string): string[] =>
+  reachingRules(element).flatMap((block) =>
+    // Collapsed before `!important` is stripped, not after: the captured value carries the
+    // whitespace that separated it from the closing brace, and an end-anchored strip finds
+    // nothing behind it.
+    [...block.toLowerCase().matchAll(WRAPPING_PROPERTIES)].map(([, value]) =>
+      collapse(value ?? '').replace(/\s*!important$/, ''),
+    ),
+  );
+
 /** Whether one declaration fills an element, letters it, or redefines a token that does. */
 function paintedBy(property: string): 'fill' | 'text' | null {
   if (property === 'background' || property === 'background-color') return 'fill';
@@ -194,6 +259,14 @@ const WRAPPING_TOKENS = [
   '.top-place-delta',
 ];
 
+/**
+ * The same three tokens as individual elements: a cascade override targets one selector, not the
+ * comma-separated group the base rule happens to be written as.
+ */
+const WRAPPING_ELEMENTS = [
+  ...new Set(WRAPPING_TOKENS.flatMap((token) => token.split(',').map(collapse))),
+];
+
 describe('superlative claims', () => {
   it('reads all three files, so no claim is guarded by an empty string', () => {
     // Every assertion below is an equality or a `toContain` over text read at transform time. A
@@ -212,6 +285,7 @@ describe('superlative claims', () => {
     // the way the claims it watches went stale.
     expect(CLAIMS).toHaveLength(3);
     expect(WRAPPING_TOKENS).toHaveLength(3);
+    expect(WRAPPING_ELEMENTS).toHaveLength(4);
   });
 
   it('finds exactly the 업종 and 거리 palettes, so the count the claims rest on is real', () => {
@@ -233,5 +307,21 @@ describe('white-space: nowrap', () => {
     expect(declarations(selector), `${selector} is no longer a rule in the stylesheet`).not.toBe('');
 
     expect(declarations(selector)).toContain('white-space: nowrap');
+  });
+
+  it.each(WRAPPING_ELEMENTS)('%s is not handed back its wrapping by another rule', (element) => {
+    // Same reason as above, one level out: a scan that reaches no rule at all reports no
+    // conflicting value either, and the assertion under it would agree with a deleted element.
+    expect(
+      reachingRules(element).length,
+      `${element} is reached by no rule in the stylesheet`,
+    ).toBeGreaterThan(0);
+
+    // Reported as the offending values rather than as a boolean, so the failure names what the
+    // overriding rule actually said.
+    expect(
+      whiteSpaceValues(element).filter((value) => value !== 'nowrap'),
+      `${element} is handed a wrapping value other than nowrap by some rule reaching it`,
+    ).toEqual([]);
   });
 });
