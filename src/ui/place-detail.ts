@@ -1,6 +1,6 @@
 import type { Period, PlaceRecord } from '../data/types';
 import { histogramSpan, type MonthlyHistogram } from '../stats/histogram';
-import { distanceFromCampusKm } from '../stats/distance';
+import { distanceBand, distanceFromCampusKm } from '../stats/distance';
 import type { PlaceStats } from '../stats/place-stats';
 import { PERIOD_LABELS } from './period-labels';
 import {
@@ -204,6 +204,10 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
 
   const distance = document.createElement('span');
   distance.className = 'place-detail-distance';
+  // The same band the ranked row carries, so a place is the same colour in the list the reader
+  // came from and in the card they opened. The badge still spells the figure out; the band only
+  // ever reaches the stylesheet.
+  distance.dataset['band'] = distanceBand(distanceFromCampusKm(place));
   distance.textContent = distanceLabel(place);
   // No separating text node here: `.place-detail-meta` is a flex container, where a whitespace-only
   // run between items is not rendered at all — the gap comes from the container's own `gap`. The

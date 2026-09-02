@@ -2,6 +2,7 @@ import type { PlaceRecord } from '../data/types';
 export { shortAddress } from '../stats/short-address';
 import type { MonthKey } from '../data/iso-date';
 import type { HistogramSpan } from '../stats/histogram';
+import { DISTANCE_BANDS, type DistanceBand } from '../stats/distance';
 
 /** Small display transforms shared by every place list and the detail dialog. */
 
@@ -129,4 +130,24 @@ export function histogramSpanLabel(span: HistogramSpan): string {
  */
 export function campusDistanceLabel(km: number): string {
   return `거리 ${km.toFixed(1)}km`;
+}
+
+/**
+ * The legend's spoken form of one distance band — `~2km`, `2~5km`, `5~15km`, `15km+`.
+ *
+ * Derived from `DISTANCE_BANDS` rather than written out, so a legend can never name a boundary the
+ * classifier does not use. That is the whole reason the bands are an ordered array: a colour with
+ * a wrong number beside it is worse than a colour with no number, because the reader believes it.
+ *
+ * The band exists only as a scanning aid over `campusDistanceLabel`, which stays on every row —
+ * `docs/conventions.md` → Accessibility bans colour as a sole channel, and this label is what
+ * gives the four colours their meaning in words.
+ */
+export function distanceBandLabel(band: DistanceBand): string {
+  const index = DISTANCE_BANDS.findIndex((entry) => entry.band === band);
+  const lower = index > 0 ? DISTANCE_BANDS[index - 1]!.maxKm : 0;
+  const upper = DISTANCE_BANDS[index]!.maxKm;
+  if (lower === 0) return `~${upper}km`;
+  if (upper === Infinity) return `${lower}km+`;
+  return `${lower}~${upper}km`;
 }

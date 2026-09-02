@@ -58,3 +58,34 @@ export function haversineKm(
 export function distanceFromCampusKm(place: PlaceRecord): number {
   return haversineKm(CAMPUS_ORIGIN, place);
 }
+
+/**
+ * The four distance bands the ranked list colours its distance labels by.
+ *
+ * Thresholds are in kilometres and each band opens at its predecessor's bound: a place exactly
+ * 2.0km out is `close`, not `near`. Written as an ordered array rather than a chain of literals so
+ * the label module and the legend read the same boundaries the classifier uses — a legend that
+ * disagreed with the colours would be worse than no legend.
+ *
+ * 2 / 5 / 15 rather than round decades: the campus sits at the edge of 청주, so most of the dataset
+ * falls between 1 and 10km and a 10km first cut would paint nearly the whole list one colour.
+ */
+export const DISTANCE_BANDS = [
+  { band: 'near', maxKm: 2 },
+  { band: 'close', maxKm: 5 },
+  { band: 'mid', maxKm: 15 },
+  { band: 'far', maxKm: Infinity },
+] as const;
+
+export type DistanceBand = (typeof DISTANCE_BANDS)[number]['band'];
+
+/**
+ * Which band a distance falls in.
+ *
+ * The band is a *scanning aid* layered on a figure that is already spelled out beside it. Nothing
+ * downstream may state the band alone — `docs/conventions.md` → Accessibility bans colour as a
+ * sole channel, and a band is a coarser claim than the number it summarises.
+ */
+export function distanceBand(km: number): DistanceBand {
+  return (DISTANCE_BANDS.find((entry) => km < entry.maxKm) ?? DISTANCE_BANDS[3]).band;
+}

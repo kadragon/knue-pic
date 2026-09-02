@@ -1,9 +1,9 @@
 import { histogramSpan, type HistogramSpan, type MonthlyHistogram } from '../stats/histogram';
-import { distanceFromCampusKm } from '../stats/distance';
+import { DISTANCE_BANDS, distanceBand, distanceFromCampusKm } from '../stats/distance';
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
 import {
   campusDistanceLabel,
-  displayShortDate,
+  distanceBandLabel,
   histogramSpanLabel,
   monthLabel,
   renderKindBadge,
@@ -53,14 +53,6 @@ export function moreLabel(remaining: number): string {
   return `${remaining}곳 더 보기`;
 }
 
-export function visitCountLabel(visitCount: number): string {
-  return `${visitCount}회 이용`;
-}
-
-export function mostRecentLabel(date: string): string {
-  return `최근 이용 ${displayShortDate(date)}`;
-}
-
 /**
  * Spoken form of the rank movement.
  *
@@ -108,6 +100,45 @@ export function sparklineLabel(buckets: MonthlyHistogram): string {
  */
 export function trendSpanNote(span: HistogramSpan): string {
   return `월별 막대는 ${histogramSpanLabel(span)} 기준`;
+}
+
+/**
+ * Names the colours the distance badges are drawn in.
+ *
+ * `색` rather than a verb: the caption states what the swatches are, and the swatch beside each
+ * range is the only thing that has to be read as a colour.
+ */
+export const DISTANCE_LEGEND_CAPTION = '거리 색';
+
+/**
+ * The legend for the distance badges — one swatch per band, each labelled with its own range.
+ *
+ * Rendered once above the list rather than repeated on a row, for the same reason `trendSpanNote`
+ * is: it is a fact about the list's encoding, not about any place. The ranges come from
+ * `distanceBandLabel`, which derives them from `DISTANCE_BANDS`, so the legend cannot drift from
+ * the classifier that colours the rows.
+ *
+ * Every swatch carries its range as text. The colour is the scanning aid and the words are the
+ * meaning — `docs/conventions.md` → Accessibility, the same rule the 업종 badge follows.
+ */
+export function renderDistanceLegend(): HTMLElement {
+  const legend = document.createElement('p');
+  legend.className = 'top-places-distance-legend';
+
+  const caption = document.createElement('span');
+  caption.className = 'top-places-distance-legend-caption';
+  caption.textContent = DISTANCE_LEGEND_CAPTION;
+  legend.append(caption);
+
+  for (const { band } of DISTANCE_BANDS) {
+    const item = document.createElement('span');
+    item.className = 'top-places-distance-legend-item';
+    item.dataset['band'] = band;
+    item.textContent = distanceBandLabel(band);
+    legend.append(item);
+  }
+
+  return legend;
 }
 
 /**
@@ -201,31 +232,13 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
   district.textContent = `${shortAddress(entry.place.address)}\u00A0·`;
   const distance = document.createElement('span');
   distance.className = 'top-place-distance';
-  distance.textContent = campusDistanceLabel(distanceFromCampusKm(entry.place));
+  const km = distanceFromCampusKm(entry.place);
+  // The band is a `data-` attribute, never the text: the stylesheet reads it for the badge colour
+  // while the figure below stays the only thing that states how far the place actually is.
+  distance.dataset['band'] = distanceBand(km);
+  distance.textContent = campusDistanceLabel(km);
   location.append(district, ' ', distance);
   meta.append(location);
-
-  const figures = document.createElement('span');
-  figures.className = 'top-place-figures';
-  const count = document.createElement('span');
-  count.className = 'top-place-visits';
-  figures.append(count);
-  // `mostRecentVisit` is non-null for every ranked place: a place with no in-window visit is not
-  // ranked at all. The guard keeps the type honest without inventing a date.
-  if (entry.stats.mostRecentVisit === null) {
-    count.textContent = visitCountLabel(entry.stats.visitCount);
-  } else {
-    // The count carries the separator only when something follows it, and the date is its own
-    // element so the stylesheet can keep it whole: at 360px the line wrapped inside the date —
-    // `최근 이용 07-` / `30` — because a hyphen is an ordinary break opportunity, and half a date
-    // reads as a different date. Same parent-owned space as the location line above.
-    count.textContent = `${visitCountLabel(entry.stats.visitCount)}\u00A0·`;
-    const recent = document.createElement('span');
-    recent.className = 'top-place-recent';
-    recent.textContent = mostRecentLabel(entry.stats.mostRecentVisit);
-    figures.append(' ', recent);
-  }
-  meta.append(figures);
 
   body.append(name, meta);
   item.append(badge, body);
@@ -319,6 +332,9 @@ export function renderTopPlaces(
   note.className = 'top-places-trend-note';
   note.textContent = trendSpanNote(result.chartedSpan);
   section.append(note);
+
+  // After the same return, and for the same reason: an empty list has no badge to explain.
+  section.append(renderDistanceLegend());
 
   const total = result.entries.length;
   const list = document.createElement('ol');

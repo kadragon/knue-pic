@@ -5,14 +5,20 @@ import type { PlacesDataset } from '../data/types';
 import { HISTOGRAM_MONTHS, histogramSpan, type MonthlyHistogram } from '../stats/histogram';
 import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
-import { campusDistanceLabel, histogramSpanLabel, monthLabel, shortAddress } from './place-labels';
-import { distanceFromCampusKm } from '../stats/distance';
+import {
+  campusDistanceLabel,
+  distanceBandLabel,
+  histogramSpanLabel,
+  monthLabel,
+  shortAddress,
+} from './place-labels';
+import { DISTANCE_BANDS, distanceBand, distanceFromCampusKm } from '../stats/distance';
 import {
   allRenderedLabel,
+  DISTANCE_LEGEND_CAPTION,
   EMPTY_MESSAGE,
   LIST_PAGE_SIZE,
   moreLabel,
-  mostRecentLabel,
   rankDeltaLabel,
   renderedCountLabel,
   renderSparkline,
@@ -20,7 +26,6 @@ import {
   sparklineLabel,
   topPlacesHeading,
   trendSpanNote,
-  visitCountLabel,
 } from './top-places';
 
 function render(result: TopPlacesResult): HTMLElement {
@@ -39,38 +44,72 @@ describe('renderTopPlaces', () => {
 
     const district = container.querySelector('.top-place-district');
     const distance = container.querySelector('.top-place-distance');
-    const visits = container.querySelector('.top-place-visits');
-    const recent = container.querySelector('.top-place-recent');
 
     // The separator trails the token it follows, behind a NON-BREAKING space: a dot at the head of
     // a wrapped line reads as a bullet, and an ordinary space here would let the line break between
     // the token and its dot, producing exactly that.
     expect(district?.textContent).toBe(`${shortAddress(entry.place.address)}\u00A0\u00b7`);
-    expect(visits?.textContent).toBe(`${visitCountLabel(entry.stats.visitCount)}\u00A0\u00b7`);
 
-    // Each figure holds its own text and nothing else. A leading space here would be swallowed by
+    // The distance holds its own text and nothing else. A leading space here would be swallowed by
     // `white-space: nowrap` and the line would lose its only break opportunity.
     expect(distance?.textContent).toBe(campusDistanceLabel(distanceFromCampusKm(entry.place)));
-    expect(recent?.textContent).toBe(mostRecentLabel(entry.stats.mostRecentVisit!));
 
     // The separating space belongs to the parent, which has default `white-space` — that is what
     // keeps it a break opportunity.
     expect(container.querySelector('.top-place-location')?.textContent).toBe(
       `${district?.textContent} ${distance?.textContent}`,
     );
-    expect(container.querySelector('.top-place-figures')?.textContent).toBe(
-      `${visits?.textContent} ${recent?.textContent}`,
+  });
+
+  it('leaves the visit count and the most recent date to the detail card', () => {
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+    const container = render(result);
+    const entry = result.entries[0]!;
+
+    // Both figures live on the card the row opens (`src/ui/place-detail.ts` → `FIGURE_LABELS`),
+    // and the row is for reading where a place is. The nodes are gone, not merely emptied.
+    expect(container.querySelector('.top-place-figures')).toBeNull();
+    expect(container.querySelector('.top-place-visits')).toBeNull();
+    expect(container.querySelector('.top-place-recent')).toBeNull();
+
+    const row = container.querySelector('.top-place')!;
+    expect(row.textContent).not.toContain(`${entry.stats.visitCount}회 이용`);
+    expect(row.textContent).not.toContain('최근 이용');
+  });
+
+  it('bands every distance badge without letting the colour replace the figure', () => {
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+    const container = render(result);
+    const badges = [...container.querySelectorAll<HTMLElement>('.top-place-distance')];
+
+    expect(badges).toHaveLength(Math.min(LIST_PAGE_SIZE, result.entries.length));
+    badges.forEach((badge, index) => {
+      const km = distanceFromCampusKm(result.entries[index]!.place);
+      expect(badge.dataset['band']).toBe(distanceBand(km));
+      // The figure is untouched by the banding: colour is the scanning aid, the text is the fact.
+      expect(badge.textContent).toBe(campusDistanceLabel(km));
+    });
+  });
+
+  it('explains the four fills with a legend that names each range in words', () => {
+    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
+    const legend = container.querySelector('.top-places-distance-legend');
+    expect(legend?.textContent).toContain(DISTANCE_LEGEND_CAPTION);
+
+    // Same bands, same order, same ranges as the classifier that colours the rows. A legend that
+    // drifted from it would be believed anyway, which is what makes the drift expensive.
+    const items = [...container.querySelectorAll<HTMLElement>('.top-places-distance-legend-item')];
+    expect(items.map((item) => item.dataset['band'])).toEqual(
+      DISTANCE_BANDS.map((entry) => entry.band),
+    );
+    expect(items.map((item) => item.textContent)).toEqual(
+      DISTANCE_BANDS.map((entry) => distanceBandLabel(entry.band)),
     );
   });
 
-  it('keeps the most-recent date in its own element so it cannot break at the hyphen', () => {
-    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
-    const container = render(result);
-
-    // `white-space: nowrap` in the stylesheet hangs off this class. At 360px the line used to wrap
-    // inside the date — `최근 이용 07-` / `30` — and half a date reads as a different date.
-    const recent = container.querySelector('.top-place-recent');
-    expect(recent?.textContent).toContain(mostRecentLabel(result.entries[0]!.stats.mostRecentVisit!));
+  it('draws no legend for a list with no rows to colour', () => {
+    const container = render(computeTopPlaces(EMPTY_DATASET, '1y'));
+    expect(container.querySelector('.top-places-distance-legend')).toBeNull();
   });
 
   it('states where each place is and how far the campus is from it', () => {
@@ -107,14 +146,15 @@ describe('renderTopPlaces', () => {
     expect(badges).toEqual(['1', '2', '3', '4', '5', '6']);
   });
 
-  it('shows the visit count and the most recent visit for each place', () => {
+  it('names the place and where it is, and leaves the figures to the card', () => {
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
     const first = container.querySelector('.top-place');
 
-    // 000001 over 1y: 4 visits, most recent 2026-07-20 (hand-checked against the fixture).
+    // 000001 over 1y: 4 visits, most recent 2026-07-20 (hand-checked against the fixture). Both
+    // now belong to the detail card; the row carries the name and the location alone.
     expect(first?.textContent).toContain('한밭식당');
-    expect(first?.textContent).toContain('4회 이용');
-    expect(first?.textContent).toContain('최근 이용 07-20');
+    expect(first?.textContent).not.toContain('4회 이용');
+    expect(first?.textContent).not.toContain('07-20');
     expect(first?.textContent).not.toContain('2026년 7월 20일');
   });
 
