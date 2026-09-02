@@ -64,8 +64,8 @@ export function distanceFromCampusKm(place: PlaceRecord): number {
  *
  * Thresholds are in kilometres and each band opens at its predecessor's bound: a place exactly
  * 2.0km out is `close`, not `near`. Written as an ordered array rather than a chain of literals so
- * the boundaries live in exactly one place: `distanceBand` scans it in order, and appending or
- * moving a band needs no second edit anywhere else.
+ * the boundaries live in exactly one place: `distanceBand` scans it in order, so moving a threshold
+ * is this edit alone. A *new* band is not — its name also needs a fill in `src/styles.css`.
  *
  * 2 / 5 / 15 rather than round decades: the campus sits at the edge of 청주, so most of the dataset
  * falls between 1 and 10km and a 10km first cut would paint nearly the whole list one colour.
