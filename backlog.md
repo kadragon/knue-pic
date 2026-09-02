@@ -2,6 +2,23 @@
 
 ## Review Backlog
 
+### PR #47 — the stylesheet guards share a brace-regex parser with two blind spots (2026-09-02)
+
+- [ ] [debt] `RULES` in `src/ui/stylesheet-claims.test.ts` matches innermost brace pairs, which is
+  not a CSS parser. Two shapes make declarations invisible to **both** stylesheet guards — the
+  on-scale `unconvertedSpacing` one merged in PR #46 and the `optical:` one from PR #47 — so a raw
+  px in either shape ships unchecked, on scale or off. (a) A rule containing a nested block —
+  native nesting `&:hover { … }` or a nested `@media` — has the declarations around that block
+  swallowed into the inner selector and emitted by nothing; verified with
+  `.probe { color: red; &:hover { color: blue; } margin: 8px; }`, which the merged on-scale guard
+  passes green. (b) A `/*` inside a quoted value (`content: "/*";`) opens a comment the masker
+  cannot distinguish from a real one, blanking through the next `*/` and eating the `;` terminators
+  after it; the sheet already carries a quoted `content` value. Neither shape is in the sheet today
+  and both predate PR #47, which is why they were declared in the `cssDeclarations` docblock rather
+  than fixed there. Closing them means replacing the brace regex with a real parse for both guards
+  at once (source: contract QA pass 4 on PR #47)
+  — `src/ui/stylesheet-claims.test.ts`
+
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*

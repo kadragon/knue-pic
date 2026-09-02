@@ -981,6 +981,7 @@ div.top-place-body {
   /* optical: the focus ring extends 4px past a row (2px wide at 2px offset), and 6px is the pad
      that clears it — off the scale, which steps straight from 4px to 8px. */
   padding: 6px 0;
+  /* optical: the same 6px, so a row scrolled to lands clear of the ring rather than against it. */
   scroll-padding: 6px 0;
 }
 
