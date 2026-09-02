@@ -80,6 +80,25 @@ export const DISTANCE_BANDS = [
 export type DistanceBand = (typeof DISTANCE_BANDS)[number]['band'];
 
 /**
+ * The catch-all for anything the ordered scan does not match — a `NaN` distance, or a future band
+ * table whose last entry is bounded. Read off the last entry rather than written as a literal
+ * index, so appending a band cannot orphan it the way a hard-coded `DISTANCE_BANDS[3]` did.
+ */
+const UNBOUNDED_BAND: DistanceBand = DISTANCE_BANDS[DISTANCE_BANDS.length - 1]?.band ?? 'far';
+
+/**
+ * The distance as the UI prints it — one decimal, the precision `campusDistanceLabel` uses.
+ *
+ * Banding reads this rather than the raw figure. A place 1.96km from the campus is labelled
+ * `거리 2.0km`, and banding the raw value would paint it with the `~2km` fill while its own text
+ * reads 2.0 — the badge contradicting itself, at exactly the boundary the legend invites the
+ * reader to check. The two must round the same way or one of them is lying.
+ */
+function shownKm(km: number): number {
+  return Number(km.toFixed(1));
+}
+
+/**
  * Which band a distance falls in.
  *
  * The band is a *scanning aid* layered on a figure that is already spelled out beside it. Nothing
@@ -87,5 +106,6 @@ export type DistanceBand = (typeof DISTANCE_BANDS)[number]['band'];
  * sole channel, and a band is a coarser claim than the number it summarises.
  */
 export function distanceBand(km: number): DistanceBand {
-  return (DISTANCE_BANDS.find((entry) => km < entry.maxKm) ?? DISTANCE_BANDS[3]).band;
+  const shown = shownKm(km);
+  return DISTANCE_BANDS.find((entry) => shown < entry.maxKm)?.band ?? UNBOUNDED_BAND;
 }

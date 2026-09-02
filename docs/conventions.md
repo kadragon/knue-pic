@@ -60,13 +60,28 @@ ambiguity `eslint.config.js` derives its typed-file list to avoid.
 - Importance is never conveyed by colour alone: a rank carries a number badge, a movement glyph
   carries an `aria-label`, a row's trend chart carries the whole series in its `aria-label`, and
   the pressed period tab carries weight and fill as well as colour.
-- The 업종 palette is the one place colour carries meaning. Each of the four kinds owns a
+- Two palettes carry meaning rather than decoration — 업종 and 거리 밴드 — and both are held to the
+  same two rules: the element always spells the fact out as text, so colour is never the only
+  carrier, and every `-fg` clears 4.5:1 on its own `-bg`. A view never picks a colour; it stamps a
+  `data-` attribute and the stylesheet decides.
+- The 업종 palette is the first of the two. Each of the four kinds owns a
   `--kind-*-bg`/`--kind-*-fg` pair in `src/styles.css`, and the same pair colours the filter chip
   and every badge on a place of that kind. Two rules hold it honest: the badge always spells the
   place's Naver category out as text, so colour is never the only carrier; and each `-fg` clears
   4.5:1 both on its own `-bg` and on white, so it is legible as badge text, as chip text and as
   white-on-fill when the chip is pressed. A view never picks a colour — it stamps `data-kind` and
   the stylesheet decides (`src/ui/place-labels.ts` → `renderKindBadge`).
+- The 거리 밴드 palette is the second. `src/stats/distance.ts` → `distanceBand` sorts a place into
+  one of `DISTANCE_BANDS` — near / close / mid / far, cut at 2, 5 and 15km applied to the printed
+  one-decimal figure rather than to the raw distance, so a badge can never contradict its own
+  number — and the row and the
+  detail card both stamp it as `data-band` on the distance badge, which still prints
+  `campusDistanceLabel` in full. It is a *lightness ramp in one hue*, palest for the nearest band,
+  never a green-to-red scale: a hue change would read as good-to-bad, and "가까운 곳이 더 나은 곳"
+  is a judgement the Framing Vocabulary above forbids the product from making. The band is
+  coarser than the figure beside it, so nothing may state it alone; a legend above the list
+  (`renderDistanceLegend`) names every band's range in words, with each range its own list item so
+  a screen reader reads them apart rather than as one run.
 - Layout must hold at 360px width; source order is search → the ranked list.
 - One ranked list at a time, over the window the reader selected. The four windows — 최근 1개월 /
   3개월 / 6개월 / 1년 — are peers in the selector (`.period-tabs`, on screen at every width): same

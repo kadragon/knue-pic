@@ -13,7 +13,8 @@
  * 4. White text never sits on `--rausch`. #ff385c under white is 3.52:1 — below the 4.5:1 of WCAG
  *    1.4.3 — so every surface that puts text on the brand colour uses `--rausch-strong` (#e00b41,
  *    4.89:1). #ff385c survives only where it carries no text.
- * 5. The 업종 palette is the one place colour carries meaning rather than decoration: the four
+ * 5. The 업종 palette is the first of the two places colour carries meaning rather than
+ *    decoration (the 거리 밴드 ramp in note 6 is the other): the four
  *    kinds the filter offers each own a `-fg`/`-bg` pair, and the same pair colours the filter
  *    chip and every badge on a place of that kind. Each `-fg` clears 4.5:1 both on its own `-bg`
  *    and on white, so it is legible as badge text, as chip text, and as white-on-fill when the
@@ -774,6 +775,18 @@ div.top-place-body {
   align-items: center;
   gap: var(--space-2);
   margin: var(--space-2) 0 0;
+}
+
+/* A real list, so a screen reader reads the four ranges apart; the markers and the indent it
+   comes with are what has to be undone here, not the semantics. */
+.top-places-distance-legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .top-places-distance-legend-caption {

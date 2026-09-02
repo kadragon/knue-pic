@@ -64,12 +64,18 @@ describe('distanceBand', () => {
   it("opens each band at its predecessor's bound", () => {
     // The boundaries themselves, from both sides. A place exactly 2.0km out belongs to the band
     // above, and nothing in the list may fall between two bands.
-    expect(distanceBand(1.999)).toBe('near');
+    expect(distanceBand(1.94)).toBe('near');
     expect(distanceBand(2)).toBe('close');
-    expect(distanceBand(4.999)).toBe('close');
+    expect(distanceBand(4.94)).toBe('close');
     expect(distanceBand(5)).toBe('mid');
-    expect(distanceBand(14.999)).toBe('mid');
+    expect(distanceBand(14.94)).toBe('mid');
     expect(distanceBand(15)).toBe('far');
+
+    // Banding follows the figure the badge PRINTS, not the raw distance: 1.96km is labelled
+    // `거리 2.0km`, and painting it `~2km` would put the badge at odds with its own text.
+    expect(distanceBand(1.96)).toBe('close');
+    expect(distanceBand(4.96)).toBe('mid');
+    expect(distanceBand(14.96)).toBe('far');
   });
 
   it('classifies zero and an arbitrarily distant place', () => {
@@ -78,8 +84,14 @@ describe('distanceBand', () => {
   });
 
   it('has an unbounded last band, so no distance is unclassified', () => {
-    // The `?? DISTANCE_BANDS[3]` fallback in `distanceBand` is unreachable only while this holds.
+    // The catch-all in `distanceBand` is unreachable for a finite distance only while this holds.
     expect(DISTANCE_BANDS[DISTANCE_BANDS.length - 1]?.maxKm).toBe(Infinity);
+  });
+
+  it('falls back to the last band rather than to a hardcoded index', () => {
+    // NaN compares false against every bound, so the ordered scan matches nothing and the
+    // fallback is what answers. It must be the LAST band, whatever the table's length becomes.
+    expect(distanceBand(Number.NaN)).toBe(DISTANCE_BANDS[DISTANCE_BANDS.length - 1]?.band);
   });
 
   it('bands the two real dataset rows the distance figure was added for', () => {
