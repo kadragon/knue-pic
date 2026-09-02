@@ -10,7 +10,9 @@
       "Grep(./.env)",
       "Grep(./.env.local)",
       "Grep(./.env.*.local)",
+      "Write(./.env)",
       "Edit(./.env)",
+      "Write(./data/places.json)",
       "Edit(./data/places.json)"
     ]
   }
