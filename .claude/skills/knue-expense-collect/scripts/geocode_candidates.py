@@ -282,7 +282,15 @@ def _visits(row: dict) -> int:
 
 
 def report(csv_path: str, aliases_path: str) -> int:
-    if not os.path.exists(csv_path):
+    # Operator error ends the same way whichever path it arrives on — a line on
+    # stderr and exit 2. A mistyped path is the ordinary way to run this flag
+    # wrong, and a traceback tells the operator about json/open rather than
+    # about the argument they got wrong.
+    if os.path.isdir(csv_path):
+        print(f"{csv_path} is a directory — --csv takes the review queue file",
+              file=sys.stderr)
+        return 2
+    if not os.path.isfile(csv_path):
         print(f"{csv_path} does not exist — run stage 4 first", file=sys.stderr)
         return 2
     rows, _ = load_existing(csv_path)
@@ -290,8 +298,21 @@ def report(csv_path: str, aliases_path: str) -> int:
 
     aliases: dict[str, str] = {}
     if os.path.exists(aliases_path):
-        with open(aliases_path, encoding="utf-8") as fh:
-            aliases = json.load(fh)
+        # An unreadable map stops the run instead of falling back to {}: --report
+        # reads it to decide which clusters are already settled, so an empty map
+        # would re-propose every merge the reviewer has already made.
+        try:
+            with open(aliases_path, encoding="utf-8") as fh:
+                loaded = json.load(fh)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"{aliases_path} could not be read as JSON ({exc}) — fix it or pass\n"
+                  "--aliases with the right path", file=sys.stderr)
+            return 2
+        if not isinstance(loaded, dict):
+            print(f"{aliases_path} is not a JSON object — --aliases takes a "
+                  '{"spelling": "canonical name"} map', file=sys.stderr)
+            return 2
+        aliases = loaded
 
     if not clusters:
         print(f"No same-coordinate clusters among the approved rows in {csv_path}.")

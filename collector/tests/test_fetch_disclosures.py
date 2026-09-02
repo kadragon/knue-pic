@@ -1,27 +1,15 @@
 """Stage 1 walk rules — the backfill regression and the wrong-year guard.
 
-`.claude/skills/*/scripts/` has no test home of its own (a separate backlog
-item), so this file loads the one module under test by path rather than
-standing up a general harness for every skill script.
+The module under test lives in `.claude/skills/*/scripts/`, outside the
+`collector` package; `skill_scripts.load_skill_script` is how this test run
+reaches it (see that module for why the scripts are tested from here).
 """
-
-import importlib.util
-import pathlib
 
 import pytest
 
-_SCRIPT = (pathlib.Path(__file__).resolve().parents[2]
-           / ".claude/skills/knue-expense-collect/scripts/fetch_disclosures.py")
+from collector.tests.skill_scripts import load_skill_script
 
-
-def _load():
-    spec = importlib.util.spec_from_file_location("fetch_disclosures", _SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-fd = _load()
+fd = load_skill_script("fetch_disclosures")
 
 
 def _board(monkeypatch, pages):
