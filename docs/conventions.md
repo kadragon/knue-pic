@@ -58,6 +58,19 @@ way and had been scanning nothing since it was written. Two habits keep it from 
 leave `test.css` on, and open any stylesheet-reading suite by asserting a string the file certainly
 contains, so a blank read fails loudly instead of agreeing with every `not.toContain`.
 
+That is the stylesheet's test home, and there is no other: `?raw` plus `test.css: true` reaches
+`src/styles.css` from a suite under `src/` with no filesystem access, so a rule nothing renders can
+still be asserted (`src/ui/stylesheet-claims.test.ts`). A second vitest project for CSS would buy
+nothing this does not already cover.
+
+**A superlative claim is registered, never banned.** A sentence asserting "this is the ONE place X
+happens" — in a doc or a docblock — goes stale the moment a second X lands, and the diff that adds
+the second one is not where anyone is reading the sentence. Adding the 거리 밴드 palette falsified
+two at once. Register the claim in `src/ui/stylesheet-claims.test.ts` instead: its verbatim
+sentence, and the count recomputed from the source it describes. The sentence stays as written —
+banning the phrasing would fire on prose that is fine, and rewriting the claim away costs the rule
+its legibility.
+
 A fixture that carries its own `tsconfig.json` lives **outside `src/`**. Inside, the root config
 would claim its files while the ESLint project service also discovers the nested one, which is the
 ambiguity `eslint.config.js` derives its typed-file list to avoid.

@@ -28,6 +28,12 @@
  *    6.44:1, mid 5.46:1, far 12.48:1 — all clear of WCAG 1.4.3's 4.5:1. Every badge prints its own
  *    kilometre figure in full, so the colour is a scanning aid over text rather than a channel of
  *    its own, and no legend is needed to read one.
+ *
+ *    Note 5 counts the palettes that carry meaning, and a third one landing would falsify it
+ *    silently — which is how it got out of date the first time. That sentence is registered in
+ *    `src/ui/stylesheet-claims.test.ts`, which recomputes the count from the rules below and
+ *    fails when the prose and the stylesheet stop agreeing. Nothing there guards this note's own
+ *    contrast figures; re-measure them by hand when a token moves.
  */
 :root {
   /* Decorative brand voltage: no text is ever placed on it. */
@@ -782,6 +788,7 @@ div.top-place-body {
   color: var(--muted);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .top-place-delta[data-direction='up'] {
@@ -796,10 +803,6 @@ div.top-place-body {
    declared beside them rather than left to the base rule to imply. */
 .top-place-delta[data-direction='same'] {
   color: var(--muted);
-}
-
-.top-place-delta {
-  white-space: nowrap;
 }
 
 /*

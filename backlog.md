@@ -2,29 +2,15 @@
 
 ## Review Backlog
 
-### Superlative claims in docs have no guard against going stale (2026-09-02, from PR #40)
+### The nowrap guard reads declarations, not effective values (2026-09-02, from PR #43 review)
 
-- [ ] [harness] Adding a second meaning-carrying colour palette silently falsified two "this is the
-  ONE place X happens" sentences — `docs/conventions.md` -> Accessibility and `src/styles.css`
-  header note 5 — and three of the four review sources on PR #40 flagged them independently. The
-  claims themselves are worth keeping (they are what makes the rule legible), so the fix is a check
-  rather than a rewrite: a test or lint that reads the superlative sentences in `docs/` and
-  `src/styles.css` and fails when the thing they claim to be unique is no longer unique. Scope it
-  before building — a naive "ban the word 하나뿐" rule would fire on prose it should not
-  — `docs/conventions.md`, `src/styles.css`, `eslint-rules/`
-
-### The stylesheet has no test home (2026-09-02, from PR #39 review)
-
-- [ ] [constraint] Three shipped behaviours rest on CSS nothing can assert: the `white-space: nowrap`
-  block that keeps `거리 1.2km`, `19회 이용` and a `07-30` date from breaking mid-figure
-  (`src/styles.css` → `.top-place-recent, .top-place-visits, .top-place-distance,
-  .place-detail-distance`). Deleting that block leaves the whole suite green. jsdom applies no
-  stylesheet and Vitest returns a `?raw` CSS import as `''` (measured), and a `readFileSync` test
-  cannot live under `src/` — `tsconfig.json` sets `"types": ["vite/client"]` with no `@types/node`,
-  and `vite.config.ts` collects only `src/**/*.test.ts`. Closing this means giving the stylesheet a
-  test home outside `src/` (a second vitest project, or the `eslint-rules/` pattern), which is a
-  config change rather than a test — `src/styles.css`, `vite.config.ts`, `docs/conventions.md` →
-  Test Files
+- [ ] [constraint] `src/ui/stylesheet-claims.test.ts` asserts that `white-space: nowrap` is
+  *declared* on each of the three rule sets. A later more-specific rule, or a responsive block,
+  setting `white-space: normal` would leave the guard green while the token wraps at that
+  viewport — the same "asserted, not enforced" gap the guard was built to close, one cascade level
+  up. Closing it means either resolving the effective value or rejecting a conflicting override,
+  and neither is a one-line change; scope it before building. Declined as out of scope on PR #43
+  (source: Codex review, P3) — `src/ui/stylesheet-claims.test.ts`, `src/styles.css`
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
