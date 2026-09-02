@@ -1,8 +1,8 @@
 # Architecture
 
-Source of truth for the boundaries that the directory tree does not show. The repo is currently
-empty apart from the harness — everything below is the agreed target shape, and the first
-implementation commits must match it or update this doc in the same change.
+Source of truth for the boundaries that the directory tree does not show. Everything below
+describes the repo as it is implemented today; a change that departs from it must update this doc
+in the same commit.
 
 ## Stack
 
@@ -29,7 +29,7 @@ The two halves share **nothing but `data/places.json`**. The collector never run
 browser; the web app never learns where the data came from. Any change that couples them (a shared
 config the web app imports, a build step that calls the collector) breaks the constraint.
 
-## Source Layout (target)
+## Source Layout
 
 ```
 index.html
