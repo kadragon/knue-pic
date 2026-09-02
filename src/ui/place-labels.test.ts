@@ -59,6 +59,23 @@ describe('short address', () => {
     expect(shortAddress('세종특별자치시 세종로 1219 세종중앙타워 2층')).toBe('세종');
   });
 
+  it('keeps a single-syllable district, which a two-character minimum dropped', () => {
+    // 12 of the 504 published rows carry one, and they rendered as a bare city stem.
+    expect(shortAddress('대전광역시 서구 가장로 43-1')).toBe('대전 서구');
+    expect(shortAddress('대전광역시 중구 사정공원로 70')).toBe('대전 중구');
+    expect(shortAddress('서울특별시 중구 세종대로 136')).toBe('서울 중구');
+  });
+
+  it('keeps a 군 whole, so a county does not read as a city', () => {
+    expect(shortAddress('충청북도 괴산군 괴산읍 임꺽정로 1')).toBe('괴산군 괴산읍');
+  });
+
+  it('skips only a listed province abbreviation, never an unsuffixed city name', () => {
+    // `대전 중구` without 광역시: skipping the first token would yield `중구`, a district six
+    // cities share — the ambiguity the 광역시 branch exists to prevent.
+    expect(shortAddress('대전 중구 사정공원로 70')).toBe('대전 중구 사정공원로 70');
+  });
+
   it('tolerates the abbreviated province spelling', () => {
     // `충북 …` is how the test fixtures and some disclosure rows spell it; only the leading token
     // is ever skipped, so the walk still stops at the road name.

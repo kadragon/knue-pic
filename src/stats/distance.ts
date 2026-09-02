@@ -18,8 +18,9 @@ import type { PlaceRecord } from '../data/types';
  * Supplied by the operator from the 한국교원대학교 pin on Naver Map (2026-09-02) and hard-coded
  * here rather than derived: the repo publishes no campus record, and
  * `.claude/skills/knue-expense-collect/scripts/geocode_candidates.py` carries only the
- * `36.6N 127.3E` bounding-box comment its selftest checks against — a box ~30km wide, which would
- * make every figure on the list wrong by more than the figure itself.
+ * `36.6N 127.3E` bounding-box comment its selftest checks against. That box is 36.3–36.9 by
+ * 127.0–127.6 — roughly 67km by 53km — so a coordinate taken from it could be wrong by more than
+ * any figure on the list.
  */
 export const CAMPUS_ORIGIN = { lat: 36.6084, lng: 127.3582 } as const;
 

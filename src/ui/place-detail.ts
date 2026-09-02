@@ -185,10 +185,21 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   address.textContent = place.address;
   meta.append(address);
 
+  // The separator is a node rather than a `::before` rule, so it is visible to the tests that
+  // guard it: jsdom applies no stylesheet, and Vitest hands a `?raw` CSS import back as an empty
+  // string, so a purely stylistic dot could be deleted with every test still green. The row's
+  // location line joins the same two facts with the same dot (`src/ui/top-places.ts`).
+  const separator = document.createElement('span');
+  separator.className = 'place-detail-meta-separator';
+  separator.textContent = '·';
+  // Decorative: the two facts are already separate elements to a screen reader, and a spoken
+  // "middle dot" between them is noise.
+  separator.setAttribute('aria-hidden', 'true');
+
   const distance = document.createElement('span');
   distance.className = 'place-detail-distance';
   distance.textContent = distanceLabel(place);
-  meta.append(distance);
+  meta.append(separator, distance);
 
   const periodNote = document.createElement('p');
   periodNote.className = 'place-detail-period';

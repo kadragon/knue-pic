@@ -30,6 +30,27 @@ function detailFor(placeIndex = 0, basis: Period = '1y') {
 }
 
 describe('renderPlaceDetail', () => {
+  it('separates the address from the distance with a decorative dot', () => {
+    const container = document.createElement('div');
+
+    renderPlaceDetail(container, detailFor(0, '1y'));
+    const meta = container.querySelector('.place-detail-meta');
+    const separator = meta?.querySelector('.place-detail-meta-separator');
+
+    // Guarded here rather than in the stylesheet: jsdom applies no CSS and Vitest returns a `?raw`
+    // CSS import as an empty string, so a `::before` dot could be deleted with every test green.
+    expect(separator?.textContent).toBe('·');
+    expect(separator?.getAttribute('aria-hidden')).toBe('true');
+    // Between the two, not before both.
+    const nodes = [...(meta?.children ?? [])].map((el) => el.className);
+    expect(nodes.indexOf('place-detail-meta-separator')).toBeGreaterThan(
+      nodes.indexOf('place-detail-address'),
+    );
+    expect(nodes.indexOf('place-detail-distance')).toBeGreaterThan(
+      nodes.indexOf('place-detail-meta-separator'),
+    );
+  });
+
   it('adds the campus distance beside the full address rather than replacing it', () => {
     const container = document.createElement('div');
     const detail = detailFor(0, '1y');

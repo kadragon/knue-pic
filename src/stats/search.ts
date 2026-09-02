@@ -1,4 +1,5 @@
 import type { PlaceKind, PlaceRecord, PlacesDataset } from '../data/types';
+import { shortAddress } from './short-address';
 
 /**
  * Text and category filtering over the dataset. Pure — places in, places out; no DOM, no map.
@@ -86,7 +87,13 @@ function matchesText(place: PlaceRecord, text: string): boolean {
   const needle = normalize(text);
   if (needle === '') return true;
 
-  return [place.name, place.category, place.address].some((field) =>
+  // The shortened address is searched as a field of its own rather than by transforming the
+  // needle. The ranked row displays `청주 흥덕구` for a stored `충청북도 청주시 흥덕구`, and
+  // `docs/conventions.md` -> Accessibility requires a reader to be able to type back what the row
+  // showed them. Folding the suffix out of the *needle* did that too, and cost far more than it
+  // bought: `스시` became `스` and matched 66 places, most of them not sushi. A field costs one
+  // more `includes` per place and changes no other query.
+  return [place.name, place.category, place.address, shortAddress(place.address)].some((field) =>
     normalize(field).includes(needle),
   );
 }

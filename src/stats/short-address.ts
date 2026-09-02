@@ -1,0 +1,96 @@
+/**
+ * The shortened address a ranked row displays.
+ *
+ * Lives in `src/stats/` rather than beside the other display transforms in `src/ui/`, because
+ * `src/stats/search.ts` matches against it — a reader must be able to search back the district a
+ * row showed them (`docs/conventions.md` -> Accessibility) — and Layer Rules forbid `src/stats/`
+ * from importing `src/ui/`. `src/ui/place-labels.ts` re-exports it, so the views still reach every
+ * display transform through one module.
+ */
+/**
+ * `충청북도 청주시 흥덕구 가로수로1164번길 38` → `청주 흥덕구`.
+ *
+ * The list row has one metadata line and the full address does not fit in it beside the figures.
+ * What a reader wants from an address at a glance is the district, not the door number — the exact
+ * street is one tap away in the detail dialog, which keeps the address whole.
+ *
+ * Tokens are consumed in administrative order and the walk stops at the first token that is not an
+ * administrative unit — the road name, or in four rows a 동/리 the short form deliberately does not
+ * carry. A `…도` is dropped outright (410 of the 414 rows that
+ * carry a province are in 충청북도, so naming it distinguishes nothing) while `…특별시`/`…광역시`/`…특별자치시` keeps
+ * its stem — 대전 and 세종 are exactly the places the district alone would not distinguish.
+ *
+ * An address matching no rule is returned **whole**. Truncating it to a fixed token count would
+ * invent a district for an address shaped differently than every one in today's dataset; showing
+ * the long form is a legible fallback, a wrong short form is not.
+ */
+export function shortAddress(address: string): string {
+  const tokens = address.trim().split(/\s+/);
+  // One retry from the second token, because a province is written both ways in practice:
+  // `충청북도` matches the rule below, `충북` matches nothing and would otherwise stop the walk
+  // before it began. The retry is confined to that abbreviation list rather than skipping any
+  // unmatched leading token: `대전 중구 …` — a metropolitan city written without its 광역시 — would
+  // otherwise walk to `중구`, a district name six cities share, which is exactly the ambiguity the
+  // 광역시 branch below exists to prevent.
+  const [first] = tokens;
+  const retryable = first !== undefined && PROVINCE_ABBREVIATIONS.has(first);
+  return (
+    collectAdminUnits(tokens) ??
+    (retryable ? collectAdminUnits(tokens.slice(1)) : null) ??
+    address
+  );
+}
+
+/**
+ * The 2-character province spellings, listed rather than pattern-matched.
+ *
+ * No shape distinguishes `충북` from `대전`: both are two syllables ending in no administrative
+ * suffix, and only one of them is a province safe to drop. Guessing from the shape is what would
+ * discard a city name, so the nine provinces are written out and everything else falls through
+ * to the whole-address fallback.
+ */
+const PROVINCE_ABBREVIATIONS = new Set([
+  '충북',
+  '충남',
+  '전북',
+  '전남',
+  '경북',
+  '경남',
+  '강원',
+  '경기',
+  '제주',
+]);
+
+function collectAdminUnits(tokens: string[]): string | null {
+  const parts: string[] = [];
+
+  for (const token of tokens) {
+    // Dropped rather than kept: 충청북도 covers all but a handful of the dataset, so naming it
+    // distinguishes nothing. It is the one unit that never reaches `parts`.
+    if (parts.length === 0 && /^..+도$/.test(token)) continue;
+
+    const wide = /^(.+?)(?:특별시|광역시|특별자치시)$/.exec(token);
+    if (parts.length === 0 && wide) {
+      parts.push(wide[1] as string);
+      continue;
+    }
+
+    // Only `시` is stripped. A `군` keeps its suffix like `구`/`읍`/`면` do, because `괴산 괴산읍`
+    // reads as a city and `괴산군 괴산읍` reads as what it is.
+    const city = /^(.+?)시$/.exec(token);
+    if (city) {
+      parts.push(city[1] as string);
+      continue;
+    }
+    // One syllable before the suffix, not two: `서구`, `중구`, `동구` are real districts — 12 of
+    // the 504 published rows carry one — and a two-character minimum dropped every one of them
+    // while `유성구` beside them shortened fine.
+    if (/^.+[군구읍면]$/.test(token)) {
+      parts.push(token);
+      continue;
+    }
+    break;
+  }
+
+  return parts.length === 0 ? null : parts.join(' ');
+}

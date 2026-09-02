@@ -38,7 +38,9 @@ src/                  # web app; browser-only code
   data/               # places.json loading + schema types
   stats/              # pure computation: per-period ranking, rank delta,
                       #   monthly histogram, text/category filtering,
-                      #   straight-line distance from the campus (distance.ts)
+                      #   straight-line distance from the campus (distance.ts),
+                      #   the shortened address the list displays and search matches
+                      #   (short-address.ts)
   map/                # loader.ts (script injection), naver-api.ts (hand-written API types),
                       #   place-map.ts (one marker for the selected place + §38 fallback)
   ui/                 # views, Korean strings

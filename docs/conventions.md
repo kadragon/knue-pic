@@ -96,7 +96,12 @@ ambiguity `eslint.config.js` derives its typed-file list to avoid.
 - A display transform applied to a stored value (`displayCategory` folds the dataset's comma into
   the UI's `·`) is also folded inside `filterPlaces`' `normalize`, so a reader can type back exactly
   what the row showed them. A transform that reaches the label but not the matcher returns nothing
-  for the 92 places whose category carries a comma.
+  for the 92 places whose category carries a comma. It has happened twice: `shortAddress` renders
+  `청주 흥덕구` for a stored `충청북도 청주시 흥덕구`, and 455 of the 504 rows were unreachable by the
+  address they displayed until `matchesText` began searching the shortened form as a field of its
+  own. **A new display transform lands in `src/stats/search.ts` in the same change that lands the
+  label** — as a searchable field, not as a fold applied to the needle: folding `시` out of the
+  query turned `스시` into `스` and matched 66 places.
 - Every interactive control has a visible label or an `aria-label`; search is keyboard-operable.
 
 ## Docs
