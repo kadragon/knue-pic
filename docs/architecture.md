@@ -37,7 +37,8 @@ index.html
 src/                  # web app; browser-only code
   data/               # places.json loading + schema types
   stats/              # pure computation: per-period ranking, rank delta,
-                      #   monthly histogram, text/category filtering
+                      #   monthly histogram, text/category filtering,
+                      #   straight-line distance from the campus (distance.ts)
   map/                # loader.ts (script injection), naver-api.ts (hand-written API types),
                       #   place-map.ts (one marker for the selected place + §38 fallback)
   ui/                 # views, Korean strings
@@ -60,6 +61,11 @@ review_candidates.csv # manual location approval queue (committed)
 
 - `src/stats/` is pure: it takes places + a period and returns numbers. No DOM, no map, no fetch.
   Every statistic in PRD §10–§13, §19, §22–§24 is computed here so it stays unit-testable.
+  `distance.ts` is here for the same reason and not in `src/map/`: it is arithmetic over a place's
+  own `lat`/`lng`, every ranked row carries it, and it must render whether or not the Naver script
+  ever loads. `CAMPUS_ORIGIN` is the one coordinate in the repo that no file derives — it was read
+  off the 한국교원대학교 pin by the operator, so it is stated once, with that provenance, and the
+  figure is labelled 직선 on screen because the app knows nothing about roads.
 - `src/map/` reads a place record and nothing else; `src/stats/` must never import from `src/map/`
   or `src/ui/`. The map shows the place the detail dialog is about — it carries no ranking, so it
   has no reason to read stats output at all.

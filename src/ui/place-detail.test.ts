@@ -14,7 +14,8 @@ import {
   periodStatsHeading,
   renderPlaceDetail,
 } from './place-detail';
-import { monthLabel } from './place-labels';
+import { campusDistanceLabel, monthLabel } from './place-labels';
+import { distanceFromCampusKm } from '../stats/distance';
 
 const PLACE = SAMPLE_DATASET.places[0]!; // 한밭식당
 
@@ -29,6 +30,20 @@ function detailFor(placeIndex = 0, basis: Period = '1y') {
 }
 
 describe('renderPlaceDetail', () => {
+  it('adds the campus distance beside the full address rather than replacing it', () => {
+    const container = document.createElement('div');
+    const detail = detailFor(0, '1y');
+
+    renderPlaceDetail(container, detail);
+
+    // The dialog is where the exact location is read, so the address stays whole here; the
+    // distance is the one thing the address does not tell the reader.
+    expect(container.querySelector('.place-detail-address')?.textContent).toBe(detail.place.address);
+    expect(container.querySelector('.place-detail-distance')?.textContent).toBe(
+      campusDistanceLabel(distanceFromCampusKm(detail.place)),
+    );
+  });
+
   it('shows a placeholder until a place is selected', () => {
     const container = document.createElement('div');
 

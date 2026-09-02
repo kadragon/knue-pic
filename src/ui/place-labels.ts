@@ -112,3 +112,71 @@ export function histogramSpanLabel(span: HistogramSpan): string {
   if (span.first === span.last) return monthLabel(span.first);
   return `${monthLabel(span.first)}~${monthLabel(span.last)}`;
 }
+
+/**
+ * `충청북도 청주시 흥덕구 가로수로1164번길 38` → `청주 흥덕구`.
+ *
+ * The list row has one metadata line and the full address does not fit in it beside the figures.
+ * What a reader wants from an address at a glance is the district, not the door number — the exact
+ * street is one tap away in the detail dialog, which keeps the address whole.
+ *
+ * Tokens are consumed in administrative order and the walk stops at the first token that is not an
+ * administrative unit, which is the road name. A `…도` is dropped outright (all but a handful of
+ * places are in 충청북도, so it distinguishes nothing) while `…특별시`/`…광역시`/`…특별자치시` keeps
+ * its stem — 대전 and 세종 are exactly the places the district alone would not distinguish.
+ *
+ * An address matching no rule is returned **whole**. Truncating it to a fixed token count would
+ * invent a district for an address shaped differently than every one in today's dataset; showing
+ * the long form is a legible fallback, a wrong short form is not.
+ */
+export function shortAddress(address: string): string {
+  const tokens = address.trim().split(/\s+/);
+  // One retry from the second token, because a province is written both ways in practice:
+  // `충청북도` matches the rule below, `충북` matches nothing and would otherwise stop the walk
+  // before it began. Only the leading token is ever skipped — a miss deeper in the address means
+  // the walk has already reached the road name, which is exactly where it should stop.
+  return collectAdminUnits(tokens) ?? collectAdminUnits(tokens.slice(1)) ?? address;
+}
+
+function collectAdminUnits(tokens: string[]): string | null {
+  const parts: string[] = [];
+
+  for (const token of tokens) {
+    // Dropped rather than kept: 충청북도 covers all but a handful of the dataset, so naming it
+    // distinguishes nothing. It is the one unit that never reaches `parts`.
+    if (parts.length === 0 && /^..+도$/.test(token)) continue;
+
+    const wide = /^(.+?)(?:특별시|광역시|특별자치시)$/.exec(token);
+    if (parts.length === 0 && wide) {
+      parts.push(wide[1] as string);
+      continue;
+    }
+
+    const city = /^(.+?)[시군]$/.exec(token);
+    if (city) {
+      parts.push(city[1] as string);
+      continue;
+    }
+    if (/^..+[구읍면]$/.test(token)) {
+      parts.push(token);
+      continue;
+    }
+    break;
+  }
+
+  return parts.length === 0 ? null : parts.join(' ');
+}
+
+/**
+ * `3.24` → `교원대 직선 3.2km`.
+ *
+ * Always one decimal, at every magnitude. A `700m` form below a kilometre would read as a more
+ * precise measurement than this is: the figure is a straight line between two points, and the
+ * nearer a place is, the further a straight line sits from the walk it suggests. One unit also
+ * keeps the column comparable down the list.
+ *
+ * 직선 is load-bearing, not decoration — it is the only thing on screen saying this is not a route.
+ */
+export function campusDistanceLabel(km: number): string {
+  return `교원대 직선 ${km.toFixed(1)}km`;
+}

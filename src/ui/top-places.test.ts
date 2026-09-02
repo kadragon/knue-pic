@@ -5,7 +5,8 @@ import type { PlacesDataset } from '../data/types';
 import { HISTOGRAM_MONTHS, histogramSpan, type MonthlyHistogram } from '../stats/histogram';
 import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
-import { histogramSpanLabel, monthLabel } from './place-labels';
+import { campusDistanceLabel, histogramSpanLabel, monthLabel, shortAddress } from './place-labels';
+import { distanceFromCampusKm } from '../stats/distance';
 import {
   allRenderedLabel,
   EMPTY_MESSAGE,
@@ -29,6 +30,18 @@ function render(result: TopPlacesResult): HTMLElement {
 const EMPTY_DATASET: PlacesDataset = { updatedAt: '2026-08-01', places: [] };
 
 describe('renderTopPlaces', () => {
+  it('states where each place is and how far the campus is from it', () => {
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+    const container = render(result);
+    const top = result.entries[0]!.place;
+
+    const meta = container.querySelector('.top-place-location');
+    expect(meta?.textContent).toContain(shortAddress(top.address));
+    expect(meta?.textContent).toContain(campusDistanceLabel(distanceFromCampusKm(top)));
+    // The full address belongs to the dialog, not to the row.
+    expect(meta?.textContent).not.toContain(top.address);
+  });
+
   it('renders one ordered list item per ranked place', () => {
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
 

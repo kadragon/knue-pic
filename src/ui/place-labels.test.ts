@@ -4,12 +4,14 @@ import { monthKey } from '../data/iso-date';
 import { computeMonthlyHistogram, histogramSpan } from '../stats/histogram';
 import type { HistogramSpan } from '../stats/histogram';
 import {
+  campusDistanceLabel,
   displayCategory,
   displayDate,
   displayShortDate,
   histogramSpanLabel,
   monthLabel,
   renderKindBadge,
+  shortAddress,
 } from './place-labels';
 
 describe('place display labels', () => {
@@ -36,6 +38,48 @@ describe('place display labels', () => {
   it('leaves a malformed value alone rather than slicing a wrong pair out of it', () => {
     expect(displayShortDate('unknown')).toBe('unknown');
     expect(displayShortDate('2026-07-08T00:00:00')).toBe('2026-07-08T00:00:00');
+  });
+});
+
+describe('short address', () => {
+  it('keeps the city and the district, dropping the province and the street', () => {
+    // Every address below is a real row of `data/places.json`.
+    expect(shortAddress('충청북도 청주시 흥덕구 가로수로1164번길 38')).toBe('청주 흥덕구');
+    expect(shortAddress('충청북도 청주시 상당구 무농정로3번길 56 1층')).toBe('청주 상당구');
+  });
+
+  it('keeps a 읍/면 under its district', () => {
+    // 강내면 is where the campus itself sits, so collapsing it into 흥덕구 would lose the one
+    // distinction a reader near the campus cares about.
+    expect(shortAddress('충청북도 청주시 흥덕구 강내면 태성탑연로 390')).toBe('청주 흥덕구 강내면');
+  });
+
+  it('keeps the stem of a 광역시/특별자치시, which the district alone would not identify', () => {
+    expect(shortAddress('대전광역시 대덕구 덕암북로72번길 20')).toBe('대전 대덕구');
+    expect(shortAddress('세종특별자치시 세종로 1219 세종중앙타워 2층')).toBe('세종');
+  });
+
+  it('tolerates the abbreviated province spelling', () => {
+    // `충북 …` is how the test fixtures and some disclosure rows spell it; only the leading token
+    // is ever skipped, so the walk still stops at the road name.
+    expect(shortAddress('충북 청주시 흥덕구 강내면 태성탑연로 111')).toBe('청주 흥덕구 강내면');
+  });
+
+  it('returns an unrecognised address whole rather than inventing a district for it', () => {
+    expect(shortAddress('알 수 없음')).toBe('알 수 없음');
+    expect(shortAddress('')).toBe('');
+  });
+});
+
+describe('campus distance label', () => {
+  it('states one decimal at every magnitude', () => {
+    expect(campusDistanceLabel(3.24)).toBe('교원대 직선 3.2km');
+    expect(campusDistanceLabel(0.72)).toBe('교원대 직선 0.7km');
+    expect(campusDistanceLabel(24.75)).toBe('교원대 직선 24.8km');
+  });
+
+  it('says 직선, because the figure is not a route', () => {
+    expect(campusDistanceLabel(1)).toContain('직선');
   });
 });
 
