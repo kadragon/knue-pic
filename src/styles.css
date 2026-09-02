@@ -88,6 +88,12 @@
   --radius-lg: 20px;
   --radius-full: 9999px;
 
+  /*
+   * Every spacing declaration — margin, padding, gap, scroll-padding, inset — goes through this
+   * scale. A raw px there is a missed conversion, and `src/ui/stylesheet-claims.test.ts` fails on
+   * one. Off-scale values are legal but never silent: each carries an `optical:` comment saying
+   * what sizes it instead, so the next editor can tell a deliberate value from an overlooked one.
+   */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -129,7 +135,7 @@
      1440px column, and narrowing the column left it 240px out of true at every viewport wider
      than the measure. The `- 24px` is `#content`'s own gutter. */
   --content-max: 960px;
-  --column-inset: max(24px, calc(50% - (var(--content-max) / 2 - 24px)));
+  --column-inset: max(var(--space-6), calc(50% - (var(--content-max) / 2 - var(--space-6))));
   /* Height of the sticky header band; the period bar parks directly beneath it. */
   --header-height: 92px;
 
@@ -146,7 +152,7 @@
 
 /* Two elements are scrolled to programmatically, and both must stop clear of the sticky header. */
 html {
-  scroll-padding-top: calc(var(--header-height) + 8px);
+  scroll-padding-top: calc(var(--header-height) + var(--space-2));
 }
 
 body {
@@ -182,7 +188,7 @@ body {
   margin: 0 auto;
   /* The top padding is what holds the first control clear of the header's Rausch rule. At 0 the
      rule read as an underline on the 업종 chips rather than as the header's own bottom edge. */
-  padding: var(--space-5) 24px var(--space-9);
+  padding: var(--space-5) var(--space-6) var(--space-9);
 }
 
 /* The dialog inside is `position: fixed`, so the slot must not occupy a grid row of its own. */
@@ -245,6 +251,7 @@ body {
  * The tone lost is the price of the header being translucent at all.
  */
 .shell-tagline {
+  /* optical: 2px is below the --space-1 floor — a hairline tie to the line above, not a step. */
   margin: 2px 0 0;
   color: var(--body);
   font-size: 14px;
@@ -261,7 +268,7 @@ body {
 }
 
 .shell-footer p {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-1);
 }
 
 .shell-disclaimer {
@@ -319,7 +326,7 @@ body {
 }
 
 .kind-filter-option {
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
   background: var(--canvas);
@@ -415,7 +422,8 @@ body {
 .place-kind-badge {
   display: inline-block;
   flex: 0 0 auto;
-  padding: 2px 8px;
+  /* optical: the badge height comes from its 12px/1.5 line box, so the vertical pad is sub-scale. */
+  padding: 2px var(--space-2);
   border-radius: var(--radius-full);
   background: var(--kind-other-bg);
   color: var(--kind-other-fg);
@@ -467,7 +475,7 @@ body {
 
 /* Inside the dialog the map sits under the place's own `h3`, so its label is a quieter tier. */
 .place-map h4 {
-  margin: 16px 0 0;
+  margin: var(--space-4) 0 0;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.3;
@@ -515,7 +523,8 @@ a[role='button'] {
 .data-state-retry,
 .place-search-reset {
   height: 48px;
-  margin-top: 12px;
+  margin-top: var(--space-3);
+  /* optical: 23px + the 1px border is the 24px inline inset, and 13px is what the 48px height leaves. */
   padding: 13px 23px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -542,7 +551,7 @@ a[role='button'] {
 /* Before any view has data there is no section card to sit in, so the state carries its own. */
 .data-state {
   margin: 0;
-  padding: 24px;
+  padding: var(--space-6);
   border: 1px solid var(--hairline-soft);
   border-radius: var(--radius-lg);
   background: var(--canvas);
@@ -566,7 +575,8 @@ a[role='button'] {
 
 /* {component.category-strip}: pill filters, wrapping rather than overflowing at 360px (PRD §36). */
 .period-tab {
-  padding: 10px 20px;
+  /* optical: the pill sits between --space-2 and --space-3; its height is tuned, not stepped. */
+  padding: 10px var(--space-5);
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
   background: var(--canvas);
@@ -615,7 +625,7 @@ a[role='button'] {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin: 0 -8px;
+  margin: 0 calc(var(--space-2) * -1);
   border-radius: var(--radius-md);
   border-bottom: 1px solid var(--hairline-soft);
   transition: background-color 120ms ease, box-shadow 120ms ease;
@@ -641,11 +651,11 @@ a[role='button'] {
 }
 
 .top-place {
-  padding-inline: 8px;
+  padding-inline: var(--space-2);
 }
 
 .place-search-list li {
-  padding-inline: 8px;
+  padding-inline: var(--space-2);
 }
 
 /*
@@ -721,6 +731,7 @@ div.top-place-body {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  /* optical: sub-scale, tying the metadata line to the name above it. */
   margin: 2px 0 0;
   color: var(--muted);
   font-size: 14px;
@@ -742,7 +753,8 @@ div.top-place-body {
  */
 .top-place-distance,
 .place-detail-distance {
-  padding: 2px 8px;
+  /* optical: sub-scale vertical pad, matching the 업종 badge this sits beside. */
+  padding: 2px var(--space-2);
   border-radius: var(--radius-full);
   background: var(--dist-near-bg);
   color: var(--dist-near-fg);
@@ -820,6 +832,7 @@ div.top-place-body {
   display: flex;
   flex: 0 0 auto;
   align-items: flex-end;
+  /* optical: the gap between sparkline bars inside an 84px box, not layout spacing. */
   gap: 2px;
   width: 84px;
   height: 26px;
@@ -862,7 +875,7 @@ div.top-place-body {
 }
 
 .top-places-more-button {
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
   background: var(--canvas);
@@ -964,6 +977,7 @@ div.top-place-body {
   max-height: min(60vh, 30rem);
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* optical: 6px is set by the focus ring above (2px at 2px offset), not by the scale. */
   padding: 6px 0;
   scroll-padding: 6px 0;
 }
@@ -1023,9 +1037,10 @@ div.top-place-body {
 /* {component.button-secondary}, sized as an icon button and parked out of the reading order. */
 .detail-dialog-close {
   position: absolute;
-  top: 16px;
-  inset-inline-end: 16px;
+  top: var(--space-4);
+  inset-inline-end: var(--space-4);
   min-width: 44px;
+  /* optical: the 44px minimum width sizes this control, so the inline pad follows it. */
   padding: 0 14px;
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
@@ -1064,7 +1079,7 @@ div.top-place-body {
 
 .place-detail-name {
   /* Right-hand room for the close control, which is absolutely positioned over this line. */
-  margin: 4px 56px 2px 0;
+  margin: var(--space-1) 56px 2px 0;
   font-size: 22px;
   font-weight: 700;
   line-height: 1.35;
@@ -1103,6 +1118,7 @@ div.top-place-body {
 }
 
 .place-detail-figure dd {
+  /* optical: sub-scale, binding the figure to its own label. */
   margin: 2px 0 0;
   font-size: 18px;
   font-weight: 600;
@@ -1116,7 +1132,7 @@ div.top-place-body {
  */
 .place-detail-figure:first-child {
   flex: 0 0 auto;
-  margin-inline-end: 4px;
+  margin-inline-end: var(--space-1);
 }
 
 .place-detail-figure:first-child dd {
@@ -1146,7 +1162,8 @@ div.top-place-body {
   /* The month and count columns are fixed so the bars share one baseline at any width. */
   grid-template-columns: 5.5rem 1fr 2.5rem;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
+  /* optical: 3px sets the histogram row rhythm against its 13px text. */
   padding: 3px 0;
   font-size: 13px;
 }
@@ -1186,7 +1203,8 @@ div.top-place-body {
   align-items: center;
   min-height: 48px;
   margin-top: var(--space-6);
-  padding: 14px 24px;
+  /* optical: with min-height 48px the vertical pad is what centres the 16px label. */
+  padding: 14px var(--space-6);
   border-radius: var(--radius-sm);
   background: var(--rausch-strong);
   color: var(--on-primary);
@@ -1227,7 +1245,7 @@ div.top-place-body {
 
 .place-map-fallback {
   margin: var(--space-3) 0 0;
-  padding: 32px 16px;
+  padding: var(--space-7) var(--space-4);
   border: 1px dashed var(--hairline);
   border-radius: var(--radius-md);
   background: var(--surface-soft);
@@ -1284,11 +1302,11 @@ div.top-place-body {
 
 @media (max-width: 599px) {
   :root {
-    --column-inset: 16px;
+    --column-inset: var(--space-4);
   }
 
   #content {
-    padding: var(--space-4) 16px var(--space-8);
+    padding: var(--space-4) var(--space-4) var(--space-8);
   }
 
   /* Narrower, not hidden: the shape is the row's only account of when the visits happened, and
@@ -1343,6 +1361,7 @@ div.top-place-body {
   }
 
   .place-search-field {
+    /* optical: the field height is tuned against its own text, as the period pills are. */
     padding: 10px var(--space-4);
     border-radius: var(--radius-md);
   }

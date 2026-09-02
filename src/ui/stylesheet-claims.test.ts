@@ -325,3 +325,78 @@ describe('white-space: nowrap', () => {
     ).toEqual([]);
   });
 });
+
+/**
+ * The `--space-1..--space-9` scale, read off `:root` rather than written down here. PR #24 added
+ * the scale and converted about half the sheet to it; a raw px that happened to equal a step was
+ * then indistinguishable from one chosen against a control's own box, so every later spacing edit
+ * was a guess about which kind it was looking at. Deriving the steps means a future edit to the
+ * scale carries this guard with it instead of leaving it asserting the old numbers.
+ */
+const SPACE_SCALE = new Map<number, string>(
+  [...CSS.matchAll(/(--space-\d+)\s*:\s*(\d+)px/g)].map(([, token, px]) => [
+    Number(px),
+    token as string,
+  ]),
+);
+
+/**
+ * The properties whose values are spacing. Deliberately not "every property with a px in it":
+ * a border width, a font size, a fixed `height` and a shadow offset all land on scale numbers
+ * routinely and mean nothing by it, and a guard that swept them in would be turned off within a
+ * week. `scroll-margin`/`scroll-padding` are in because they are the scroll box's version of the
+ * same inset; `letter-spacing` is out despite the name — it spaces glyphs, not layout.
+ */
+const SPACING_PROPERTY =
+  /^(?:(?:scroll-)?(?:margin|padding)(?:-[a-z]+)*|inset(?:-[a-z]+)*|(?:row-|column-)?gap|top|right|bottom|left)$/;
+
+/** Signed, so `margin: 0 -8px` is read as the 8px step it cancels rather than skipped. */
+const PX_VALUE = /-?\d+(?:\.\d+)?px/g;
+
+/**
+ * Every spacing declaration still holding a raw px that equals a scale step, as
+ * `.selector { property: value }`.
+ *
+ * Off-scale values are not reported: after the conversion every raw px left in a spacing
+ * declaration is deliberately off the scale and says so in an `optical:` comment beside it, so the
+ * numeric test needs no exemption list. That is the property worth keeping — an exemption list
+ * would have to be edited in step with the sheet, and nothing would fail when it was not.
+ */
+const unconvertedSpacing = (): string[] => {
+  const offenders: string[] = [];
+  for (const [selector, block] of RULES) {
+    for (const declaration of block.split(';')) {
+      const [property, ...rest] = declaration.split(':');
+      const name = collapse(property ?? '').toLowerCase();
+      const value = collapse(rest.join(':'));
+      if (!SPACING_PROPERTY.test(name) || value === '') continue;
+
+      for (const px of value.match(PX_VALUE) ?? []) {
+        const token = SPACE_SCALE.get(Math.abs(Number.parseFloat(px)));
+        if (token === undefined) continue;
+        offenders.push(`${selector} { ${name}: ${value} } — ${px} is var(${token})`);
+      }
+    }
+  }
+  return offenders;
+};
+
+describe('spacing scale adoption', () => {
+  it('reads the scale off the stylesheet, so the guard below is not comparing against nothing', () => {
+    // Without this the whole block passes on a stubbed CSS module: an empty sheet has no rules to
+    // scan and an empty scale matches no value, so `unconvertedSpacing()` returns `[]` either way.
+    expect(SPACE_SCALE.size).toBe(9);
+    expect([...SPACE_SCALE.keys()].sort((a, b) => a - b)).toEqual([4, 8, 12, 16, 20, 24, 32, 48, 64]);
+
+    // And that the scan reaches real declarations — a `RULES` regex that stopped matching would
+    // report no offenders as convincingly as a fully converted sheet.
+    expect(RULES.length).toBeGreaterThan(100);
+    expect(CSS).toContain('padding: var(--space-6)');
+  });
+
+  it('routes every on-scale spacing value through its token', () => {
+    // Reported as the offending declarations rather than as a count, so the failure names the
+    // rule and the token it should have used instead of sending the reader back to grep.
+    expect(unconvertedSpacing()).toEqual([]);
+  });
+});

@@ -22,12 +22,6 @@
 
 ### UI label pass — review findings left out of PR #24 (2026-08-25)
 
-- [ ] [debt] The `--space-1..--space-9` scale PR #24 introduced is half adopted: 44 token uses
-  against 18 raw-px spacing declarations, several sitting exactly on the scale (`margin: 16px 0 0`,
-  `padding: 24px`, `margin: 8px 0 0`, `gap: 12px`, `padding: 14px 24px`, `padding: 32px 16px`). A
-  half-migrated scale is worse than none: the next editor cannot tell a deliberate off-scale value
-  from a missed one. Convert the on-scale ones and comment the genuinely optical values
-  (2/3/6/10/13/14/56px) — `src/styles.css`
 - [x] [debt] `·` now separates both the fields of a metadata line (`' · '`) and the parts inside one
   category (`displayCategory`), so a card reads `카페·디저트 · 청주시…`. Only the spaces distinguish
   the two roles. Pick a different field separator, or render the category as its own element
