@@ -14,8 +14,11 @@
   passes green. (b) A `/*` inside a quoted value (`content: "/*";`) opens a comment the masker
   cannot distinguish from a real one, blanking through the next `*/` and eating the `;` terminators
   after it; the sheet already carries a quoted `content` value. Neither shape is in the sheet today
-  and both predate PR #47, which is why they were declared in the `cssDeclarations` docblock rather
-  than fixed there. Closing them means replacing the brace regex with a real parse for both guards
+  and both predate PR #47 — `git log -S` dates the pattern to PR #43 — which is why they were
+  declared in the `cssDeclarations` docblock rather than fixed there. A third member of the family
+  fails *closed* and so is not a hole, but belongs to the same fix: a `{` or `}` inside a quoted
+  value (`content: "{"`) breaks the match so the offender is reported under a corrupted selector,
+  sending the reader after a rule that does not exist. Closing them means replacing the brace regex with a real parse for both guards
   at once (source: contract QA pass 4 on PR #47)
   — `src/ui/stylesheet-claims.test.ts`
 

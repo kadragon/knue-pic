@@ -477,8 +477,10 @@ type Declaration = {
  * with the suite green. Nothing in this repo normalises CSS layout (`package.json` has eslint and
  * no stylelint), so the shapes are reachable by an ordinary edit rather than only in theory.
  *
- * **What this cannot see**, stated rather than left to be discovered. `RULES` matches innermost
- * brace pairs, so a rule that *contains* another block — native nesting (`&:hover { … }`) or a
+ * **What this cannot see**, stated rather than left to be discovered. The brace pattern below is
+ * the same literal `RULES` is built from, and it matches innermost brace pairs — a copy rather
+ * than the binding, because this scan needs offsets `RULES` does not carry. So a rule that
+ * *contains* another block — native nesting (`&:hover { … }`) or a
  * nested `@media` — has the declarations around that block swallowed into the inner selector and
  * emitted by nothing. A raw px there is invisible to this guard *and* to `unconvertedSpacing`
  * above, on scale or off. The sheet uses neither shape today; the blind spot predates both guards
