@@ -51,6 +51,13 @@ would run it fine. A test needing files on disk uses a committed fixture directo
 `node:fs` (see `eslint-rules/fixtures/tsconfig-shapes/`); reach for `@types/node` only if the app
 itself ever needs it, since adding it widens the build's dependency surface for a test's sake.
 
+A test that reads `src/styles.css` as text imports it with `?raw` and depends on `test.css: true`
+in `vite.config.ts`: Vitest's default stubs every CSS module to an **empty string**, and an
+assertion over `''` passes without failing. The framing-vocabulary scan globbed the stylesheet that
+way and had been scanning nothing since it was written. Two habits keep it from happening again —
+leave `test.css` on, and open any stylesheet-reading suite by asserting a string the file certainly
+contains, so a blank read fails loudly instead of agreeing with every `not.toContain`.
+
 A fixture that carries its own `tsconfig.json` lives **outside `src/`**. Inside, the root config
 would claim its files while the ESLint project service also discovers the nested one, which is the
 ambiguity `eslint.config.js` derives its typed-file list to avoid.

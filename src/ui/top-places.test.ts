@@ -650,6 +650,10 @@ describe('rank movement colours', () => {
     // The banned-phrase test cannot see this one: a judgement about a business rendered as a hue
     // is not a string. `--error` on `▼` would say the place did something wrong by being visited
     // less, which `docs/conventions.md` → Framing Vocabulary forbids in words.
+    // Asserted before the two negatives: `declaration` returns '' for a selector it cannot find,
+    // and '' contains neither token. Without this line the guard passes on a renamed selector.
+    expect(declaration('down')).not.toBe('');
+
     expect(declaration('down')).not.toContain('--error');
     expect(declaration('down')).not.toContain('--rausch');
   });

@@ -773,7 +773,9 @@ div.top-place-body {
  * banned-phrase test can catch because it is not a string. The pair used instead is the brand red
  * and the 거리 ramp's mid blue, two colours the palette already carries for reasons that have
  * nothing to do with good and bad. All three measured on `--canvas`: #e00b41 4.89:1, #3a6ba8
- * 5.46:1, `--muted` 5.41:1.
+ * 5.46:1, `--muted` 5.41:1 — and again on `--surface-soft`, which the row swaps to on hover, where
+ * the tightest of the three is the rise at 4.57:1. That margin is what a future darkening of
+ * `--surface-soft` has to keep.
  */
 .top-place-delta {
   flex: 0 0 auto;

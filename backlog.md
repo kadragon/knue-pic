@@ -2,6 +2,18 @@
 
 ## Review Backlog
 
+### `distance.ts` comments still name the deleted legend (2026-09-02, from PR #41 review)
+
+- [ ] [debt] `DISTANCE_BANDS` (`src/stats/distance.ts:67-68`) and `shownKm` (`:94`) still justify
+  their shape by "the label module and the legend read the same boundaries" and by "the boundary the
+  legend invites the reader to check". PR #41 deleted every legend consumer, and
+  `docs/conventions.md` now states there is deliberately no legend, so the comment and the doc
+  contradict each other. Both invariants are still real — the ordered array is what `distanceBand`
+  scans, and the rounding agreement is still covered by `place-labels.test.ts` -> `distance band
+  consistency` — so this is a rewording, not a behaviour change. `src/stats/distance.ts` was
+  explicitly Out of scope in that PR's contract, which is why it was not fixed there
+  — `src/stats/distance.ts`
+
 ### Superlative claims in docs have no guard against going stale (2026-09-02, from PR #40)
 
 - [ ] [harness] Adding a second meaning-carrying colour palette silently falsified two "this is the
