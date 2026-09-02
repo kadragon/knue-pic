@@ -73,8 +73,15 @@ type ScannedDeclaration = {
 type ScannedRule = { selector: string; bodyStart: number; bodyEnd: number };
 
 /**
- * One left-to-right scan of the stylesheet — the single place this suite decides what a comment,
- * a rule and a declaration are. Every guard below reads its output.
+ * One left-to-right scan of the stylesheet — the single place this suite decides what a *rule* and
+ * a *declaration* are. Every guard that reasons about rules or declarations reads its output.
+ *
+ * `CSS` above survives alongside it for the `toContain` landmarks and the `--space-N` table, which
+ * ask only whether a string is present and go red when it is not. It is not a parse and must not be
+ * used as one: anything that has to decide a value is *absent* belongs on the scan. The
+ * `--column-inset` guard was written against `CSS` and had exactly that bug — the property is
+ * declared twice, so hiding one definition behind a quoted `/*` still satisfied a "declared at
+ * least once" floor and the raw px it hid went unreported.
  *
  * It replaces a `/([^{}]*)\{([^{}]*)\}/g` match that four guards used to share. That pattern is
  * not a parser and had three blind spots, each of which let a raw px reach the sheet unseen or be
@@ -96,13 +103,42 @@ type ScannedRule = { selector: string; bodyStart: number; bodyEnd: number };
  * A block's `selector` is its own prelude, never a resolved ancestor chain. That is deliberate and
  * preserves `reachingRules`'s existing reading: a rule nested in an `@media` has always arrived
  * there as a plain selector, because an override is an override whichever block it sits in.
+ *
+ * **The residue that choice leaves.** A rule nested inside *another rule* — `.badge { @media … {
+ * … } }`, or an `&`-prefixed selector — is reported under its own prelude, which for an at-rule is
+ * not an element at all. `reachingRules` cannot match such a rule, and an offender inside one is
+ * named `@media (…) { margin: 8px }`, a rule the reader cannot find. Its declarations *are*
+ * scanned, so nothing goes unseen; only the attribution is coarse. Resolving ancestor chains is
+ * the fix and it is recorded in `backlog.md`, not done here: it changes what `reachingRules`
+ * matches, which is a different guard's decision rule and a different contract.
  */
 const scan = (
   css: string,
-): { comments: ScannedComment[]; rules: ScannedRule[]; declarations: ScannedDeclaration[] } => {
+): {
+  comments: ScannedComment[];
+  rules: ScannedRule[];
+  declarations: ScannedDeclaration[];
+  /**
+   * What the scan ran off the end of — an unclosed comment, string, block or paren.
+   *
+   * This catches the whole class that ends the scan mid-way, which is what silently blinded every
+   * guard before it existed. Empty is weaker than "the sheet is well formed": a construct can lose
+   * sync and come back out balanced, and two such cases are known and recorded in `backlog.md`.
+   * They are not equally contained, so do not read them as one:
+   *
+   * - a dropped `)` cancelled by a stray one later in the file is malformed CSS, and the build
+   *   rejects it, so it cannot publish;
+   * - an unquoted `url(…` holding a comment-open sequence is **valid CSS that builds**. The `/*`
+   *   inside the url token is not a comment to a real parser, is one to this scan, and a later
+   *   comment close ends it — swallowing the declarations in between. Nothing downstream stops it.
+   *   The only reason it cannot reach the sheet today is that the sheet contains no `url(` at all.
+   */
+  unterminated: string[];
+} => {
   const comments: ScannedComment[] = [];
   const rules: ScannedRule[] = [];
   const declarations: ScannedDeclaration[] = [];
+  const unterminated: string[] = [];
   /** The open blocks, innermost last. `end` is filled in when the block closes. */
   const open: { selector: string; bodyStart: number; rule: number }[] = [];
 
@@ -110,6 +146,8 @@ const scan = (
   /** Where the current selector prelude or declaration began. */
   let pieceStart = 0;
   let parens = 0;
+  /** Where the depth last left zero, so an unclosed `(` can be reported at a place, not a count. */
+  let parenOpenedAt = -1;
 
   /**
    * The source between two offsets with any comment inside it removed.
@@ -198,21 +236,44 @@ const scan = (
     if (char === '/' && css[index + 1] === '*') {
       const close = css.indexOf('*/', index + 2);
       const end = close === -1 ? css.length : close + 2;
+      if (close === -1) unterminated.push(`comment opened at ${index}`);
       comments.push({ start: index, end, text: css.slice(index, end) });
       index = end;
       continue;
     }
 
     if (char === "'" || char === '"') {
+      const opened = index;
       index += 1;
-      while (index < css.length && css[index] !== char) index += css[index] === '\\' ? 2 : 1;
+      // A CSS string cannot span a raw newline, so a run that reaches one is not a string at all —
+      // it is a typo. Stopping there keeps a stray quote from eating the rest of the file, which is
+      // what an unbounded run did: every later brace and semicolon vanished and the guards went
+      // quiet on a sheet they could no longer read.
+      while (index < css.length && css[index] !== char && css[index] !== '\n') {
+        index += css[index] === '\\' ? 2 : 1;
+      }
+      if (index >= css.length || css[index] === '\n') unterminated.push(`string opened at ${opened}`);
       index += 1;
       continue;
     }
 
-    if (char === '(') parens += 1;
-    else if (char === ')') parens = Math.max(0, parens - 1);
-    else if (parens === 0 && char === '{') {
+    // A backslash escapes the next character anywhere, not only inside a string: `--x: \(;` is a
+    // literal paren and must not open one, or the `;` and `}` after it are read as still inside it.
+    if (char === '\\') {
+      index += 2;
+      continue;
+    }
+
+    if (char === '(') {
+      if (parens === 0) parenOpenedAt = index;
+      parens += 1;
+    } else if (char === ')') parens = Math.max(0, parens - 1);
+
+    // No resynchronising here. Forcing the paren depth back to zero at a brace was tried and
+    // removed: it manufactured a closed block out of a sheet the scan could not follow, taking the
+    // report's own block arm out with it. What replaces it is not the block stack but the depth
+    // check at the end of the scan — a `(` that never closes is reported as itself.
+    if (parens === 0 && char === '{') {
       const selector = collapse(between(pieceStart, index));
       open.push({ selector, bodyStart: index + 1, rule: rules.length });
       rules.push({ selector, bodyStart: index + 1, bodyEnd: -1 });
@@ -221,8 +282,8 @@ const scan = (
       flush(index);
       const frame = open.pop();
       if (frame !== undefined) {
-        // The frame carries its own index, so a rule is never confused with a later one that
-        // happens to open at the same offset — which two rules on one line can do.
+        // The frame carries its own index rather than taking the most recent rule: with nesting,
+        // `rules.at(-1)` is the *inner* rule at the moment the outer one closes.
         const rule = rules[frame.rule];
         if (rule !== undefined) rule.bodyEnd = index;
         for (const declaration of declarations) {
@@ -238,7 +299,15 @@ const scan = (
 
     index += 1;
   }
-  return { comments, rules, declarations };
+  for (const frame of open) {
+    unterminated.push(`block opened at ${frame.bodyStart - 1} (${frame.selector || '?'})`);
+  }
+  // The paren axis, reported in its own right rather than through the block stack. Two earlier
+  // attempts each covered half of it: resetting the depth at a brace hid an unclosed *block*, and
+  // removing that reset hid an unbalanced `(` in a prelude, where no block is open to go unclosed
+  // — `@media (min-width: 40rem {` is the likeliest typo in the family and had no arm at all.
+  if (parens !== 0) unterminated.push(`( opened at ${parenOpenedAt}, depth ${parens} at end`);
+  return { comments, rules, declarations, unterminated };
 };
 
 const SHEET = scan(source(STYLESHEET_PATH));
@@ -606,13 +675,18 @@ describe('spacing scale adoption', () => {
     // would carry a raw 24px back into all three with the scan still green. Asserted by name
     // rather than by widening the scan: `--radius-sm: 8px` and `--radius-lg: 20px` are on scale
     // numbers that mean nothing by it, and a predicate over every `--*: Npx` would fail on them.
-    const inset = [...CSS.matchAll(/--column-inset\s*:\s*([^;]+)/g)].map(([, value]) =>
-      collapse(value ?? ''),
-    );
-    expect(inset.length, '--column-inset is no longer defined in the stylesheet').toBeGreaterThan(0);
+    // Read off the scan, not off `CSS`: the naive masker behind `CSS` cannot tell a `/*` inside a
+    // quoted value from a real comment, and this property is defined twice — so a hidden definition
+    // left the other one satisfying a `length > 0` floor and the guard passed on a raw px it could
+    // no longer see. The scan knows what a string is; the exact count is pinned for the same reason
+    // a floor was not enough.
+    const inset = SHEET.declarations.filter(({ property }) => property === '--column-inset');
+    expect(inset.length, '--column-inset is defined a different number of times now').toBe(2);
     // `match`, not `PX_VALUE.test`: the shared pattern is /g, and `test` on a /g regex advances
     // its own `lastIndex`, so consecutive calls would skip values and pass on a real raw px.
-    expect(inset.filter((value) => (value.match(PX_VALUE) ?? []).length > 0)).toEqual([]);
+    expect(
+      inset.filter(({ value }) => (value.match(PX_VALUE) ?? []).length > 0).map(({ value }) => value),
+    ).toEqual([]);
   });
 
   it('routes every on-scale spacing value through its token', () => {
@@ -682,15 +756,35 @@ const rawSpacingByAnnotation = (): { annotated: string[]; bare: string[] } => {
   const bare: string[] = [];
 
   for (const declaration of rawSpacingDeclarations) {
+    /**
+     * The blocks nested inside this declaration's own rule. A comment in one of them belongs to
+     * that block, not here — an `optical:` note at the tail of an `&:hover` would otherwise become
+     * the `preceding` comment for the parent's next value, and license it. Only reachable at all
+     * because the scan understands nesting; the brace regex emitted the parent declaration from
+     * nothing, so the shape could not arise.
+     */
+    // `bodyEnd` is -1 for a block the scan never saw close. Treating that as "ends after
+    // everything" keeps an unclosed parent from making its nested blocks unrecognisable, which
+    // would let their comments license the parent again. The suite already fails on such a sheet
+    // (`SHEET.unterminated`), so this is the second lock on the same door, not the only one.
+    const bodyEnd = declaration.bodyEnd === -1 ? Number.MAX_SAFE_INTEGER : declaration.bodyEnd;
+    const nested = SHEET.rules.filter(
+      (rule) => rule.bodyStart > declaration.bodyStart && rule.bodyEnd <= bodyEnd,
+    );
     const preceding = COMMENTS.filter(
-      ({ start, end }) => start >= declaration.bodyStart && end <= declaration.start,
+      ({ start, end }) =>
+        start >= declaration.bodyStart &&
+        end <= declaration.start &&
+        !nested.some((rule) => start >= rule.bodyStart && end <= rule.bodyEnd),
     ).at(-1);
     const covered =
       preceding?.optical === true &&
       // Nothing declared between the comment and this declaration — otherwise the comment is the
       // previous one's, and this value is riding an explanation written about something else.
+      // Compared on the earlier declaration's *end*: one written with no gap after the comment
+      // starts exactly at `preceding.end`, and a `start >` test would not see it as intervening.
       !SHEET.declarations.some(
-        ({ start }) => start > preceding.end && start < declaration.start,
+        ({ start, end }) => end > preceding.end && start < declaration.start,
       );
 
     (covered ? annotated : bare).push(
@@ -701,6 +795,16 @@ const rawSpacingByAnnotation = (): { annotated: string[]; bare: string[] } => {
 };
 
 describe('optical spacing annotations', () => {
+  it('parsed the whole sheet, so no guard is reasoning about a file it stopped reading', () => {
+    // The one assertion that makes every other guard in this file trustworthy. A hand-written scan
+    // meets malformed input by losing sync — a quote, comment, block or paren that never closes —
+    // and each of those used to end with the scan silently reading nothing for the rest of the file
+    // while every guard reported green. Rather than patching the shapes one at a time, the scan now
+    // says how it ended, and that is checked here. It does not catch a construct that loses sync
+    // and is rebalanced later by an unrelated one; `backlog.md` carries those.
+    expect(SHEET.unterminated).toEqual([]);
+  });
+
   it('scanned the sheet, so the guard below is not answering about an empty file', () => {
     // A stubbed-empty CSS module would give the guard nothing to find and no annotation to miss,
     // so it would pass on nothing. Each of these fails on that sheet.
