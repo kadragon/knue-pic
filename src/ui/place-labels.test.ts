@@ -90,13 +90,9 @@ describe('short address', () => {
 
 describe('campus distance label', () => {
   it('states one decimal at every magnitude', () => {
-    expect(campusDistanceLabel(3.24)).toBe('교원대 직선 3.2km');
-    expect(campusDistanceLabel(0.72)).toBe('교원대 직선 0.7km');
-    expect(campusDistanceLabel(24.75)).toBe('교원대 직선 24.8km');
-  });
-
-  it('says 직선, because the figure is not a route', () => {
-    expect(campusDistanceLabel(1)).toContain('직선');
+    expect(campusDistanceLabel(3.24)).toBe('거리 3.2km');
+    expect(campusDistanceLabel(0.72)).toBe('거리 0.7km');
+    expect(campusDistanceLabel(24.75)).toBe('거리 24.8km');
   });
 });
 

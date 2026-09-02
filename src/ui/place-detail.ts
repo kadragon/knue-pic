@@ -39,6 +39,9 @@ export function histogramHeading(buckets: MonthlyHistogram): string {
 
 export const NAVER_LINK_LABEL = '네이버지도에서 보기';
 
+/** The dot between the address and the distance — the same one the ranked row's meta line uses. */
+export const META_SEPARATOR = '·';
+
 /**
  * The distance line, beside the address rather than replacing it.
  *
@@ -185,21 +188,17 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   address.textContent = place.address;
   meta.append(address);
 
-  // The separator is a node rather than a `::before` rule, so it is visible to the tests that
-  // guard it: jsdom applies no stylesheet, and Vitest hands a `?raw` CSS import back as an empty
-  // string, so a purely stylistic dot could be deleted with every test still green. The row's
-  // location line joins the same two facts with the same dot (`src/ui/top-places.ts`).
-  const separator = document.createElement('span');
-  separator.className = 'place-detail-meta-separator';
-  separator.textContent = '·';
-  // Decorative: the two facts are already separate elements to a screen reader, and a spoken
-  // "middle dot" between them is noise.
-  separator.setAttribute('aria-hidden', 'true');
+  // The dot trails the address rather than leading the distance: at 360px the address wraps, and a
+  // separator at the head of the next line reads as a bullet. It is text rather than a `::before`
+  // rule so a test can see it — jsdom applies no stylesheet, and Vitest returns a `?raw` CSS import
+  // as an empty string, so a purely stylistic dot could be deleted with every test still green.
+  // The ranked row joins the same two facts the same way (`src/ui/top-places.ts`).
+  address.textContent = `${place.address} ${META_SEPARATOR}`;
 
   const distance = document.createElement('span');
   distance.className = 'place-detail-distance';
   distance.textContent = distanceLabel(place);
-  meta.append(separator, distance);
+  meta.append(distance)
 
   const periodNote = document.createElement('p');
   periodNote.className = 'place-detail-period';

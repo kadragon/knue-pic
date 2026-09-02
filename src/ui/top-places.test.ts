@@ -12,6 +12,7 @@ import {
   EMPTY_MESSAGE,
   LIST_PAGE_SIZE,
   moreLabel,
+  mostRecentLabel,
   rankDeltaLabel,
   renderedCountLabel,
   renderSparkline,
@@ -30,6 +31,16 @@ function render(result: TopPlacesResult): HTMLElement {
 const EMPTY_DATASET: PlacesDataset = { updatedAt: '2026-08-01', places: [] };
 
 describe('renderTopPlaces', () => {
+  it('keeps the most-recent date in its own element so it cannot break at the hyphen', () => {
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+    const container = render(result);
+
+    // `white-space: nowrap` in the stylesheet hangs off this class. At 360px the line used to wrap
+    // inside the date — `최근 이용 07-` / `30` — and half a date reads as a different date.
+    const recent = container.querySelector('.top-place-recent');
+    expect(recent?.textContent).toContain(mostRecentLabel(result.entries[0]!.stats.mostRecentVisit!));
+  });
+
   it('states where each place is and how far the campus is from it', () => {
     const result = computeTopPlaces(SAMPLE_DATASET, '1y');
     const container = render(result);

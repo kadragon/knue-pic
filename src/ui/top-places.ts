@@ -199,18 +199,42 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
 
   const location = document.createElement('span');
   location.className = 'top-place-location';
-  location.textContent = placeLocationLabel(entry.place);
+  // Two elements for one label: the line has to wrap between the district and the distance at
+  // 360px, and must never wrap *inside* either — `거리` above its own `1.2km` reads as a stray
+  // word. `placeLocationLabel` stays the single definition of the text; this only decides where a
+  // break is allowed.
+  const district = document.createElement('span');
+  district.className = 'top-place-district';
+  // The dot trails the token it follows rather than leading the next one: a separator at the head
+  // of a wrapped line reads as a bullet, and the eye looks for a list that is not there.
+  // The space before the dot is non-breaking, or the line breaks between them and the dot leads
+  // the next line after all — the very thing trailing it was meant to avoid.
+  district.textContent = `${shortAddress(entry.place.address)} ·`;
+  const distance = document.createElement('span');
+  distance.className = 'top-place-distance';
+  distance.textContent = ` ${campusDistanceLabel(distanceFromCampusKm(entry.place))}`;
+  location.append(district, distance);
   meta.append(location);
 
   const figures = document.createElement('span');
   figures.className = 'top-place-figures';
+  const count = document.createElement('span');
+  count.className = 'top-place-visits';
+  count.textContent = visitCountLabel(entry.stats.visitCount);
+  figures.append(count);
   // `mostRecentVisit` is non-null for every ranked place: a place with no in-window visit is not
-  // ranked at all. The fallback keeps the type honest without inventing a date.
-  const parts = [visitCountLabel(entry.stats.visitCount)];
+  // ranked at all. The guard keeps the type honest without inventing a date.
   if (entry.stats.mostRecentVisit !== null) {
-    parts.push(mostRecentLabel(entry.stats.mostRecentVisit));
+    // Its own element, not a segment of one string, so the stylesheet can keep it whole. At 360px
+    // the line wrapped inside the date itself — `최근 이용 07-` / `30` — because a hyphen is an
+    // ordinary break opportunity, and half a date reads as a different date.
+    const recent = document.createElement('span');
+    recent.className = 'top-place-recent';
+    recent.textContent = ` ${mostRecentLabel(entry.stats.mostRecentVisit)}`;
+    // Same trailing-dot rule as the location line above.
+    count.textContent = `${visitCountLabel(entry.stats.visitCount)} ·`;
+    figures.append(recent);
   }
-  figures.textContent = parts.join(' · ');
   meta.append(figures);
 
   body.append(name, meta);
