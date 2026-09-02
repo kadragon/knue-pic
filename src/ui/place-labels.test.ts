@@ -3,11 +3,14 @@ import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { monthKey } from '../data/iso-date';
 import { computeMonthlyHistogram, histogramSpan } from '../stats/histogram';
 import type { HistogramSpan } from '../stats/histogram';
+import { DISTANCE_BANDS, distanceBand } from '../stats/distance';
 import {
   campusDistanceLabel,
   displayCategory,
   displayDate,
   displayShortDate,
+  distanceBandLabel,
+  distanceBandSpokenLabel,
   histogramSpanLabel,
   monthLabel,
   renderKindBadge,
@@ -156,5 +159,55 @@ describe('histogramSpanLabel', () => {
     const unpadded: HistogramSpan = { first: '2025-9', last: '2026-8' };
 
     expect([blank, unpadded]).toHaveLength(2);
+  });
+});
+
+describe('distanceBandLabel', () => {
+  it('prints the four ranges literally', () => {
+    // Pinned as literals, not against `DISTANCE_BANDS` again: the legend test in
+    // `top-places.test.ts` compares the rendered items to this very function, so an off-by-one
+    // that produced `undefined~2km` for every band would agree with itself and pass. Something
+    // has to state the expected words once.
+    expect(DISTANCE_BANDS.map((entry) => distanceBandLabel(entry.band))).toEqual([
+      '~2km',
+      '2~5km',
+      '5~15km',
+      '15km+',
+    ]);
+  });
+
+  it('says the same ranges in words for a screen reader', () => {
+    // `~` and `+` are glyphs an assistive technology may drop, which would collapse `~2km` and
+    // `2~5km` into the same announcement. The spoken form carries the boundaries as words.
+    expect(DISTANCE_BANDS.map((entry) => distanceBandSpokenLabel(entry.band))).toEqual([
+      '2km 미만',
+      '2km 이상 5km 미만',
+      '5km 이상 15km 미만',
+      '15km 이상',
+    ]);
+  });
+
+  it('returns an empty string rather than throwing on a band the table does not carry', () => {
+    // Reachable only through a cast — `data-band` reads back off the DOM as `string | undefined`.
+    // A blank legend entry is recoverable; a `TypeError` out of a label module is not.
+    const forged = 'nowhere' as unknown as (typeof DISTANCE_BANDS)[number]['band'];
+    expect(distanceBandLabel(forged)).toBe('');
+    expect(distanceBandSpokenLabel(forged)).toBe('');
+  });
+
+  it('never colours a badge with a band its own printed figure contradicts', () => {
+    // The label rounds to one decimal and the band cuts at 2 / 5 / 15, so a raw 1.96km would read
+    // `거리 2.0km` in the `~2km` fill unless both round the same way. Walk the boundaries in 10m
+    // steps and require the printed number itself to sit inside the band's range.
+    for (let metres = 0; metres <= 20_000; metres += 10) {
+      const km = metres / 1000;
+      const printed = Number(campusDistanceLabel(km).replace(/[^0-9.]/g, ''));
+      const band = distanceBand(km);
+      const index = DISTANCE_BANDS.findIndex((entry) => entry.band === band);
+      const lower = index > 0 ? DISTANCE_BANDS[index - 1]!.maxKm : 0;
+      const upper = DISTANCE_BANDS[index]!.maxKm;
+      expect(printed).toBeGreaterThanOrEqual(lower);
+      expect(printed).toBeLessThan(upper);
+    }
   });
 });

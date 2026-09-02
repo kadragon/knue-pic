@@ -16,7 +16,7 @@ import {
   renderPlaceDetail,
 } from './place-detail';
 import { campusDistanceLabel, monthLabel } from './place-labels';
-import { distanceFromCampusKm } from '../stats/distance';
+import { distanceBand, distanceFromCampusKm } from '../stats/distance';
 
 const PLACE = SAMPLE_DATASET.places[0]!; // 한밭식당
 
@@ -73,6 +73,19 @@ describe('renderPlaceDetail', () => {
     expect(container.querySelector('.place-detail-distance')?.textContent).toBe(
       campusDistanceLabel(distanceFromCampusKm(detail.place)),
     );
+  });
+
+  it('carries the same distance band the ranked row does', () => {
+    const container = document.createElement('div');
+    const detail = detailFor(0, '1y');
+
+    renderPlaceDetail(container, detail);
+    const distance = container.querySelector<HTMLElement>('.place-detail-distance');
+
+    // One classifier for both screens: a place that reads as 가까움 in the list must not change
+    // colour in the card the list opened.
+    expect(distance?.dataset['band']).toBe(distanceBand(distanceFromCampusKm(detail.place)));
+    expect(distance?.textContent).toBe(campusDistanceLabel(distanceFromCampusKm(detail.place)));
   });
 
   it('shows a placeholder until a place is selected', () => {

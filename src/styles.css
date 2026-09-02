@@ -13,12 +13,20 @@
  * 4. White text never sits on `--rausch`. #ff385c under white is 3.52:1 — below the 4.5:1 of WCAG
  *    1.4.3 — so every surface that puts text on the brand colour uses `--rausch-strong` (#e00b41,
  *    4.89:1). #ff385c survives only where it carries no text.
- * 5. The 업종 palette is the one place colour carries meaning rather than decoration: the four
+ * 5. The 업종 palette is the first of the two places colour carries meaning rather than
+ *    decoration (the 거리 밴드 ramp in note 6 is the other): the four
  *    kinds the filter offers each own a `-fg`/`-bg` pair, and the same pair colours the filter
  *    chip and every badge on a place of that kind. Each `-fg` clears 4.5:1 both on its own `-bg`
  *    and on white, so it is legible as badge text, as chip text, and as white-on-fill when the
  *    chip is pressed. The badge always spells its category out — colour never carries the fact
  *    alone (`docs/conventions.md` → Accessibility).
+ * 6. The 거리 palette is a lightness ramp in ONE hue — near is the palest, far the darkest — and
+ *    deliberately not a green-to-red scale. A hue change would read as good-to-bad, and "가까운
+ *    곳이 더 나은 곳" is exactly the judgement `docs/conventions.md` forbids the product from
+ *    making; the same reason `.top-place-delta` gave up its green/red. Measured foreground on
+ *    background: near 7.68:1, close 6.44:1, mid 5.46:1, far 12.48:1 — all clear of WCAG 1.4.3's
+ *    4.5:1. Every badge still prints its own kilometre figure, and the legend prints each band's
+ *    range, so the colour is a scanning aid over text rather than a channel of its own.
  */
 :root {
   /* Decorative brand voltage: no text is ever placed on it. */
@@ -53,6 +61,16 @@
   --kind-lunchbox-fg: #166b33;
   --kind-other-bg: #ededed;
   --kind-other-fg: #4a4a4a;
+
+  /* 거리 밴드 팔레트 — see note 6 above. */
+  --dist-near-bg: #eaf1fb;
+  --dist-near-fg: #1c4b87;
+  --dist-close-bg: #b3cdee;
+  --dist-close-fg: #17406f;
+  --dist-mid-bg: #3a6ba8;
+  --dist-mid-fg: #ffffff;
+  --dist-far-bg: #12345f;
+  --dist-far-fg: #ffffff;
 
   /* The tint the header and footer bands sit on, and the accent rule under the list heading. */
   --band: #fffafb;
@@ -702,21 +720,105 @@ div.top-place-body {
   line-height: 1.5;
 }
 
-.top-place-figures,
 .top-place-location,
 .place-select-address {
   min-width: 0;
 }
 
 /*
- * Each figure is one token to a reader — `19회 이용`, `거리 1.2km`, a date whose hyphen is an
- * ordinary break opportunity. The metadata line still wraps, but only between them.
+ * The distance is one token to a reader — `거리` above its own `1.2km` reads as a stray word. The
+ * metadata line still wraps, but only between the district and the figure.
+ *
+ * The badge colour is the distance band (`src/stats/distance.ts` → `distanceBand`), read off a
+ * `data-band` attribute the row and the detail card both set. `near` is the default, so a row
+ * whose attribute is somehow missing gets the palest fill rather than an unstyled one.
  */
-.top-place-recent,
-.top-place-visits,
 .top-place-distance,
 .place-detail-distance {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--dist-near-bg);
+  color: var(--dist-near-fg);
+  font-size: 12px;
+  font-weight: 700;
   white-space: nowrap;
+}
+
+.top-place-distance[data-band='close'],
+.place-detail-distance[data-band='close'] {
+  background: var(--dist-close-bg);
+  color: var(--dist-close-fg);
+}
+
+.top-place-distance[data-band='mid'],
+.place-detail-distance[data-band='mid'] {
+  background: var(--dist-mid-bg);
+  color: var(--dist-mid-fg);
+}
+
+.top-place-distance[data-band='far'],
+.place-detail-distance[data-band='far'] {
+  background: var(--dist-far-bg);
+  color: var(--dist-far-fg);
+}
+
+/*
+ * The legend for those four fills: caption, then one swatch per band carrying its own range.
+ *
+ * The swatches reuse the badge's own declarations rather than approximating them — a legend drawn
+ * in a near-miss of the colour it explains is worse than none. `--space-2` between items, so the
+ * row wraps as a whole at 360px instead of breaking a range off its swatch.
+ */
+.top-places-distance-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+}
+
+/* A real list, so a screen reader reads the four ranges apart; the markers and the indent it
+   comes with are what has to be undone here, not the semantics. */
+.top-places-distance-legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.top-places-distance-legend-caption {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.top-places-distance-legend-item {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--dist-near-bg);
+  color: var(--dist-near-fg);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.top-places-distance-legend-item[data-band='close'] {
+  background: var(--dist-close-bg);
+  color: var(--dist-close-fg);
+}
+
+.top-places-distance-legend-item[data-band='mid'] {
+  background: var(--dist-mid-bg);
+  color: var(--dist-mid-fg);
+}
+
+.top-places-distance-legend-item[data-band='far'] {
+  background: var(--dist-far-bg);
+  color: var(--dist-far-fg);
 }
 
 /*

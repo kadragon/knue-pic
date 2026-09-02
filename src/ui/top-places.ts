@@ -1,9 +1,10 @@
 import { histogramSpan, type HistogramSpan, type MonthlyHistogram } from '../stats/histogram';
-import { distanceFromCampusKm } from '../stats/distance';
+import { DISTANCE_BANDS, distanceBand, distanceFromCampusKm } from '../stats/distance';
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
 import {
   campusDistanceLabel,
-  displayShortDate,
+  distanceBandLabel,
+  distanceBandSpokenLabel,
   histogramSpanLabel,
   monthLabel,
   renderKindBadge,
@@ -53,14 +54,6 @@ export function moreLabel(remaining: number): string {
   return `${remaining}곳 더 보기`;
 }
 
-export function visitCountLabel(visitCount: number): string {
-  return `${visitCount}회 이용`;
-}
-
-export function mostRecentLabel(date: string): string {
-  return `최근 이용 ${displayShortDate(date)}`;
-}
-
 /**
  * Spoken form of the rank movement.
  *
@@ -95,10 +88,12 @@ export function sparklineLabel(buckets: MonthlyHistogram): string {
 /**
  * The sighted reader's counterpart to `sparklineLabel`'s span — stated once for the list.
  *
- * The bars carry no period claim of their own, so the only thing naming their span is their
- * adjacency to the `N회 이용` figure, which is counted over the *selected* window. Those two spans
- * are not the same (`histogramSpanLabel`), so the row would otherwise invite a reader to sum the
- * bars and find less than the figure beside them. Per list rather than per row: every entry's
+ * The bars carry no period claim of their own, and the heading above the list names the *ranking*
+ * window — 최근 1개월 / 3개월 / 6개월 / 1년. Those two spans are not the same
+ * (`histogramSpanLabel`), so without this note a reader would take the heading's window for the
+ * bars' and read an interrupted run as a quiet stretch of the period they selected. The row no
+ * longer prints a visit count beside them (it is on the detail card), which removes one way to
+ * notice the mismatch and leaves this note carrying it alone. Per list rather than per row: every entry's
  * buckets come from the same anchor and month count, so a copy on each row would repeat one fact
  * as many times as there are places.
  *
@@ -111,12 +106,74 @@ export function trendSpanNote(span: HistogramSpan): string {
 }
 
 /**
+ * Names the colours the distance badges are drawn in.
+ *
+ * `색` rather than a verb: the caption states what the swatches are, and the swatch beside each
+ * range is the only thing that has to be read as a colour.
+ */
+export const DISTANCE_LEGEND_CAPTION = '거리 색';
+
+/** Distinguishes one rendered legend's caption id from the next; see `renderDistanceLegend`. */
+let legendInstance = 0;
+
+/**
+ * The legend for the distance badges — one swatch per band, each labelled with its own range.
+ *
+ * Rendered once above the list rather than repeated on a row, for the same reason `trendSpanNote`
+ * is: it is a fact about the list's encoding, not about any place. The ranges come from
+ * `distanceBandLabel`, which derives them from `DISTANCE_BANDS`, so the legend cannot drift from
+ * the classifier that colours the rows.
+ *
+ * Every swatch carries its range as text. The colour is the scanning aid and the words are the
+ * meaning — `docs/conventions.md` → Accessibility, the same rule the 업종 badge follows.
+ */
+export function renderDistanceLegend(): HTMLElement {
+  const legend = document.createElement('div');
+  legend.className = 'top-places-distance-legend';
+
+  const caption = document.createElement('span');
+  caption.className = 'top-places-distance-legend-caption';
+  caption.textContent = DISTANCE_LEGEND_CAPTION;
+  // The id is per render, not a constant: the container is re-rendered on every period switch and
+  // every 업종 filter change, and a duplicated id would leave `aria-labelledby` resolving to
+  // whichever copy the browser found first.
+  caption.id = `top-places-distance-legend-caption-${++legendInstance}`;
+  legend.append(caption);
+
+  // A real `<ul>`, not four spans in a row. The ranges are separated on screen by the container's
+  // `gap`, which is not text: read as one run, the legend announced as `거리 색~2km2~5km5~15km15km+`
+  // and the four bands ran together into one unparseable token. List semantics are what put a
+  // boundary between them without printing a separator the sighted reader does not need.
+  const items = document.createElement('ul');
+  items.className = 'top-places-distance-legend-items';
+  // Without this the list announces as a bare `list, 4 items` and the caption is merely text that
+  // happens to precede it — adjacency again, which is what the `<ul>` was introduced to stop
+  // relying on.
+  items.setAttribute('aria-labelledby', caption.id);
+
+  for (const { band } of DISTANCE_BANDS) {
+    const item = document.createElement('li');
+    item.className = 'top-places-distance-legend-item';
+    item.dataset['band'] = band;
+    item.textContent = distanceBandLabel(band);
+    // `listitem` permits name-from-author, so the compact printed form can stay compact while the
+    // spoken one says the boundaries in words — `~` is a glyph a screen reader may drop entirely.
+    item.setAttribute('aria-label', distanceBandSpokenLabel(band));
+    items.append(item);
+  }
+
+  legend.append(items);
+  return legend;
+}
+
+/**
  * The row's trend bars: one bar per calendar month, oldest at the left.
  *
  * Heights are scaled against the busiest month of *this place* rather than of the list, so a quiet
  * place still shows its own shape — the same choice the detail card's chart makes. The comparison
  * the bars invite is therefore within a row, never across rows, and no number is claimed by them:
- * the figures line beside them states the counts the ranking actually used.
+ * the counts the ranking used are stated on the detail card the row opens, and `sparklineLabel`
+ * spells this row's own series out for anyone who cannot read heights.
  *
  * `role="img"` is what lets the label reach a screen reader. A bare `<span>` has the implicit role
  * `generic`, which WAI-ARIA 1.2 prohibits naming, so `aria-label` alone would be dropped and the
@@ -201,31 +258,13 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
   district.textContent = `${shortAddress(entry.place.address)}\u00A0·`;
   const distance = document.createElement('span');
   distance.className = 'top-place-distance';
-  distance.textContent = campusDistanceLabel(distanceFromCampusKm(entry.place));
+  const km = distanceFromCampusKm(entry.place);
+  // The band is a `data-` attribute, never the text: the stylesheet reads it for the badge colour
+  // while the figure below stays the only thing that states how far the place actually is.
+  distance.dataset['band'] = distanceBand(km);
+  distance.textContent = campusDistanceLabel(km);
   location.append(district, ' ', distance);
   meta.append(location);
-
-  const figures = document.createElement('span');
-  figures.className = 'top-place-figures';
-  const count = document.createElement('span');
-  count.className = 'top-place-visits';
-  figures.append(count);
-  // `mostRecentVisit` is non-null for every ranked place: a place with no in-window visit is not
-  // ranked at all. The guard keeps the type honest without inventing a date.
-  if (entry.stats.mostRecentVisit === null) {
-    count.textContent = visitCountLabel(entry.stats.visitCount);
-  } else {
-    // The count carries the separator only when something follows it, and the date is its own
-    // element so the stylesheet can keep it whole: at 360px the line wrapped inside the date —
-    // `최근 이용 07-` / `30` — because a hyphen is an ordinary break opportunity, and half a date
-    // reads as a different date. Same parent-owned space as the location line above.
-    count.textContent = `${visitCountLabel(entry.stats.visitCount)}\u00A0·`;
-    const recent = document.createElement('span');
-    recent.className = 'top-place-recent';
-    recent.textContent = mostRecentLabel(entry.stats.mostRecentVisit);
-    figures.append(' ', recent);
-  }
-  meta.append(figures);
 
   body.append(name, meta);
   item.append(badge, body);
@@ -319,6 +358,9 @@ export function renderTopPlaces(
   note.className = 'top-places-trend-note';
   note.textContent = trendSpanNote(result.chartedSpan);
   section.append(note);
+
+  // After the same return, and for the same reason: an empty list has no badge to explain.
+  section.append(renderDistanceLegend());
 
   const total = result.entries.length;
   const list = document.createElement('ol');

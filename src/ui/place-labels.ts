@@ -2,6 +2,7 @@ import type { PlaceRecord } from '../data/types';
 export { shortAddress } from '../stats/short-address';
 import type { MonthKey } from '../data/iso-date';
 import type { HistogramSpan } from '../stats/histogram';
+import { DISTANCE_BANDS, type DistanceBand } from '../stats/distance';
 
 /** Small display transforms shared by every place list and the detail dialog. */
 
@@ -129,4 +130,58 @@ export function histogramSpanLabel(span: HistogramSpan): string {
  */
 export function campusDistanceLabel(km: number): string {
   return `거리 ${km.toFixed(1)}km`;
+}
+
+/**
+ * The two bounds of one band, or `null` for a band the table does not carry.
+ *
+ * The `null` is not dead code kept for tidiness: `DistanceBand` is a union derived from the array,
+ * so today's callers cannot miss, but `data-band` reads back off the DOM as `string | undefined`
+ * and one cast is all it takes. `findIndex` returns `-1` there, and a non-null assertion on
+ * `DISTANCE_BANDS[-1]` would turn that into a `TypeError` at runtime while the compiler stayed
+ * quiet — a label module throwing is a blank legend, not a wrong word.
+ */
+function bandBounds(band: DistanceBand): { lower: number; upper: number } | null {
+  const index = DISTANCE_BANDS.findIndex((entry) => entry.band === band);
+  const entry = index < 0 ? undefined : DISTANCE_BANDS[index];
+  if (entry === undefined) return null;
+  return { lower: index > 0 ? (DISTANCE_BANDS[index - 1]?.maxKm ?? 0) : 0, upper: entry.maxKm };
+}
+
+/**
+ * The legend's written form of one distance band — `~2km`, `2~5km`, `5~15km`, `15km+`.
+ *
+ * Derived from `DISTANCE_BANDS` rather than written out, so a legend can never name a boundary the
+ * classifier does not use. That is the whole reason the bands are an ordered array: a colour with
+ * a wrong number beside it is worse than a colour with no number, because the reader believes it.
+ *
+ * The band exists only as a scanning aid over `campusDistanceLabel`, which stays on every row —
+ * `docs/conventions.md` → Accessibility bans colour as a sole channel, and this label is what
+ * gives the four colours their meaning in words.
+ */
+export function distanceBandLabel(band: DistanceBand): string {
+  const bounds = bandBounds(band);
+  if (bounds === null) return '';
+  const { lower, upper } = bounds;
+  if (lower === 0) return `~${upper}km`;
+  if (upper === Infinity) return `${lower}km+`;
+  return `${lower}~${upper}km`;
+}
+
+/**
+ * The same band said in words rather than in glyphs — `2km 미만`, `2km 이상 5km 미만`, `15km 이상`.
+ *
+ * `~` and `+` are the compact forms the legend needs to fit four ranges on one line at 360px, and
+ * they are also the forms a screen reader is free to drop: `~2km` and `2~5km` both announce as
+ * bare numbers once the tilde goes unspoken, which collapses two bands into one. This is what the
+ * legend items carry as their accessible name, so the spoken legend states the same four ranges
+ * the printed one does.
+ */
+export function distanceBandSpokenLabel(band: DistanceBand): string {
+  const bounds = bandBounds(band);
+  if (bounds === null) return '';
+  const { lower, upper } = bounds;
+  if (lower === 0) return `${upper}km 미만`;
+  if (upper === Infinity) return `${lower}km 이상`;
+  return `${lower}km 이상 ${upper}km 미만`;
 }

@@ -58,3 +58,54 @@ export function haversineKm(
 export function distanceFromCampusKm(place: PlaceRecord): number {
   return haversineKm(CAMPUS_ORIGIN, place);
 }
+
+/**
+ * The four distance bands the ranked list colours its distance labels by.
+ *
+ * Thresholds are in kilometres and each band opens at its predecessor's bound: a place exactly
+ * 2.0km out is `close`, not `near`. Written as an ordered array rather than a chain of literals so
+ * the label module and the legend read the same boundaries the classifier uses — a legend that
+ * disagreed with the colours would be worse than no legend.
+ *
+ * 2 / 5 / 15 rather than round decades: the campus sits at the edge of 청주, so most of the dataset
+ * falls between 1 and 10km and a 10km first cut would paint nearly the whole list one colour.
+ */
+export const DISTANCE_BANDS = [
+  { band: 'near', maxKm: 2 },
+  { band: 'close', maxKm: 5 },
+  { band: 'mid', maxKm: 15 },
+  { band: 'far', maxKm: Infinity },
+] as const;
+
+export type DistanceBand = (typeof DISTANCE_BANDS)[number]['band'];
+
+/**
+ * The catch-all for anything the ordered scan does not match — a `NaN` distance, or a future band
+ * table whose last entry is bounded. Read off the last entry rather than written as a literal
+ * index, so appending a band cannot orphan it the way a hard-coded `DISTANCE_BANDS[3]` did.
+ */
+const UNBOUNDED_BAND: DistanceBand = DISTANCE_BANDS[DISTANCE_BANDS.length - 1]?.band ?? 'far';
+
+/**
+ * The distance as the UI prints it — one decimal, the precision `campusDistanceLabel` uses.
+ *
+ * Banding reads this rather than the raw figure. A place 1.96km from the campus is labelled
+ * `거리 2.0km`, and banding the raw value would paint it with the `~2km` fill while its own text
+ * reads 2.0 — the badge contradicting itself, at exactly the boundary the legend invites the
+ * reader to check. The two must round the same way or one of them is lying.
+ */
+function shownKm(km: number): number {
+  return Number(km.toFixed(1));
+}
+
+/**
+ * Which band a distance falls in.
+ *
+ * The band is a *scanning aid* layered on a figure that is already spelled out beside it. Nothing
+ * downstream may state the band alone — `docs/conventions.md` → Accessibility bans colour as a
+ * sole channel, and a band is a coarser claim than the number it summarises.
+ */
+export function distanceBand(km: number): DistanceBand {
+  const shown = shownKm(km);
+  return DISTANCE_BANDS.find((entry) => shown < entry.maxKm)?.band ?? UNBOUNDED_BAND;
+}

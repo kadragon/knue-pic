@@ -2,6 +2,17 @@
 
 ## Review Backlog
 
+### Superlative claims in docs have no guard against going stale (2026-09-02, from PR #40)
+
+- [ ] [harness] Adding a second meaning-carrying colour palette silently falsified two "this is the
+  ONE place X happens" sentences — `docs/conventions.md` -> Accessibility and `src/styles.css`
+  header note 5 — and three of the four review sources on PR #40 flagged them independently. The
+  claims themselves are worth keeping (they are what makes the rule legible), so the fix is a check
+  rather than a rewrite: a test or lint that reads the superlative sentences in `docs/` and
+  `src/styles.css` and fails when the thing they claim to be unique is no longer unique. Scope it
+  before building — a naive "ban the word 하나뿐" rule would fire on prose it should not
+  — `docs/conventions.md`, `src/styles.css`, `eslint-rules/`
+
 ### The stylesheet has no test home (2026-09-02, from PR #39 review)
 
 - [ ] [constraint] Three shipped behaviours rest on CSS nothing can assert: the `white-space: nowrap`
