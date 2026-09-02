@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DISTANCE_BANDS } from '../stats/distance';
 
 /**
- * Two guards over `src/styles.css`, both for things nothing else in the suite can see.
+ * Three guards over `src/styles.css`, all for things nothing else in the suite can see.
  *
  * The stylesheet's test home is this `?raw` import plus `test.css: true` in `vite.config.ts`
  * (`docs/conventions.md` → Test Files). Vitest's default stubs a CSS module to `''`, and every
@@ -17,6 +17,9 @@ import { DISTANCE_BANDS } from '../stats/distance';
  *    fire on prose it should not; a count cannot.
  * 2. **`white-space: nowrap`.** Three rule sets keep `거리 1.2km`, a 업종 badge and a `▲ 3` from
  *    breaking mid-token. Deleting any of them left the whole suite green.
+ * 3. **The `--space-*` scale.** PR #24 added the scale and converted about half the sheet, which
+ *    left a raw px sitting on a step indistinguishable from one chosen against a control's own box.
+ *    Every spacing value that equals a step now has to go through its token.
  */
 
 /**
@@ -323,5 +326,99 @@ describe('white-space: nowrap', () => {
       whiteSpaceValues(element).filter((value) => value !== 'nowrap'),
       `${element} is handed a wrapping value other than nowrap by some rule reaching it`,
     ).toEqual([]);
+  });
+});
+
+/**
+ * The `--space-1..--space-9` scale, read out of the stylesheet rather than written down here, so
+ * the scan compares against whatever the sheet actually defines. `:root` is the only definition
+ * site today and the pattern is not anchored to it — a second one would be picked up too, which is
+ * the behaviour this wants.
+ *
+ * This is a derivation, not a promise of adaptability: the non-vacuity `it` below pins the nine
+ * numbers literally, so *editing* the scale still fails the suite until someone updates that list.
+ * The pin is what makes a stubbed-empty CSS module fail instead of passing vacuously, and a scale
+ * edit is exactly the moment a human should have to look at this guard.
+ */
+const SPACE_SCALE = new Map<number, string>(
+  [...CSS.matchAll(/(--space-\d+)\s*:\s*(\d+)px/g)].map(([, token, px]) => [
+    Number(px),
+    token as string,
+  ]),
+);
+
+/**
+ * The properties whose values are spacing. Deliberately not "every property with a px in it":
+ * a border width, a font size, a fixed `height` and a shadow offset all land on scale numbers
+ * routinely and mean nothing by it, and a guard that swept them in would be turned off within a
+ * week. `scroll-margin`/`scroll-padding` are in because they are the scroll box's version of the
+ * same inset; `letter-spacing` is out despite the name — it spaces glyphs, not layout.
+ */
+const SPACING_PROPERTY =
+  /^(?:(?:scroll-)?(?:margin|padding)(?:-[a-z]+)*|inset(?:-[a-z]+)*|(?:row-|column-)?gap|top|right|bottom|left)$/;
+
+/** Signed, so `margin: 0 -8px` is read as the 8px step it cancels rather than skipped. */
+const PX_VALUE = /-?\d+(?:\.\d+)?px/g;
+
+/**
+ * Every spacing declaration still holding a raw px that equals a scale step, as
+ * `.selector { property: value }`.
+ *
+ * Off-scale values are not reported: after the conversion every raw px left in a spacing
+ * declaration is deliberately off the scale and says so in an `optical:` comment beside it, so the
+ * numeric test needs no exemption list. That is the property worth keeping — an exemption list
+ * would have to be edited in step with the sheet, and nothing would fail when it was not.
+ */
+const unconvertedSpacing = (): string[] => {
+  const offenders: string[] = [];
+  for (const [selector, block] of RULES) {
+    for (const declaration of block.split(';')) {
+      const [property, ...rest] = declaration.split(':');
+      const name = collapse(property ?? '').toLowerCase();
+      const value = collapse(rest.join(':'));
+      if (!SPACING_PROPERTY.test(name) || value === '') continue;
+
+      for (const px of value.match(PX_VALUE) ?? []) {
+        const token = SPACE_SCALE.get(Math.abs(Number.parseFloat(px)));
+        if (token === undefined) continue;
+        offenders.push(`${selector} { ${name}: ${value} } — ${px} is var(${token})`);
+      }
+    }
+  }
+  return offenders;
+};
+
+describe('spacing scale adoption', () => {
+  it('reads the scale off the stylesheet, so the guard below is not comparing against nothing', () => {
+    // Without this the whole block passes on a stubbed CSS module: an empty sheet has no rules to
+    // scan and an empty scale matches no value, so `unconvertedSpacing()` returns `[]` either way.
+    expect(SPACE_SCALE.size).toBe(9);
+    expect([...SPACE_SCALE.keys()].sort((a, b) => a - b)).toEqual([4, 8, 12, 16, 20, 24, 32, 48, 64]);
+
+    // And that the scan reaches real declarations — a `RULES` regex that stopped matching would
+    // report no offenders as convincingly as a fully converted sheet.
+    expect(RULES.length).toBeGreaterThan(100);
+    expect(CSS).toContain('padding: var(--space-6)');
+  });
+
+  it('routes the spacing-bearing custom property through the scale too', () => {
+    // `SPACING_PROPERTY` tests property names, so a custom property holding a spacing value is
+    // invisible to it — `--column-inset` feeds the header, content and footer inline padding and
+    // would carry a raw 24px back into all three with the scan still green. Asserted by name
+    // rather than by widening the scan: `--radius-sm: 8px` and `--radius-lg: 20px` are on scale
+    // numbers that mean nothing by it, and a predicate over every `--*: Npx` would fail on them.
+    const inset = [...CSS.matchAll(/--column-inset\s*:\s*([^;]+)/g)].map(([, value]) =>
+      collapse(value ?? ''),
+    );
+    expect(inset.length, '--column-inset is no longer defined in the stylesheet').toBeGreaterThan(0);
+    // `match`, not `PX_VALUE.test`: the shared pattern is /g, and `test` on a /g regex advances
+    // its own `lastIndex`, so consecutive calls would skip values and pass on a real raw px.
+    expect(inset.filter((value) => (value.match(PX_VALUE) ?? []).length > 0)).toEqual([]);
+  });
+
+  it('routes every on-scale spacing value through its token', () => {
+    // Reported as the offending declarations rather than as a count, so the failure names the
+    // rule and the token it should have used instead of sending the reader back to grep.
+    expect(unconvertedSpacing()).toEqual([]);
   });
 });
