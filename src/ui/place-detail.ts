@@ -192,12 +192,23 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   // rule so a test can see it — jsdom applies no stylesheet, and Vitest returns a `?raw` CSS import
   // as an empty string, so a purely stylistic dot could be deleted with every test still green.
   // The ranked row joins the same two facts the same way (`src/ui/top-places.ts`).
-  address.textContent = `${place.address}\u00A0${META_SEPARATOR}`;
+  address.textContent = place.address;
+  // The dot is a child element rather than part of the address text, so `aria-hidden` can keep it
+  // out of the accessibility tree: a spoken "middle dot" between two facts a screen reader already
+  // reads as separate is noise. `textContent` still reads as the address plus the separator, which
+  // is what the trailing-dot rule needs and what the test pins.
+  const separator = document.createElement('span');
+  separator.setAttribute('aria-hidden', 'true');
+  separator.textContent = `\u00A0${META_SEPARATOR}`;
+  address.append(separator);
 
   const distance = document.createElement('span');
   distance.className = 'place-detail-distance';
   distance.textContent = distanceLabel(place);
-  meta.append(' ', distance);
+  // No separating text node here: `.place-detail-meta` is a flex container, where a whitespace-only
+  // run between items is not rendered at all — the gap comes from the container's own `gap`. The
+  // ranked row's location line is an inline context, which is why it does need one.
+  meta.append(distance);
 
   const periodNote = document.createElement('p');
   periodNote.className = 'place-detail-period';

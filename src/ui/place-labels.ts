@@ -121,8 +121,8 @@ export function histogramSpanLabel(span: HistogramSpan): string {
  * about roads, and states neither the origin nor the straight-line qualifier on screen. The label
  * used to carry both (`교원대 직선 3.2km`) and was shortened at the operator's request, for the
  * room it buys on the row's metadata line at 360px. That is a deliberate trade of precision in the
- * label for legibility, not an oversight: what the number is and is not now lives only in
- * `src/stats/distance.ts`, where a reader of the code finds it and a reader of the page does not.
+ * label for legibility, not an oversight: what the number is and is not lives in the code
+ * (`src/stats/distance.ts`), where a reader of the code finds it and a reader of the page does not.
  *
  * Always one decimal, at every magnitude. A `700m` form below a kilometre would read as a more
  * precise measurement than this is, and one unit keeps the column comparable down the list.

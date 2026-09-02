@@ -69,7 +69,7 @@ review_candidates.csv # manual location approval queue (committed)
   off the 한국교원대학교 pin by the operator, so it is stated once, with that provenance, and the
   figure is a straight line rather than a route, because the app knows nothing about roads — the
   label said so on screen until the operator shortened it to `거리 N.Nkm`, so the qualifier now
-  lives in `src/stats/distance.ts` alone.
+  lives in the code rather than on screen.
 - `src/map/` reads a place record and nothing else; `src/stats/` must never import from `src/map/`
   or `src/ui/`. The map shows the place the detail dialog is about — it carries no ranking, so it
   has no reason to read stats output at all.

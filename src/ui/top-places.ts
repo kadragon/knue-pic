@@ -61,7 +61,6 @@ export function mostRecentLabel(date: string): string {
   return `최근 이용 ${displayShortDate(date)}`;
 }
 
-
 /**
  * Spoken form of the rank movement.
  *

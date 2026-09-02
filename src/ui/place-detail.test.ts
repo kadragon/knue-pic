@@ -31,6 +31,18 @@ function detailFor(placeIndex = 0, basis: Period = '1y') {
 }
 
 describe('renderPlaceDetail', () => {
+  it('keeps the separator out of the accessibility tree', () => {
+    const container = document.createElement('div');
+
+    renderPlaceDetail(container, detailFor(0, '1y'));
+    const separator = container.querySelector('.place-detail-address span[aria-hidden="true"]');
+
+    // A spoken "middle dot" between two facts a screen reader already reads as separate elements is
+    // noise. `aria-hidden` subtrees are excluded from name computation, so the dot is drawn and not
+    // announced.
+    expect(separator?.textContent).toBe(`\u00A0${META_SEPARATOR}`);
+  });
+
   it('separates the address from the distance with a dot that cannot wrap away from it', () => {
     const container = document.createElement('div');
     const detail = detailFor(0, '1y');
@@ -55,11 +67,10 @@ describe('renderPlaceDetail', () => {
 
     // The dialog is where the exact location is read, so the address stays whole here; the
     // distance is the one thing the address does not tell the reader.
-    // The published address is present in full; the trailing separator is the only addition.
-    expect(container.querySelector('.place-detail-address')?.textContent).toContain(
-      detail.place.address,
+    expect(container.querySelector('.place-detail-address')?.textContent).toBe(
+      `${detail.place.address}\u00A0${META_SEPARATOR}`,
     );
-    expect(container.querySelector('.place-detail-distance')?.textContent).toContain(
+    expect(container.querySelector('.place-detail-distance')?.textContent).toBe(
       campusDistanceLabel(distanceFromCampusKm(detail.place)),
     );
   });

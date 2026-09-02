@@ -10,7 +10,7 @@ import type { PlaceRecord } from '../data/types';
  * It is a *straight line*, not a route. The app knows a coordinate and nothing about roads, so a
  * travel distance or a walking time would be a claim the data does not support. The label said so
  * on screen — `교원대 직선 3.2km` — until the operator shortened it to `거리 3.2km` for the room it
- * buys at 360px, so this comment is now the only place the qualifier is written down.
+ * buys at 360px, so this comment, not the label, is where the qualifier is written down.
  */
 
 /**
