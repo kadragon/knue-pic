@@ -714,7 +714,8 @@ div.top-place-body {
  */
 .top-place-recent,
 .top-place-visits,
-.top-place-distance {
+.top-place-distance,
+.place-detail-distance {
   white-space: nowrap;
 }
 

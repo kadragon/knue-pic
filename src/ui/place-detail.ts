@@ -185,7 +185,6 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   meta.append(renderKindBadge(place));
   const address = document.createElement('span');
   address.className = 'place-detail-address';
-  address.textContent = place.address;
   meta.append(address);
 
   // The dot trails the address rather than leading the distance: at 360px the address wraps, and a
@@ -193,12 +192,12 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   // rule so a test can see it — jsdom applies no stylesheet, and Vitest returns a `?raw` CSS import
   // as an empty string, so a purely stylistic dot could be deleted with every test still green.
   // The ranked row joins the same two facts the same way (`src/ui/top-places.ts`).
-  address.textContent = `${place.address} ${META_SEPARATOR}`;
+  address.textContent = `${place.address}\u00A0${META_SEPARATOR}`;
 
   const distance = document.createElement('span');
   distance.className = 'place-detail-distance';
   distance.textContent = distanceLabel(place);
-  meta.append(distance)
+  meta.append(' ', distance);
 
   const periodNote = document.createElement('p');
   periodNote.className = 'place-detail-period';

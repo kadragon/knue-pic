@@ -43,7 +43,7 @@ describe('renderPlaceDetail', () => {
     expect(distance?.textContent).toBe(campusDistanceLabel(distanceFromCampusKm(detail.place)));
     // Trailing the address, so a wrap never strands it at the head of the next line.
     expect(container.querySelector('.place-detail-address')?.textContent).toBe(
-      `${detail.place.address} ${META_SEPARATOR}`,
+      `${detail.place.address}\u00A0${META_SEPARATOR}`,
     );
   });
 
