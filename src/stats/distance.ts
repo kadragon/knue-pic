@@ -8,8 +8,9 @@ import type { PlaceRecord } from '../data/types';
  * number for every row, and it must be there whether or not the Naver script ever loads.
  *
  * It is a *straight line*, not a route. The app knows a coordinate and nothing about roads, so a
- * travel distance or a walking time would be a claim the data does not support; `src/ui/` labels
- * the figure 직선 to say so on screen.
+ * travel distance or a walking time would be a claim the data does not support. The label said so
+ * on screen — `교원대 직선 3.2km` — until the operator shortened it to `거리 3.2km` for the room it
+ * buys at 360px, so this comment, not the label, is where the qualifier is written down.
  */
 
 /**

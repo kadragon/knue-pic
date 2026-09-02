@@ -39,6 +39,9 @@ export function histogramHeading(buckets: MonthlyHistogram): string {
 
 export const NAVER_LINK_LABEL = '네이버지도에서 보기';
 
+/** The dot between the address and the distance — the same one the ranked row's meta line uses. */
+export const META_SEPARATOR = '·';
+
 /**
  * The distance line, beside the address rather than replacing it.
  *
@@ -182,24 +185,30 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   meta.append(renderKindBadge(place));
   const address = document.createElement('span');
   address.className = 'place-detail-address';
-  address.textContent = place.address;
   meta.append(address);
 
-  // The separator is a node rather than a `::before` rule, so it is visible to the tests that
-  // guard it: jsdom applies no stylesheet, and Vitest hands a `?raw` CSS import back as an empty
-  // string, so a purely stylistic dot could be deleted with every test still green. The row's
-  // location line joins the same two facts with the same dot (`src/ui/top-places.ts`).
+  // The dot trails the address rather than leading the distance: at 360px the address wraps, and a
+  // separator at the head of the next line reads as a bullet. It is text rather than a `::before`
+  // rule so a test can see it — jsdom applies no stylesheet, and Vitest returns a `?raw` CSS import
+  // as an empty string, so a purely stylistic dot could be deleted with every test still green.
+  // The ranked row joins the same two facts the same way (`src/ui/top-places.ts`).
+  address.textContent = place.address;
+  // The dot is a child element rather than part of the address text, so `aria-hidden` can keep it
+  // out of the accessibility tree: a spoken "middle dot" between two facts a screen reader already
+  // reads as separate is noise. `textContent` still reads as the address plus the separator, which
+  // is what the trailing-dot rule needs and what the test pins.
   const separator = document.createElement('span');
-  separator.className = 'place-detail-meta-separator';
-  separator.textContent = '·';
-  // Decorative: the two facts are already separate elements to a screen reader, and a spoken
-  // "middle dot" between them is noise.
   separator.setAttribute('aria-hidden', 'true');
+  separator.textContent = `\u00A0${META_SEPARATOR}`;
+  address.append(separator);
 
   const distance = document.createElement('span');
   distance.className = 'place-detail-distance';
   distance.textContent = distanceLabel(place);
-  meta.append(separator, distance);
+  // No separating text node here: `.place-detail-meta` is a flex container, where a whitespace-only
+  // run between items is not rendered at all — the gap comes from the container's own `gap`. The
+  // ranked row's location line is an inline context, which is why it does need one.
+  meta.append(distance);
 
   const periodNote = document.createElement('p');
   periodNote.className = 'place-detail-period';

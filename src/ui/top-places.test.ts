@@ -12,6 +12,7 @@ import {
   EMPTY_MESSAGE,
   LIST_PAGE_SIZE,
   moreLabel,
+  mostRecentLabel,
   rankDeltaLabel,
   renderedCountLabel,
   renderSparkline,
@@ -19,6 +20,7 @@ import {
   sparklineLabel,
   topPlacesHeading,
   trendSpanNote,
+  visitCountLabel,
 } from './top-places';
 
 function render(result: TopPlacesResult): HTMLElement {
@@ -30,6 +32,47 @@ function render(result: TopPlacesResult): HTMLElement {
 const EMPTY_DATASET: PlacesDataset = { updatedAt: '2026-08-01', places: [] };
 
 describe('renderTopPlaces', () => {
+  it('pins where the metadata line may break and where it may not', () => {
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+    const container = render(result);
+    const entry = result.entries[0]!;
+
+    const district = container.querySelector('.top-place-district');
+    const distance = container.querySelector('.top-place-distance');
+    const visits = container.querySelector('.top-place-visits');
+    const recent = container.querySelector('.top-place-recent');
+
+    // The separator trails the token it follows, behind a NON-BREAKING space: a dot at the head of
+    // a wrapped line reads as a bullet, and an ordinary space here would let the line break between
+    // the token and its dot, producing exactly that.
+    expect(district?.textContent).toBe(`${shortAddress(entry.place.address)}\u00A0\u00b7`);
+    expect(visits?.textContent).toBe(`${visitCountLabel(entry.stats.visitCount)}\u00A0\u00b7`);
+
+    // Each figure holds its own text and nothing else. A leading space here would be swallowed by
+    // `white-space: nowrap` and the line would lose its only break opportunity.
+    expect(distance?.textContent).toBe(campusDistanceLabel(distanceFromCampusKm(entry.place)));
+    expect(recent?.textContent).toBe(mostRecentLabel(entry.stats.mostRecentVisit!));
+
+    // The separating space belongs to the parent, which has default `white-space` — that is what
+    // keeps it a break opportunity.
+    expect(container.querySelector('.top-place-location')?.textContent).toBe(
+      `${district?.textContent} ${distance?.textContent}`,
+    );
+    expect(container.querySelector('.top-place-figures')?.textContent).toBe(
+      `${visits?.textContent} ${recent?.textContent}`,
+    );
+  });
+
+  it('keeps the most-recent date in its own element so it cannot break at the hyphen', () => {
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+    const container = render(result);
+
+    // `white-space: nowrap` in the stylesheet hangs off this class. At 360px the line used to wrap
+    // inside the date — `최근 이용 07-` / `30` — and half a date reads as a different date.
+    const recent = container.querySelector('.top-place-recent');
+    expect(recent?.textContent).toContain(mostRecentLabel(result.entries[0]!.stats.mostRecentVisit!));
+  });
+
   it('states where each place is and how far the campus is from it', () => {
     const result = computeTopPlaces(SAMPLE_DATASET, '1y');
     const container = render(result);

@@ -115,15 +115,18 @@ export function histogramSpanLabel(span: HistogramSpan): string {
 }
 
 /**
- * `3.24` → `교원대 직선 3.2km`.
+ * `3.24` → `거리 3.2km`: a bare `거리` label and one decimal.
+ *
+ * The figure is a straight line from the campus to the place, not a route — the app knows nothing
+ * about roads, and states neither the origin nor the straight-line qualifier on screen. The label
+ * used to carry both (`교원대 직선 3.2km`) and was shortened at the operator's request, for the
+ * room it buys on the row's metadata line at 360px. That is a deliberate trade of precision in the
+ * label for legibility, not an oversight: what the number is and is not lives in the code
+ * (`src/stats/distance.ts`), where a reader of the code finds it and a reader of the page does not.
  *
  * Always one decimal, at every magnitude. A `700m` form below a kilometre would read as a more
- * precise measurement than this is: the figure is a straight line between two points, and the
- * nearer a place is, the further a straight line sits from the walk it suggests. One unit also
- * keeps the column comparable down the list.
- *
- * 직선 is load-bearing, not decoration — it is the only thing on screen saying this is not a route.
+ * precise measurement than this is, and one unit keeps the column comparable down the list.
  */
 export function campusDistanceLabel(km: number): string {
-  return `교원대 직선 ${km.toFixed(1)}km`;
+  return `거리 ${km.toFixed(1)}km`;
 }

@@ -709,6 +709,17 @@ div.top-place-body {
 }
 
 /*
+ * Each figure is one token to a reader — `19회 이용`, `거리 1.2km`, a date whose hyphen is an
+ * ordinary break opportunity. The metadata line still wraps, but only between them.
+ */
+.top-place-recent,
+.top-place-visits,
+.top-place-distance,
+.place-detail-distance {
+  white-space: nowrap;
+}
+
+/*
  * The glyph carries the direction and `role="img"` carries the words; colour adds nothing here that
  * is not already said. It used to be green/red, which put a decline in the system's *error* colour
  * — a judgement about the business, which is the framing `docs/conventions.md` forbids, and which

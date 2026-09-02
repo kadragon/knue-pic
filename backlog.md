@@ -2,6 +2,19 @@
 
 ## Review Backlog
 
+### The stylesheet has no test home (2026-09-02, from PR #39 review)
+
+- [ ] [constraint] Three shipped behaviours rest on CSS nothing can assert: the `white-space: nowrap`
+  block that keeps `거리 1.2km`, `19회 이용` and a `07-30` date from breaking mid-figure
+  (`src/styles.css` → `.top-place-recent, .top-place-visits, .top-place-distance,
+  .place-detail-distance`). Deleting that block leaves the whole suite green. jsdom applies no
+  stylesheet and Vitest returns a `?raw` CSS import as `''` (measured), and a `readFileSync` test
+  cannot live under `src/` — `tsconfig.json` sets `"types": ["vite/client"]` with no `@types/node`,
+  and `vite.config.ts` collects only `src/**/*.test.ts`. Closing this means giving the stylesheet a
+  test home outside `src/` (a second vitest project, or the `eslint-rules/` pattern), which is a
+  config change rather than a test — `src/styles.css`, `vite.config.ts`, `docs/conventions.md` →
+  Test Files
+
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*

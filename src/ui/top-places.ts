@@ -1,5 +1,4 @@
 import { histogramSpan, type HistogramSpan, type MonthlyHistogram } from '../stats/histogram';
-import type { PlaceRecord } from '../data/types';
 import { distanceFromCampusKm } from '../stats/distance';
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
 import {
@@ -60,18 +59,6 @@ export function visitCountLabel(visitCount: number): string {
 
 export function mostRecentLabel(date: string): string {
   return `최근 이용 ${displayShortDate(date)}`;
-}
-
-/**
- * Where the place is, in the two terms a reader can act on: its district, and how far the campus
- * is in a straight line.
- *
- * One string rather than two nodes because the halves answer one question together, and splitting
- * them across a wrapping metadata line would let the district end up on a different row than its
- * distance at 360px. The separator is the same middle dot the figures line uses.
- */
-export function placeLocationLabel(place: PlaceRecord): string {
-  return `${shortAddress(place.address)} · ${campusDistanceLabel(distanceFromCampusKm(place))}`;
 }
 
 /**
@@ -199,18 +186,45 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
 
   const location = document.createElement('span');
   location.className = 'top-place-location';
-  location.textContent = placeLocationLabel(entry.place);
+  // Two elements and a space between them. The line has to be able to wrap between the district
+  // and the distance at 360px, and the distance must never break inside itself — `거리` above its
+  // own `1.2km` reads as a stray word. The separating space is a text node of the *parent*, not
+  // the head of the distance: `white-space: nowrap` suppresses break opportunities inside the
+  // element it is on, including a leading space, so a space carried there would leave the whole
+  // line unbreakable. The district keeps ordinary wrapping — an address is prose and may break.
+  const district = document.createElement('span');
+  district.className = 'top-place-district';
+  // The dot trails the token it follows rather than leading the next one: a separator at the head
+  // of a wrapped line reads as a bullet, and the eye looks for a list that is not there. The space
+  // before it is non-breaking, or the line breaks between them and the dot leads the next line
+  // after all.
+  district.textContent = `${shortAddress(entry.place.address)}\u00A0·`;
+  const distance = document.createElement('span');
+  distance.className = 'top-place-distance';
+  distance.textContent = campusDistanceLabel(distanceFromCampusKm(entry.place));
+  location.append(district, ' ', distance);
   meta.append(location);
 
   const figures = document.createElement('span');
   figures.className = 'top-place-figures';
+  const count = document.createElement('span');
+  count.className = 'top-place-visits';
+  figures.append(count);
   // `mostRecentVisit` is non-null for every ranked place: a place with no in-window visit is not
-  // ranked at all. The fallback keeps the type honest without inventing a date.
-  const parts = [visitCountLabel(entry.stats.visitCount)];
-  if (entry.stats.mostRecentVisit !== null) {
-    parts.push(mostRecentLabel(entry.stats.mostRecentVisit));
+  // ranked at all. The guard keeps the type honest without inventing a date.
+  if (entry.stats.mostRecentVisit === null) {
+    count.textContent = visitCountLabel(entry.stats.visitCount);
+  } else {
+    // The count carries the separator only when something follows it, and the date is its own
+    // element so the stylesheet can keep it whole: at 360px the line wrapped inside the date —
+    // `최근 이용 07-` / `30` — because a hyphen is an ordinary break opportunity, and half a date
+    // reads as a different date. Same parent-owned space as the location line above.
+    count.textContent = `${visitCountLabel(entry.stats.visitCount)}\u00A0·`;
+    const recent = document.createElement('span');
+    recent.className = 'top-place-recent';
+    recent.textContent = mostRecentLabel(entry.stats.mostRecentVisit);
+    figures.append(' ', recent);
   }
-  figures.textContent = parts.join(' · ');
   meta.append(figures);
 
   body.append(name, meta);

@@ -9,6 +9,7 @@ import {
   DETAIL_EMPTY_MESSAGE,
   FIGURE_LABELS,
   histogramHeading,
+  META_SEPARATOR,
   NAVER_LINK_LABEL,
   NO_VISIT_IN_PERIOD_MESSAGE,
   periodStatsHeading,
@@ -30,24 +31,31 @@ function detailFor(placeIndex = 0, basis: Period = '1y') {
 }
 
 describe('renderPlaceDetail', () => {
-  it('separates the address from the distance with a decorative dot', () => {
+  it('keeps the separator out of the accessibility tree', () => {
     const container = document.createElement('div');
 
     renderPlaceDetail(container, detailFor(0, '1y'));
-    const meta = container.querySelector('.place-detail-meta');
-    const separator = meta?.querySelector('.place-detail-meta-separator');
+    const separator = container.querySelector('.place-detail-address span[aria-hidden="true"]');
 
-    // Guarded here rather than in the stylesheet: jsdom applies no CSS and Vitest returns a `?raw`
-    // CSS import as an empty string, so a `::before` dot could be deleted with every test green.
-    expect(separator?.textContent).toBe('·');
-    expect(separator?.getAttribute('aria-hidden')).toBe('true');
-    // Between the two, not before both.
-    const nodes = [...(meta?.children ?? [])].map((el) => el.className);
-    expect(nodes.indexOf('place-detail-meta-separator')).toBeGreaterThan(
-      nodes.indexOf('place-detail-address'),
-    );
-    expect(nodes.indexOf('place-detail-distance')).toBeGreaterThan(
-      nodes.indexOf('place-detail-meta-separator'),
+    // A spoken "middle dot" between two facts a screen reader already reads as separate elements is
+    // noise. `aria-hidden` subtrees are excluded from name computation, so the dot is drawn and not
+    // announced.
+    expect(separator?.textContent).toBe(`\u00A0${META_SEPARATOR}`);
+  });
+
+  it('separates the address from the distance with a dot that cannot wrap away from it', () => {
+    const container = document.createElement('div');
+    const detail = detailFor(0, '1y');
+
+    renderPlaceDetail(container, detail);
+    const distance = container.querySelector('.place-detail-distance');
+
+    // One node, not a sibling separator: at 360px the address wraps and a separate flex item was
+    // pushed to the head of the next line, leaving the dot stranded above its figure.
+    expect(distance?.textContent).toBe(campusDistanceLabel(distanceFromCampusKm(detail.place)));
+    // Trailing the address, so a wrap never strands it at the head of the next line.
+    expect(container.querySelector('.place-detail-address')?.textContent).toBe(
+      `${detail.place.address}\u00A0${META_SEPARATOR}`,
     );
   });
 
@@ -59,7 +67,9 @@ describe('renderPlaceDetail', () => {
 
     // The dialog is where the exact location is read, so the address stays whole here; the
     // distance is the one thing the address does not tell the reader.
-    expect(container.querySelector('.place-detail-address')?.textContent).toBe(detail.place.address);
+    expect(container.querySelector('.place-detail-address')?.textContent).toBe(
+      `${detail.place.address}\u00A0${META_SEPARATOR}`,
+    );
     expect(container.querySelector('.place-detail-distance')?.textContent).toBe(
       campusDistanceLabel(distanceFromCampusKm(detail.place)),
     );

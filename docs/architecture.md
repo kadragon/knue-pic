@@ -67,7 +67,9 @@ review_candidates.csv # manual location approval queue (committed)
   own `lat`/`lng`, every ranked row carries it, and it must render whether or not the Naver script
   ever loads. `CAMPUS_ORIGIN` is the one coordinate in the repo that no file derives — it was read
   off the 한국교원대학교 pin by the operator, so it is stated once, with that provenance, and the
-  figure is labelled 직선 on screen because the app knows nothing about roads.
+  figure is a straight line rather than a route, because the app knows nothing about roads — the
+  label said so on screen until the operator shortened it to `거리 N.Nkm`, so the qualifier now
+  lives in the code rather than on screen.
 - `src/map/` reads a place record and nothing else; `src/stats/` must never import from `src/map/`
   or `src/ui/`. The map shows the place the detail dialog is about — it carries no ranking, so it
   has no reason to read stats output at all.
