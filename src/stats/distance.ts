@@ -64,8 +64,8 @@ export function distanceFromCampusKm(place: PlaceRecord): number {
  *
  * Thresholds are in kilometres and each band opens at its predecessor's bound: a place exactly
  * 2.0km out is `close`, not `near`. Written as an ordered array rather than a chain of literals so
- * the label module and the legend read the same boundaries the classifier uses — a legend that
- * disagreed with the colours would be worse than no legend.
+ * the boundaries live in exactly one place: `distanceBand` scans it in order, so moving a threshold
+ * is this edit alone. A *new* band is not — its name also needs a fill in `src/styles.css`.
  *
  * 2 / 5 / 15 rather than round decades: the campus sits at the edge of 청주, so most of the dataset
  * falls between 1 and 10km and a 10km first cut would paint nearly the whole list one colour.
@@ -90,9 +90,9 @@ const UNBOUNDED_BAND: DistanceBand = DISTANCE_BANDS[DISTANCE_BANDS.length - 1]?.
  * The distance as the UI prints it — one decimal, the precision `campusDistanceLabel` uses.
  *
  * Banding reads this rather than the raw figure. A place 1.96km from the campus is labelled
- * `거리 2.0km`, and banding the raw value would paint it with the `~2km` fill while its own text
- * reads 2.0 — the badge contradicting itself, at exactly the boundary the legend invites the
- * reader to check. The two must round the same way or one of them is lying.
+ * `거리 2.0km`, and banding the raw value would give it the `near` fill while its own text reads
+ * 2.0 — the badge contradicting the figure printed inside it. The two must round the same way or
+ * one of them is lying; `place-labels.test.ts` → `distance band consistency` holds them together.
  */
 function shownKm(km: number): number {
   return Number(km.toFixed(1));

@@ -148,6 +148,15 @@ heading that now vouches for them. That happened twice on `docs/architecture.md`
 `## Source Layout (target)` heading nine lines under the corrected opening, then the layout tree
 itself, each caught only at review.
 
+**A comment that justifies code by naming something else is a claim about that something.** Where a
+docblock explains a shape by what reads it — "the only consumer", "one edit and nothing else" — grep
+the named consumers and confirm the claim before writing it, and again when rewriting one that went
+stale. The replacement is exactly as falsifiable as the sentence it replaces.
+
+*Without this:* fixing a stale justification mints a fresh one. PR #42 replaced a comment citing the
+deleted distance legend with "appending or moving a band needs no second edit anywhere else" —
+false the moment it was written, since `src/styles.css` carries a fill rule per `data-band` value.
+
 ## Git Conventions
 
 Commits: `[TYPE] description` — one logical change, checks green.
