@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PlacesDataset } from '../data/types';
+import type { PlaceRecord, PlacesDataset } from '../data/types';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { displayCategory } from '../ui/place-labels';
 import { ALL_CATEGORIES, ALL_KINDS, filterByKind, filterPlaces, listCategories } from './search';
@@ -62,6 +62,50 @@ describe('filterPlaces', () => {
     const found = filterPlaces(SAMPLE_DATASET, { text: '태성탑연로', category: '한식' });
 
     expect(found.map((place) => place.id)).toEqual(['restaurant_000001']);
+  });
+
+  it('finds a place by the shortened address the ranked row displays', () => {
+    // `src/stats/short-address.ts` -> `shortAddress` renders `청주 흥덕구` while the dataset stores
+    // `청주시 흥덕구`. `docs/conventions.md` -> Accessibility: a transform that reaches the label
+    // but not the matcher returns nothing for the rows it shortened.
+    const shortened = filterPlaces(SAMPLE_DATASET, { ...NO_FILTER, text: '청주 흥덕구' });
+    const stored = filterPlaces(SAMPLE_DATASET, { ...NO_FILTER, text: '청주시 흥덕구' });
+    expect(shortened.map((p) => p.id)).toEqual(stored.map((p) => p.id));
+    expect(shortened.length).toBeGreaterThan(0);
+  });
+
+  it('matches a 광역시 row by the short form its row displays', () => {
+    const dataset: PlacesDataset = {
+      ...SAMPLE_DATASET,
+      places: [
+        {
+          ...(SAMPLE_DATASET.places[0] as PlaceRecord),
+          id: 'restaurant_009001',
+          address: '대전광역시 서구 가장로 43-1',
+        },
+      ],
+    };
+
+    expect(filterPlaces(dataset, { ...NO_FILTER, text: '대전 서구' })).toHaveLength(1);
+    // The stored spelling still reaches it — the short form is an extra field, not a replacement.
+    expect(filterPlaces(dataset, { ...NO_FILTER, text: '대전광역시 서구' })).toHaveLength(1);
+  });
+
+  it('leaves the needle intact, so a query ending in 시 stays precise', () => {
+    // A fold applied to the needle turned `스시` into `스` and matched every place carrying that
+    // syllable anywhere. The query has to keep matching only what actually contains it.
+    const dataset: PlacesDataset = {
+      ...SAMPLE_DATASET,
+      places: [
+        { ...(SAMPLE_DATASET.places[0] as PlaceRecord), id: 'restaurant_009002', name: '하나비스시' },
+        { ...(SAMPLE_DATASET.places[1] as PlaceRecord), id: 'restaurant_009003', name: '스타벅스' },
+      ],
+    };
+
+    expect(filterPlaces(dataset, { ...NO_FILTER, text: '스시' }).map((p) => p.id)).toEqual([
+      'restaurant_009002',
+    ]);
+    expect(filterPlaces(SAMPLE_DATASET, { ...NO_FILTER, text: '청주시' }).length).toBeGreaterThan(0);
   });
 
   it('returns an empty list when nothing matches', () => {

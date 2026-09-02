@@ -1,8 +1,15 @@
 import type { Period, PlaceRecord } from '../data/types';
 import { histogramSpan, type MonthlyHistogram } from '../stats/histogram';
+import { distanceFromCampusKm } from '../stats/distance';
 import type { PlaceStats } from '../stats/place-stats';
 import { PERIOD_LABELS } from './period-labels';
-import { displayShortDate, histogramSpanLabel, monthLabel, renderKindBadge } from './place-labels';
+import {
+  campusDistanceLabel,
+  displayShortDate,
+  histogramSpanLabel,
+  monthLabel,
+  renderKindBadge,
+} from './place-labels';
 
 /**
  * The detail card for one selected place: a slot for the location map, the figures for the period
@@ -31,6 +38,17 @@ export function histogramHeading(buckets: MonthlyHistogram): string {
 }
 
 export const NAVER_LINK_LABEL = '네이버지도에서 보기';
+
+/**
+ * The distance line, beside the address rather than replacing it.
+ *
+ * The dialog is where a reader goes for the exact location, so the full address stays whole here
+ * and the shortened form the list row carries (`src/ui/top-places.ts`) has no place on this screen.
+ * The distance is the one thing the address does not tell them, so it is added rather than traded.
+ */
+export function distanceLabel(place: PlaceRecord): string {
+  return campusDistanceLabel(distanceFromCampusKm(place));
+}
 
 export const NO_VISIT_IN_PERIOD_MESSAGE = '선택한 기간의 이용 기록이 없습니다.';
 
@@ -166,6 +184,22 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   address.className = 'place-detail-address';
   address.textContent = place.address;
   meta.append(address);
+
+  // The separator is a node rather than a `::before` rule, so it is visible to the tests that
+  // guard it: jsdom applies no stylesheet, and Vitest hands a `?raw` CSS import back as an empty
+  // string, so a purely stylistic dot could be deleted with every test still green. The row's
+  // location line joins the same two facts with the same dot (`src/ui/top-places.ts`).
+  const separator = document.createElement('span');
+  separator.className = 'place-detail-meta-separator';
+  separator.textContent = '·';
+  // Decorative: the two facts are already separate elements to a screen reader, and a spoken
+  // "middle dot" between them is noise.
+  separator.setAttribute('aria-hidden', 'true');
+
+  const distance = document.createElement('span');
+  distance.className = 'place-detail-distance';
+  distance.textContent = distanceLabel(place);
+  meta.append(separator, distance);
 
   const periodNote = document.createElement('p');
   periodNote.className = 'place-detail-period';

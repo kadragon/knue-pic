@@ -1,6 +1,15 @@
 import { histogramSpan, type HistogramSpan, type MonthlyHistogram } from '../stats/histogram';
+import type { PlaceRecord } from '../data/types';
+import { distanceFromCampusKm } from '../stats/distance';
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
-import { displayShortDate, histogramSpanLabel, monthLabel, renderKindBadge } from './place-labels';
+import {
+  campusDistanceLabel,
+  displayShortDate,
+  histogramSpanLabel,
+  monthLabel,
+  renderKindBadge,
+  shortAddress,
+} from './place-labels';
 
 /**
  * The ranked list view. Takes the numbers `src/stats/top-places.ts` already computed and turns them
@@ -51,6 +60,18 @@ export function visitCountLabel(visitCount: number): string {
 
 export function mostRecentLabel(date: string): string {
   return `최근 이용 ${displayShortDate(date)}`;
+}
+
+/**
+ * Where the place is, in the two terms a reader can act on: its district, and how far the campus
+ * is in a straight line.
+ *
+ * One string rather than two nodes because the halves answer one question together, and splitting
+ * them across a wrapping metadata line would let the district end up on a different row than its
+ * distance at 360px. The separator is the same middle dot the figures line uses.
+ */
+export function placeLocationLabel(place: PlaceRecord): string {
+  return `${shortAddress(place.address)} · ${campusDistanceLabel(distanceFromCampusKm(place))}`;
 }
 
 /**
@@ -175,6 +196,11 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
   const meta = document.createElement('span');
   meta.className = 'top-place-meta';
   meta.append(renderKindBadge(entry.place));
+
+  const location = document.createElement('span');
+  location.className = 'top-place-location';
+  location.textContent = placeLocationLabel(entry.place);
+  meta.append(location);
 
   const figures = document.createElement('span');
   figures.className = 'top-place-figures';

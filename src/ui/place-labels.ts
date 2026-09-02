@@ -1,4 +1,5 @@
 import type { PlaceRecord } from '../data/types';
+export { shortAddress } from '../stats/short-address';
 import type { MonthKey } from '../data/iso-date';
 import type { HistogramSpan } from '../stats/histogram';
 
@@ -111,4 +112,18 @@ export function monthLabel(month: MonthKey): string {
 export function histogramSpanLabel(span: HistogramSpan): string {
   if (span.first === span.last) return monthLabel(span.first);
   return `${monthLabel(span.first)}~${monthLabel(span.last)}`;
+}
+
+/**
+ * `3.24` → `교원대 직선 3.2km`.
+ *
+ * Always one decimal, at every magnitude. A `700m` form below a kilometre would read as a more
+ * precise measurement than this is: the figure is a straight line between two points, and the
+ * nearer a place is, the further a straight line sits from the walk it suggests. One unit also
+ * keeps the column comparable down the list.
+ *
+ * 직선 is load-bearing, not decoration — it is the only thing on screen saying this is not a route.
+ */
+export function campusDistanceLabel(km: number): string {
+  return `교원대 직선 ${km.toFixed(1)}km`;
 }

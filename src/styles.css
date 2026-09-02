@@ -703,6 +703,7 @@ div.top-place-body {
 }
 
 .top-place-figures,
+.top-place-location,
 .place-select-address {
   min-width: 0;
 }
