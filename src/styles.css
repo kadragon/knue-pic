@@ -524,7 +524,8 @@ a[role='button'] {
 .place-search-reset {
   height: 48px;
   margin-top: var(--space-3);
-  /* optical: 23px + the 1px border is the 24px inline inset, and 13px is what the 48px height leaves. */
+  /* optical: 23px + the 1px border is the 24px inline inset; the 48px height is fixed, so the
+     vertical pad does not size this box and is off the scale for it. */
   padding: 13px 23px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -977,7 +978,8 @@ div.top-place-body {
   max-height: min(60vh, 30rem);
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* optical: 6px is set by the focus ring above (2px at 2px offset), not by the scale. */
+  /* optical: the focus ring extends 4px past a row (2px wide at 2px offset), and 6px is the pad
+     that clears it — off the scale, which steps straight from 4px to 8px. */
   padding: 6px 0;
   scroll-padding: 6px 0;
 }
@@ -1078,7 +1080,9 @@ div.top-place-body {
 }
 
 .place-detail-name {
-  /* Right-hand room for the close control, which is absolutely positioned over this line. */
+  /* Right-hand room for the close control, which is absolutely positioned over this line.
+     optical: that 56px is clearance for the control, not a spacing step, and the 2px below it is
+     sub-scale. */
   margin: var(--space-1) 56px 2px 0;
   font-size: 22px;
   font-weight: 700;
@@ -1203,7 +1207,8 @@ div.top-place-body {
   align-items: center;
   min-height: 48px;
   margin-top: var(--space-6);
-  /* optical: with min-height 48px the vertical pad is what centres the 16px label. */
+  /* optical: 14px twice around a 16px/1.3 label is 48.8px, so the pad sizes this box and the
+     48px min-height is the floor it clears. */
   padding: 14px var(--space-6);
   border-radius: var(--radius-sm);
   background: var(--rausch-strong);

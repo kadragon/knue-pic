@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DISTANCE_BANDS } from '../stats/distance';
 
 /**
- * Two guards over `src/styles.css`, both for things nothing else in the suite can see.
+ * Three guards over `src/styles.css`, all for things nothing else in the suite can see.
  *
  * The stylesheet's test home is this `?raw` import plus `test.css: true` in `vite.config.ts`
  * (`docs/conventions.md` → Test Files). Vitest's default stubs a CSS module to `''`, and every
@@ -17,6 +17,9 @@ import { DISTANCE_BANDS } from '../stats/distance';
  *    fire on prose it should not; a count cannot.
  * 2. **`white-space: nowrap`.** Three rule sets keep `거리 1.2km`, a 업종 badge and a `▲ 3` from
  *    breaking mid-token. Deleting any of them left the whole suite green.
+ * 3. **The `--space-*` scale.** PR #24 added the scale and converted about half the sheet, which
+ *    left a raw px sitting on a step indistinguishable from one chosen against a control's own box.
+ *    Every spacing value that equals a step now has to go through its token.
  */
 
 /**
@@ -327,11 +330,15 @@ describe('white-space: nowrap', () => {
 });
 
 /**
- * The `--space-1..--space-9` scale, read off `:root` rather than written down here. PR #24 added
- * the scale and converted about half the sheet to it; a raw px that happened to equal a step was
- * then indistinguishable from one chosen against a control's own box, so every later spacing edit
- * was a guess about which kind it was looking at. Deriving the steps means a future edit to the
- * scale carries this guard with it instead of leaving it asserting the old numbers.
+ * The `--space-1..--space-9` scale, read out of the stylesheet rather than written down here, so
+ * the scan compares against whatever the sheet actually defines. `:root` is the only definition
+ * site today and the pattern is not anchored to it — a second one would be picked up too, which is
+ * the behaviour this wants.
+ *
+ * This is a derivation, not a promise of adaptability: the non-vacuity `it` below pins the nine
+ * numbers literally, so *editing* the scale still fails the suite until someone updates that list.
+ * The pin is what makes a stubbed-empty CSS module fail instead of passing vacuously, and a scale
+ * edit is exactly the moment a human should have to look at this guard.
  */
 const SPACE_SCALE = new Map<number, string>(
   [...CSS.matchAll(/(--space-\d+)\s*:\s*(\d+)px/g)].map(([, token, px]) => [
@@ -392,6 +399,21 @@ describe('spacing scale adoption', () => {
     // report no offenders as convincingly as a fully converted sheet.
     expect(RULES.length).toBeGreaterThan(100);
     expect(CSS).toContain('padding: var(--space-6)');
+  });
+
+  it('routes the spacing-bearing custom property through the scale too', () => {
+    // `SPACING_PROPERTY` tests property names, so a custom property holding a spacing value is
+    // invisible to it — `--column-inset` feeds the header, content and footer inline padding and
+    // would carry a raw 24px back into all three with the scan still green. Asserted by name
+    // rather than by widening the scan: `--radius-sm: 8px` and `--radius-lg: 20px` are on scale
+    // numbers that mean nothing by it, and a predicate over every `--*: Npx` would fail on them.
+    const inset = [...CSS.matchAll(/--column-inset\s*:\s*([^;]+)/g)].map(([, value]) =>
+      collapse(value ?? ''),
+    );
+    expect(inset.length, '--column-inset is no longer defined in the stylesheet').toBeGreaterThan(0);
+    // `match`, not `PX_VALUE.test`: the shared pattern is /g, and `test` on a /g regex advances
+    // its own `lastIndex`, so consecutive calls would skip values and pass on a real raw px.
+    expect(inset.filter((value) => (value.match(PX_VALUE) ?? []).length > 0)).toEqual([]);
   });
 
   it('routes every on-scale spacing value through its token', () => {
