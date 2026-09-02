@@ -1,10 +1,8 @@
 import { histogramSpan, type HistogramSpan, type MonthlyHistogram } from '../stats/histogram';
-import { DISTANCE_BANDS, distanceBand, distanceFromCampusKm } from '../stats/distance';
+import { distanceBand, distanceFromCampusKm } from '../stats/distance';
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
 import {
   campusDistanceLabel,
-  distanceBandLabel,
-  distanceBandSpokenLabel,
   histogramSpanLabel,
   monthLabel,
   renderKindBadge,
@@ -103,67 +101,6 @@ export function sparklineLabel(buckets: MonthlyHistogram): string {
  */
 export function trendSpanNote(span: HistogramSpan): string {
   return `월별 막대는 ${histogramSpanLabel(span)} 기준`;
-}
-
-/**
- * Names the colours the distance badges are drawn in.
- *
- * `색` rather than a verb: the caption states what the swatches are, and the swatch beside each
- * range is the only thing that has to be read as a colour.
- */
-export const DISTANCE_LEGEND_CAPTION = '거리 색';
-
-/** Distinguishes one rendered legend's caption id from the next; see `renderDistanceLegend`. */
-let legendInstance = 0;
-
-/**
- * The legend for the distance badges — one swatch per band, each labelled with its own range.
- *
- * Rendered once above the list rather than repeated on a row, for the same reason `trendSpanNote`
- * is: it is a fact about the list's encoding, not about any place. The ranges come from
- * `distanceBandLabel`, which derives them from `DISTANCE_BANDS`, so the legend cannot drift from
- * the classifier that colours the rows.
- *
- * Every swatch carries its range as text. The colour is the scanning aid and the words are the
- * meaning — `docs/conventions.md` → Accessibility, the same rule the 업종 badge follows.
- */
-export function renderDistanceLegend(): HTMLElement {
-  const legend = document.createElement('div');
-  legend.className = 'top-places-distance-legend';
-
-  const caption = document.createElement('span');
-  caption.className = 'top-places-distance-legend-caption';
-  caption.textContent = DISTANCE_LEGEND_CAPTION;
-  // The id is per render, not a constant: the container is re-rendered on every period switch and
-  // every 업종 filter change, and a duplicated id would leave `aria-labelledby` resolving to
-  // whichever copy the browser found first.
-  caption.id = `top-places-distance-legend-caption-${++legendInstance}`;
-  legend.append(caption);
-
-  // A real `<ul>`, not four spans in a row. The ranges are separated on screen by the container's
-  // `gap`, which is not text: read as one run, the legend announced as `거리 색~2km2~5km5~15km15km+`
-  // and the four bands ran together into one unparseable token. List semantics are what put a
-  // boundary between them without printing a separator the sighted reader does not need.
-  const items = document.createElement('ul');
-  items.className = 'top-places-distance-legend-items';
-  // Without this the list announces as a bare `list, 4 items` and the caption is merely text that
-  // happens to precede it — adjacency again, which is what the `<ul>` was introduced to stop
-  // relying on.
-  items.setAttribute('aria-labelledby', caption.id);
-
-  for (const { band } of DISTANCE_BANDS) {
-    const item = document.createElement('li');
-    item.className = 'top-places-distance-legend-item';
-    item.dataset['band'] = band;
-    item.textContent = distanceBandLabel(band);
-    // `listitem` permits name-from-author, so the compact printed form can stay compact while the
-    // spoken one says the boundaries in words — `~` is a glyph a screen reader may drop entirely.
-    item.setAttribute('aria-label', distanceBandSpokenLabel(band));
-    items.append(item);
-  }
-
-  legend.append(items);
-  return legend;
 }
 
 /**
@@ -358,9 +295,6 @@ export function renderTopPlaces(
   note.className = 'top-places-trend-note';
   note.textContent = trendSpanNote(result.chartedSpan);
   section.append(note);
-
-  // After the same return, and for the same reason: an empty list has no badge to explain.
-  section.append(renderDistanceLegend());
 
   const total = result.entries.length;
   const list = document.createElement('ol');

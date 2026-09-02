@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import STYLESHEET from '../styles.css?raw';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { monthKey } from '../data/iso-date';
 import type { PlacesDataset } from '../data/types';
@@ -7,16 +8,13 @@ import { computeTopPlaces, type TopPlacesResult } from '../stats/top-places';
 import { PERIOD_LABELS } from './period-labels';
 import {
   campusDistanceLabel,
-  distanceBandLabel,
-  distanceBandSpokenLabel,
   histogramSpanLabel,
   monthLabel,
   shortAddress,
 } from './place-labels';
-import { DISTANCE_BANDS, distanceBand, distanceFromCampusKm } from '../stats/distance';
+import { distanceBand, distanceFromCampusKm } from '../stats/distance';
 import {
   allRenderedLabel,
-  DISTANCE_LEGEND_CAPTION,
   EMPTY_MESSAGE,
   LIST_PAGE_SIZE,
   moreLabel,
@@ -90,63 +88,6 @@ describe('renderTopPlaces', () => {
       // The figure is untouched by the banding: colour is the scanning aid, the text is the fact.
       expect(badge.textContent).toBe(campusDistanceLabel(km));
     });
-  });
-
-  it('explains the four fills with a legend that names each range in words', () => {
-    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
-    const legend = container.querySelector('.top-places-distance-legend');
-    expect(legend?.textContent).toContain(DISTANCE_LEGEND_CAPTION);
-
-    // Same bands, same order, same ranges as the classifier that colours the rows. A legend that
-    // drifted from it would be believed anyway, which is what makes the drift expensive.
-    const items = [...container.querySelectorAll<HTMLElement>('.top-places-distance-legend-item')];
-    expect(items.map((item) => item.dataset['band'])).toEqual(
-      DISTANCE_BANDS.map((entry) => entry.band),
-    );
-    expect(items.map((item) => item.textContent)).toEqual(
-      DISTANCE_BANDS.map((entry) => distanceBandLabel(entry.band)),
-    );
-  });
-
-  it('keeps the four ranges apart for a reader who cannot see the gaps between them', () => {
-    const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
-    const items = [...container.querySelectorAll<HTMLElement>('.top-places-distance-legend-item')];
-
-    // The container's `gap` is not text: as four sibling spans the legend announced as one run,
-    // `거리 색~2km2~5km5~15km15km+`. List semantics separate them, and the accessible name says
-    // the boundaries in words because `~` is a glyph a screen reader may drop.
-    expect(items.map((item) => item.tagName)).toEqual(['LI', 'LI', 'LI', 'LI']);
-    expect(container.querySelector('ul.top-places-distance-legend-items')).not.toBeNull();
-    expect(items.map((item) => item.getAttribute('aria-label'))).toEqual(
-      DISTANCE_BANDS.map((entry) => distanceBandSpokenLabel(entry.band)),
-    );
-  });
-
-  it('names the legend list after its own caption, and never after another list\'s', () => {
-    const first = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
-    const second = render(computeTopPlaces(SAMPLE_DATASET, '3m'));
-
-    const nameOf = (container: HTMLElement): string | null | undefined => {
-      const list = container.querySelector('ul.top-places-distance-legend-items');
-      const id = list?.getAttribute('aria-labelledby');
-      return id === null || id === undefined ? null : container.querySelector(`#${id}`)?.textContent;
-    };
-
-    // Resolved inside each container: adjacency is what the <ul> was introduced to stop relying
-    // on, so the caption has to be the list's programmatic name, not merely the text above it.
-    expect(nameOf(first)).toBe(DISTANCE_LEGEND_CAPTION);
-    expect(nameOf(second)).toBe(DISTANCE_LEGEND_CAPTION);
-
-    // And the two ids differ: the container is re-rendered on every period switch and every 업종
-    // filter change, and a constant id would leave both lists pointing at the same caption.
-    const idOf = (container: HTMLElement): string | null | undefined =>
-      container.querySelector('ul.top-places-distance-legend-items')?.getAttribute('aria-labelledby');
-    expect(idOf(first)).not.toBe(idOf(second));
-  });
-
-  it('draws no legend for a list with no rows to colour', () => {
-    const container = render(computeTopPlaces(EMPTY_DATASET, '1y'));
-    expect(container.querySelector('.top-places-distance-legend')).toBeNull();
   });
 
   it('states where each place is and how far the campus is from it', () => {
@@ -224,8 +165,7 @@ describe('renderTopPlaces', () => {
     };
 
     const container = render(computeTopPlaces(dataset, '1m', placeCount));
-    // Scoped to the ranked list: the distance legend above it is a list too, so a bare 'li'
-    // selector counts its four ranges as rows.
+    // Scoped to the ranked list: a bare 'li' selector would count any other list on the page.
     const rowsAfter = (): number => container.querySelectorAll('ol.top-places-list > li').length;
     const button = (): HTMLButtonElement | null =>
       container.querySelector<HTMLButtonElement>('.top-places-more-button');
@@ -682,5 +622,39 @@ describe('renderSparkline', () => {
       // beside it claims.
       expect(row.querySelectorAll('.top-place-trend-bar')).toHaveLength(HISTOGRAM_MONTHS);
     }
+  });
+});
+
+describe('rank movement colours', () => {
+  const CSS = STYLESHEET;
+
+  // Sliced rather than matched with a regular expression: the selector is dense in characters a
+  // pattern would have to escape, and one missed escape reads as a passing test over ''.
+  const declaration = (direction: string): string => {
+    const marker = `.top-place-delta[data-direction='${direction}'] {`;
+    const start = CSS.indexOf(marker);
+    if (start < 0) return '';
+    return CSS.slice(start + marker.length, CSS.indexOf('}', start));
+  };
+
+  it('colours all three directions, so none of them falls back to an unstated default', () => {
+    // A stylesheet that failed to load would make every `not.toContain` below pass on ''.
+    expect(CSS).toContain('.top-place-delta {');
+
+    expect(declaration('up')).toContain('var(--rausch-strong)');
+    expect(declaration('down')).toContain('var(--dist-mid-bg)');
+    expect(declaration('same')).toContain('var(--muted)');
+  });
+
+  it('never draws a decline in the system error colour', () => {
+    // The banned-phrase test cannot see this one: a judgement about a business rendered as a hue
+    // is not a string. `--error` on `▼` would say the place did something wrong by being visited
+    // less, which `docs/conventions.md` → Framing Vocabulary forbids in words.
+    // Asserted before the two negatives: `declaration` returns '' for a selector it cannot find,
+    // and '' contains neither token. Without this line the guard passes on a renamed selector.
+    expect(declaration('down')).not.toBe('');
+
+    expect(declaration('down')).not.toContain('--error');
+    expect(declaration('down')).not.toContain('--rausch');
   });
 });

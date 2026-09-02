@@ -11,6 +11,11 @@ export default defineConfig({
   publicDir: 'data',
   test: {
     environment: 'jsdom',
+    // Load-bearing for two guards, not a rendering nicety: Vitest stubs CSS modules to an empty
+    // string by default, which silently blinded the framing scan's `/src/styles.css` entry and
+    // would do the same to the rank-colour assertions in `src/ui/top-places.test.ts`. Both read
+    // the stylesheet as text, and both pass vacuously over ''.
+    css: true,
     include: ['src/**/*.test.ts'],
   },
 });

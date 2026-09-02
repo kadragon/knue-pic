@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Referenced from `src/`, not from `publicDir`: `vite.config.ts` points `publicDir` at `data/`,
+      which holds the generated dataset and nothing else. Vite rewrites this href at build time and
+      emits the file into `dist/assets/`, so the icon ships without a second static directory.
+    -->
+    <link rel="icon" type="image/x-icon" href="./src/favicon.ico" />
     <title>KNUE PICK — 교직원이 자주 이용한 곳</title>
     <meta
       name="description"
