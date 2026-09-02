@@ -23,10 +23,11 @@
  * 6. The 거리 palette is a lightness ramp in ONE hue — near is the palest, far the darkest — and
  *    deliberately not a green-to-red scale. A hue change would read as good-to-bad, and "가까운
  *    곳이 더 나은 곳" is exactly the judgement `docs/conventions.md` forbids the product from
- *    making; the same reason `.top-place-delta` gave up its green/red. Measured foreground on
- *    background: near 7.68:1, close 6.44:1, mid 5.46:1, far 12.48:1 — all clear of WCAG 1.4.3's
- *    4.5:1. Every badge still prints its own kilometre figure, and the legend prints each band's
- *    range, so the colour is a scanning aid over text rather than a channel of its own.
+ *    making; the same reason `.top-place-delta` is drawn in brand red and band blue rather than in
+ *    green and the system's error colour. Measured foreground on background: near 7.68:1, close
+ *    6.44:1, mid 5.46:1, far 12.48:1 — all clear of WCAG 1.4.3's 4.5:1. Every badge prints its own
+ *    kilometre figure in full, so the colour is a scanning aid over text rather than a channel of
+ *    its own, and no legend is needed to read one.
  */
 :root {
   /* Decorative brand voltage: no text is ever placed on it. */
@@ -763,75 +764,36 @@ div.top-place-body {
 }
 
 /*
- * The legend for those four fills: caption, then one swatch per band carrying its own range.
+ * The glyph carries the direction and `role="img"` carries the words; the colour is a third cue on
+ * top of both, never the only one — a reader who cannot separate the two hues still has `▲`/`▼`
+ * and the spoken label.
  *
- * The swatches reuse the badge's own declarations rather than approximating them — a legend drawn
- * in a near-miss of the colour it explains is worse than none. `--space-2` between items, so the
- * row wraps as a whole at 360px instead of breaking a range off its swatch.
- */
-.top-places-distance-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-2) 0 0;
-}
-
-/* A real list, so a screen reader reads the four ranges apart; the markers and the indent it
-   comes with are what has to be undone here, not the semantics. */
-.top-places-distance-legend-items {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.top-places-distance-legend-caption {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.top-places-distance-legend-item {
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background: var(--dist-near-bg);
-  color: var(--dist-near-fg);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.5;
-  white-space: nowrap;
-}
-
-.top-places-distance-legend-item[data-band='close'] {
-  background: var(--dist-close-bg);
-  color: var(--dist-close-fg);
-}
-
-.top-places-distance-legend-item[data-band='mid'] {
-  background: var(--dist-mid-bg);
-  color: var(--dist-mid-fg);
-}
-
-.top-places-distance-legend-item[data-band='far'] {
-  background: var(--dist-far-bg);
-  color: var(--dist-far-fg);
-}
-
-/*
- * The glyph carries the direction and `role="img"` carries the words; colour adds nothing here that
- * is not already said. It used to be green/red, which put a decline in the system's *error* colour
- * — a judgement about the business, which is the framing `docs/conventions.md` forbids, and which
- * no banned-phrase test can catch because it is not a string.
+ * Never green/red: that pair puts a decline in the system's *error* colour, which reads as a
+ * judgement about the business — the framing `docs/conventions.md` forbids, and the one no
+ * banned-phrase test can catch because it is not a string. The pair used instead is the brand red
+ * and the 거리 ramp's mid blue, two colours the palette already carries for reasons that have
+ * nothing to do with good and bad. All three measured on `--canvas`: #e00b41 4.89:1, #3a6ba8
+ * 5.46:1, `--muted` 5.41:1.
  */
 .top-place-delta {
   flex: 0 0 auto;
   color: var(--muted);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+}
+
+.top-place-delta[data-direction='up'] {
+  color: var(--rausch-strong);
+}
+
+.top-place-delta[data-direction='down'] {
+  color: var(--dist-mid-bg);
+}
+
+/* Stated, not inherited: the neutral is the *same* movement fact as the other two, so it is
+   declared beside them rather than left to the base rule to imply. */
+.top-place-delta[data-direction='same'] {
+  color: var(--muted);
 }
 
 .top-place-delta {

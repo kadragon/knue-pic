@@ -79,9 +79,17 @@ ambiguity `eslint.config.js` derives its typed-file list to avoid.
   `campusDistanceLabel` in full. It is a *lightness ramp in one hue*, palest for the nearest band,
   never a green-to-red scale: a hue change would read as good-to-bad, and "가까운 곳이 더 나은 곳"
   is a judgement the Framing Vocabulary above forbids the product from making. The band is
-  coarser than the figure beside it, so nothing may state it alone; a legend above the list
-  (`renderDistanceLegend`) names every band's range in words, with each range its own list item so
-  a screen reader reads them apart rather than as one run.
+  coarser than the figure beside it, so nothing may state it alone — the badge it colours always
+  prints `campusDistanceLabel` in full, which is what makes the fill a scanning aid rather than a
+  channel of its own. There is deliberately no legend: the ranges it named were already on every
+  row as a number, and four range chips above the list cost more width at 360px than they bought.
+- Rank movement is coloured, and the colours are the brand red (`--rausch-strong`) for a rise, the
+  거리 ramp's mid blue (`--dist-mid-bg`) for a fall, and `--muted` for no change — never green and
+  the system's error colour. A decline drawn in `--error` reads as a fault of the business, the
+  same judgement the paragraph above rules out, and no banned-phrase test can catch it because it
+  is not a string. The glyph (`▲`/`▼`/`–`) and the spoken `rankDeltaLabel` both stay, so the hue
+  is a third cue rather than the carrier: see `.top-place-delta` in `src/styles.css` for the
+  measured ratios.
 - Layout must hold at 360px width; source order is search → the ranked list.
 - One ranked list at a time, over the window the reader selected. The four windows — 최근 1개월 /
   3개월 / 6개월 / 1년 — are peers in the selector (`.period-tabs`, on screen at every width): same
