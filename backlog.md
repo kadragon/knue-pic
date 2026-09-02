@@ -2,19 +2,6 @@
 
 ## Review Backlog
 
-### PR #46 — the `optical:` half of the spacing rule is unenforced (2026-09-02)
-
-- [ ] [debt] `src/styles.css` now states two rules: every on-scale spacing value goes through a
-  `--space-*` token, and every off-scale one carries an `optical:` comment saying what sizes it.
-  Only the first is mechanically enforced — `unconvertedSpacing()` inspects on-scale values alone,
-  so an off-scale px with no comment passes silently. The rule decayed inside the very commit that
-  introduced it (`.place-detail-name` shipped two unmarked raw px and three reviewers caught it),
-  which is the evidence that prose alone will not hold it. Either add a guard that fails an
-  off-scale px in a spacing declaration with no `optical:` comment on or above its line, or state
-  the rule in `docs/conventions.md` and accept it as a convention — do not leave it asserted by an
-  in-file comment nothing checks (source: contract QA + Codex + code-review on PR #46)
-  — `src/ui/stylesheet-claims.test.ts`, `docs/conventions.md`
-
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*

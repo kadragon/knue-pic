@@ -422,3 +422,101 @@ describe('spacing scale adoption', () => {
     expect(unconvertedSpacing()).toEqual([]);
   });
 });
+
+/**
+ * The stylesheet as lines, with comment bodies blanked but every newline kept, so an index into
+ * this array is the same line in the file.
+ *
+ * `withoutComments` cannot serve here: it collapses a block to a single space and shifts every
+ * line after it, which is harmless for the whole-sheet scans above and fatal for this one, whose
+ * entire question is which comment sits above which declaration.
+ */
+const MASKED_LINES = source(STYLESHEET_PATH)
+  .replaceAll(/\/\*[\s\S]*?\*\//g, (block) => block.replaceAll(/[^\n]/g, ' '))
+  .split('\n');
+
+/**
+ * The last line of every comment block, mapped to whether that block carries an `optical:` marker.
+ *
+ * Keyed on the *last* line because that is the one a declaration sits under. Only the closing line
+ * is registered; the block's earlier lines are blank in `MASKED_LINES` and the walk below skips
+ * them, so a three-line comment annotates exactly as a one-line comment does.
+ */
+const COMMENT_END_LINES = new Map<number, boolean>(
+  [...source(STYLESHEET_PATH).matchAll(/\/\*[\s\S]*?\*\//g)].map((match) => {
+    const before = source(STYLESHEET_PATH).slice(0, match.index ?? 0);
+    const startLine = (before.match(/\n/g) ?? []).length;
+    const spans = (match[0].match(/\n/g) ?? []).length;
+    return [startLine + spans, match[0].includes('optical:')];
+  }),
+);
+
+/**
+ * Whether the declaration on `line` is annotated: walk upward past sibling declarations to the
+ * first comment block, and report whether that block is an `optical:` one.
+ *
+ * Past sibling declarations, so `padding: 6px 0` and the `scroll-padding: 6px 0` under it share
+ * one comment rather than needing the sentence written twice. A `{` or `}` stops the walk — a
+ * comment sitting above the *selector* describes the rule, not this value, and letting the walk
+ * cross a brace would let any rule borrow the annotation of the one above it.
+ */
+const isAnnotated = (line: number): boolean => {
+  for (let candidate = line - 1; candidate >= 0; candidate -= 1) {
+    const carriesOptical = COMMENT_END_LINES.get(candidate);
+    if (carriesOptical !== undefined) return carriesOptical;
+
+    const text = (MASKED_LINES[candidate] ?? '').trim();
+    if (text === '') continue;
+    if (text.includes('{') || text.includes('}')) return false;
+  }
+  return false;
+};
+
+/** `property: value` on a single line — the shape every spacing declaration in this sheet has. */
+const DECLARATION = /^\s*(--[a-z-]+|[a-z-]+)\s*:\s*([^;]*)/;
+
+/**
+ * Every spacing declaration holding a raw px, split by whether it is annotated.
+ *
+ * Any raw px, not only an off-scale one: an on-scale value is already a failure of the guard above,
+ * and making this one care about the scale would mean a value could be silently un-annotated for
+ * as long as it stayed on a step. The two guards then answer one question each — *is it a token*,
+ * and *does the reader learn why it is not*.
+ */
+const rawSpacingByAnnotation = (): { annotated: string[]; bare: string[] } => {
+  const annotated: string[] = [];
+  const bare: string[] = [];
+  let selector = '?';
+
+  for (const [line, text] of MASKED_LINES.entries()) {
+    if (text.includes('{')) selector = collapse(text.replace('{', '')) || selector;
+
+    const declaration = DECLARATION.exec(text);
+    if (declaration === null) continue;
+    const name = (declaration[1] ?? '').toLowerCase();
+    const value = collapse(declaration[2] ?? '');
+    if (!SPACING_PROPERTY.test(name) || (value.match(PX_VALUE) ?? []).length === 0) continue;
+
+    (isAnnotated(line) ? annotated : bare).push(`${selector} { ${name}: ${value} }`);
+  }
+  return { annotated, bare };
+};
+
+describe('optical spacing annotations', () => {
+  it('sees the stylesheet with its comments and line numbers intact', () => {
+    // The mask must preserve the line count exactly, or every `isAnnotated` answer is about some
+    // other line — and a stubbed-empty CSS module would make the guard below pass on nothing.
+    expect(MASKED_LINES.length).toBe(source(STYLESHEET_PATH).split('\n').length);
+    expect(MASKED_LINES.length).toBeGreaterThan(1000);
+    expect([...COMMENT_END_LINES.values()].filter(Boolean).length).toBeGreaterThan(5);
+    expect(rawSpacingByAnnotation().annotated.length).toBeGreaterThan(10);
+  });
+
+  it('explains every raw px left in a spacing declaration', () => {
+    // The other half of the rule the `--space-*` scale states. A raw px that survives conversion is
+    // off the scale on purpose, and the only place that intent can live is a comment beside it —
+    // without this the sentence in `:root` claiming so is an assertion nothing checks, and it was
+    // already false once, in the commit that introduced it.
+    expect(rawSpacingByAnnotation().bare).toEqual([]);
+  });
+});
