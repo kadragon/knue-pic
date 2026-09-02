@@ -2,6 +2,16 @@
 
 ## Review Backlog
 
+### The nowrap guard reads declarations, not effective values (2026-09-02, from PR #43 review)
+
+- [ ] [constraint] `src/ui/stylesheet-claims.test.ts` asserts that `white-space: nowrap` is
+  *declared* on each of the three rule sets. A later more-specific rule, or a responsive block,
+  setting `white-space: normal` would leave the guard green while the token wraps at that
+  viewport — the same "asserted, not enforced" gap the guard was built to close, one cascade level
+  up. Closing it means either resolving the effective value or rejecting a conflicting override,
+  and neither is a one-line change; scope it before building. Declined as out of scope on PR #43
+  (source: Codex review, P3) — `src/ui/stylesheet-claims.test.ts`, `src/styles.css`
+
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*

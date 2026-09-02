@@ -76,30 +76,68 @@ const declarations = (selector: string): string =>
     .map(([, block]) => block)
     .join(' ');
 
+/** Whether one declaration fills an element, letters it, or redefines a token that does. */
+function paintedBy(property: string): 'fill' | 'text' | null {
+  if (property === 'background' || property === 'background-color') return 'fill';
+  if (property === 'color') return 'text';
+  // A palette can also be stamped by redefining its own tokens — `[data-x] { --thing-bg: … }` —
+  // and the literal properties then sit on a shared base rule the attribute never appears in.
+  if (property.startsWith('--') && property.endsWith('-bg')) return 'fill';
+  if (property.startsWith('--') && property.endsWith('-fg')) return 'text';
+  return null;
+}
+
 /**
- * The `data-*` attributes whose rules set BOTH a background and a foreground — the mechanical
+ * The `data-*` attributes that end up carrying BOTH a fill and a foreground — the mechanical
  * reading of "a palette that carries meaning": the element is filled and lettered off one stamped
  * attribute, so the colour says something the view did not choose.
  *
- * `data-direction` sets `color` alone and is deliberately excluded. `docs/conventions.md` counts
- * rank movement as a third cue on top of a glyph and a spoken label, not as a palette, and a
- * predicate that swept it in would put the registered claims permanently out of date.
+ * Accumulated per *element*, not per rule. The 거리 ramp is already written the way a per-rule test
+ * cannot see — the base rule fills and letters, and the `[data-band]` rules override the fill only
+ * — so the two halves of a palette are collected across every rule reaching the same element and
+ * then tested together. The element key is the selector with its attribute brackets stripped, one
+ * comma-separated part at a time, so `.top-place-distance[data-band='close']` lands on the same
+ * key as the `.top-place-distance` rule that gives it its text colour.
+ *
+ * `data-direction` stays out on the merits, not by exemption: every rule reaching
+ * `.top-place-delta` sets `color` and none sets a fill. `docs/conventions.md` counts rank movement
+ * as a third cue on top of a glyph and a spoken label, not as a palette, and a predicate that
+ * swept it in would put the registered claims permanently out of date.
  */
 function meaningCarryingPalettes(): string[] {
-  const found = new Set<string>();
+  // `[=\]]` so a presence selector (`[data-flagged]`) counts too, and digits are in the name
+  // class: `[data-tier2=…]` is as much an attribute as `[data-tier]`.
+  const ATTRIBUTE = /\[data-([a-z0-9-]+)\s*[=\]]/g;
+  const elements = (selector: string): string[] =>
+    selector
+      .split(',')
+      .map((part) => collapse(part.replaceAll(/\[[^\]]*\]/g, '')))
+      .filter(Boolean);
 
+  const rolesByElement = new Map<string, Set<'fill' | 'text'>>();
   for (const [selector, block] of RULES) {
-    const attributes = [...selector.matchAll(/\[data-([a-z-]+)\s*=/g)].map(([, name]) => name as string);
+    const painted = block
+      .split(';')
+      .map((declaration) => paintedBy(declaration.split(':')[0]?.trim() ?? ''))
+      .filter((role): role is 'fill' | 'text' => role !== null);
+    if (painted.length === 0) continue;
+
+    for (const element of elements(selector)) {
+      const roles = rolesByElement.get(element) ?? new Set<'fill' | 'text'>();
+      for (const role of painted) roles.add(role);
+      rolesByElement.set(element, roles);
+    }
+  }
+
+  const found = new Set<string>();
+  for (const [selector] of RULES) {
+    const attributes = [...selector.matchAll(ATTRIBUTE)].map(([, name]) => name as string);
     if (attributes.length === 0) continue;
 
-    const properties = new Set(
-      block
-        .split(';')
-        .map((declaration) => declaration.split(':')[0]?.trim() ?? '')
-        .filter(Boolean),
-    );
-    const paints =
-      (properties.has('background') || properties.has('background-color')) && properties.has('color');
+    const paints = elements(selector).some((element) => {
+      const roles = rolesByElement.get(element);
+      return roles?.has('fill') === true && roles.has('text');
+    });
     if (!paints) continue;
 
     for (const attribute of attributes) found.add(attribute);
@@ -145,6 +183,17 @@ const CLAIMS: { path: string; sentence: string; expected: number; count: () => n
   },
 ];
 
+/**
+ * `거리` above its own `1.2km`, a category split across two lines, a `▲` orphaned from its `3`:
+ * each is a figure a reader would have to reassemble. jsdom applies no stylesheet, so a rendered
+ * assertion cannot see any of this — the rule text is the only evidence there is.
+ */
+const WRAPPING_TOKENS = [
+  '.place-kind-badge',
+  '.top-place-distance, .place-detail-distance',
+  '.top-place-delta',
+];
+
 describe('superlative claims', () => {
   it('reads all three files, so no claim is guarded by an empty string', () => {
     // Every assertion below is an equality or a `toContain` over text read at transform time. A
@@ -157,6 +206,12 @@ describe('superlative claims', () => {
     expect(CSS).toContain(':root {');
     expect(prose('/docs/conventions.md')).toContain('## Accessibility');
     expect(prose('/src/stats/distance.ts')).toContain('DISTANCE_BANDS');
+
+    // Both guards below are `it.each` over these arrays, and vitest reports an emptied one as a
+    // suite with fewer green cases rather than as a failure — the guard would go quiet exactly
+    // the way the claims it watches went stale.
+    expect(CLAIMS).toHaveLength(3);
+    expect(WRAPPING_TOKENS).toHaveLength(3);
   });
 
   it('finds exactly the 업종 and 거리 palettes, so the count the claims rest on is real', () => {
@@ -172,17 +227,6 @@ describe('superlative claims', () => {
 });
 
 describe('white-space: nowrap', () => {
-  /**
-   * `거리` above its own `1.2km`, a category split across two lines, a `▲` orphaned from its `3`:
-   * each is a figure a reader would have to reassemble. jsdom applies no stylesheet, so a rendered
-   * assertion cannot see any of this — the rule text is the only evidence there is.
-   */
-  const WRAPPING_TOKENS = [
-    '.place-kind-badge',
-    '.top-place-distance, .place-detail-distance',
-    '.top-place-delta',
-  ];
-
   it.each(WRAPPING_TOKENS)('%s never breaks mid-token', (selector) => {
     // First, because `declarations` returns '' for a selector it cannot find and '' contains
     // nothing: without this line a renamed selector passes the assertion under it.
