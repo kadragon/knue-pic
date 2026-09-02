@@ -2,18 +2,25 @@
 
 ## Review Backlog
 
-### PR #46 — the `optical:` half of the spacing rule is unenforced (2026-09-02)
+### PR #47 — the stylesheet guards share a brace-regex parser with two blind spots (2026-09-02)
 
-- [ ] [debt] `src/styles.css` now states two rules: every on-scale spacing value goes through a
-  `--space-*` token, and every off-scale one carries an `optical:` comment saying what sizes it.
-  Only the first is mechanically enforced — `unconvertedSpacing()` inspects on-scale values alone,
-  so an off-scale px with no comment passes silently. The rule decayed inside the very commit that
-  introduced it (`.place-detail-name` shipped two unmarked raw px and three reviewers caught it),
-  which is the evidence that prose alone will not hold it. Either add a guard that fails an
-  off-scale px in a spacing declaration with no `optical:` comment on or above its line, or state
-  the rule in `docs/conventions.md` and accept it as a convention — do not leave it asserted by an
-  in-file comment nothing checks (source: contract QA + Codex + code-review on PR #46)
-  — `src/ui/stylesheet-claims.test.ts`, `docs/conventions.md`
+- [ ] [debt] `RULES` in `src/ui/stylesheet-claims.test.ts` matches innermost brace pairs, which is
+  not a CSS parser. Two shapes make declarations invisible to **both** stylesheet guards — the
+  on-scale `unconvertedSpacing` one merged in PR #46 and the `optical:` one from PR #47 — so a raw
+  px in either shape ships unchecked, on scale or off. (a) A rule containing a nested block —
+  native nesting `&:hover { … }` or a nested `@media` — has the declarations around that block
+  swallowed into the inner selector and emitted by nothing; verified with
+  `.probe { color: red; &:hover { color: blue; } margin: 8px; }`, which the merged on-scale guard
+  passes green. (b) A `/*` inside a quoted value (`content: "/*";`) opens a comment the masker
+  cannot distinguish from a real one, blanking through the next `*/` and eating the `;` terminators
+  after it; the sheet already carries a quoted `content` value. Neither shape is in the sheet today
+  and both predate PR #47 — `git log -S` dates the pattern to PR #43 — which is why they were
+  declared in the `cssDeclarations` docblock rather than fixed there. A third member of the family
+  fails *closed* and so is not a hole, but belongs to the same fix: a `{` or `}` inside a quoted
+  value (`content: "{"`) breaks the match so the offender is reported under a corrupted selector,
+  sending the reader after a rule that does not exist. Closing them means replacing the brace regex with a real parse for both guards
+  at once (source: contract QA pass 4 on PR #47)
+  — `src/ui/stylesheet-claims.test.ts`
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 

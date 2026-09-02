@@ -422,3 +422,181 @@ describe('spacing scale adoption', () => {
     expect(unconvertedSpacing()).toEqual([]);
   });
 });
+/** The stylesheet as written, comments and all — the annotation guard below needs both. */
+const STYLESHEET = source(STYLESHEET_PATH);
+
+/**
+ * The same text with comment bodies blanked — every other character, and every offset, preserved —
+ * so an index into this string is the same index in the file.
+ *
+ * `withoutComments` cannot serve here: it collapses a block to a single space, which is harmless
+ * for the whole-sheet scans above and fatal for this one, whose whole question is which comment
+ * sits where relative to which declaration. Blanking rather than deleting also keeps a `{` written
+ * inside a comment from being read as the start of a rule.
+ */
+const MASKED = STYLESHEET.replaceAll(/\/\*[\s\S]*?\*\//g, (block) =>
+  block.replaceAll(/[^\n]/g, ' '),
+);
+
+/**
+ * The marker has to *open* the comment or one of its lines.
+ *
+ * A bare `includes('optical:')` reads any prose that mentions the convention as an annotation — the
+ * `--space-*` docblock in `:root` says the words "carries an `optical:` comment", and counting it
+ * would let the rule's own statement license the next violation of it. Opening a line is the
+ * weakest test that separates "this comment is the annotation" from "this comment is about
+ * annotations", and it still admits one written under a sentence that explains something else.
+ */
+const OPTICAL_MARKER = /(?:^\/\*|\n)[ \t*]*optical:/;
+
+/** Where each comment block sits, and whether it is an annotation. */
+const COMMENTS: { start: number; end: number; optical: boolean }[] = [
+  ...STYLESHEET.matchAll(/\/\*[\s\S]*?\*\//g),
+].map((block) => ({
+  start: block.index ?? 0,
+  end: (block.index ?? 0) + block[0].length,
+  optical: OPTICAL_MARKER.test(block[0]),
+}));
+
+/** A declaration located in the file, not merely on a line. */
+type Declaration = {
+  selector: string;
+  text: string;
+  start: number;
+  /** Where the rule's body opens. A comment before it belongs to the selector, not to this value. */
+  bodyStart: number;
+  rawSpacing: boolean;
+};
+
+/**
+ * Every declaration in the sheet, in source order, each carrying its own offsets.
+ *
+ * Split on `;` within a rule body rather than read line by line. A line-shaped scan misses three
+ * whole CSS shapes at once — a rule set written on one line, a second declaration after a `;`, and
+ * a value wrapped onto the next line — and each is a way to put an unexplained raw px in the sheet
+ * with the suite green. Nothing in this repo normalises CSS layout (`package.json` has eslint and
+ * no stylelint), so the shapes are reachable by an ordinary edit rather than only in theory.
+ *
+ * **What this cannot see**, stated rather than left to be discovered. The brace pattern below is
+ * the same literal `RULES` is built from, and it matches innermost brace pairs — a copy rather
+ * than the binding, because this scan needs offsets `RULES` does not carry. So a rule that
+ * *contains* another block — native nesting (`&:hover { … }`) or a
+ * nested `@media` — has the declarations around that block swallowed into the inner selector and
+ * emitted by nothing. A raw px there is invisible to this guard *and* to `unconvertedSpacing`
+ * above, on scale or off. The sheet uses neither shape today; the blind spot predates both guards
+ * and closing it means replacing the brace regex with a real parser for both. The same goes for a
+ * `/*` written inside a quoted value, which opens a comment the masker cannot tell from a real
+ * one. Both are recorded in `backlog.md`. This is the boundary of what the guard claims, not an
+ * oversight it is unaware of.
+ */
+const cssDeclarations = (): Declaration[] => {
+  const found: Declaration[] = [];
+  for (const rule of MASKED.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+    const selector = collapse(rule[1] ?? '');
+    const body = rule[2] ?? '';
+    const bodyStart = (rule.index ?? 0) + rule[0].indexOf('{') + 1;
+    let offset = bodyStart;
+
+    for (const piece of body.split(';')) {
+      const [property, ...rest] = piece.split(':');
+      const name = collapse(property ?? '').toLowerCase();
+      const value = collapse(rest.join(':'));
+      const start = offset + (piece.length - piece.trimStart().length);
+      offset += piece.length + 1;
+
+      if (name === '' || rest.length === 0) continue;
+      found.push({
+        selector,
+        text: `${name}: ${value}`,
+        start,
+        bodyStart,
+        rawSpacing: SPACING_PROPERTY.test(name) && (value.match(PX_VALUE) ?? []).length > 0,
+      });
+    }
+  }
+  return found;
+};
+
+/**
+ * Every raw-px spacing declaration, split by whether it is annotated.
+ *
+ * One rule, and it is deliberately the strictest one available: a declaration is annotated when
+ * the comment **immediately** before it — inside the same rule body, with no other declaration in
+ * between — opens with the marker. Nothing else counts.
+ *
+ * Three looser readings were tried first and each was broken by adversarial review, always the
+ * same way: they asked where a comment *sits* rather than what it *covers*, and proximity is
+ * forgeable. Letting a comment on the declaration's own line count meant a new value could steal
+ * a real annotation written for the declaration below it by joining its line. Letting one comment
+ * cover a run of raw-px declarations meant a new value inserted directly under an annotated one —
+ * the most natural place to add spacing — was covered by a sentence about a different value. Both
+ * turned all fifteen of the sheet's existing annotations into reusable licences.
+ *
+ * The cost is that a shared comment no longer covers a pair: `padding: 6px 0` and the
+ * `scroll-padding: 6px 0` under it each carry their own. That is the right trade — a guard whose
+ * job is to catch the value nobody explained cannot also decide that some values need no
+ * explanation of their own.
+ *
+ * Strict in one direction worth naming: *any* other comment between the annotation and its
+ * declaration breaks the adjacency, so a `TODO` slipped in there turns the rule red. That is the
+ * cost of the rule being decidable, and it is the safe direction to be wrong in.
+ *
+ * What it still cannot catch: a comment that opens with the marker and then explains nothing, or
+ * explains the wrong thing. No test can read a sentence. This checks that an explanation was
+ * written where one was owed, which is the part a machine can own.
+ *
+ * Any raw px, not only an off-scale one: an on-scale value already fails the guard above, and
+ * making this one scale-aware would let a value stay unexplained for as long as it sat on a step.
+ * The two guards answer one question each — *is it a token*, and *does the reader learn why not*.
+ */
+const rawSpacingByAnnotation = (): { annotated: string[]; bare: string[] } => {
+  const all = cssDeclarations();
+  const annotated: string[] = [];
+  const bare: string[] = [];
+
+  for (const [index, declaration] of all.entries()) {
+    if (!declaration.rawSpacing) continue;
+
+    const preceding = COMMENTS.filter(
+      ({ start, end }) => start >= declaration.bodyStart && end <= declaration.start,
+    ).at(-1);
+    const covered =
+      preceding?.optical === true &&
+      // Nothing declared between the comment and this line — otherwise the comment is the previous
+      // declaration's, and this one is riding an explanation written about something else.
+      all.slice(0, index).every(({ start }) => start <= preceding.end);
+
+    (covered ? annotated : bare).push(`${declaration.selector} { ${declaration.text} }`);
+  }
+  return { annotated, bare };
+};
+
+describe('optical spacing annotations', () => {
+  it('sees the stylesheet with its comments and offsets intact', () => {
+    // Blanking must not move a single offset, or every annotation answer is about some other part
+    // of the file — and a stubbed-empty CSS module would make the guard below pass on nothing.
+    expect(MASKED.length).toBe(STYLESHEET.length);
+    expect(MASKED).toContain(':root {');
+    expect(COMMENTS.filter(({ optical }) => optical).length).toBeGreaterThan(5);
+    expect(rawSpacingByAnnotation().annotated.length).toBeGreaterThan(10);
+  });
+
+  it('does not read a comment about the convention as an annotation', () => {
+    // The `--space-*` docblock states the rule and sits in `:root`, which has declarations under
+    // it. Counted, the statement of the rule would license the next breach of it.
+    const scale =
+      [...STYLESHEET.matchAll(/\/\*[\s\S]*?\*\//g)].find(([block]) =>
+        block.includes('Off-scale values are legal but never silent'),
+      )?.[0] ?? '';
+    expect(scale, 'the scale docblock no longer states the rule').toContain('optical:');
+    expect(OPTICAL_MARKER.test(scale)).toBe(false);
+  });
+
+  it('explains every raw px left in a spacing declaration', () => {
+    // The other half of the rule the `--space-*` scale states. A raw px that survives conversion is
+    // off the scale on purpose, and the only place that intent can live is a comment beside it —
+    // without this the sentence in `:root` claiming so is an assertion nothing checks, and it was
+    // already false once, in the commit that introduced it.
+    expect(rawSpacingByAnnotation().bare).toEqual([]);
+  });
+});
