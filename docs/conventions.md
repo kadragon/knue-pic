@@ -84,6 +84,14 @@ A fixture that carries its own `tsconfig.json` lives **outside `src/`**. Inside,
 would claim its files while the ESLint project service also discovers the nested one, which is the
 ambiguity `eslint.config.js` derives its typed-file list to avoid.
 
+**A skill script's test home is `collector/tests/`.** The collector's stages live under
+`.claude/skills/*/scripts/`, beside the skill that documents them, so no `import` reaches them and
+CI's `python3 -m pytest collector` would cover none of them. `collector/tests/skill_scripts.py`
+loads one by path — `load_skill_script("geocode_candidates")` — which puts the scripts under the
+existing run with no second pytest root and no `ci.yml` change. Write the suite as
+`collector/tests/test_<script>.py` and reach the module that way; do not re-roll the `importlib`
+dance per file.
+
 ## Accessibility & Responsive (PRD §36–§37)
 
 - Importance is never conveyed by colour alone: a rank carries a number badge, a movement glyph
