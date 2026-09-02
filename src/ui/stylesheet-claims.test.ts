@@ -54,13 +54,216 @@ const prose = (path: string): string =>
 
 const CSS = collapse(withoutComments(source(STYLESHEET_PATH)));
 
+/** A comment block, located in the file. */
+type ScannedComment = { start: number; end: number; text: string };
+
+/** A declaration, located in the file, with the selector of the rule that owns it. */
+type ScannedDeclaration = {
+  selector: string;
+  property: string;
+  value: string;
+  /** Offset of the property name, and of the `;` or `}` that closes the declaration. */
+  start: number;
+  end: number;
+  /** The owning rule's braces, so a comment can be tested for being inside them. */
+  bodyStart: number;
+  bodyEnd: number;
+};
+
+type ScannedRule = { selector: string; bodyStart: number; bodyEnd: number };
+
 /**
- * Every rule in the sheet as `[selector, declarations]`, innermost first — the inner pattern skips
- * an `@media` prelude rather than swallowing the rules inside it.
+ * One left-to-right scan of the stylesheet — the single place this suite decides what a comment,
+ * a rule and a declaration are. Every guard below reads its output.
+ *
+ * It replaces a `/([^{}]*)\{([^{}]*)\}/g` match that four guards used to share. That pattern is
+ * not a parser and had three blind spots, each of which let a raw px reach the sheet unseen or be
+ * reported against a rule that does not exist:
+ *
+ * - a rule *containing* another block — native nesting (`&:hover { … }`) or a nested `@media` —
+ *   had the declarations around that block swallowed into the inner selector and emitted by
+ *   nothing;
+ * - a `/*` inside a quoted value opened a comment nothing could tell from a real one, blanking
+ *   through the next close and eating the `;` terminators after it;
+ * - a `{` or `}` inside a quoted value broke the match, so the offender was named under a
+ *   corrupted selector.
+ *
+ * The scan is stateful precisely where the regex could not be: it knows whether it is inside a
+ * comment, inside a `'`/`"` string (backslash escapes honoured), and how deep it is in parens. The
+ * paren depth is what stops `url(data:image/svg+xml;utf8,…)` from splitting a declaration in two,
+ * and the string state is what stops `content: "a;b"` from doing the same.
+ *
+ * A block's `selector` is its own prelude, never a resolved ancestor chain. That is deliberate and
+ * preserves `reachingRules`'s existing reading: a rule nested in an `@media` has always arrived
+ * there as a plain selector, because an override is an override whichever block it sits in.
  */
-const RULES: [string, string][] = [...CSS.matchAll(/([^{}]*)\{([^{}]*)\}/g)].map(
-  ([, selector, block]) => [collapse(selector ?? ''), block ?? ''],
-);
+const scan = (
+  css: string,
+): { comments: ScannedComment[]; rules: ScannedRule[]; declarations: ScannedDeclaration[] } => {
+  const comments: ScannedComment[] = [];
+  const rules: ScannedRule[] = [];
+  const declarations: ScannedDeclaration[] = [];
+  /** The open blocks, innermost last. `end` is filled in when the block closes. */
+  const open: { selector: string; bodyStart: number; rule: number }[] = [];
+
+  let index = 0;
+  /** Where the current selector prelude or declaration began. */
+  let pieceStart = 0;
+  let parens = 0;
+
+  /**
+   * The source between two offsets with any comment inside it removed.
+   *
+   * A comment can sit anywhere — above a selector, between a property and its value, after a
+   * value — and every one of those slices is read as text. Cutting them here rather than blanking
+   * the whole sheet first is what lets the offsets stay true to the file.
+   */
+  const between = (from: number, to: number): string => {
+    let text = '';
+    let at = from;
+    for (const comment of comments) {
+      if (comment.end <= from || comment.start >= to) continue;
+      text += css.slice(at, Math.max(at, comment.start));
+      at = Math.max(at, comment.end);
+    }
+    return text + css.slice(Math.min(at, to), to);
+  };
+
+  /**
+   * The offset of the first character of real content in a range — whitespace and whole comments
+   * skipped. Derived from the source rather than from the comment-stripped slice, because the
+   * annotation guard compares this against comment offsets and a length arrived at by subtraction
+   * would land inside whatever comment preceded the property.
+   */
+  const contentStart = (from: number, to: number): number => {
+    let at = from;
+    while (at < to) {
+      const comment = comments.find((candidate) => candidate.start <= at && at < candidate.end);
+      if (comment !== undefined) {
+        at = comment.end;
+        continue;
+      }
+      if (!/\s/.test(css[at] ?? '')) return at;
+      at += 1;
+    }
+    return from;
+  };
+
+  /** Flush the text since the last boundary as a declaration of the innermost open block. */
+  const flush = (end: number): void => {
+    const frame = open.at(-1);
+    const piece = between(pieceStart, end);
+    const pieceOffset = pieceStart;
+    pieceStart = end + 1;
+    // `@import`/`@charset` end in `;` at top level and are preludes, not declarations. Testing the
+    // first non-space character rather than the whole piece keeps a value containing `@` out of it.
+    if (frame === undefined || piece.trimStart().startsWith('@')) return;
+
+    // The FIRST colon outside parens and strings: `background: url(a:b)` splits once, at `background`.
+    let colon = -1;
+    let depth = 0;
+    let quote = '';
+    for (let at = 0; at < piece.length; at += 1) {
+      const char = piece[at];
+      if (quote !== '') {
+        if (char === '\\') at += 1;
+        else if (char === quote) quote = '';
+      } else if (char === "'" || char === '"') quote = char;
+      else if (char === '(') depth += 1;
+      else if (char === ')') depth -= 1;
+      else if (char === ':' && depth === 0) {
+        colon = at;
+        break;
+      }
+    }
+    if (colon === -1) return;
+
+    const property = collapse(piece.slice(0, colon));
+    if (property === '') return;
+    declarations.push({
+      selector: frame.selector,
+      property,
+      value: collapse(piece.slice(colon + 1)),
+      start: contentStart(pieceOffset, end),
+      end,
+      bodyStart: frame.bodyStart,
+      // Filled in below; a declaration cannot know where its rule ends until the rule closes.
+      bodyEnd: -1,
+    });
+  };
+
+  while (index < css.length) {
+    const char = css[index];
+
+    if (char === '/' && css[index + 1] === '*') {
+      const close = css.indexOf('*/', index + 2);
+      const end = close === -1 ? css.length : close + 2;
+      comments.push({ start: index, end, text: css.slice(index, end) });
+      index = end;
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      index += 1;
+      while (index < css.length && css[index] !== char) index += css[index] === '\\' ? 2 : 1;
+      index += 1;
+      continue;
+    }
+
+    if (char === '(') parens += 1;
+    else if (char === ')') parens = Math.max(0, parens - 1);
+    else if (parens === 0 && char === '{') {
+      const selector = collapse(between(pieceStart, index));
+      open.push({ selector, bodyStart: index + 1, rule: rules.length });
+      rules.push({ selector, bodyStart: index + 1, bodyEnd: -1 });
+      pieceStart = index + 1;
+    } else if (parens === 0 && char === '}') {
+      flush(index);
+      const frame = open.pop();
+      if (frame !== undefined) {
+        // The frame carries its own index, so a rule is never confused with a later one that
+        // happens to open at the same offset — which two rules on one line can do.
+        const rule = rules[frame.rule];
+        if (rule !== undefined) rule.bodyEnd = index;
+        for (const declaration of declarations) {
+          if (declaration.bodyEnd === -1 && declaration.bodyStart === frame.bodyStart) {
+            declaration.bodyEnd = index;
+          }
+        }
+      }
+      pieceStart = index + 1;
+    } else if (parens === 0 && char === ';') {
+      flush(index);
+    }
+
+    index += 1;
+  }
+  return { comments, rules, declarations };
+};
+
+const SHEET = scan(source(STYLESHEET_PATH));
+
+/**
+ * Every rule in the sheet as `[selector, declarations]`, the declarations rejoined from the scan.
+ *
+ * Rebuilt rather than sliced out of the source so the consumers below keep reading one normalised
+ * shape — `prop: value; prop: value` — whatever the layout in the file. A rule that contains a
+ * nested block now carries its own declarations here; under the brace regex they belonged to
+ * nothing.
+ */
+const RULES: [string, string][] = SHEET.rules
+  .map((rule): [string, string] => [
+    rule.selector,
+    SHEET.declarations
+      .filter((declaration) => declaration.bodyStart === rule.bodyStart)
+      .map(({ property, value }) => `${property}: ${value}`)
+      .join('; '),
+  ])
+  // An at-rule that owns no declarations is a container — `@media`, `@supports` — and holds rules
+  // rather than being one. The brace regex never emitted these, because their braces are not the
+  // innermost pair, and the three guards reading `RULES` were written against that shape. An
+  // at-rule that *does* own declarations (`@font-face`) is a rule and stays.
+  .filter(([selector, block]) => !selector.startsWith('@') || block !== '');
 
 /**
  * The declaration block of one rule, or `''` when the selector is not in the sheet.
@@ -80,10 +283,10 @@ const declarations = (selector: string): string =>
     .join(' ');
 
 /**
- * Every rule in the sheet whose selector reaches `element`, `@media` blocks included: `RULES` is
- * built from the innermost braces, so a rule nested in a media prelude arrives here as a plain
- * selector, indistinguishable from a top-level one. That is what this guard wants — an override is
- * an override whichever block it sits in.
+ * Every rule in the sheet whose selector reaches `element`, `@media` blocks included: a rule's
+ * selector is its own prelude and never a resolved ancestor chain, so one nested in a media block
+ * arrives here as a plain selector, indistinguishable from a top-level one. That is what this
+ * guard wants — an override is an override whichever block it sits in.
  *
  * Matched against the *last* compound of each comma-separated part, on a class-name boundary. Last
  * compound, because that is the one the rule actually styles: `.top-place-meta .top-place-distance`
@@ -371,18 +574,14 @@ const PX_VALUE = /-?\d+(?:\.\d+)?px/g;
  */
 const unconvertedSpacing = (): string[] => {
   const offenders: string[] = [];
-  for (const [selector, block] of RULES) {
-    for (const declaration of block.split(';')) {
-      const [property, ...rest] = declaration.split(':');
-      const name = collapse(property ?? '').toLowerCase();
-      const value = collapse(rest.join(':'));
-      if (!SPACING_PROPERTY.test(name) || value === '') continue;
+  for (const { selector, property, value } of SHEET.declarations) {
+    const name = property.toLowerCase();
+    if (!SPACING_PROPERTY.test(name) || value === '') continue;
 
-      for (const px of value.match(PX_VALUE) ?? []) {
-        const token = SPACE_SCALE.get(Math.abs(Number.parseFloat(px)));
-        if (token === undefined) continue;
-        offenders.push(`${selector} { ${name}: ${value} } — ${px} is var(${token})`);
-      }
+    for (const px of value.match(PX_VALUE) ?? []) {
+      const token = SPACE_SCALE.get(Math.abs(Number.parseFloat(px)));
+      if (token === undefined) continue;
+      offenders.push(`${selector} { ${name}: ${value} } — ${px} is var(${token})`);
     }
   }
   return offenders;
@@ -422,22 +621,6 @@ describe('spacing scale adoption', () => {
     expect(unconvertedSpacing()).toEqual([]);
   });
 });
-/** The stylesheet as written, comments and all — the annotation guard below needs both. */
-const STYLESHEET = source(STYLESHEET_PATH);
-
-/**
- * The same text with comment bodies blanked — every other character, and every offset, preserved —
- * so an index into this string is the same index in the file.
- *
- * `withoutComments` cannot serve here: it collapses a block to a single space, which is harmless
- * for the whole-sheet scans above and fatal for this one, whose whole question is which comment
- * sits where relative to which declaration. Blanking rather than deleting also keeps a `{` written
- * inside a comment from being read as the start of a rule.
- */
-const MASKED = STYLESHEET.replaceAll(/\/\*[\s\S]*?\*\//g, (block) =>
-  block.replaceAll(/[^\n]/g, ' '),
-);
-
 /**
  * The marker has to *open* the comment or one of its lines.
  *
@@ -449,73 +632,18 @@ const MASKED = STYLESHEET.replaceAll(/\/\*[\s\S]*?\*\//g, (block) =>
  */
 const OPTICAL_MARKER = /(?:^\/\*|\n)[ \t*]*optical:/;
 
-/** Where each comment block sits, and whether it is an annotation. */
-const COMMENTS: { start: number; end: number; optical: boolean }[] = [
-  ...STYLESHEET.matchAll(/\/\*[\s\S]*?\*\//g),
-].map((block) => ({
-  start: block.index ?? 0,
-  end: (block.index ?? 0) + block[0].length,
-  optical: OPTICAL_MARKER.test(block[0]),
+/** The scan's comments, tagged with whether each is an annotation. */
+const COMMENTS = SHEET.comments.map(({ start, end, text }) => ({
+  start,
+  end,
+  optical: OPTICAL_MARKER.test(text),
 }));
 
-/** A declaration located in the file, not merely on a line. */
-type Declaration = {
-  selector: string;
-  text: string;
-  start: number;
-  /** Where the rule's body opens. A comment before it belongs to the selector, not to this value. */
-  bodyStart: number;
-  rawSpacing: boolean;
-};
-
-/**
- * Every declaration in the sheet, in source order, each carrying its own offsets.
- *
- * Split on `;` within a rule body rather than read line by line. A line-shaped scan misses three
- * whole CSS shapes at once — a rule set written on one line, a second declaration after a `;`, and
- * a value wrapped onto the next line — and each is a way to put an unexplained raw px in the sheet
- * with the suite green. Nothing in this repo normalises CSS layout (`package.json` has eslint and
- * no stylelint), so the shapes are reachable by an ordinary edit rather than only in theory.
- *
- * **What this cannot see**, stated rather than left to be discovered. The brace pattern below is
- * the same literal `RULES` is built from, and it matches innermost brace pairs — a copy rather
- * than the binding, because this scan needs offsets `RULES` does not carry. So a rule that
- * *contains* another block — native nesting (`&:hover { … }`) or a
- * nested `@media` — has the declarations around that block swallowed into the inner selector and
- * emitted by nothing. A raw px there is invisible to this guard *and* to `unconvertedSpacing`
- * above, on scale or off. The sheet uses neither shape today; the blind spot predates both guards
- * and closing it means replacing the brace regex with a real parser for both. The same goes for a
- * `/*` written inside a quoted value, which opens a comment the masker cannot tell from a real
- * one. Both are recorded in `backlog.md`. This is the boundary of what the guard claims, not an
- * oversight it is unaware of.
- */
-const cssDeclarations = (): Declaration[] => {
-  const found: Declaration[] = [];
-  for (const rule of MASKED.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const selector = collapse(rule[1] ?? '');
-    const body = rule[2] ?? '';
-    const bodyStart = (rule.index ?? 0) + rule[0].indexOf('{') + 1;
-    let offset = bodyStart;
-
-    for (const piece of body.split(';')) {
-      const [property, ...rest] = piece.split(':');
-      const name = collapse(property ?? '').toLowerCase();
-      const value = collapse(rest.join(':'));
-      const start = offset + (piece.length - piece.trimStart().length);
-      offset += piece.length + 1;
-
-      if (name === '' || rest.length === 0) continue;
-      found.push({
-        selector,
-        text: `${name}: ${value}`,
-        start,
-        bodyStart,
-        rawSpacing: SPACING_PROPERTY.test(name) && (value.match(PX_VALUE) ?? []).length > 0,
-      });
-    }
-  }
-  return found;
-};
+/** Every spacing declaration holding a raw px, as the scan found it. */
+const rawSpacingDeclarations = SHEET.declarations.filter(
+  ({ property, value }) =>
+    SPACING_PROPERTY.test(property.toLowerCase()) && (value.match(PX_VALUE) ?? []).length > 0,
+);
 
 /**
  * Every raw-px spacing declaration, split by whether it is annotated.
@@ -550,34 +678,34 @@ const cssDeclarations = (): Declaration[] => {
  * The two guards answer one question each — *is it a token*, and *does the reader learn why not*.
  */
 const rawSpacingByAnnotation = (): { annotated: string[]; bare: string[] } => {
-  const all = cssDeclarations();
   const annotated: string[] = [];
   const bare: string[] = [];
 
-  for (const [index, declaration] of all.entries()) {
-    if (!declaration.rawSpacing) continue;
-
+  for (const declaration of rawSpacingDeclarations) {
     const preceding = COMMENTS.filter(
       ({ start, end }) => start >= declaration.bodyStart && end <= declaration.start,
     ).at(-1);
     const covered =
       preceding?.optical === true &&
-      // Nothing declared between the comment and this line — otherwise the comment is the previous
-      // declaration's, and this one is riding an explanation written about something else.
-      all.slice(0, index).every(({ start }) => start <= preceding.end);
+      // Nothing declared between the comment and this declaration — otherwise the comment is the
+      // previous one's, and this value is riding an explanation written about something else.
+      !SHEET.declarations.some(
+        ({ start }) => start > preceding.end && start < declaration.start,
+      );
 
-    (covered ? annotated : bare).push(`${declaration.selector} { ${declaration.text} }`);
+    (covered ? annotated : bare).push(
+      `${declaration.selector} { ${declaration.property}: ${declaration.value} }`,
+    );
   }
   return { annotated, bare };
 };
 
 describe('optical spacing annotations', () => {
-  it('sees the stylesheet with its comments and offsets intact', () => {
-    // Blanking must not move a single offset, or every annotation answer is about some other part
-    // of the file — and a stubbed-empty CSS module would make the guard below pass on nothing.
-    expect(MASKED.length).toBe(STYLESHEET.length);
-    expect(MASKED).toContain(':root {');
+  it('scanned the sheet, so the guard below is not answering about an empty file', () => {
+    // A stubbed-empty CSS module would give the guard nothing to find and no annotation to miss,
+    // so it would pass on nothing. Each of these fails on that sheet.
     expect(COMMENTS.filter(({ optical }) => optical).length).toBeGreaterThan(5);
+    expect(rawSpacingDeclarations.length).toBeGreaterThan(10);
     expect(rawSpacingByAnnotation().annotated.length).toBeGreaterThan(10);
   });
 
@@ -585,9 +713,9 @@ describe('optical spacing annotations', () => {
     // The `--space-*` docblock states the rule and sits in `:root`, which has declarations under
     // it. Counted, the statement of the rule would license the next breach of it.
     const scale =
-      [...STYLESHEET.matchAll(/\/\*[\s\S]*?\*\//g)].find(([block]) =>
-        block.includes('Off-scale values are legal but never silent'),
-      )?.[0] ?? '';
+      SHEET.comments.find(({ text }) =>
+        text.includes('Off-scale values are legal but never silent'),
+      )?.text ?? '';
     expect(scale, 'the scale docblock no longer states the rule').toContain('optical:');
     expect(OPTICAL_MARKER.test(scale)).toBe(false);
   });
