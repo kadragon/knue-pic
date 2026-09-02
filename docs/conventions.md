@@ -63,6 +63,15 @@ That is the stylesheet's test home, and there is no other: `?raw` plus `test.css
 still be asserted (`src/ui/stylesheet-claims.test.ts`). A second vitest project for CSS would buy
 nothing this does not already cover.
 
+**A guard's probe runs both ways.** A guard over source text is proved by mutating the source: one
+mutation it has to catch, and one legitimate rule it must *not*. Only the first is habit, and the
+second is where the effective-value `white-space` guard first went wrong — its opening cut failed on
+`.top-place-delta .delta-icon { white-space: normal }`, a child element's own rule, and on
+`white-space: nowrap !important`, a strengthening of the invariant it exists to protect. A guard
+that fires on legitimate CSS is a red build naming the wrong line, and the suite cannot see it: both
+cases were green until someone wrote the negative probe. Keep the should-not-fire mutations beside
+the should-fire ones and run them as one matrix.
+
 **A superlative claim is registered, never banned.** A sentence asserting "this is the ONE place X
 happens" — in a doc or a docblock — goes stale the moment a second X lands, and the diff that adds
 the second one is not where anyone is reading the sentence. Adding the 거리 밴드 palette falsified
