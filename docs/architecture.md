@@ -1,8 +1,9 @@
 # Architecture
 
-Source of truth for the boundaries that the directory tree does not show. The repo is currently
-empty apart from the harness — everything below is the agreed target shape, and the first
-implementation commits must match it or update this doc in the same change.
+Source of truth for the boundaries that the directory tree does not show. The rules below
+describe the repo as it is implemented today; the layout block names the directories that carry a
+boundary, not every file it contains. A change that departs from this doc must update it in the
+same commit.
 
 ## Stack
 
@@ -29,7 +30,7 @@ The two halves share **nothing but `data/places.json`**. The collector never run
 browser; the web app never learns where the data came from. Any change that couples them (a shared
 config the web app imports, a build step that calls the collector) breaks the constraint.
 
-## Source Layout (target)
+## Source Layout
 
 ```
 index.html
@@ -50,6 +51,7 @@ collector/            # Python; never imported by src/
 .claude/skills/knue-expense-collect/
                       # the collection half: download, extract, normalize, classify, geocode.
                       # Steps 1–5 of the data-update cycle live here, not under collector/
+eslint-rules/         # repo-local lint guards (structural constraints, not style)
 review_candidates.csv # manual location approval queue (committed)
 .github/workflows/    # validate → build → deploy to Pages
 ```

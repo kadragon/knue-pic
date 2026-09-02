@@ -86,7 +86,7 @@ describe('isWithinWindow', () => {
     expect(previous.end).toBe(monthly.start);
   });
 
-  it('spans 31 days for 1m rather than 32', () => {
+  it('spans 31 days for the 1m window anchored at 2026-08-01', () => {
     const days = ['2026-07-01', '2026-07-02', '2026-08-01', '2026-08-02'].map((date) =>
       isWithinWindow(date, monthly),
     );

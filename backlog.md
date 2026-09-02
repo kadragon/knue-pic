@@ -2,22 +2,6 @@
 
 ## Review Backlog
 
-### `1m` test title echoes the span figure the comment dropped (2026-08-31)
-
-- [ ] [docs] `src/stats/period.test.ts:89` is named `'spans 31 days for 1m rather than 32'`. The
-  assertion is sound — it pins a single anchor (`2026-08-01`, whose window is August's 31 days) —
-  but the title reads as the general claim PR #33 removed from the `PeriodWindow` comment, where
-  the span is 28-31 and set by the anchor. Rename it to name its anchor rather than a universal
-  figure, so a reader does not re-generalize the number the comment just stopped asserting
-  (source: PR #33 contract QA, non-blocking and out of scope there) — `src/stats/period.test.ts`
-
-### `docs/architecture.md` still opens by calling the repo empty (2026-08-28)
-
-- [ ] [docs] `docs/architecture.md:3-5` says "The repo is currently empty apart from the harness —
-  everything below is the agreed target shape". The repo is fully implemented (21 test suites, `src/`
-  populated), so the document's own framing tells a reader to treat every section as a plan rather
-  than as a description (source: PR #32 contract QA, out of scope there) — `docs/architecture.md`
-
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*

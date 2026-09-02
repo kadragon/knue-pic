@@ -99,6 +99,20 @@ ambiguity `eslint.config.js` derives its typed-file list to avoid.
   for the 92 places whose category carries a comma.
 - Every interactive control has a visible label or an `aria-label`; search is keyboard-operable.
 
+## Docs
+
+**Framing is load-bearing: changing it re-scopes every claim under it.** A section written as a
+plan ("the agreed target shape") lets an incomplete list pass as illustration; the same section
+written as description turns that list into an inventory a reader will trust. So when an edit moves
+a document from aspirational to descriptive, sweep the whole file for headings and lists the new
+framing now asserts — a `(target)` label, a partial tree, a "will be" — and bring each one true in
+the same commit.
+
+*Without this:* the framing sentence gets fixed alone and the stale claims below it survive under a
+heading that now vouches for them. That happened twice on `docs/architecture.md` in PR #37 — a
+`## Source Layout (target)` heading nine lines under the corrected opening, then the layout tree
+itself, each caught only at review.
+
 ## Git Conventions
 
 Commits: `[TYPE] description` — one logical change, checks green.

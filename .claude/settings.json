@@ -13,8 +13,7 @@
       "Write(./.env)",
       "Edit(./.env)",
       "Write(./data/places.json)",
-      "Edit(./data/places.json)",
-      "MultiEdit(./data/places.json)"
+      "Edit(./data/places.json)"
     ]
   }
 }
