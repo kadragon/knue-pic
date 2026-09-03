@@ -2,32 +2,6 @@
 
 ## Review Backlog
 
-### PR #48 — a rule nested inside a rule is attributed to its own prelude (2026-09-03)
-
-- [ ] [debt] The scan that replaced the brace regex gives every block its own prelude as `selector`,
-  never a resolved ancestor chain. For a rule nested in an `@media` at top level that is right, and
-  it is what `reachingRules` has always assumed. For a rule nested inside *another rule* — the
-  `&:hover` and inner-`@media` shapes the scan newly understands — it loses the element: a raw px
-  there is reported as `@media (max-width: 600px) { margin: 8px }`, naming a rule the reader cannot
-  find, and `reachingRules('.place-kind-badge')` does not match `.place-kind-badge { @media … {
-  white-space: normal; } }`, so the nowrap guard cannot see an override written that way. Nothing
-  goes *unseen* — the declarations are scanned and an unannotated raw px still goes red — so this
-  is attribution, not a hole. Resolving the chain (`&` against the parent selector, an at-rule
-  frame passing its parent through) would fix both, and it changes what `reachingRules` matches,
-  which is why it was not folded into PR #48 (source: code-review + contract QA on PR #48)
-  — `src/ui/stylesheet-claims.test.ts`
-
-### PR #48 — `bodyEnd` backfill walks every declaration at every closing brace (2026-09-03)
-
-- [ ] [debt] Three places walk every declaration for every rule, about 593 × 146 on today's sheet:
-  `scan()` backfills each declaration's `bodyEnd` by looping over all declarations found so far at
-  every closing brace; `RULES` filters the whole declaration list once per rule; and the annotation
-  guard's adjacency test scans the whole sheet per raw-px declaration rather than the owning rule's
-  range. All three run in milliseconds and no test is slow because of them, so this is tidiness
-  rather than a defect: a frame recording the index of its first declaration would let all three
-  address a range instead (source: contract QA passes 1 and 2 on PR #48)
-  — `src/ui/stylesheet-claims.test.ts`
-
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*

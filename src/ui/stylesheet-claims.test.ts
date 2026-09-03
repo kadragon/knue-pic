@@ -62,6 +62,8 @@ type ScannedDeclaration = {
   selector: string;
   property: string;
   value: string;
+  /** Index into `rules` of the block this declaration was written in. */
+  rule: number;
   /** Offset of the property name, and of the `;` or `}` that closes the declaration. */
   start: number;
   end: number;
@@ -70,7 +72,31 @@ type ScannedDeclaration = {
   bodyEnd: number;
 };
 
-type ScannedRule = { selector: string; bodyStart: number; bodyEnd: number };
+type ScannedRule = {
+  /** The block's own prelude, as written — `@media (…)` for an at-rule, `&:hover` for a nested rule. */
+  prelude: string;
+  /** The prelude resolved against the ancestor chain: the element this block actually styles. */
+  selector: string;
+  bodyStart: number;
+  bodyEnd: number;
+  /**
+   * Half-open index ranges into the scan's own arrays, recorded as the block opens and closes:
+   * `[firstDeclaration, endDeclaration)` covers every declaration written inside this block —
+   * its own and its nested blocks' — and `[index + 1, endRule)` covers every block nested in it.
+   *
+   * Both are what let a reader address this rule instead of the sheet. Three readers used to walk
+   * every declaration for every rule: the `bodyEnd` backfill below, `RULES`, and the annotation
+   * guard's adjacency test. Nothing was slow because of it, but each of the three asks a question
+   * about one rule, and a scan of the whole sheet is not that question — it happens to give the
+   * same answer only because the discriminating field is unique per block.
+   *
+   * `-1` on either end means the block never closed, which only a malformed sheet produces. The
+   * readers treat it as "runs to the end", so an unclosed block cannot hide its own contents.
+   */
+  firstDeclaration: number;
+  endDeclaration: number;
+  endRule: number;
+};
 
 /**
  * One left-to-right scan of the stylesheet — the single place this suite decides what a *rule* and
@@ -102,17 +128,20 @@ type ScannedRule = { selector: string; bodyStart: number; bodyEnd: number };
  * needs more than depth — its contents are opaque to a real parser, so a `/*` or a `;` in there
  * means nothing — and it is skipped whole, to its matching `)`.
  *
- * A block's `selector` is its own prelude, never a resolved ancestor chain. That is deliberate and
- * preserves `reachingRules`'s existing reading: a rule nested in an `@media` has always arrived
- * there as a plain selector, because an override is an override whichever block it sits in.
+ * A block carries both its own `prelude` and the `selector` that prelude resolves to against the
+ * blocks enclosing it — see `resolveSelector`. The distinction is what lets two readers ask
+ * different questions of the same block: `RULES` asks the prelude whether a block is an at-rule
+ * *container*, while `reachingRules` and every offender message ask the selector which element the
+ * block styles.
  *
- * **The residue that choice leaves.** A rule nested inside *another rule* — `.badge { @media … {
- * … } }`, or an `&`-prefixed selector — is reported under its own prelude, which for an at-rule is
- * not an element at all. `reachingRules` cannot match such a rule, and an offender inside one is
- * named `@media (…) { margin: 8px }`, a rule the reader cannot find. Its declarations *are*
- * scanned, so nothing goes unseen; only the attribution is coarse. Resolving ancestor chains is
- * the fix and it is recorded in `backlog.md`, not done here: it changes what `reachingRules`
- * matches, which is a different guard's decision rule and a different contract.
+ * Resolution leaves the top-level reading untouched, which is the constraint it had to meet: a
+ * rule inside a top-level `@media` still arrives as its plain selector, and a top-level at-rule
+ * still carries its own `@…` prelude as its selector. What it fixes is the rule nested inside
+ * *another rule* — `.badge { @media … { … } }`, or an `&`-prefixed selector. That block used to be
+ * reported under its own prelude, which for an at-rule is not an element at all: an offender in it
+ * was named `@media (…) { margin: 8px }`, a rule the reader cannot find, and `reachingRules` could
+ * not see the override at all. Nothing went *unseen* even then — the declarations were scanned —
+ * but the attribution named nothing.
  */
 /** The code points a url token may not hold unescaped, per the url-token grammar. */
 const nonPrintable = (char: string): boolean => {
@@ -183,6 +212,35 @@ const urlToken = (
   return { end: css.length, problem: `url( opened at ${start}` };
 };
 
+/**
+ * A block's prelude resolved against the block it is written in — the element it actually styles.
+ *
+ * Three cases, and the first is the one that had to be preserved rather than invented:
+ *
+ * - **No enclosing rule** (top level, or inside an at-rule that is itself at top level): the
+ *   prelude stands as written. A rule inside a top-level `@media` has always arrived at
+ *   `reachingRules` as a plain selector, because an override is an override whichever viewport it
+ *   applies at, and a top-level at-rule keeps its own `@…` prelude so `RULES` can still tell a
+ *   container from a rule.
+ * - **An at-rule inside a rule** — `.badge { @media (…) { … } }`: the at-rule styles nothing of its
+ *   own, so the enclosing rule's resolved selector passes straight through. Its declarations then
+ *   belong to `.badge`, which is what CSS nesting means by them and what a reader can go and find.
+ * - **A rule inside a rule**: each comma-separated part is resolved against the parent —
+ *   `&` substituted where written, a bare compound made a descendant. A parent that is itself a
+ *   selector list goes in as `:is(…)`, since `.a, .b .c` is not the same set as `:is(.a, .b) .c`.
+ */
+const resolveSelector = (prelude: string, parent: string | undefined): string => {
+  if (parent === undefined || parent.startsWith('@')) return prelude;
+  if (prelude.startsWith('@')) return parent;
+  const reference = parent.includes(',') ? `:is(${parent})` : parent;
+  return prelude
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part !== '')
+    .map((part) => (part.includes('&') ? part.replaceAll('&', reference) : `${reference} ${part}`))
+    .join(', ');
+};
+
 const scan = (
   css: string,
 ): {
@@ -215,7 +273,7 @@ const scan = (
   const declarations: ScannedDeclaration[] = [];
   const unterminated: string[] = [];
   /** The open blocks, innermost last. `end` is filled in when the block closes. */
-  const open: { selector: string; bodyStart: number; rule: number }[] = [];
+  const open: { prelude: string; selector: string; bodyStart: number; rule: number }[] = [];
 
   let index = 0;
   /** Where the current selector prelude or declaration began. */
@@ -306,6 +364,7 @@ const scan = (
     if (property === '') return;
     declarations.push({
       selector: frame.selector,
+      rule: frame.rule,
       property,
       value: collapse(piece.slice(colon + 1)),
       start: contentStart(pieceOffset, end),
@@ -397,9 +456,18 @@ const scan = (
     // report's own block arm out with it. What replaces it is not the block stack but the depth
     // check at the end of the scan — a `(` that never closes is reported as itself.
     if (parenOpens.length === 0 && char === '{') {
-      const selector = collapse(between(pieceStart, index));
-      open.push({ selector, bodyStart: index + 1, rule: rules.length });
-      rules.push({ selector, bodyStart: index + 1, bodyEnd: -1 });
+      const prelude = collapse(between(pieceStart, index));
+      const selector = resolveSelector(prelude, open.at(-1)?.selector);
+      open.push({ prelude, selector, bodyStart: index + 1, rule: rules.length });
+      rules.push({
+        prelude,
+        selector,
+        bodyStart: index + 1,
+        bodyEnd: -1,
+        firstDeclaration: declarations.length,
+        endDeclaration: -1,
+        endRule: -1,
+      });
       pieceStart = index + 1;
     } else if (parenOpens.length === 0 && char === '}') {
       flush(index);
@@ -408,10 +476,23 @@ const scan = (
         // The frame carries its own index rather than taking the most recent rule: with nesting,
         // `rules.at(-1)` is the *inner* rule at the moment the outer one closes.
         const rule = rules[frame.rule];
-        if (rule !== undefined) rule.bodyEnd = index;
-        for (const declaration of declarations) {
-          if (declaration.bodyEnd === -1 && declaration.bodyStart === frame.bodyStart) {
-            declaration.bodyEnd = index;
+        if (rule !== undefined) {
+          rule.bodyEnd = index;
+          rule.endDeclaration = declarations.length;
+          rule.endRule = rules.length;
+          // From this block's first declaration, not from the sheet's. Everything before that
+          // index was flushed before the block opened and cannot be waiting on this brace. The
+          // `bodyStart` test stays: a declaration inside a nested block that never closed is
+          // still in this range with `bodyEnd === -1`, and it is not this frame's to fill.
+          for (let at = rule.firstDeclaration; at < declarations.length; at += 1) {
+            const declaration = declarations[at];
+            if (
+              declaration !== undefined &&
+              declaration.bodyEnd === -1 &&
+              declaration.bodyStart === frame.bodyStart
+            ) {
+              declaration.bodyEnd = index;
+            }
           }
         }
       }
@@ -423,7 +504,7 @@ const scan = (
     index += 1;
   }
   for (const frame of open) {
-    unterminated.push(`block opened at ${frame.bodyStart - 1} (${frame.selector || '?'})`);
+    unterminated.push(`block opened at ${frame.bodyStart - 1} (${frame.prelude || '?'})`);
   }
   // The paren axis, reported in its own right rather than through the block stack. Two earlier
   // attempts each covered half of it: resetting the depth at a brace hid an unclosed *block*, and
@@ -451,19 +532,50 @@ const SHEET = scan(source(STYLESHEET_PATH));
  * nested block now carries its own declarations here; under the brace regex they belonged to
  * nothing.
  */
+/**
+ * The declarations the scan recorded inside `rule` — its own and its nested blocks'.
+ *
+ * A slice of the recorded range rather than a filter over the sheet. `-1` is the unclosed-block
+ * marker (see `ScannedRule`) and reads as "to the end", so a malformed sheet still surfaces every
+ * declaration it holds rather than none.
+ */
+const spanOf = (rule: ScannedRule): ScannedDeclaration[] =>
+  SHEET.declarations.slice(
+    rule.firstDeclaration,
+    rule.endDeclaration === -1 ? SHEET.declarations.length : rule.endDeclaration,
+  );
+
+/**
+ * The blocks nested inside `rule`, identified by its index in `SHEET.rules`.
+ *
+ * Every block opened after this one and before it closed is nested in it, which is exactly the
+ * recorded rule range — the offset comparison it replaces (`bodyStart` after, `bodyEnd` at or
+ * before) selects the same blocks by arithmetic over the whole sheet.
+ */
+const nestedIn = (index: number): ScannedRule[] => {
+  const rule = SHEET.rules[index];
+  if (rule === undefined) return [];
+  return SHEET.rules.slice(index + 1, rule.endRule === -1 ? SHEET.rules.length : rule.endRule);
+};
+
 const RULES: [string, string][] = SHEET.rules
-  .map((rule): [string, string] => [
+  .map((rule): [string, string, string] => [
     rule.selector,
-    SHEET.declarations
+    spanOf(rule)
+      // Its own, not its nested blocks': the range covers both, and `bodyStart` is the block.
       .filter((declaration) => declaration.bodyStart === rule.bodyStart)
       .map(({ property, value }) => `${property}: ${value}`)
       .join('; '),
+    rule.prelude,
   ])
   // An at-rule that owns no declarations is a container — `@media`, `@supports` — and holds rules
   // rather than being one. The brace regex never emitted these, because their braces are not the
   // innermost pair, and the three guards reading `RULES` were written against that shape. An
   // at-rule that *does* own declarations (`@font-face`) is a rule and stays.
-  .filter(([selector, block]) => !selector.startsWith('@') || block !== '');
+  // Asked of the PRELUDE, not the resolved selector: a container nested inside a rule resolves to
+  // that rule's selector and would otherwise slip through as a rule owning nothing.
+  .filter(([, block, prelude]) => !prelude.startsWith('@') || block !== '')
+  .map(([selector, block]): [string, string] => [selector, block]);
 
 /**
  * The declaration block of one rule, or `''` when the selector is not in the sheet.
@@ -483,10 +595,13 @@ const declarations = (selector: string): string =>
     .join(' ');
 
 /**
- * Every rule in the sheet whose selector reaches `element`, `@media` blocks included: a rule's
- * selector is its own prelude and never a resolved ancestor chain, so one nested in a media block
- * arrives here as a plain selector, indistinguishable from a top-level one. That is what this
- * guard wants — an override is an override whichever block it sits in.
+ * Whether `selector` reaches `element`.
+ *
+ * A rule nested in a top-level `@media` arrives here as a plain selector, indistinguishable from a
+ * top-level one, and that is what this guard wants — an override is an override whichever viewport
+ * it applies at. A rule nested inside *another rule* arrives resolved against its parent, so
+ * `.badge { @media (…) { white-space: normal } }` is seen as an override of `.badge`; before the
+ * chain was resolved it arrived as `@media (…)` and this predicate could not match it at all.
  *
  * Matched against the *last* compound of each comma-separated part, on a class-name boundary. Last
  * compound, because that is the one the rule actually styles: `.top-place-meta .top-place-distance`
@@ -502,15 +617,17 @@ const declarations = (selector: string): string =>
  * a guard over the rules that name the token, which is where every override in this sheet has been
  * written so far. The unnamed-selector case stays open by design, not by oversight.
  */
-const reachingRules = (element: string): string[] => {
+const reaches = (element: string, selector: string): boolean => {
   const name = element.replace(/^\./, '');
-  const reaches = new RegExp(String.raw`\.${name}(?![\w-])`);
+  const named = new RegExp(String.raw`\.${name}(?![\w-])`);
   const target = (part: string): string =>
     (part.replaceAll(/:not\([^)]*\)/g, '').split(/[\s>+~]+/).filter(Boolean).pop() ?? '');
-  return RULES.filter(([selector]) =>
-    selector.split(',').some((part) => reaches.test(target(part))),
-  ).map(([, block]) => block);
+  return selector.split(',').some((part) => named.test(target(part)));
 };
+
+/** The declaration blocks of every rule in the sheet that `reaches` `element`. */
+const reachingRules = (element: string): string[] =>
+  RULES.filter(([selector]) => reaches(element, selector)).map(([, block]) => block);
 
 /**
  * The properties that decide whether a token may break, as `white-space` and the two longhand
@@ -761,6 +878,87 @@ describe('stylesheet scan', () => {
     expect(scan(css).unterminated).toEqual(['bad url( opened at 21']);
   });
 
+  it('resolves a block written inside a rule against its parent, top-level blocks untouched', () => {
+    const sheet = scan(
+      '@media (min-width: 1px) { .top { color: red } }' +
+        '.badge { @media (max-width: 600px) { white-space: normal }' +
+        ' &:hover { top: 1px } .child { left: 2px } }' +
+        '.a, .b { & .c { right: 3px } }',
+    );
+
+    expect(sheet.unterminated).toEqual([]);
+    expect(sheet.declarations.map(({ selector, property }) => `${selector} { ${property} }`)).toEqual([
+      // Inside a TOP-LEVEL at-rule: the plain selector, exactly as it arrived before resolution.
+      '.top { color }',
+      // An at-rule inside a rule styles nothing of its own — its parent's selector passes through.
+      '.badge { white-space }',
+      '.badge:hover { top }',
+      '.badge .child { left }',
+      // A parent that is a selector list goes in as `:is(…)`: `.a, .b .c` is a different set.
+      ':is(.a, .b) .c { right }',
+    ]);
+  });
+
+  it('lets the reaches predicate see an override written inside the rule it overrides', () => {
+    const nested = scan('.place-kind-badge { @media (max-width: 600px) { white-space: normal } }');
+    // The shape the scan newly understands, and the one whose attribution used to name nothing:
+    // the declaration is reported against the element, and the predicate matches it.
+    expect(nested.declarations[0]?.selector).toBe('.place-kind-badge');
+    expect(reaches('.place-kind-badge', nested.declarations[0]?.selector ?? '')).toBe(true);
+    // What it used to arrive as. Kept as the prelude, and the predicate cannot match that — which
+    // is why the override was invisible to `reachingRules` before the chain was resolved.
+    expect(nested.rules[1]?.prelude).toBe('@media (max-width: 600px)');
+    expect(reaches('.place-kind-badge', nested.rules[1]?.prelude ?? '')).toBe(false);
+
+    // The reading resolution had to preserve: inside a top-level at-rule, nothing changes.
+    const top = scan('@media (max-width: 600px) { .place-kind-badge { white-space: normal } }');
+    expect(top.rules.map(({ selector }) => selector)).toEqual([
+      '@media (max-width: 600px)',
+      '.place-kind-badge',
+    ]);
+    expect(reaches('.place-kind-badge', top.declarations[0]?.selector ?? '')).toBe(true);
+  });
+
+  it('records each block\'s declaration and nested-rule ranges, so a reader can address one rule', () => {
+    // The three readers that used to walk the whole sheet per rule read these ranges instead, so
+    // the ranges themselves are the claim. A shape with a block nested between two of its parent's
+    // own declarations is the one that discriminates: the parent's range has to span the nested
+    // block's declarations without claiming them, and the sibling after it must fall outside.
+    const sheet = scan('.a { margin: 1px; @media (min-width: 1px) { padding: 2px } gap: 3px } .b { top: 4px }');
+
+    expect(sheet.unterminated).toEqual([]);
+    expect(sheet.rules.map(({ prelude }) => prelude)).toEqual([
+      '.a',
+      '@media (min-width: 1px)',
+      '.b',
+    ]);
+    expect(sheet.declarations.map(({ property, rule }) => `${property}@${rule}`)).toEqual([
+      'margin@0',
+      'padding@1',
+      'gap@0',
+      'top@2',
+    ]);
+    expect(
+      sheet.rules.map(({ firstDeclaration, endDeclaration, endRule }) => [
+        firstDeclaration,
+        endDeclaration,
+        endRule,
+      ]),
+    ).toEqual([
+      [0, 3, 2],
+      [1, 2, 2],
+      [3, 4, 3],
+    ]);
+    // The backfill now starts at the frame's own first declaration; every declaration must still
+    // end at its own block's `}`, the nested one at the inner brace rather than the outer.
+    expect(sheet.declarations.map(({ property, bodyEnd }) => `${property}@${bodyEnd}`)).toEqual([
+      'margin@68',
+      'padding@57',
+      'gap@68',
+      'top@84',
+    ]);
+  });
+
   it('still reads a quoted `url("…")` as a string, so a `)` inside the quotes ends nothing', () => {
     // A quoted url is not a url token at all — it is an ordinary function token whose argument is
     // a string. Skipping to the first `)` would stop inside the string and misread the rest.
@@ -993,15 +1191,13 @@ const rawSpacingByAnnotation = (): { annotated: string[]; bare: string[] } => {
      * the `preceding` comment for the parent's next value, and license it. Only reachable at all
      * because the scan understands nesting; the brace regex emitted the parent declaration from
      * nothing, so the shape could not arise.
+     *
+     * Read off the owning rule's recorded ranges rather than by scanning the sheet per raw-px
+     * declaration. An unclosed owner is still handled — both range reads treat `-1` as "to the
+     * end", so its nested blocks stay recognisable and their comments cannot license it.
      */
-    // `bodyEnd` is -1 for a block the scan never saw close. Treating that as "ends after
-    // everything" keeps an unclosed parent from making its nested blocks unrecognisable, which
-    // would let their comments license the parent again. The suite already fails on such a sheet
-    // (`SHEET.unterminated`), so this is the second lock on the same door, not the only one.
-    const bodyEnd = declaration.bodyEnd === -1 ? Number.MAX_SAFE_INTEGER : declaration.bodyEnd;
-    const nested = SHEET.rules.filter(
-      (rule) => rule.bodyStart > declaration.bodyStart && rule.bodyEnd <= bodyEnd,
-    );
+    const nested = nestedIn(declaration.rule);
+    const owner = SHEET.rules[declaration.rule];
     const preceding = COMMENTS.filter(
       ({ start, end }) =>
         start >= declaration.bodyStart &&
@@ -1014,7 +1210,9 @@ const rawSpacingByAnnotation = (): { annotated: string[]; bare: string[] } => {
       // previous one's, and this value is riding an explanation written about something else.
       // Compared on the earlier declaration's *end*: one written with no gap after the comment
       // starts exactly at `preceding.end`, and a `start >` test would not see it as intervening.
-      !SHEET.declarations.some(
+      // Searched within the owning rule, not across the sheet: both the comment and this
+      // declaration sit inside that block, so anything textually between them does too.
+      !(owner === undefined ? SHEET.declarations : spanOf(owner)).some(
         ({ start, end }) => end > preceding.end && start < declaration.start,
       );
 
