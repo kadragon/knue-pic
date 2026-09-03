@@ -19,7 +19,7 @@ export function displayCategory(category: string): string {
  * guard is on the whole string, not on the field count: `2026-07-08T00:00:00` splits into three
  * truthy parts and would otherwise render a `NaN` day.
  *
- * Used for the footer's provenance line alone. A place's own dates go through
+ * Used for the provenance band's date line alone. A place's own dates go through
  * `displayShortDate` — see there for why the two forms are not one.
  */
 export function displayDate(date: string): string {
@@ -37,7 +37,7 @@ export function displayDate(date: string): string {
  *
  * It is a real trade, not a free one. 최근 1년 spans two calendar years, and the dialog opened from
  * search is measured over that same window, so `09-14` there could be either year and the row does
- * not say which. That ambiguity is accepted for the list; the footer's provenance date keeps its
+ * not say which. That ambiguity is accepted for the list; the provenance band's date keeps its
  * year, because that one is the reader's only statement of *which* published file they are looking
  * at and a bare `07-08` would not say it.
  */

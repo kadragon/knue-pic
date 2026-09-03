@@ -671,7 +671,7 @@ describe('spacing scale adoption', () => {
 
   it('routes the spacing-bearing custom property through the scale too', () => {
     // `SPACING_PROPERTY` tests property names, so a custom property holding a spacing value is
-    // invisible to it — `--column-inset` feeds the header, content and footer inline padding and
+    // invisible to it — `--column-inset` feeds the header, content and provenance inline padding and
     // would carry a raw 24px back into all three with the scan still green. Asserted by name
     // rather than by widening the scan: `--radius-sm: 8px` and `--radius-lg: 20px` are on scale
     // numbers that mean nothing by it, and a predicate over every `--*: Npx` would fail on them.

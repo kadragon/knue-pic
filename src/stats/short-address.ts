@@ -25,6 +25,38 @@
  * the long form is a legible fallback, a wrong short form is not.
  */
 export function shortAddress(address: string): string {
+  return adminUnits(address)?.join(' ') ?? address;
+}
+
+/**
+ * Where an address is, as a Naver Maps search prefix: the city, then the narrowest unit under it —
+ * `청주 강내면`, `대전 서구`, `괴산군 괴산읍`, and `세종` where the city is all the address names.
+ *
+ * It exists because searching a bare trade name finds the wrong branch: `신토불이` is a name many
+ * unrelated places carry nationwide, and the one the dataset means is identified by where it is.
+ *
+ * **Two tokens, and the city is not one of the droppable ones.** The narrowest unit alone was the
+ * first shape of this function, and it reproduced the bug it was written to fix: in 12 of the 504
+ * published rows the narrowest unit is a bare `서구`/`중구`/`동구` — names five or six cities each
+ * share — so `커피빈 코리아` in 대전 searched as `서구 커피빈 코리아`. A
+ * district name is not national, a city name is; the pair narrows where either alone does not. The
+ * middle units are dropped rather than kept because a search query is matched, not parsed, and
+ * `청주 흥덕구 강내면 신토불이` spends two more tokens a listing may not spell the way the address
+ * does.
+ *
+ * `null` when no rule matches, which is the caller's signal to fall back rather than to prefix an
+ * address fragment — the same refusal `shortAddress` makes by returning the address whole.
+ */
+export function addressRegion(address: string): string | null {
+  const parts = adminUnits(address);
+  if (parts === null) return null;
+  const city = parts[0] as string;
+  const narrowest = parts[parts.length - 1] as string;
+  return city === narrowest ? city : `${city} ${narrowest}`;
+}
+
+/** The administrative units of an address, outermost first, or `null` if it names none. */
+function adminUnits(address: string): string[] | null {
   const tokens = address.trim().split(/\s+/);
   // One retry from the second token, because a province is written both ways in practice:
   // `충청북도` matches the rule below, `충북` matches nothing and would otherwise stop the walk
@@ -35,9 +67,7 @@ export function shortAddress(address: string): string {
   const [first] = tokens;
   const retryable = first !== undefined && PROVINCE_ABBREVIATIONS.has(first);
   return (
-    collectAdminUnits(tokens) ??
-    (retryable ? collectAdminUnits(tokens.slice(1)) : null) ??
-    address
+    collectAdminUnits(tokens) ?? (retryable ? collectAdminUnits(tokens.slice(1)) : null)
   );
 }
 
@@ -61,7 +91,7 @@ const PROVINCE_ABBREVIATIONS = new Set([
   '제주',
 ]);
 
-function collectAdminUnits(tokens: string[]): string | null {
+function collectAdminUnits(tokens: string[]): string[] | null {
   const parts: string[] = [];
 
   for (const token of tokens) {
@@ -92,5 +122,5 @@ function collectAdminUnits(tokens: string[]): string | null {
     break;
   }
 
-  return parts.length === 0 ? null : parts.join(' ');
+  return parts.length === 0 ? null : parts;
 }

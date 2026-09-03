@@ -178,8 +178,9 @@ function requireKind(raw: unknown, path: string): PlaceKind {
 }
 
 /**
- * `naverUrl` is the only dataset string that reaches an executable position in the app —
- * `src/ui/place-detail.ts` puts it in an `href`. That sink already refuses a non-`https:` value, but
+ * `naverUrl` is the only dataset string that can reach an executable position in the app —
+ * `src/ui/place-detail.ts` puts it in an `href` on the one branch where it composes no URL of its
+ * own, which today's 504 rows never take. That sink already refuses a non-`https:` value, but
  * this module's contract is to reject a bad value before it reaches `src/stats/`/`src/ui/` at all,
  * the way `lat`/`lng` are range-checked rather than merely non-empty.
  *
