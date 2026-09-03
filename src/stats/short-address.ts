@@ -25,6 +25,29 @@
  * the long form is a legible fallback, a wrong short form is not.
  */
 export function shortAddress(address: string): string {
+  return adminUnits(address)?.join(' ') ?? address;
+}
+
+/**
+ * The narrowest administrative unit an address names — `강내면` out of
+ * `충청북도 청주시 흥덕구 강내면 태성탑연로 390`, `흥덕구` out of an address that stops at the district.
+ *
+ * It exists for the Naver Maps search link. Searching a bare trade name finds the wrong branch:
+ * `신토불이` is a name many unrelated places carry nationwide, and the one the dataset means is
+ * identified by where it is. The *narrowest* unit rather than the whole short form because a search
+ * query is matched, not parsed — `강내면 신토불이` narrows, and `청주 흥덕구 강내면 신토불이` adds
+ * three more tokens that a listing may not spell the way the address does.
+ *
+ * `null` when no rule matches, which is the caller's signal to fall back rather than to prefix an
+ * address fragment — the same refusal `shortAddress` makes by returning the address whole.
+ */
+export function addressRegion(address: string): string | null {
+  const parts = adminUnits(address);
+  return parts === null ? null : (parts[parts.length - 1] as string);
+}
+
+/** The administrative units of an address, outermost first, or `null` if it names none. */
+function adminUnits(address: string): string[] | null {
   const tokens = address.trim().split(/\s+/);
   // One retry from the second token, because a province is written both ways in practice:
   // `충청북도` matches the rule below, `충북` matches nothing and would otherwise stop the walk
@@ -35,9 +58,7 @@ export function shortAddress(address: string): string {
   const [first] = tokens;
   const retryable = first !== undefined && PROVINCE_ABBREVIATIONS.has(first);
   return (
-    collectAdminUnits(tokens) ??
-    (retryable ? collectAdminUnits(tokens.slice(1)) : null) ??
-    address
+    collectAdminUnits(tokens) ?? (retryable ? collectAdminUnits(tokens.slice(1)) : null)
   );
 }
 
@@ -61,7 +82,7 @@ const PROVINCE_ABBREVIATIONS = new Set([
   '제주',
 ]);
 
-function collectAdminUnits(tokens: string[]): string | null {
+function collectAdminUnits(tokens: string[]): string[] | null {
   const parts: string[] = [];
 
   for (const token of tokens) {
@@ -92,5 +113,5 @@ function collectAdminUnits(tokens: string[]): string | null {
     break;
   }
 
-  return parts.length === 0 ? null : parts.join(' ');
+  return parts.length === 0 ? null : parts;
 }

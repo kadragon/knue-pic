@@ -258,17 +258,26 @@ body {
   line-height: 1.5;
 }
 
-.shell-footer {
-  padding: var(--space-6) var(--column-inset) var(--space-8);
-  border-top: 1px solid var(--hairline);
+/*
+ * The provenance band, directly under the sticky header and above the list. It scrolls away with
+ * the content — the header stays, this does not — so the padding is the compact step rather than
+ * the generous one a page-closing footer took.
+ */
+.shell-provenance {
+  padding: var(--space-4) var(--column-inset);
+  border-bottom: 1px solid var(--hairline);
   background: var(--band);
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
 }
 
-.shell-footer p {
+.shell-provenance p {
   margin: 0 0 var(--space-1);
+}
+
+.shell-provenance p:last-child {
+  margin-bottom: 0;
 }
 
 .shell-disclaimer {

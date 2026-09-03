@@ -74,7 +74,8 @@ Publication is never automatic: the validator passing is necessary, a human look
 
 1. Merge the PR into `main`.
 2. Actions runs validate → build → deploy. A validator failure aborts before deploy.
-3. Confirm the footer's "최근 데이터 업데이트" date matches what you published.
+3. Confirm the "최근 데이터 업데이트" date in the provenance band under the header matches what you
+   published.
 
 Because merging to `main` publishes, treat merge as the release step.
 

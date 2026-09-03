@@ -220,6 +220,11 @@ gate cannot disagree about the window. Four fields are derived rather than copie
 - `naverUrl` is a `https://map.naver.com/p/search/…` link on the place name. The collector never
   learns Naver's internal place ID, so composing one would be a fabrication; a search link is a
   claim the data supports, and the host satisfies both `requireNaverUrl` and check 10.
+  The detail view does not link to it directly when it can do better: `naverLinkHref` in
+  `src/ui/place-detail.ts` composes the same prefix over `{narrowest region} {name}` from the
+  place's own `address`, because a bare trade name finds a same-named business elsewhere in the
+  country. This field is the fallback for an address naming no administrative unit, and stays the
+  field the loader and the validator police.
 
 **Spelling merges.** The disclosures spell one business several ways, and stage 3 merges only exact
 normalised matches (see *Key Abstractions* below), so `신토불이교원대점` and `신토불이` arrive as two

@@ -2,6 +2,7 @@ import type { Period, PlaceRecord } from '../data/types';
 import { histogramSpan, type MonthlyHistogram } from '../stats/histogram';
 import { distanceBand, distanceFromCampusKm } from '../stats/distance';
 import type { PlaceStats } from '../stats/place-stats';
+import { addressRegion } from '../stats/short-address';
 import { PERIOD_LABELS } from './period-labels';
 import {
   campusDistanceLabel,
@@ -81,6 +82,35 @@ function isHttpsUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * The prefix the collector also uses (`collector/build_places.py` → `NAVER_SEARCH_PREFIX`). A
+ * search link, not a place ID: neither side ever learns Naver's internal ID, so composing one
+ * would be a fabrication.
+ */
+const NAVER_SEARCH_PREFIX = 'https://map.naver.com/p/search/';
+
+/**
+ * Where the Naver Maps link points, or `null` when no link should be rendered at all.
+ *
+ * The dataset's `naverUrl` searches the trade name alone, which finds the wrong branch whenever the
+ * name is not unique nationwide — `신토불이` is the reported case. Prefixing the narrowest
+ * administrative unit of the address the dataset already carries (`강내면 신토불이`) is a claim the
+ * data supports, and it is composed here rather than in the collector so all 504 rows get it
+ * without regenerating `data/places.json`.
+ *
+ * The composed URL is safe by construction — the prefix is a constant and the query is
+ * percent-encoded — so `isHttpsUrl` guards only the fallback, which is a dataset string reaching an
+ * executable position. A `naverUrl` that is not `https:` renders no link rather than an
+ * inert-looking one.
+ */
+function naverLinkHref(place: PlaceRecord): string | null {
+  const region = addressRegion(place.address);
+  if (region !== null) {
+    return NAVER_SEARCH_PREFIX + encodeURIComponent(`${region} ${place.name}`);
+  }
+  return isHttpsUrl(place.naverUrl) ? place.naverUrl : null;
 }
 
 function renderFigure(term: string, value: string): HTMLElement {
@@ -246,15 +276,16 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
 
   section.append(renderHistogram(histogram));
 
-  // The only place a dataset string reaches an executable position in this app. `src/data/load.ts`
-  // now rejects the whole file unless `naverUrl` is an https URL on a Naver host, so a
-  // `javascript:` value never reaches this line — but the check stays, because the cost of being
-  // wrong here is that value running in the page origin on click. A URL that is not `https:`
-  // renders no link at all rather than an inert-looking one.
-  if (isHttpsUrl(place.naverUrl)) {
+  // The only place a dataset string reaches an executable position in this app — see
+  // `naverLinkHref`, which owns the scheme check. `src/data/load.ts` now rejects the whole file
+  // unless `naverUrl` is an https URL on a Naver host, so a `javascript:` value never reaches that
+  // check — but it stays, because the cost of being wrong is that value running in the page origin
+  // on click.
+  const href = naverLinkHref(place);
+  if (href !== null) {
     const link = document.createElement('a');
     link.className = 'place-detail-link';
-    link.href = place.naverUrl;
+    link.href = href;
     link.target = '_blank';
     // `noopener` denies the opened tab a handle back to this window; `noreferrer` keeps the
     // referrer off the outbound request. Neither costs anything here and both are the default

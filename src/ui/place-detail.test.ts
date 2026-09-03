@@ -182,19 +182,53 @@ describe('renderPlaceDetail', () => {
     }
   });
 
-  it('renders no link at all when the dataset URL is not https', () => {
+  it('renders no link at all when the dataset URL is not https and the address names no region', () => {
     // `src/data/load.ts` accepts `naverUrl` as any non-empty string, so the scheme is checked here.
+    // The address is one `addressRegion` refuses, so the composed URL cannot stand in for the
+    // rejected one — this is the path where the dataset string is the only candidate.
     for (const naverUrl of ['javascript:alert(1)', 'http://map.naver.com/x', 'not a url']) {
       const container = document.createElement('div');
       const detail = detailFor(0, '1y');
 
-      renderPlaceDetail(container, { ...detail, place: { ...detail.place, naverUrl } });
+      renderPlaceDetail(container, {
+        ...detail,
+        place: { ...detail.place, naverUrl, address: '태성탑연로 111' },
+      });
 
       expect(container.querySelector('.place-detail-link')).toBeNull();
       expect(container.textContent).not.toContain(NAVER_LINK_LABEL);
       // The rest of the card still renders — one bad field does not blank the whole view.
       expect(container.textContent).toContain(detail.place.name);
     }
+  });
+
+  it('searches the narrowest region beside the name, not the name alone', () => {
+    const container = document.createElement('div');
+
+    renderPlaceDetail(container, detailFor(0, '1y'));
+    const link = container.querySelector<HTMLAnchorElement>('.place-detail-link');
+
+    // 한밭식당 sits in 강내면 (`충북 청주시 흥덕구 강내면 태성탑연로 111`). The dataset's own
+    // `naverUrl` searches the trade name alone, which finds a same-named place elsewhere in the
+    // country — the whole point of composing the query here.
+    expect(link?.getAttribute('href')).toBe(
+      `https://map.naver.com/p/search/${encodeURIComponent('강내면 한밭식당')}`,
+    );
+    expect(link?.getAttribute('href')).not.toBe(PLACE.naverUrl);
+  });
+
+  it('falls back to the dataset URL when the address names no administrative unit', () => {
+    const container = document.createElement('div');
+    const detail = detailFor(0, '1y');
+
+    // Prefixing a street fragment would send the search somewhere the data never claimed.
+    renderPlaceDetail(container, {
+      ...detail,
+      place: { ...detail.place, address: '태성탑연로 111' },
+    });
+    const link = container.querySelector<HTMLAnchorElement>('.place-detail-link');
+
+    expect(link?.getAttribute('href')).toBe(PLACE.naverUrl);
   });
 
   it('links out to Naver Maps without handing the new tab a window handle', () => {
@@ -204,7 +238,6 @@ describe('renderPlaceDetail', () => {
     const link = container.querySelector<HTMLAnchorElement>('.place-detail-link');
 
     expect(link?.textContent).toBe(NAVER_LINK_LABEL);
-    expect(link?.getAttribute('href')).toBe(PLACE.naverUrl);
     expect(link?.getAttribute('target')).toBe('_blank');
     expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
   });
