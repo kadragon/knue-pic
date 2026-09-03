@@ -2,32 +2,6 @@
 
 ## Review Backlog
 
-### PR #48 — a construct that loses sync and is rebalanced later is not reported (2026-09-03)
-
-- [ ] [debt] `SHEET.unterminated` reports a comment, string, block or paren left open at the end of
-  the scan, which catches everything that ends the scan mid-way. It cannot catch a construct that
-  loses sync and is brought back to a settled state by an unrelated one later in the file: a
-  dropped `)` cancelled by a stray `)` in a later rule leaves the depth at zero, so every
-  declaration between them is merged into one and lost with the suite green. Verified with
-  `.probe { background: url(a; padding: 8px; }` followed by `.probe-b { margin: 8px); }` — two
-  on-scale raw px disappear, nothing is reported. Malformed CSS that the build rejects
-  so it cannot publish; recorded because the guard's own docstring now
-  names it as out of reach and that claim should have somewhere to point. Tracking the offset of
-  each unmatched `(` and requiring it to close inside its own block would cover it (source: contract
-  QA pass 4 on PR #48) — `src/ui/stylesheet-claims.test.ts`
-
-### PR #48 — an unquoted `url()` holding `/*` is read as a comment open (2026-09-03)
-
-- [ ] [debt] The CSS tokenizer does not process comments inside an unquoted url token, so
-  `background: url(http://example.com/*a.png)` is valid CSS whose `/*` `scan()` reads as opening a
-  comment. It can come back out balanced — a later real `*/` closes it — so `SHEET.unterminated`
-  stays empty and the declarations in between are merged and lost: an on-scale `padding: 8px` after
-  such a url goes unreported with the suite green, and the sheet builds. Pre-existing in the same
-  shape on the brace regex, and unreachable today (`grep 'url(' src/styles.css` finds nothing), so
-  it is recorded rather than fixed. Closing it means treating `url(` as a token whose contents are
-  opaque until the matching `)` (source: contract QA pass 3 on PR #48)
-  — `src/ui/stylesheet-claims.test.ts`
-
 ### PR #48 — a rule nested inside a rule is attributed to its own prelude (2026-09-03)
 
 - [ ] [debt] The scan that replaced the brace regex gives every block its own prelude as `selector`,
