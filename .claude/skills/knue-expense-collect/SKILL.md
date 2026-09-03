@@ -88,6 +88,24 @@ file, or in an Actions secret used by the web build. Run `--selftest` first — 
 works *and* that the API's `mapx`/`mapy` convention still maps onto the campus, which is the one
 thing a wrong assumption would corrupt silently.
 
+## Knowing there is something new to collect
+
+`collector/board_seen.json` holds one number — `lastNttNo`, the highest `nttNo` this repo has
+already collected (84344 = 2026-08's 사무국장실 post). The board publishes an RSS feed of the same
+`bbsNo=18`:
+
+```bash
+curl -s "https://www.knue.ac.kr/rssBbsNtt.do?bbsNo=18"
+```
+
+Every `<item>` carries `nttNo` (in `<link>`), the title, `pubDate`, and the attachment's
+`atchmnflNo` (in `<url1>`). Items are newest-first, so anything with `nttNo > lastNttNo` is a post
+this repo has not seen. Bump `lastNttNo` to the run's highest `nttNo` after a collection lands.
+
+**The feed is a 50-item window, roughly two months.** If `lastNttNo` is no longer present in the
+feed, "nothing newer" and "the watermark fell out of the window" look identical — treat a missing
+watermark as *unknown*, not as *up to date*, and fall back to the list-page walk stage 1 does.
+
 ## Read the output, don't just run the commands
 
 Each stage prints what it *didn't* do. That output is the deliverable as much as the files are —
@@ -187,4 +205,5 @@ scripts/normalize_places.py    stage 3 — spelling merge -> normalized_places.j
 scripts/geocode_candidates.py  stage 4 — Naver local search -> review_candidates.csv
                                --report — same-coordinate spelling clusters to merge
 assets/exclusions.json         venue names not worth a lookup; grows as you learn
+collector/board_seen.json      lastNttNo — the highest board post already collected
 ```
