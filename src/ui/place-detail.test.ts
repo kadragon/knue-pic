@@ -135,7 +135,7 @@ describe('renderPlaceDetail', () => {
     expect(container.querySelectorAll('.place-detail-figure')).toHaveLength(2);
     expect(text).toContain('4회');
     expect(text).toContain('07-20');
-    // The year is the footer's job, not a row's: every date here sits inside the named window.
+    // The year is the provenance band's job, not a row's: every date sits inside the named window.
     expect(text).not.toContain('2026년 7월 20일');
     expect(text).not.toContain('합계');
     expect(text).not.toContain('평균');
@@ -202,19 +202,39 @@ describe('renderPlaceDetail', () => {
     }
   });
 
-  it('searches the narrowest region beside the name, not the name alone', () => {
+  it('searches the city and the narrowest region beside the name, not the name alone', () => {
     const container = document.createElement('div');
 
     renderPlaceDetail(container, detailFor(0, '1y'));
     const link = container.querySelector<HTMLAnchorElement>('.place-detail-link');
 
-    // 한밭식당 sits in 강내면 (`충북 청주시 흥덕구 강내면 태성탑연로 111`). The dataset's own
+    // 한밭식당 sits in 청주's 강내면 (`충북 청주시 흥덕구 강내면 태성탑연로 111`), so the query is
+    // `청주 강내면 한밭식당` — city, then narrowest unit, then the name. The dataset's own
     // `naverUrl` searches the trade name alone, which finds a same-named place elsewhere in the
     // country — the whole point of composing the query here.
     expect(link?.getAttribute('href')).toBe(
-      `https://map.naver.com/p/search/${encodeURIComponent('강내면 한밭식당')}`,
+      `https://map.naver.com/p/search/${encodeURIComponent('청주 강내면 한밭식당')}`,
     );
     expect(link?.getAttribute('href')).not.toBe(PLACE.naverUrl);
+  });
+
+  it('still links when the address names a region and the dataset URL is unusable', () => {
+    // The state the scheme guard used to blank: before the composed query, a non-https `naverUrl`
+    // meant no link at all. It no longer does, and that is the intended reading of the change — the
+    // composed href is a constant https prefix over a percent-encoded query, so no dataset string
+    // reaches an executable position on this path and there is nothing for the guard to catch. The
+    // guard covers the fallback, which is the only path a dataset string still reaches.
+    for (const naverUrl of ['javascript:alert(1)', 'http://map.naver.com/x', 'not a url']) {
+      const container = document.createElement('div');
+      const detail = detailFor(0, '1y');
+
+      renderPlaceDetail(container, { ...detail, place: { ...detail.place, naverUrl } });
+      const link = container.querySelector<HTMLAnchorElement>('.place-detail-link');
+
+      expect(link?.getAttribute('href')).toBe(
+        `https://map.naver.com/p/search/${encodeURIComponent('청주 강내면 한밭식당')}`,
+      );
+    }
   });
 
   it('falls back to the dataset URL when the address names no administrative unit', () => {

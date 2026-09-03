@@ -13,15 +13,20 @@ export interface ShellOptions {
 }
 
 /**
- * Renders the persistent page frame: header, the provenance banner, and a slot for the feature
+ * Renders the persistent page frame: header, the provenance band, and a slot for the feature
  * views. Feature modules fill `#content`.
  *
- * The provenance sits above `#content` rather than in a footer. The ranked list runs to hundreds of
- * rows, so a footer is reached only by scrolling past all of them — PRD §21 asks for the source and
- * the disclaimer on every screen, and a line nobody scrolls to does not satisfy that. It is a
- * sibling of the sticky header rather than a child of it: kept inside, three lines of provenance
- * would hold the top of every screen for the whole session, and the band exists to say where the
- * list came from once, not to compete with it for space.
+ * The provenance sits *above* `#content` rather than after it. The ranked list runs to hundreds of
+ * rows, so at the bottom of the document it is reached only by scrolling past all of them, and a
+ * line nobody scrolls to does not carry PRD §21. Above the list it is on the first screen instead
+ * — not on every screen, which only a sticky element would be, and holding the top of the viewport
+ * for the whole session is exactly what this band must not do. It says where the list came from
+ * once, on arrival.
+ *
+ * Still a `<footer>` element, moved rather than replaced: it is the page's only `contentinfo`
+ * landmark, and a `<section>` with no accessible name exposes none, which would cost a screen
+ * reader user the one jump target that reaches the source line and the disclaimer. The landmark is
+ * about what the content *is*, not where it sits in the flow.
  */
 export function renderShell(root: HTMLElement, options: ShellOptions = {}): void {
   const header = document.createElement('header');
@@ -34,7 +39,7 @@ export function renderShell(root: HTMLElement, options: ShellOptions = {}): void
   tagline.textContent = '교직원이 자주 이용한 곳';
   header.append(title, tagline);
 
-  const provenance = document.createElement('section');
+  const provenance = document.createElement('footer');
   provenance.className = 'shell-provenance';
 
   const source = document.createElement('p');

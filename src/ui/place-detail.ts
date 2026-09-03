@@ -95,15 +95,21 @@ const NAVER_SEARCH_PREFIX = 'https://map.naver.com/p/search/';
  * Where the Naver Maps link points, or `null` when no link should be rendered at all.
  *
  * The dataset's `naverUrl` searches the trade name alone, which finds the wrong branch whenever the
- * name is not unique nationwide — `신토불이` is the reported case. Prefixing the narrowest
- * administrative unit of the address the dataset already carries (`강내면 신토불이`) is a claim the
- * data supports, and it is composed here rather than in the collector so all 504 rows get it
- * without regenerating `data/places.json`.
+ * name is not unique nationwide — `신토불이` is the reported case. Prefixing where the place is,
+ * from the address the dataset already carries, is a claim the data supports: `addressRegion` names
+ * the shape (city, then narrowest unit), so the query reads `청주 강내면 신토불이`. It is composed
+ * here rather than in the collector so all 504 rows get it without regenerating `data/places.json`.
  *
  * The composed URL is safe by construction — the prefix is a constant and the query is
- * percent-encoded — so `isHttpsUrl` guards only the fallback, which is a dataset string reaching an
- * executable position. A `naverUrl` that is not `https:` renders no link rather than an
- * inert-looking one.
+ * percent-encoded — so `isHttpsUrl` guards the fallback alone, which is the one branch where a
+ * dataset string reaches an executable position. On that branch a `naverUrl` that is not `https:`
+ * renders no link rather than an inert-looking one; on the composed branch the field is not read at
+ * all, so its scheme decides nothing.
+ *
+ * Every one of the 504 rows published today names an administrative unit, so the fallback is a
+ * path the current dataset does not take. It is kept as the honest answer to an address shaped
+ * unlike any of them — the same refusal `shortAddress` makes — not as dead code, and the guard
+ * stays with it because that is the branch a dataset string would arrive on.
  */
 function naverLinkHref(place: PlaceRecord): string | null {
   const region = addressRegion(place.address);

@@ -79,7 +79,7 @@
   --dist-far-bg: #12345f;
   --dist-far-fg: #ffffff;
 
-  /* The tint the header and footer bands sit on, and the accent rule under the list heading. */
+  /* The tint the header and provenance bands sit on, and the accent rule under the list heading. */
   --band: #fffafb;
 
   --radius-xs: 4px;
@@ -129,7 +129,7 @@
   --glass-blur: saturate(180%) blur(20px);
 
   /* The measure `#content` is capped at, and the inset derived from it.
-     `--column-inset` exists so the full-bleed header and footer bands line their text up with
+     `--column-inset` exists so the full-bleed header and provenance bands line their text up with
      `#content` without needing a wrapper element, which only holds while the two agree on the
      width. Derived rather than written out: the inset was last a hand-computed literal for a
      1440px column, and narrowing the column left it 240px out of true at every viewport wider

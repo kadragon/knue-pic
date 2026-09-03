@@ -28,6 +28,11 @@ describe('renderShell', () => {
     expect(provenance?.textContent).toContain('최근 데이터 업데이트: 2026년 8월 1일');
     const order = [...root.children].map((child) => child.className || child.id);
     expect(order.indexOf('shell-provenance')).toBeLessThan(order.indexOf('content'));
+    // Moved, not replaced: `<footer>` is the page's only `contentinfo` landmark, and it is what a
+    // screen reader user jumps to in order to reach the source line and the §21 disclaimer. A
+    // `<section>` here would render identically and expose no landmark at all, so the element name
+    // is asserted rather than left to the class.
+    expect(provenance?.tagName).toBe('FOOTER');
   });
 
   it('shows the update date only when the dataset provides one', () => {

@@ -178,7 +178,7 @@ describe('bootstrap accessibility', () => {
 
     expect(root.querySelector('#content')).toBe(content);
     expect(root.querySelector('.shell-header')).toBe(header);
-    // The provenance line is written into the existing footer exactly once.
+    // The provenance line is written into the existing band exactly once.
     expect(root.querySelectorAll('.shell-updated')).toHaveLength(1);
     expect(root.textContent).toContain(`최근 데이터 업데이트: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
   });
