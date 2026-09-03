@@ -2,31 +2,28 @@
 
 ## Review Backlog
 
-### PR #48 — a rule nested inside a rule is attributed to its own prelude (2026-09-03)
+### PR #52 — the combinator split in `target()` does not respect parens (2026-09-03)
 
-- [ ] [debt] The scan that replaced the brace regex gives every block its own prelude as `selector`,
-  never a resolved ancestor chain. For a rule nested in an `@media` at top level that is right, and
-  it is what `reachingRules` has always assumed. For a rule nested inside *another rule* — the
-  `&:hover` and inner-`@media` shapes the scan newly understands — it loses the element: a raw px
-  there is reported as `@media (max-width: 600px) { margin: 8px }`, naming a rule the reader cannot
-  find, and `reachingRules('.place-kind-badge')` does not match `.place-kind-badge { @media … {
-  white-space: normal; } }`, so the nowrap guard cannot see an override written that way. Nothing
-  goes *unseen* — the declarations are scanned and an unannotated raw px still goes red — so this
-  is attribution, not a hole. Resolving the chain (`&` against the parent selector, an at-rule
-  frame passing its parent through) would fix both, and it changes what `reachingRules` matches,
-  which is why it was not folded into PR #48 (source: code-review + contract QA on PR #48)
-  — `src/ui/stylesheet-claims.test.ts`
+- [ ] [debt] `selectorParts` now splits a selector *list* at top-level commas only, but `reaches`'s
+  inner `target()` still splits each part on `/[\s>+~]+/` with no depth tracking, so a combinator
+  inside a functional pseudo-class ends the compound early. Measured on PR #52:
+  `reaches('.badge', '.badge:is(.a .b)')` is `false` — a rule that really does style `.badge` is
+  invisible to the override guard, so `.place-kind-badge:is(.x .y) { white-space: normal }` would
+  slip past the nowrap guard. Pre-existing (`target` is byte-identical to the version on `main`)
+  and a false negative rather than a false red, which is why it was not folded into PR #52 — but it
+  is the same class of bug `selectorParts` was added to close, in the same function. Skip
+  bracketed and parenthesised runs when splitting on combinators (source: contract QA
+  re-verification on PR #52) — `src/ui/stylesheet-claims.test.ts`
 
-### PR #48 — `bodyEnd` backfill walks every declaration at every closing brace (2026-09-03)
+### PR #52 — two selector splits the depth-aware helper did not reach (2026-09-03)
 
-- [ ] [debt] Three places walk every declaration for every rule, about 593 × 146 on today's sheet:
-  `scan()` backfills each declaration's `bodyEnd` by looping over all declarations found so far at
-  every closing brace; `RULES` filters the whole declaration list once per rule; and the annotation
-  guard's adjacency test scans the whole sheet per raw-px declaration rather than the owning rule's
-  range. All three run in milliseconds and no test is slow because of them, so this is tidiness
-  rather than a defect: a frame recording the index of its first declaration would let all three
-  address a range instead (source: contract QA passes 1 and 2 on PR #48)
-  — `src/ui/stylesheet-claims.test.ts`
+- [ ] [debt] `selectorParts` tracks quotes but not a backslash escape outside one, so
+  `.a\,b { .c { … } }` resolves to `.a\ .c, b .c`; and `WRAPPING_ELEMENTS` still calls
+  `token.split(',')` directly. Neither has live impact — `src/styles.css` holds no escaped
+  selector, and the `WRAPPING_ELEMENTS` input is three hand-written literals with no functional
+  pseudo-class — so both are latent, and the second only matters once that list stops being
+  hand-written. Route both through the helper, and honour the escape inside it (source: contract QA
+  re-verification on PR #52) — `src/ui/stylesheet-claims.test.ts`
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
