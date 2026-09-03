@@ -98,7 +98,9 @@ type ScannedRule = { selector: string; bodyStart: number; bodyEnd: number };
  * The scan is stateful precisely where the regex could not be: it knows whether it is inside a
  * comment, inside a `'`/`"` string (backslash escapes honoured), and how deep it is in parens. The
  * paren depth is what stops `url(data:image/svg+xml;utf8,…)` from splitting a declaration in two,
- * and the string state is what stops `content: "a;b"` from doing the same.
+ * and the string state is what stops `content: "a;b"` from doing the same. An *unquoted* url token
+ * needs more than depth — its contents are opaque to a real parser, so a `/*` or a `;` in there
+ * means nothing — and it is skipped whole, to its matching `)`.
  *
  * A block's `selector` is its own prelude, never a resolved ancestor chain. That is deliberate and
  * preserves `reachingRules`'s existing reading: a rule nested in an `@media` has always arrived
@@ -112,6 +114,34 @@ type ScannedRule = { selector: string; bodyStart: number; bodyEnd: number };
  * the fix and it is recorded in `backlog.md`, not done here: it changes what `reachingRules`
  * matches, which is a different guard's decision rule and a different contract.
  */
+/**
+ * The offset of the `)` closing a well formed unquoted url token whose contents start at `from`,
+ * or `-1` when this is not one.
+ *
+ * `-1` covers both a quoted `url("…")` — an ordinary function token, whose string must be read
+ * normally so a `)` inside the quotes ends nothing — and a bad-url token such as `url(a;`, whose
+ * `(` is a real unbalanced paren the scan must go on to report. Only the well formed case is safe
+ * to skip whole, and only whitespace either side of the contents is allowed, per the url-token
+ * grammar.
+ */
+const urlTokenEnd = (css: string, from: number): number => {
+  let at = from;
+  while (at < css.length && /\s/.test(css[at] ?? '')) at += 1;
+  while (at < css.length) {
+    const char = css[at] ?? '';
+    if (char === ')') return at;
+    if (/\s/.test(char)) {
+      while (at < css.length && /\s/.test(css[at] ?? '')) at += 1;
+      return css[at] === ')' ? at : -1;
+    }
+    if (char === '"' || char === "'" || char === '(' || char === ';' || char === '{' || char === '}') {
+      return -1;
+    }
+    at += 1;
+  }
+  return -1;
+};
+
 const scan = (
   css: string,
 ): {
@@ -119,19 +149,22 @@ const scan = (
   rules: ScannedRule[];
   declarations: ScannedDeclaration[];
   /**
-   * What the scan ran off the end of — an unclosed comment, string, block or paren.
+   * What the scan lost sync on — an unclosed comment, string, block or paren, and a `(` that
+   * outlived the block it opened in.
    *
-   * This catches the whole class that ends the scan mid-way, which is what silently blinded every
-   * guard before it existed. Empty is weaker than "the sheet is well formed": a construct can lose
-   * sync and come back out balanced, and two such cases are known and recorded in `backlog.md`.
-   * They are not equally contained, so do not read them as one:
+   * The end-of-scan checks catch the whole class that ends the scan mid-way, which is what
+   * silently blinded every guard before they existed. On their own they were weaker than "the
+   * sheet is well formed", because a construct can lose sync and be brought back to a settled
+   * state by an unrelated one later in the file — the depth reads zero at the end and every
+   * declaration in between has been merged into one and dropped. Two such shapes were known:
    *
-   * - a dropped `)` cancelled by a stray one later in the file is malformed CSS, and the build
-   *   rejects it, so it cannot publish;
-   * - an unquoted `url(…` holding a comment-open sequence is **valid CSS that builds**. The `/*`
-   *   inside the url token is not a comment to a real parser, is one to this scan, and a later
-   *   comment close ends it — swallowing the declarations in between. Nothing downstream stops it.
-   *   The only reason it cannot reach the sheet today is that the sheet contains no `url(` at all.
+   * - a dropped `)` cancelled by a stray one in a later rule. Now reported where it happens: a
+   *   `(` still open at a `{` or `}` never closed inside its own block, and no valid CSS does
+   *   that.
+   * - an unquoted `url(…` holding a comment-open sequence, which is **valid CSS that builds** —
+   *   the `/*` inside the url token is not a comment to a real parser, and a later real comment
+   *   close ended the one this scan opened, swallowing the declarations in between. Now closed at
+   *   the source: the url token is skipped whole, so nothing inside it is read at all.
    */
   unterminated: string[];
 } => {
@@ -145,9 +178,15 @@ const scan = (
   let index = 0;
   /** Where the current selector prelude or declaration began. */
   let pieceStart = 0;
-  let parens = 0;
-  /** Where the depth last left zero, so an unclosed `(` can be reported at a place, not a count. */
-  let parenOpenedAt = -1;
+  /**
+   * The offsets of the `(`s currently open, innermost last; its length is the paren depth.
+   *
+   * Offsets rather than a counter so an unclosed `(` is reported at a place, and so the block
+   * check below can name *which* paren outlived its block.
+   */
+  const parenOpens: number[] = [];
+  /** The last `(` already reported as outliving its block, so one offender yields one entry. */
+  let parenReported = -1;
 
   /**
    * The source between two offsets with any comment inside it removed.
@@ -242,6 +281,29 @@ const scan = (
       continue;
     }
 
+    // An unquoted `url(…)` is one token to a real parser: the `/*` in
+    // `url(http://example.com/*a.png)` opens no comment and a `;` in there ends no declaration.
+    // Read character by character it does both, and the comment a later real `*/` closes swallows
+    // every declaration in between — valid CSS that builds, and `unterminated` stays empty because
+    // the comment did close. Skipping such a token whole makes its contents opaque, which is what
+    // they are.
+    //
+    // Only a *well formed* one is skipped. An unquoted url token may not contain whitespace, a
+    // quote, a `(` or a `;` — `url(a;` is a bad-url token, not a url — and skipping to the next
+    // `)` anywhere in the file would swallow whole rules on the way, hiding the very typo the
+    // block check below exists to report. A malformed one therefore falls through to the ordinary
+    // paren handling, and so does a quoted `url("…")`, where a `)` inside the quotes must still
+    // end nothing.
+    if ((char === 'u' || char === 'U') && /^url\(/i.test(css.slice(index, index + 4))) {
+      // Not preceded by an identifier character, or `--brand-url(` would be read as a url token.
+      const joined = /[\w-]/.test(css[index - 1] ?? '');
+      const close = joined ? -1 : urlTokenEnd(css, index + 4);
+      if (close !== -1) {
+        index = close + 1;
+        continue;
+      }
+    }
+
     if (char === "'" || char === '"') {
       const opened = index;
       index += 1;
@@ -264,21 +326,32 @@ const scan = (
       continue;
     }
 
-    if (char === '(') {
-      if (parens === 0) parenOpenedAt = index;
-      parens += 1;
-    } else if (char === ')') parens = Math.max(0, parens - 1);
+    if (char === '(') parenOpens.push(index);
+    else if (char === ')') parenOpens.pop();
+
+    // A `(` still open at a block boundary never closed inside the block it opened in, and no
+    // valid CSS leaves one there. Reported here rather than at the end of the scan because a
+    // stray `)` in a later rule cancels the depth: by the end the sheet looks balanced, while
+    // every declaration between the two has been merged into one and lost. Recorded once per
+    // offending `(`, so a sheet with one typo does not produce an entry per later brace.
+    if (parenOpens.length > 0 && (char === '{' || char === '}')) {
+      const opened = parenOpens[parenOpens.length - 1] ?? -1;
+      if (opened !== parenReported) {
+        parenReported = opened;
+        unterminated.push(`( opened at ${opened}, still open at ${char} at ${index}`);
+      }
+    }
 
     // No resynchronising here. Forcing the paren depth back to zero at a brace was tried and
     // removed: it manufactured a closed block out of a sheet the scan could not follow, taking the
     // report's own block arm out with it. What replaces it is not the block stack but the depth
     // check at the end of the scan — a `(` that never closes is reported as itself.
-    if (parens === 0 && char === '{') {
+    if (parenOpens.length === 0 && char === '{') {
       const selector = collapse(between(pieceStart, index));
       open.push({ selector, bodyStart: index + 1, rule: rules.length });
       rules.push({ selector, bodyStart: index + 1, bodyEnd: -1 });
       pieceStart = index + 1;
-    } else if (parens === 0 && char === '}') {
+    } else if (parenOpens.length === 0 && char === '}') {
       flush(index);
       const frame = open.pop();
       if (frame !== undefined) {
@@ -293,7 +366,7 @@ const scan = (
         }
       }
       pieceStart = index + 1;
-    } else if (parens === 0 && char === ';') {
+    } else if (parenOpens.length === 0 && char === ';') {
       flush(index);
     }
 
@@ -306,7 +379,11 @@ const scan = (
   // attempts each covered half of it: resetting the depth at a brace hid an unclosed *block*, and
   // removing that reset hid an unbalanced `(` in a prelude, where no block is open to go unclosed
   // — `@media (min-width: 40rem {` is the likeliest typo in the family and had no arm at all.
-  if (parens !== 0) unterminated.push(`( opened at ${parenOpenedAt}, depth ${parens} at end`);
+  // This arm is what catches a `(` in a prelude, where no brace follows inside its own block; the
+  // block-boundary check above is what catches one that a later stray `)` would have cancelled.
+  if (parenOpens.length > 0) {
+    unterminated.push(`( opened at ${parenOpens[0]}, depth ${parenOpens.length} at end`);
+  }
   return { comments, rules, declarations, unterminated };
 };
 
@@ -541,6 +618,64 @@ const WRAPPING_TOKENS = [
 const WRAPPING_ELEMENTS = [
   ...new Set(WRAPPING_TOKENS.flatMap((token) => token.split(',').map(collapse))),
 ];
+
+describe('stylesheet scan', () => {
+  // `SHEET.unterminated` only ever proves the scan did not run off the *end* of the file. These
+  // four cover the harder half — a construct that loses sync and is brought back to a settled
+  // state later, where the end-of-scan checks see a balanced sheet and every declaration in
+  // between has been merged into one and dropped with the suite green.
+
+  it('reports a `(` that outlived its block, though a later stray `)` rebalances the depth', () => {
+    // The dropped-`)` shape. Both `padding: 8px` and `margin: 8px` are swallowed into a single
+    // `background` declaration here, so the spacing guards never see them; the depth is zero by
+    // the end, so the end-of-scan paren arm says nothing. What reports it is the `(` still being
+    // open at `.probe`'s closing brace, which no valid CSS does.
+    const css = '.probe { background: url(a; padding: 8px; }\n.probe-b { margin: 8px); }\n';
+
+    expect(scan(css).unterminated).toEqual(['( opened at 24, still open at } at 42']);
+  });
+
+  it('names one offending `(` once, not once per brace that follows it', () => {
+    // The report is read by a person. An unclosed paren early in a sheet crossing forty later
+    // braces would otherwise bury its own first line under forty restatements of itself.
+    const css = '.a { color: rgb(0, 0, 0; }\n.b { color: red; }\n.c { color: blue); }\n';
+
+    expect(scan(css).unterminated).toHaveLength(1);
+  });
+
+  it('reads no comment inside an unquoted url token, so the declarations after it survive', () => {
+    // Valid CSS that builds: `/*` inside a url is not a comment to a real parser. Read as one, it
+    // is closed by the next real comment's `*/` — blanking the `;` between them, so `background`
+    // and `padding` merge into one declaration and the raw px goes unreported. `unterminated`
+    // stays empty throughout, because the comment did close.
+    const css = [
+      '.probe {',
+      '  background: url(http://example.com/*a.png);',
+      '  /* a real comment */',
+      '  padding: 8px;',
+      '}',
+    ].join('\n');
+
+    const result = scan(css);
+
+    expect(result.unterminated).toEqual([]);
+    expect(result.declarations.map(({ property, value }) => `${property}: ${value}`)).toEqual([
+      'background: url(http://example.com/*a.png)',
+      'padding: 8px',
+    ]);
+  });
+
+  it('still reads a quoted `url("…")` as a string, so a `)` inside the quotes ends nothing', () => {
+    // The carve-out the skip needs. A quoted url is an ordinary function token; skipping to the
+    // first `)` would stop inside the string and leave the rest of the value misread.
+    const css = '.probe { background: url("a)b.png"); padding: 8px; }';
+
+    const result = scan(css);
+
+    expect(result.unterminated).toEqual([]);
+    expect(result.declarations.map(({ property }) => property)).toEqual(['background', 'padding']);
+  });
+});
 
 describe('superlative claims', () => {
   it('reads all three files, so no claim is guarded by an empty string', () => {
@@ -800,8 +935,9 @@ describe('optical spacing annotations', () => {
     // meets malformed input by losing sync — a quote, comment, block or paren that never closes —
     // and each of those used to end with the scan silently reading nothing for the rest of the file
     // while every guard reported green. Rather than patching the shapes one at a time, the scan now
-    // says how it ended, and that is checked here. It does not catch a construct that loses sync
-    // and is rebalanced later by an unrelated one; `backlog.md` carries those.
+    // says how it ended, and that is checked here. A construct that loses sync and is rebalanced
+    // later by an unrelated one is covered too, by the block-boundary arm and the url token —
+    // see the `stylesheet scan` suite above, which exercises both on synthetic sheets.
     expect(SHEET.unterminated).toEqual([]);
   });
 
