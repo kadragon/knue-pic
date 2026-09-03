@@ -272,8 +272,9 @@ const selectorParts = (selector: string): string[] => {
  * way the sheet would never have shown: `.a, .b { & .c { … } }` became `:is(.a, .b) .c`, one string
  * holding a comma that is *not* a selector separator. Every reader downstream then split it into
  * `:is(.a` and `.b) .c`, and `reaches('.a', …)` matched the fragment — a rule that styles `.c`
- * reported as an override of `.a`. Distribution emits `.a .c, .b .c`, which carries the same
- * meaning with no comma that means anything else.
+ * reported as an override of `.a`. Distribution emits `.a .c, .b .c`, which matches the same
+ * elements with no comma that means anything else. Equivalent for *matching*, which is all any
+ * guard here asks: the two forms differ in specificity, and nothing in this suite reads that.
  */
 const resolveSelector = (prelude: string, parent: string | undefined): string => {
   if (parent === undefined || parent.startsWith('@')) return prelude;

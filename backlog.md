@@ -2,6 +2,29 @@
 
 ## Review Backlog
 
+### PR #52 — the combinator split in `target()` does not respect parens (2026-09-03)
+
+- [ ] [debt] `selectorParts` now splits a selector *list* at top-level commas only, but `reaches`'s
+  inner `target()` still splits each part on `/[\s>+~]+/` with no depth tracking, so a combinator
+  inside a functional pseudo-class ends the compound early. Measured on PR #52:
+  `reaches('.badge', '.badge:is(.a .b)')` is `false` — a rule that really does style `.badge` is
+  invisible to the override guard, so `.place-kind-badge:is(.x .y) { white-space: normal }` would
+  slip past the nowrap guard. Pre-existing (`target` is byte-identical to the version on `main`)
+  and a false negative rather than a false red, which is why it was not folded into PR #52 — but it
+  is the same class of bug `selectorParts` was added to close, in the same function. Skip
+  bracketed and parenthesised runs when splitting on combinators (source: contract QA
+  re-verification on PR #52) — `src/ui/stylesheet-claims.test.ts`
+
+### PR #52 — two selector splits the depth-aware helper did not reach (2026-09-03)
+
+- [ ] [debt] `selectorParts` tracks quotes but not a backslash escape outside one, so
+  `.a\,b { .c { … } }` resolves to `.a\ .c, b .c`; and `WRAPPING_ELEMENTS` still calls
+  `token.split(',')` directly. Neither has live impact — `src/styles.css` holds no escaped
+  selector, and the `WRAPPING_ELEMENTS` input is three hand-written literals with no functional
+  pseudo-class — so both are latent, and the second only matters once that list stops being
+  hand-written. Route both through the helper, and honour the escape inside it (source: contract QA
+  re-verification on PR #52) — `src/ui/stylesheet-claims.test.ts`
+
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] The auth-failure hook is registered after the map mounts, which assumes the v3 API calls `navermap_authFailure` post-construction rather than during script init. No vendor doc or captured trace establishes that ordering in either direction — verify against a deliberately rejected origin in a real browser, and move the registration only if the check shows the hook firing earlier (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*
