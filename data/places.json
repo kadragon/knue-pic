@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-25",
+  "updatedAt": "2026-09-03",
   "places": [
     {
       "id": "restaurant_000003",
@@ -27,30 +27,6 @@
       "lng": 127.3561614,
       "naverUrl": "https://map.naver.com/p/search/36.5%EA%B3%B5%EA%B0%90",
       "transactions": [
-        {
-          "date": "2025-06-04",
-          "amount": 105500
-        },
-        {
-          "date": "2025-06-17",
-          "amount": 200000
-        },
-        {
-          "date": "2025-06-20",
-          "amount": 39000
-        },
-        {
-          "date": "2025-06-24",
-          "amount": 33500
-        },
-        {
-          "date": "2025-06-26",
-          "amount": 60000
-        },
-        {
-          "date": "2025-06-26",
-          "amount": 120000
-        },
         {
           "date": "2025-07-02",
           "amount": 188000
@@ -292,10 +268,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EA%B0%80%EA%B2%BD%EC%B0%9C%EB%8B%AD%EC%95%84%EA%B5%AC%EC%B0%9C",
       "transactions": [
         {
-          "date": "2025-06-11",
-          "amount": 83000
-        },
-        {
           "date": "2026-06-11",
           "amount": 83000
         }
@@ -428,22 +400,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EA%B0%95%EC%84%9C%EC%B6%94%EC%96%B4%ED%83%95",
       "transactions": [
         {
-          "date": "2025-06-04",
-          "amount": 294000
-        },
-        {
-          "date": "2025-06-11",
-          "amount": 120000
-        },
-        {
-          "date": "2025-06-20",
-          "amount": 120000
-        },
-        {
-          "date": "2025-06-20",
-          "amount": 200000
-        },
-        {
           "date": "2026-01-12",
           "amount": 84000
         },
@@ -483,10 +439,6 @@
       "lng": 127.3301088,
       "naverUrl": "https://map.naver.com/p/search/%EA%B3%A0%EB%A9%94%EC%8A%A4%ED%80%98%EC%96%B4%20%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
-        {
-          "date": "2025-06-19",
-          "amount": 362600
-        },
         {
           "date": "2025-07-08",
           "amount": 508300
@@ -778,6 +730,10 @@
         {
           "date": "2026-07-29",
           "amount": 207200
+        },
+        {
+          "date": "2026-08-04",
+          "amount": 209300
         }
       ]
     },
@@ -1066,6 +1022,10 @@
         {
           "date": "2026-07-03",
           "amount": 160000
+        },
+        {
+          "date": "2026-08-27",
+          "amount": 56000
         }
       ]
     },
@@ -1131,14 +1091,6 @@
       "lng": 127.3539821,
       "naverUrl": "https://map.naver.com/p/search/%EA%B8%B0%EC%9A%B4%EC%8E%88%EC%9E%A5%EC%96%B4",
       "transactions": [
-        {
-          "date": "2025-06-04",
-          "amount": 325000
-        },
-        {
-          "date": "2025-06-25",
-          "amount": 288600
-        },
         {
           "date": "2025-07-13",
           "amount": 346000
@@ -1326,6 +1278,14 @@
         {
           "date": "2026-07-30",
           "amount": 567000
+        },
+        {
+          "date": "2026-08-25",
+          "amount": 350000
+        },
+        {
+          "date": "2026-08-26",
+          "amount": 277000
         }
       ]
     },
@@ -1370,10 +1330,6 @@
         {
           "date": "2026-07-08",
           "amount": 130000
-        },
-        {
-          "date": "2026-08-21",
-          "amount": 75000
         }
       ]
     },
@@ -1387,10 +1343,6 @@
       "lng": 127.3133878,
       "naverUrl": "https://map.naver.com/p/search/%EA%B9%80%EA%B0%80%EB%84%A4%ED%95%9C%EC%A0%95%EC%8B%9D",
       "transactions": [
-        {
-          "date": "2025-06-25",
-          "amount": 180000
-        },
         {
           "date": "2025-07-01",
           "amount": 780000
@@ -1438,6 +1390,10 @@
         {
           "date": "2026-02-24",
           "amount": 120000
+        },
+        {
+          "date": "2026-08-05",
+          "amount": 90000
         }
       ]
     },
@@ -1499,10 +1455,6 @@
       "lng": 127.4010072,
       "naverUrl": "https://map.naver.com/p/search/%EA%B9%8C%EB%A7%9D%EC%97%BC%EC%86%8C",
       "transactions": [
-        {
-          "date": "2025-06-05",
-          "amount": 123650
-        },
         {
           "date": "2025-08-13",
           "amount": 147000
@@ -1574,6 +1526,14 @@
         {
           "date": "2026-07-30",
           "amount": 168000
+        },
+        {
+          "date": "2026-08-26",
+          "amount": 111000
+        },
+        {
+          "date": "2026-08-31",
+          "amount": 84000
         }
       ]
     },
@@ -1639,10 +1599,6 @@
       "lng": 127.3199934,
       "naverUrl": "https://map.naver.com/p/search/%EB%82%98%EB%A3%A8",
       "transactions": [
-        {
-          "date": "2025-06-16",
-          "amount": 200000
-        },
         {
           "date": "2025-07-07",
           "amount": 31000
@@ -1747,10 +1703,6 @@
       "lng": 127.3541234,
       "naverUrl": "https://map.naver.com/p/search/%EB%82%A8%EC%9B%90%EC%B6%94%EC%96%B4%ED%83%95",
       "transactions": [
-        {
-          "date": "2025-06-12",
-          "amount": 240000
-        },
         {
           "date": "2025-07-28",
           "amount": 120000
@@ -1884,10 +1836,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EB%85%B8%EC%9B%8C%EB%A6%AC%EC%8A%A4",
       "transactions": [
         {
-          "date": "2025-06-10",
-          "amount": 34800
-        },
-        {
           "date": "2025-09-02",
           "amount": 32300
         },
@@ -1931,14 +1879,6 @@
       "lng": 127.3585334,
       "naverUrl": "https://map.naver.com/p/search/%EB%89%B4%EC%9A%95%EB%B2%84%EA%B1%B0%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%80%ED%95%99%EA%B5%90%EC%A0%90",
       "transactions": [
-        {
-          "date": "2025-06-11",
-          "amount": 208800
-        },
-        {
-          "date": "2025-06-11",
-          "amount": 217500
-        },
         {
           "date": "2025-10-17",
           "amount": 132300
@@ -2322,6 +2262,10 @@
         {
           "date": "2026-07-07",
           "amount": 69000
+        },
+        {
+          "date": "2026-08-27",
+          "amount": 105000
         }
       ]
     },
@@ -2744,10 +2688,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EB%8F%99%EB%8C%80%EB%AC%B8%EA%B3%B1%EC%B0%BD%EB%A7%89%EC%B0%BD",
       "transactions": [
         {
-          "date": "2025-06-07",
-          "amount": 105000
-        },
-        {
           "date": "2025-09-04",
           "amount": 150000
         },
@@ -2790,6 +2730,10 @@
         {
           "date": "2026-05-04",
           "amount": 195000
+        },
+        {
+          "date": "2026-08-04",
+          "amount": 225000
         }
       ]
     },
@@ -2916,14 +2860,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EB%94%94%EC%A0%80%ED%8A%B839%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%80%EC%A0%90",
       "transactions": [
         {
-          "date": "2025-06-05",
-          "amount": 29600
-        },
-        {
-          "date": "2025-06-12",
-          "amount": 19700
-        },
-        {
           "date": "2025-07-28",
           "amount": 54700
         },
@@ -3038,6 +2974,10 @@
         {
           "date": "2026-07-07",
           "amount": 25600
+        },
+        {
+          "date": "2026-08-20",
+          "amount": 52800
         }
       ]
     },
@@ -3067,10 +3007,6 @@
       "lng": 127.3297356,
       "naverUrl": "https://map.naver.com/p/search/%EB%96%A1%EB%A7%88%EB%A7%88%20%EC%B2%AD%EC%A3%BC%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
-        {
-          "date": "2025-06-17",
-          "amount": 180000
-        },
         {
           "date": "2025-11-11",
           "amount": 103000
@@ -3175,10 +3111,6 @@
       "lng": 127.3175428,
       "naverUrl": "https://map.naver.com/p/search/%EB%9A%9C%EB%A0%88%EC%A5%AC%EB%A5%B4%20%EC%98%A4%EC%86%A1%ED%8C%8C%EB%9D%BC%EA%B3%A4%EC%A0%90",
       "transactions": [
-        {
-          "date": "2025-06-20",
-          "amount": 50850
-        },
         {
           "date": "2025-11-11",
           "amount": 167600
@@ -3336,10 +3268,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EB%A1%AF%EB%8D%B0%EB%A7%88%ED%8A%B8",
       "transactions": [
         {
-          "date": "2025-06-23",
-          "amount": 148060
-        },
-        {
           "date": "2025-08-18",
           "amount": 219800
         },
@@ -3403,14 +3331,6 @@
       "lng": 127.3499407,
       "naverUrl": "https://map.naver.com/p/search/%EB%A6%AC%EB%B2%84%EB%B7%B0",
       "transactions": [
-        {
-          "date": "2025-06-10",
-          "amount": 197500
-        },
-        {
-          "date": "2025-06-26",
-          "amount": 150000
-        },
         {
           "date": "2025-07-10",
           "amount": 144500
@@ -3644,10 +3564,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EB%A7%88%EB%A3%A8%ED%9A%9F%EC%A7%91",
       "transactions": [
         {
-          "date": "2025-06-10",
-          "amount": 100000
-        },
-        {
           "date": "2026-01-09",
           "amount": 200000
         },
@@ -3679,18 +3595,6 @@
       "lng": 127.3537723,
       "naverUrl": "https://map.naver.com/p/search/%EB%A7%8C%EB%91%90%EA%B0%80",
       "transactions": [
-        {
-          "date": "2025-06-09",
-          "amount": 105000
-        },
-        {
-          "date": "2025-06-09",
-          "amount": 105000
-        },
-        {
-          "date": "2025-06-10",
-          "amount": 126000
-        },
         {
           "date": "2025-09-24",
           "amount": 158000
@@ -3747,14 +3651,6 @@
       "lng": 127.3559406,
       "naverUrl": "https://map.naver.com/p/search/%EB%A7%8C%EB%A6%AC%EC%9E%A5%EC%84%B1",
       "transactions": [
-        {
-          "date": "2025-06-02",
-          "amount": 61000
-        },
-        {
-          "date": "2025-06-24",
-          "amount": 158000
-        },
         {
           "date": "2025-07-18",
           "amount": 190000
@@ -4014,6 +3910,10 @@
         {
           "date": "2026-07-28",
           "amount": 171000
+        },
+        {
+          "date": "2026-08-03",
+          "amount": 145000
         }
       ]
     },
@@ -4071,10 +3971,6 @@
       "lng": 127.3308638,
       "naverUrl": "https://map.naver.com/p/search/%EB%A7%98%EC%8A%A4%ED%84%B0%EC%B9%98",
       "transactions": [
-        {
-          "date": "2025-06-10",
-          "amount": 154000
-        },
         {
           "date": "2025-11-18",
           "amount": 67400
@@ -4210,6 +4106,10 @@
         {
           "date": "2026-01-30",
           "amount": 177000
+        },
+        {
+          "date": "2026-08-24",
+          "amount": 47000
         }
       ]
     },
@@ -4327,14 +4227,6 @@
       "lng": 127.3554029,
       "naverUrl": "https://map.naver.com/p/search/%EB%A9%94%EC%9D%B449-10",
       "transactions": [
-        {
-          "date": "2025-06-10",
-          "amount": 65900
-        },
-        {
-          "date": "2025-06-16",
-          "amount": 163200
-        },
         {
           "date": "2025-07-02",
           "amount": 114000
@@ -4606,6 +4498,10 @@
         {
           "date": "2026-06-13",
           "amount": 105000
+        },
+        {
+          "date": "2026-08-25",
+          "amount": 191000
         }
       ]
     },
@@ -4923,14 +4819,6 @@
       "lng": 127.4250738,
       "naverUrl": "https://map.naver.com/p/search/%EB%B0%98%EC%A7%80%ED%95%98%20%EC%B2%AD%EC%A3%BC%EB%B3%B8%EC%A0%90",
       "transactions": [
-        {
-          "date": "2025-06-09",
-          "amount": 158000
-        },
-        {
-          "date": "2025-06-19",
-          "amount": 158000
-        },
         {
           "date": "2026-06-09",
           "amount": 158000
@@ -5264,18 +5152,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EB%B3%B8%EB%8F%84%EC%8B%9C%EB%9D%BD%20%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
         {
-          "date": "2025-06-18",
-          "amount": 129000
-        },
-        {
-          "date": "2025-06-26",
-          "amount": 150900
-        },
-        {
-          "date": "2025-06-30",
-          "amount": 320600
-        },
-        {
           "date": "2025-07-07",
           "amount": 79800
         },
@@ -5562,6 +5438,14 @@
         {
           "date": "2026-07-15",
           "amount": 326400
+        },
+        {
+          "date": "2026-08-20",
+          "amount": 292600
+        },
+        {
+          "date": "2026-08-24",
+          "amount": 159000
         }
       ]
     },
@@ -5631,10 +5515,6 @@
       "lng": 127.3200074,
       "naverUrl": "https://map.naver.com/p/search/%EB%B4%89%EC%82%B0%EB%A6%AC1197",
       "transactions": [
-        {
-          "date": "2025-06-16",
-          "amount": 45000
-        },
         {
           "date": "2026-01-30",
           "amount": 40100
@@ -5772,10 +5652,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EB%B8%8C%EB%9D%BC%EB%8D%94%ED%95%9C%EC%A0%95%EC%8B%9D%EB%8F%84%EC%8B%9C%EB%9D%BD",
       "transactions": [
         {
-          "date": "2025-06-20",
-          "amount": 47000
-        },
-        {
           "date": "2025-11-24",
           "amount": 322000
         },
@@ -5806,6 +5682,10 @@
         {
           "date": "2026-07-29",
           "amount": 207500
+        },
+        {
+          "date": "2026-08-03",
+          "amount": 189000
         }
       ]
     },
@@ -5839,10 +5719,6 @@
       "lng": 127.3564676,
       "naverUrl": "https://map.naver.com/p/search/%EB%B8%8C%EB%A6%AC%EB%93%9C%EC%BB%A4%ED%94%BC%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%802%ED%98%B8%EC%A0%90",
       "transactions": [
-        {
-          "date": "2025-06-16",
-          "amount": 2225000
-        },
         {
           "date": "2025-07-07",
           "amount": 1965000
@@ -6162,6 +6038,18 @@
         {
           "date": "2026-07-08",
           "amount": 175000
+        },
+        {
+          "date": "2026-08-19",
+          "amount": 195000
+        },
+        {
+          "date": "2026-08-26",
+          "amount": 7500
+        },
+        {
+          "date": "2026-08-26",
+          "amount": 300000
         }
       ]
     },
@@ -6320,26 +6208,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%82%B0%ED%95%98%EC%B6%98",
       "transactions": [
         {
-          "date": "2025-06-05",
-          "amount": 70000
-        },
-        {
-          "date": "2025-06-10",
-          "amount": 420000
-        },
-        {
-          "date": "2025-06-12",
-          "amount": 88000
-        },
-        {
-          "date": "2025-06-24",
-          "amount": 390000
-        },
-        {
-          "date": "2025-06-27",
-          "amount": 400000
-        },
-        {
           "date": "2025-07-01",
           "amount": 286000
         },
@@ -6474,6 +6342,14 @@
         {
           "date": "2026-07-21",
           "amount": 225000
+        },
+        {
+          "date": "2026-08-13",
+          "amount": 205850
+        },
+        {
+          "date": "2026-08-28",
+          "amount": 193000
         }
       ]
     },
@@ -6487,14 +6363,6 @@
       "lng": 127.5100228,
       "naverUrl": "https://map.naver.com/p/search/%EC%82%BC%EA%B1%B0%EB%A6%AC%EC%B9%B4%ED%8E%98",
       "transactions": [
-        {
-          "date": "2025-06-02",
-          "amount": 29610
-        },
-        {
-          "date": "2025-06-18",
-          "amount": 64800
-        },
         {
           "date": "2025-07-02",
           "amount": 29520
@@ -6875,10 +6743,6 @@
       "lng": 127.3277001,
       "naverUrl": "https://map.naver.com/p/search/%EC%84%9C%EB%B8%8C%EC%9B%A8%EC%9D%B4%20%EC%B2%AD%EC%A3%BC%EC%98%A4%EC%86%A1",
       "transactions": [
-        {
-          "date": "2025-06-01",
-          "amount": 174300
-        },
         {
           "date": "2025-09-23",
           "amount": 105000
@@ -7432,14 +7296,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%88%98%ED%94%BC%EC%95%84%EC%9D%98%20%EC%9E%91%EC%9D%80%EB%B6%80%EC%97%8C",
       "transactions": [
         {
-          "date": "2025-06-11",
-          "amount": 2736000
-        },
-        {
-          "date": "2025-06-23",
-          "amount": 2748000
-        },
-        {
           "date": "2025-07-03",
           "amount": 2370000
         },
@@ -7548,10 +7404,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%88%9C%EB%82%A8%EC%8B%9C%EB%9E%98%EA%B8%B0",
       "transactions": [
         {
-          "date": "2025-06-05",
-          "amount": 65000
-        },
-        {
           "date": "2025-07-09",
           "amount": 65000
         },
@@ -7607,22 +7459,6 @@
       "lng": 127.3275474,
       "naverUrl": "https://map.naver.com/p/search/%EC%8A%A4%EC%8B%9C88",
       "transactions": [
-        {
-          "date": "2025-06-11",
-          "amount": 90000
-        },
-        {
-          "date": "2025-06-11",
-          "amount": 90000
-        },
-        {
-          "date": "2025-06-13",
-          "amount": 105000
-        },
-        {
-          "date": "2025-06-13",
-          "amount": 105000
-        },
         {
           "date": "2025-07-28",
           "amount": 80500
@@ -7792,18 +7628,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%8A%A4%ED%83%80%EB%B2%85%EC%8A%A4",
       "transactions": [
         {
-          "date": "2025-06-04",
-          "amount": 32400
-        },
-        {
-          "date": "2025-06-05",
-          "amount": 30500
-        },
-        {
-          "date": "2025-06-16",
-          "amount": 50600
-        },
-        {
           "date": "2025-07-09",
           "amount": 30500
         },
@@ -7878,10 +7702,6 @@
         {
           "date": "2026-06-13",
           "amount": 40100
-        },
-        {
-          "date": "2026-08-23",
-          "amount": 25400
         }
       ]
     },
@@ -8043,26 +7863,6 @@
       "lng": 127.3564631,
       "naverUrl": "https://map.naver.com/p/search/%EC%8B%A0%ED%86%A0%EB%B6%88%EC%9D%B4%EA%B5%90%EC%9B%90%EB%8C%80%EC%A0%90",
       "transactions": [
-        {
-          "date": "2025-06-02",
-          "amount": 276000
-        },
-        {
-          "date": "2025-06-06",
-          "amount": 380000
-        },
-        {
-          "date": "2025-06-09",
-          "amount": 262000
-        },
-        {
-          "date": "2025-06-18",
-          "amount": 120000
-        },
-        {
-          "date": "2025-06-26",
-          "amount": 170000
-        },
         {
           "date": "2025-07-01",
           "amount": 112000
@@ -8574,6 +8374,18 @@
         {
           "date": "2026-07-30",
           "amount": 138000
+        },
+        {
+          "date": "2026-08-03",
+          "amount": 167500
+        },
+        {
+          "date": "2026-08-06",
+          "amount": 323000
+        },
+        {
+          "date": "2026-08-27",
+          "amount": 420000
         }
       ]
     },
@@ -8726,6 +8538,10 @@
         {
           "date": "2026-07-20",
           "amount": 157000
+        },
+        {
+          "date": "2026-08-26",
+          "amount": 60000
         }
       ]
     },
@@ -8806,6 +8622,10 @@
         {
           "date": "2026-07-29",
           "amount": 176000
+        },
+        {
+          "date": "2026-08-25",
+          "amount": 152000
         }
       ]
     },
@@ -9066,6 +8886,10 @@
         {
           "date": "2026-07-15",
           "amount": 90000
+        },
+        {
+          "date": "2026-08-27",
+          "amount": 22000
         }
       ]
     },
@@ -9198,6 +9022,14 @@
         {
           "date": "2026-07-27",
           "amount": 62900
+        },
+        {
+          "date": "2026-08-20",
+          "amount": 18900
+        },
+        {
+          "date": "2026-08-20",
+          "amount": 56800
         }
       ]
     },
@@ -9211,14 +9043,6 @@
       "lng": 127.3269361,
       "naverUrl": "https://map.naver.com/p/search/%EC%97%AC%EA%B8%B0%EC%98%A4%EC%86%A1",
       "transactions": [
-        {
-          "date": "2025-06-24",
-          "amount": 59800
-        },
-        {
-          "date": "2025-06-27",
-          "amount": 68700
-        },
         {
           "date": "2025-07-01",
           "amount": 37900
@@ -9250,6 +9074,18 @@
         {
           "date": "2026-06-02",
           "amount": 117200
+        },
+        {
+          "date": "2026-08-04",
+          "amount": 277500
+        },
+        {
+          "date": "2026-08-19",
+          "amount": 315900
+        },
+        {
+          "date": "2026-08-31",
+          "amount": 30600
         }
       ]
     },
@@ -9279,14 +9115,6 @@
       "lng": 127.3251002,
       "naverUrl": "https://map.naver.com/p/search/%EC%97%B0%ED%99%94%EB%82%99%EC%A7%80",
       "transactions": [
-        {
-          "date": "2025-06-10",
-          "amount": 117000
-        },
-        {
-          "date": "2025-06-11",
-          "amount": 290000
-        },
         {
           "date": "2025-07-31",
           "amount": 128000
@@ -9530,6 +9358,10 @@
         {
           "date": "2026-07-22",
           "amount": 300000
+        },
+        {
+          "date": "2026-08-18",
+          "amount": 244000
         }
       ]
     },
@@ -9543,10 +9375,6 @@
       "lng": 127.3191009,
       "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EB%B4%89%EC%A7%91%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
-        {
-          "date": "2025-06-04",
-          "amount": 252000
-        },
         {
           "date": "2025-07-15",
           "amount": 290000
@@ -10064,10 +9892,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%9A%B0%EB%A6%BC%EC%B9%BC%EA%B5%AD%EC%88%98",
       "transactions": [
         {
-          "date": "2025-06-28",
-          "amount": 297000
-        },
-        {
           "date": "2026-01-09",
           "amount": 105000
         },
@@ -10123,10 +9947,6 @@
       "lng": 127.3010768,
       "naverUrl": "https://map.naver.com/p/search/%EC%9A%B0%EB%B3%B4%EC%84%A4%EB%A0%81%ED%83%95",
       "transactions": [
-        {
-          "date": "2025-06-19",
-          "amount": 122000
-        },
         {
           "date": "2025-07-22",
           "amount": 120000
@@ -10282,6 +10102,10 @@
         {
           "date": "2026-06-18",
           "amount": 60000
+        },
+        {
+          "date": "2026-08-13",
+          "amount": 56000
         }
       ]
     },
@@ -10297,10 +10121,6 @@
       "transactions": [
         {
           "date": "2025-08-21",
-          "amount": 94000
-        },
-        {
-          "date": "2026-08-21",
           "amount": 94000
         }
       ]
@@ -10446,6 +10266,18 @@
         {
           "date": "2026-07-09",
           "amount": 32800
+        },
+        {
+          "date": "2026-08-03",
+          "amount": 29600
+        },
+        {
+          "date": "2026-08-03",
+          "amount": 58400
+        },
+        {
+          "date": "2026-08-04",
+          "amount": 327600
         }
       ]
     },
@@ -10723,26 +10555,6 @@
       "lng": 127.3620866,
       "naverUrl": "https://map.naver.com/p/search/%EC%9E%87%ED%94%8C%EB%A0%88%EC%9D%B4%EC%8A%A4720",
       "transactions": [
-        {
-          "date": "2025-06-02",
-          "amount": 100000
-        },
-        {
-          "date": "2025-06-12",
-          "amount": 143800
-        },
-        {
-          "date": "2025-06-18",
-          "amount": 91400
-        },
-        {
-          "date": "2025-06-18",
-          "amount": 177600
-        },
-        {
-          "date": "2025-06-27",
-          "amount": 284200
-        },
         {
           "date": "2025-08-04",
           "amount": 173600
@@ -11260,10 +11072,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%A3%BC%EB%AC%B8%EC%A7%84%EB%AC%BC%ED%9A%8C",
       "transactions": [
         {
-          "date": "2025-06-25",
-          "amount": 144000
-        },
-        {
           "date": "2025-11-04",
           "amount": 156000
         },
@@ -11470,6 +11278,10 @@
         {
           "date": "2026-02-09",
           "amount": 105000
+        },
+        {
+          "date": "2026-08-28",
+          "amount": 390000
         }
       ]
     },
@@ -11483,10 +11295,6 @@
       "lng": 127.2985061,
       "naverUrl": "https://map.naver.com/p/search/%EC%B2%AD%EC%99%80%EC%82%BC%EB%8C%80",
       "transactions": [
-        {
-          "date": "2025-06-05",
-          "amount": 66000
-        },
         {
           "date": "2025-09-09",
           "amount": 1425000
@@ -11503,22 +11311,6 @@
       "lng": 127.3594046,
       "naverUrl": "https://map.naver.com/p/search/%EC%B2%AD%EC%A3%BC%EA%B0%95%EB%82%B4%20%ED%8C%8C%EB%A6%AC%EB%B0%94%EA%B2%8C%ED%8A%B8",
       "transactions": [
-        {
-          "date": "2025-06-10",
-          "amount": 68000
-        },
-        {
-          "date": "2025-06-11",
-          "amount": 89000
-        },
-        {
-          "date": "2025-06-11",
-          "amount": 176000
-        },
-        {
-          "date": "2025-06-23",
-          "amount": 2235000
-        },
         {
           "date": "2025-07-09",
           "amount": 89200
@@ -11666,6 +11458,22 @@
         {
           "date": "2026-07-28",
           "amount": 122500
+        },
+        {
+          "date": "2026-08-03",
+          "amount": 96600
+        },
+        {
+          "date": "2026-08-12",
+          "amount": 78500
+        },
+        {
+          "date": "2026-08-18",
+          "amount": 98000
+        },
+        {
+          "date": "2026-08-24",
+          "amount": 99800
         }
       ]
     },
@@ -11679,10 +11487,6 @@
       "lng": 127.430767,
       "naverUrl": "https://map.naver.com/p/search/%EC%B2%AD%EC%A3%BC%EA%B2%BD%EB%B3%B5%EA%B6%81",
       "transactions": [
-        {
-          "date": "2025-06-12",
-          "amount": 202000
-        },
         {
           "date": "2025-07-10",
           "amount": 300000
@@ -11870,6 +11674,10 @@
         {
           "date": "2026-07-31",
           "amount": 153000
+        },
+        {
+          "date": "2026-08-18",
+          "amount": 114000
         }
       ]
     },
@@ -11899,10 +11707,6 @@
       "lng": 127.30268,
       "naverUrl": "https://map.naver.com/p/search/%EC%B6%95%EC%A0%9C%ED%95%9C%EC%A0%95%EC%8B%9D",
       "transactions": [
-        {
-          "date": "2025-06-17",
-          "amount": 180000
-        },
         {
           "date": "2025-11-12",
           "amount": 100000
@@ -12019,22 +11823,6 @@
       "lng": 127.3578954,
       "naverUrl": "https://map.naver.com/p/search/%EC%B6%A9%EB%8F%88",
       "transactions": [
-        {
-          "date": "2025-06-02",
-          "amount": 60000
-        },
-        {
-          "date": "2025-06-10",
-          "amount": 90000
-        },
-        {
-          "date": "2025-06-18",
-          "amount": 160000
-        },
-        {
-          "date": "2025-06-30",
-          "amount": 380000
-        },
         {
           "date": "2025-07-02",
           "amount": 216000
@@ -12171,26 +11959,6 @@
       "lng": 127.363958,
       "naverUrl": "https://map.naver.com/p/search/%EC%B6%A9%EC%B2%AD%ED%95%9C%EC%9A%B0%EB%8C%80%EA%B0%80",
       "transactions": [
-        {
-          "date": "2025-06-04",
-          "amount": 480000
-        },
-        {
-          "date": "2025-06-11",
-          "amount": 108000
-        },
-        {
-          "date": "2025-06-13",
-          "amount": 165000
-        },
-        {
-          "date": "2025-06-25",
-          "amount": 325000
-        },
-        {
-          "date": "2025-06-27",
-          "amount": 336000
-        },
         {
           "date": "2025-07-04",
           "amount": 267000
@@ -12416,10 +12184,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%B9%B4%ED%8E%98%20540",
       "transactions": [
         {
-          "date": "2025-06-08",
-          "amount": 69600
-        },
-        {
           "date": "2025-07-31",
           "amount": 19000
         },
@@ -12480,10 +12244,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%B9%B4%ED%8E%98%EA%B3%B5%EA%B0%90",
       "transactions": [
         {
-          "date": "2025-06-04",
-          "amount": 35000
-        },
-        {
           "date": "2025-12-03",
           "amount": 42000
         },
@@ -12507,14 +12267,6 @@
       "lng": 127.3588709,
       "naverUrl": "https://map.naver.com/p/search/%EC%B9%B4%ED%8E%98%EA%B3%B5%EA%B0%903",
       "transactions": [
-        {
-          "date": "2025-06-02",
-          "amount": 100000
-        },
-        {
-          "date": "2025-06-04",
-          "amount": 77100
-        },
         {
           "date": "2025-07-02",
           "amount": 26500
@@ -12850,6 +12602,10 @@
         {
           "date": "2026-07-30",
           "amount": 41000
+        },
+        {
+          "date": "2026-08-31",
+          "amount": 17500
         }
       ]
     },
@@ -12966,6 +12722,10 @@
         {
           "date": "2026-07-29",
           "amount": 43000
+        },
+        {
+          "date": "2026-08-25",
+          "amount": 45700
         }
       ]
     },
@@ -12990,6 +12750,14 @@
         {
           "date": "2026-04-17",
           "amount": 55000
+        },
+        {
+          "date": "2026-08-13",
+          "amount": 205850
+        },
+        {
+          "date": "2026-08-28",
+          "amount": 145000
         }
       ]
     },
@@ -13248,10 +13016,6 @@
       "naverUrl": "https://map.naver.com/p/search/%ED%83%91%EB%B8%8C%EB%A6%AD%EC%8A%A4",
       "transactions": [
         {
-          "date": "2025-06-04",
-          "amount": 67500
-        },
-        {
           "date": "2025-07-02",
           "amount": 78000
         },
@@ -13271,10 +13035,6 @@
       "lng": 127.3600487,
       "naverUrl": "https://map.naver.com/p/search/%ED%83%91%EC%97%B0%EA%B3%A8",
       "transactions": [
-        {
-          "date": "2025-06-20",
-          "amount": 200000
-        },
         {
           "date": "2025-09-02",
           "amount": 701000
@@ -13624,10 +13384,6 @@
       "naverUrl": "https://map.naver.com/p/search/%ED%8C%8C%EB%8F%99%20%EC%AD%88%EA%BE%B8%EB%AF%B8",
       "transactions": [
         {
-          "date": "2025-06-20",
-          "amount": 241000
-        },
-        {
           "date": "2025-08-22",
           "amount": 492500
         },
@@ -13828,10 +13584,6 @@
       "naverUrl": "https://map.naver.com/p/search/%ED%8E%B8%ED%8E%B8%EC%A7%91%EC%B2%AD%EC%A3%BC%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
         {
-          "date": "2025-06-19",
-          "amount": 300000
-        },
-        {
           "date": "2026-01-07",
           "amount": 197100
         },
@@ -13851,10 +13603,6 @@
       "lng": 127.3010767,
       "naverUrl": "https://map.naver.com/p/search/%ED%8F%89%EB%A6%AC%EC%9E%91%EC%9D%80%EC%BB%A4%ED%94%BC",
       "transactions": [
-        {
-          "date": "2025-06-19",
-          "amount": 25000
-        },
         {
           "date": "2025-08-07",
           "amount": 19500
@@ -13903,14 +13651,6 @@
       "lng": 127.4061624,
       "naverUrl": "https://map.naver.com/p/search/%EC%A3%BC%EC%8B%9D%ED%9A%8C%EC%82%AC%ED%8F%AC%EC%9D%B4%EB%93%9C%EC%BA%90%EB%A1%AF",
       "transactions": [
-        {
-          "date": "2025-06-10",
-          "amount": 67700
-        },
-        {
-          "date": "2025-06-13",
-          "amount": 76700
-        },
         {
           "date": "2025-09-23",
           "amount": 952000
@@ -13979,10 +13719,6 @@
       "lng": 127.3274685,
       "naverUrl": "https://map.naver.com/p/search/%ED%8F%AC%ED%81%AC%EB%B0%94%EC%9D%B4%EB%A7%A8%EC%8A%A4%EA%B7%B8%EB%A6%B4",
       "transactions": [
-        {
-          "date": "2025-06-01",
-          "amount": 450000
-        },
         {
           "date": "2025-07-15",
           "amount": 320000
@@ -14075,10 +13811,6 @@
       "lng": 127.3236726,
       "naverUrl": "https://map.naver.com/p/search/%ED%91%B8%EB%A5%B8%EC%82%B0%ED%98%B8%EC%B4%88",
       "transactions": [
-        {
-          "date": "2025-06-11",
-          "amount": 149700
-        },
         {
           "date": "2025-07-16",
           "amount": 137700
@@ -14444,10 +14176,6 @@
       "naverUrl": "https://map.naver.com/p/search/%ED%95%9C%EC%83%81%EB%AA%A8%EC%95%84%20%EB%8F%84%EC%8B%9C%EB%9D%BD%20%EC%B2%AD%EC%A3%BC%EB%B3%B8%EC%A0%90",
       "transactions": [
         {
-          "date": "2025-06-30",
-          "amount": 100000
-        },
-        {
           "date": "2025-07-23",
           "amount": 595000
         },
@@ -14684,10 +14412,6 @@
       "naverUrl": "https://map.naver.com/p/search/%ED%95%B4%EB%AC%BC%EC%83%81%ED%9A%8C",
       "transactions": [
         {
-          "date": "2025-06-04",
-          "amount": 228000
-        },
-        {
           "date": "2025-12-18",
           "amount": 109000
         },
@@ -14822,6 +14546,10 @@
         {
           "date": "2026-03-06",
           "amount": 135000
+        },
+        {
+          "date": "2026-08-28",
+          "amount": 192000
         }
       ]
     },
@@ -14915,14 +14643,6 @@
       "lng": 127.3680046,
       "naverUrl": "https://map.naver.com/p/search/%ED%9C%B4%EC%8B%9D%EA%B3%B5%EA%B0%84",
       "transactions": [
-        {
-          "date": "2025-06-10",
-          "amount": 52000
-        },
-        {
-          "date": "2025-06-26",
-          "amount": 55000
-        },
         {
           "date": "2025-07-16",
           "amount": 104000
@@ -15298,38 +15018,6 @@
       ]
     },
     {
-      "id": "restaurant_000544",
-      "name": "강참치",
-      "category": "한식",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 흥덕구 백봉로 196 2층 강참치",
-      "lat": 36.6491862,
-      "lng": 127.4572735,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B0%95%EC%B0%B8%EC%B9%98",
-      "transactions": [
-        {
-          "date": "2025-06-22",
-          "amount": 283000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000545",
-      "name": "고복정",
-      "category": "한식",
-      "kind": "restaurant",
-      "address": "세종특별자치시 연서면 도신고복로 999",
-      "lat": 36.6073957,
-      "lng": 127.2522264,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B3%A0%EB%B3%B5%EC%A0%95",
-      "transactions": [
-        {
-          "date": "2025-06-27",
-          "amount": 158000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000546",
       "name": "공차 청주강서점",
       "category": "카페,디저트",
@@ -15342,54 +15030,6 @@
         {
           "date": "2025-08-02",
           "amount": 144900
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000547",
-      "name": "권가제면소(오송점)",
-      "category": "음식점",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 363 1층",
-      "lat": 36.6196434,
-      "lng": 127.3231862,
-      "naverUrl": "https://map.naver.com/p/search/%EA%B6%8C%EA%B0%80%EC%A0%9C%EB%A9%B4%EC%86%8C%28%EC%98%A4%EC%86%A1%EC%A0%90%29",
-      "transactions": [
-        {
-          "date": "2025-06-05",
-          "amount": 21000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000548",
-      "name": "남도생갈비",
-      "category": "한식",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 서원구 산미로 122",
-      "lat": 36.6074284,
-      "lng": 127.4740256,
-      "naverUrl": "https://map.naver.com/p/search/%EB%82%A8%EB%8F%84%EC%83%9D%EA%B0%88%EB%B9%84",
-      "transactions": [
-        {
-          "date": "2025-06-28",
-          "amount": 200000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000549",
-      "name": "놀부전집",
-      "category": "음식점",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 23-3 1층 101호",
-      "lat": 36.6204333,
-      "lng": 127.3176174,
-      "naverUrl": "https://map.naver.com/p/search/%EB%86%80%EB%B6%80%EC%A0%84%EC%A7%91",
-      "transactions": [
-        {
-          "date": "2025-06-20",
-          "amount": 154000
         }
       ]
     },
@@ -15482,38 +15122,6 @@
       ]
     },
     {
-      "id": "restaurant_000555",
-      "name": "디저트꾸움",
-      "category": "음식점",
-      "kind": "cafe",
-      "address": "충청북도 청주시 흥덕구 2순환로 1270 라인빌딩 1층 매일꾸움",
-      "lat": 36.6229353,
-      "lng": 127.4318416,
-      "naverUrl": "https://map.naver.com/p/search/%EB%94%94%EC%A0%80%ED%8A%B8%EA%BE%B8%EC%9B%80",
-      "transactions": [
-        {
-          "date": "2025-06-26",
-          "amount": 2575000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000556",
-      "name": "떡미당",
-      "category": "전통식품",
-      "kind": "other",
-      "address": "충청북도 청주시 흥덕구 직지대로240번길 58 1층",
-      "lat": 36.6440124,
-      "lng": 127.4209969,
-      "naverUrl": "https://map.naver.com/p/search/%EB%96%A1%EB%AF%B8%EB%8B%B9",
-      "transactions": [
-        {
-          "date": "2025-06-17",
-          "amount": 2011500
-        }
-      ]
-    },
-    {
       "id": "restaurant_000557",
       "name": "띠울석갈비",
       "category": "한식",
@@ -15523,10 +15131,6 @@
       "lng": 127.4322403,
       "naverUrl": "https://map.naver.com/p/search/%EB%9D%A0%EC%9A%B8%EC%84%9D%EA%B0%88%EB%B9%84",
       "transactions": [
-        {
-          "date": "2025-06-30",
-          "amount": 114000
-        },
         {
           "date": "2025-07-01",
           "amount": 3938000
@@ -15666,38 +15270,6 @@
       ]
     },
     {
-      "id": "restaurant_000566",
-      "name": "백세장수촌오송점",
-      "category": "한식",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 흥덕구 오송읍 봉산3길 10-7 1층",
-      "lat": 36.6226512,
-      "lng": 127.3174098,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B0%B1%EC%84%B8%EC%9E%A5%EC%88%98%EC%B4%8C%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-06-27",
-          "amount": 304000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000567",
-      "name": "벽돌곱창 봉명점",
-      "category": "한식",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 흥덕구 백봉로223번길 7 2동 1층",
-      "lat": 36.6498429,
-      "lng": 127.4600651,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B2%BD%EB%8F%8C%EA%B3%B1%EC%B0%BD%20%EB%B4%89%EB%AA%85%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-06-13",
-          "amount": 89500
-        }
-      ]
-    },
-    {
       "id": "restaurant_000568",
       "name": "보배반점 공주신관점",
       "category": "음식점",
@@ -15726,22 +15298,6 @@
         {
           "date": "2025-08-25",
           "amount": 66000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000570",
-      "name": "복집",
-      "category": "해물,생선요리",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 서원구 남이면 대림로 377 1층 101호",
-      "lat": 36.6040757,
-      "lng": 127.4403058,
-      "naverUrl": "https://map.naver.com/p/search/%EB%B3%B5%EC%A7%91",
-      "transactions": [
-        {
-          "date": "2025-06-17",
-          "amount": 122000
         }
       ]
     },
@@ -15996,10 +15552,6 @@
       "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EB%B4%89%EC%A7%91",
       "transactions": [
         {
-          "date": "2025-06-20",
-          "amount": 69000
-        },
-        {
           "date": "2025-07-03",
           "amount": 57000
         }
@@ -16086,22 +15638,6 @@
       ]
     },
     {
-      "id": "restaurant_000591",
-      "name": "울엄마양평해장국",
-      "category": "한식",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 흥덕구 풍년로150번길 42 1층 울엄마양평해장국",
-      "lat": 36.6266337,
-      "lng": 127.4357468,
-      "naverUrl": "https://map.naver.com/p/search/%EC%9A%B8%EC%97%84%EB%A7%88%EC%96%91%ED%8F%89%ED%95%B4%EC%9E%A5%EA%B5%AD",
-      "transactions": [
-        {
-          "date": "2025-06-20",
-          "amount": 70000
-        }
-      ]
-    },
-    {
       "id": "restaurant_000592",
       "name": "읍천리382 오창점",
       "category": "음식점",
@@ -16150,22 +15686,6 @@
         {
           "date": "2025-07-26",
           "amount": 66000
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000595",
-      "name": "일본",
-      "category": "음식점",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 서원구 1순환로1107번길 21 1층 104호",
-      "lat": 36.6075205,
-      "lng": 127.4894114,
-      "naverUrl": "https://map.naver.com/p/search/%EC%9D%BC%EB%B3%B8",
-      "transactions": [
-        {
-          "date": "2025-06-19",
-          "amount": 100311
         }
       ]
     },
@@ -16230,22 +15750,6 @@
         {
           "date": "2025-08-21",
           "amount": 164200
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000600",
-      "name": "춘천집",
-      "category": "한식",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 상당구 상당로91번길 29 2층",
-      "lat": 36.636218,
-      "lng": 127.4886226,
-      "naverUrl": "https://map.naver.com/p/search/%EC%B6%98%EC%B2%9C%EC%A7%91",
-      "transactions": [
-        {
-          "date": "2025-06-26",
-          "amount": 70000
         }
       ]
     },
@@ -16330,58 +15834,242 @@
       ]
     },
     {
-      "id": "restaurant_000606",
-      "name": "한끼",
-      "category": "한식",
-      "kind": "restaurant",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-14 1층 104호 한끼",
-      "lat": 36.6308356,
-      "lng": 127.3285919,
-      "naverUrl": "https://map.naver.com/p/search/%ED%95%9C%EB%81%BC",
-      "transactions": [
-        {
-          "date": "2025-06-11",
-          "amount": 290500
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000607",
-      "name": "행포케 오송점",
-      "category": "도시락,컵밥",
-      "kind": "lunchbox",
-      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 186 1층 112호",
-      "lat": 36.6311463,
-      "lng": 127.3296356,
-      "naverUrl": "https://map.naver.com/p/search/%ED%96%89%ED%8F%AC%EC%BC%80%20%EC%98%A4%EC%86%A1%EC%A0%90",
-      "transactions": [
-        {
-          "date": "2025-06-09",
-          "amount": 204540
-        },
-        {
-          "date": "2025-06-10",
-          "amount": 205200
-        },
-        {
-          "date": "2025-06-16",
-          "amount": 165070
-        }
-      ]
-    },
-    {
-      "id": "restaurant_000608",
-      "name": "흙에서",
+      "id": "restaurant_000609",
+      "name": "경복궁&갓포제주",
       "category": "음식점",
       "kind": "restaurant",
-      "address": "충청북도 청주시 서원구 산미로 116 흙에서",
-      "lat": 36.6071538,
-      "lng": 127.4735814,
-      "naverUrl": "https://map.naver.com/p/search/%ED%9D%99%EC%97%90%EC%84%9C",
+      "address": "충청북도 청주시 흥덕구 2순환로 1020 3동 2층",
+      "lat": 36.6439294,
+      "lng": 127.4220617,
+      "naverUrl": "https://map.naver.com/p/search/%EA%B2%BD%EB%B3%B5%EA%B6%81%26%EA%B0%93%ED%8F%AC%EC%A0%9C%EC%A3%BC",
       "transactions": [
         {
-          "date": "2025-06-12",
-          "amount": 100000
+          "date": "2026-08-03",
+          "amount": 240000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000610",
+      "name": "김정훈샤브칼국수",
+      "category": "한식",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 오송읍 미호천길 994",
+      "lat": 36.6338432,
+      "lng": 127.3433675,
+      "naverUrl": "https://map.naver.com/p/search/%EA%B9%80%EC%A0%95%ED%9B%88%EC%83%A4%EB%B8%8C%EC%B9%BC%EA%B5%AD%EC%88%98",
+      "transactions": [
+        {
+          "date": "2026-08-31",
+          "amount": 86000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000611",
+      "name": "꽃새미로",
+      "category": "카페,디저트",
+      "kind": "cafe",
+      "address": "충청북도 청주시 상당구 수영로245번길 4-8 정원빌딩 201호",
+      "lat": 36.6269858,
+      "lng": 127.5045206,
+      "naverUrl": "https://map.naver.com/p/search/%EA%BD%83%EC%83%88%EB%AF%B8%EB%A1%9C",
+      "transactions": [
+        {
+          "date": "2026-08-25",
+          "amount": 805800
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000612",
+      "name": "더(The)국희",
+      "category": "카페,디저트",
+      "kind": "cafe",
+      "address": "충청북도 청주시 흥덕구 오송읍 오송생명8로 205 1층",
+      "lat": 36.6207907,
+      "lng": 127.3206306,
+      "naverUrl": "https://map.naver.com/p/search/%EB%8D%94%28The%29%EA%B5%AD%ED%9D%AC",
+      "transactions": [
+        {
+          "date": "2026-08-18",
+          "amount": 45000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000613",
+      "name": "도담오리하우스",
+      "category": "한식",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 상당구 명암로 32 5층",
+      "lat": 36.6385262,
+      "lng": 127.5110837,
+      "naverUrl": "https://map.naver.com/p/search/%EB%8F%84%EB%8B%B4%EC%98%A4%EB%A6%AC%ED%95%98%EC%9A%B0%EC%8A%A4",
+      "transactions": [
+        {
+          "date": "2026-08-21",
+          "amount": 76000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000614",
+      "name": "롯데리아 청주강내",
+      "category": "양식",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 451 1층",
+      "lat": 36.622807,
+      "lng": 127.3584421,
+      "naverUrl": "https://map.naver.com/p/search/%EB%A1%AF%EB%8D%B0%EB%A6%AC%EC%95%84%20%EC%B2%AD%EC%A3%BC%EA%B0%95%EB%82%B4",
+      "transactions": [
+        {
+          "date": "2026-08-06",
+          "amount": 79900
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000615",
+      "name": "마음설기",
+      "category": "제조업",
+      "kind": "other",
+      "address": "충청북도 청주시 흥덕구 오송읍 연제만수길 47 1층 102호",
+      "lat": 36.6246961,
+      "lng": 127.328827,
+      "naverUrl": "https://map.naver.com/p/search/%EB%A7%88%EC%9D%8C%EC%84%A4%EA%B8%B0",
+      "transactions": [
+        {
+          "date": "2026-08-20",
+          "amount": 1303500
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000616",
+      "name": "마중가는길",
+      "category": "한식",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 상당구 문의면 대청호반로 845-5 마중가는길",
+      "lat": 36.5179839,
+      "lng": 127.4997628,
+      "naverUrl": "https://map.naver.com/p/search/%EB%A7%88%EC%A4%91%EA%B0%80%EB%8A%94%EA%B8%B8",
+      "transactions": [
+        {
+          "date": "2026-08-26",
+          "amount": 1848000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000617",
+      "name": "소복소복",
+      "category": "음식점",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 신전로 20-3 1층",
+      "lat": 36.6190457,
+      "lng": 127.402807,
+      "naverUrl": "https://map.naver.com/p/search/%EC%86%8C%EB%B3%B5%EC%86%8C%EB%B3%B5",
+      "transactions": [
+        {
+          "date": "2026-08-05",
+          "amount": 46450
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000618",
+      "name": "숲",
+      "category": "음식점",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 백봉로 220 1층",
+      "lat": 36.6491266,
+      "lng": 127.460014,
+      "naverUrl": "https://map.naver.com/p/search/%EC%88%B2",
+      "transactions": [
+        {
+          "date": "2026-08-03",
+          "amount": 10000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000619",
+      "name": "스테이인터뷰 르 투어 카페",
+      "category": "음식점",
+      "kind": "cafe",
+      "address": "충청북도 청주시 상당구 명암로 83-3 스테이인터뷰르투어",
+      "lat": 36.6434153,
+      "lng": 127.5105411,
+      "naverUrl": "https://map.naver.com/p/search/%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%9D%B8%ED%84%B0%EB%B7%B0%20%EB%A5%B4%20%ED%88%AC%EC%96%B4%20%EC%B9%B4%ED%8E%98",
+      "transactions": [
+        {
+          "date": "2026-08-21",
+          "amount": 20000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000620",
+      "name": "시리과자점",
+      "category": "음식점",
+      "kind": "cafe",
+      "address": "충청북도 청주시 서원구 신화로 41 1층 101호",
+      "lat": 36.6182824,
+      "lng": 127.4551874,
+      "naverUrl": "https://map.naver.com/p/search/%EC%8B%9C%EB%A6%AC%EA%B3%BC%EC%9E%90%EC%A0%90",
+      "transactions": [
+        {
+          "date": "2026-08-18",
+          "amount": 372000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000621",
+      "name": "애슐리퀸즈 원더아리아청주점",
+      "category": "음식점",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 청원구 상당로 314",
+      "lat": 36.6565749,
+      "lng": 127.4907329,
+      "naverUrl": "https://map.naver.com/p/search/%EC%95%A0%EC%8A%90%EB%A6%AC%ED%80%B8%EC%A6%88%20%EC%9B%90%EB%8D%94%EC%95%84%EB%A6%AC%EC%95%84%EC%B2%AD%EC%A3%BC%EC%A0%90",
+      "transactions": [
+        {
+          "date": "2026-08-26",
+          "amount": 1731300
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000622",
+      "name": "육회한점",
+      "category": "음식점",
+      "kind": "restaurant",
+      "address": "세종특별자치시 산울7로 11 근생D동 D-109호",
+      "lat": 36.5299201,
+      "lng": 127.264158,
+      "naverUrl": "https://map.naver.com/p/search/%EC%9C%A1%ED%9A%8C%ED%95%9C%EC%A0%90",
+      "transactions": [
+        {
+          "date": "2026-08-07",
+          "amount": 124000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000623",
+      "name": "피자나라치킨공주",
+      "category": "음식점",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 풍산로109번길 16",
+      "lat": 36.629919,
+      "lng": 127.442142,
+      "naverUrl": "https://map.naver.com/p/search/%ED%94%BC%EC%9E%90%EB%82%98%EB%9D%BC%EC%B9%98%ED%82%A8%EA%B3%B5%EC%A3%BC",
+      "transactions": [
+        {
+          "date": "2026-08-11",
+          "amount": 195300
         }
       ]
     }
