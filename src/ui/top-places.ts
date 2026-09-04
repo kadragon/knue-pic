@@ -7,6 +7,7 @@ import {
   monthLabel,
   renderKindBadge,
   shortAddress,
+  visitCountLabel,
 } from './place-labels';
 
 /**
@@ -89,9 +90,9 @@ export function sparklineLabel(buckets: MonthlyHistogram): string {
  * The bars carry no period claim of their own, and the heading above the list names the *ranking*
  * window — 최근 1개월 / 3개월 / 6개월 / 1년. Those two spans are not the same
  * (`histogramSpanLabel`), so without this note a reader would take the heading's window for the
- * bars' and read an interrupted run as a quiet stretch of the period they selected. The row no
- * longer prints a visit count beside them (it is on the detail card), which removes one way to
- * notice the mismatch and leaves this note carrying it alone. Per list rather than per row: every entry's
+ * bars' and read an interrupted run as a quiet stretch of the period they selected. The count the
+ * row prints beside the bars is the *ranking* window's, so the two spans sit side by side on
+ * every row and this note is what says they differ. Per list rather than per row: every entry's
  * buckets come from the same anchor and month count, so a copy on each row would repeat one fact
  * as many times as there are places.
  *
@@ -205,10 +206,20 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
 
   body.append(name, meta);
   item.append(badge, body);
-  // A sibling of the button, never a child. The accessible name of a `<button>` is computed from
-  // its contents, so nesting the chart here would append twelve months of label text to the name
-  // of every row — the same reason the rank-delta badge below sits outside it.
-  item.append(renderSparkline(entry.histogram));
+
+  // The figures column: the count that ranks the row, the movement beside it, the trend under
+  // both. Siblings of the button, never children of it. The accessible name of a `<button>` is
+  // computed from its contents, so nesting the chart here would append twelve months of label
+  // text to the name of every row — the same reason the rank-delta badge sits outside it.
+  const figures = document.createElement('span');
+  figures.className = 'top-place-figures';
+
+  // The number the ranking is by, on the row it ranks. Without it the order is asserted and never
+  // shown — a reader has to open every row to learn why it sits where it does.
+  const count = document.createElement('span');
+  count.className = 'top-place-count';
+  count.textContent = visitCountLabel(entry.stats.visitCount);
+  figures.append(count);
 
   // Omitted, not zero: `rankDelta` is null when the prior window is outside the retained range or
   // the place was not in it. Rendering nothing is the whole point of that distinction.
@@ -224,8 +235,11 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
     // nowhere else, so losing the label loses the fact.
     delta.setAttribute('role', 'img');
     delta.setAttribute('aria-label', rankDeltaLabel(entry.rankDelta));
-    item.append(delta);
+    figures.append(delta);
   }
+
+  figures.append(renderSparkline(entry.histogram));
+  item.append(figures);
 
   return item;
 }

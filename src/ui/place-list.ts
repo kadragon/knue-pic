@@ -35,6 +35,15 @@ export function periodLabel(period: Period): string {
 export const TAB_GROUP_LABEL = '기간 선택';
 
 /**
+ * The list's heading: the window, then what the list is. The pressed tab above it already reads
+ * `최근 3개월`, so a heading of the bare window name repeated it; this one names the list.
+ * `자주 찾은 곳` is the sanctioned discovery phrasing (`docs/conventions.md` → Framing Vocabulary).
+ */
+export function listHeading(period: Period): string {
+  return `${periodLabel(period)} 동안 자주 찾은 곳`;
+}
+
+/**
  * Flips `aria-pressed` in place rather than re-rendering the selector.
  *
  * Re-rendering would replace the button the reader just activated and drop keyboard focus to the
@@ -109,7 +118,7 @@ export function renderPlaceList(
       (placeId) => {
         onSelect(placeId, period);
       },
-      periodLabel(period),
+      listHeading(period),
     );
   }
 

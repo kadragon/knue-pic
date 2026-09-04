@@ -6,7 +6,7 @@ import { MAP_ERROR_MESSAGE, renderPlaceLocationMap } from '../map/place-map';
 import { bootstrap } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
-import { DEFAULT_PERIOD, PERIOD_TABS, periodLabel } from './place-list';
+import { DEFAULT_PERIOD, PERIOD_TABS, listHeading, periodLabel } from './place-list';
 import { periodStatsHeading } from './place-detail';
 import { displayDate } from './place-labels';
 import { KIND_LABELS, ALL_KINDS_LABEL } from './kind-filter';
@@ -82,6 +82,18 @@ describe('bootstrap', () => {
     expect(root.textContent).not.toContain(LOADING_MESSAGE);
     expect(root.querySelectorAll('.period-tab')).toHaveLength(PERIOD_TABS.length);
     expect(root.querySelectorAll('.place-list-body .top-places')).toHaveLength(1);
+  });
+
+  it('puts the ranked list before the search in source order', async () => {
+    const root = document.createElement('div');
+
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+
+    // The list is the answer the page exists for; search is the lookup for a reader who already
+    // has a name (`docs/conventions.md` → Accessibility & Responsive). Asserted on the order, not
+    // on presence: both slots exist either way.
+    const order = [...(root.querySelector('#content')?.children ?? [])].map((el) => el.className);
+    expect(order.indexOf('place-list-slot')).toBeLessThan(order.indexOf('search-slot'));
   });
 
   it('shows a plain Korean failure state, not a raw error, when the dataset is missing', async () => {
@@ -209,9 +221,7 @@ describe('bootstrap ranked list', () => {
     const tabs = [...root.querySelectorAll<HTMLButtonElement>('.period-tab')];
     expect(tabs.map((tab) => tab.dataset['period'])).toEqual(PERIOD_TABS);
     expect(pressedTab(root)?.dataset['period']).toBe(DEFAULT_PERIOD);
-    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(
-      PERIOD_LABELS[DEFAULT_PERIOD],
-    );
+    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(listHeading(DEFAULT_PERIOD));
   });
 
   it('ranks the selected window alone', async () => {
@@ -281,7 +291,7 @@ describe('bootstrap ranked list', () => {
     button?.click();
 
     expect(pressedTab(root)).toBe(button);
-    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(PERIOD_LABELS['6m']);
+    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(listHeading('6m'));
     // Rebuilding the selector on every change would drop focus to the document body.
     expect(document.activeElement).toBe(button);
     root.remove();

@@ -1,91 +1,98 @@
 /*
- * The design tokens for the whole app. There is no design document behind this file any more —
- * this comment is the record of why each choice is what it is.
+ * The design tokens for the whole app. There is no design document behind this file — this
+ * comment is the record of why each choice is what it is.
+ *
+ * The page is a ledger, not a listing site. Its one job is to answer "요즘 동료들은 어디를 자주
+ * 갈까" on the first screen, so the ranked rows and the count that ranks them are the page, and
+ * everything else — the wordmark, the provenance, the controls, the search — is set quietly
+ * around them. No cards, no elevation ladder, no glass: rows are ruled on the paper they sit on.
  *
  * 1. No webfont. Golden Principle #1 (AGENTS.md) allows the page to load `data/places.json` and
- *    the Naver Maps script and nothing else, so a font CDN is out. The stack keeps a few display
- *    faces first for anyone who has them locally and falls through to the system Korean faces,
- *    which is what the UI actually renders in.
+ *    the Naver Maps script and nothing else, so a font CDN is out. The stack takes Pretendard for
+ *    anyone who has it installed and falls through to the system Korean faces, which is what the
+ *    UI actually renders in. Hierarchy therefore comes from scale and weight, not from a second
+ *    face: a large tight headline, tabular figures for every count, and small print for the rest.
  * 2. Light only, but not contrast-blind. There is no dark scheme; a `prefers-contrast: more`
  *    block at the end of this file carries the readers a dark mode would otherwise have served.
- * 3. The page floor is `surface-soft`, not `canvas`. This product has no photography, so on a
- *    white floor the layout would read as text floating in space.
- * 4. White text never sits on `--rausch`. #ff385c under white is 3.52:1 — below the 4.5:1 of WCAG
- *    1.4.3 — so every surface that puts text on the brand colour uses `--rausch-strong` (#e00b41,
- *    4.89:1). #ff385c survives only where it carries no text.
+ * 3. The floor is `--paper`, a faintly green-grey white, and the masthead and the search foot are
+ *    plain white on it. Two tones, and the hairline rule between rows is the only other structure.
+ * 4. One accent, `--accent`, an evergreen — the campus is wooded, and green is neither the
+ *    government blue of a public portal nor the red of a consumer app. It is spent on five things
+ *    only: the wordmark, the top three rank numerals, the pressed control, the rise glyph and the
+ *    one CTA. Measured on white it is 8.06:1 and on `--paper` 7.49:1, so it carries text anywhere
+ *    on the page; white on it is the same 8.06:1.
  * 5. The 업종 palette is the first of the two places colour carries meaning rather than
  *    decoration (the 거리 밴드 ramp in note 6 is the other): the four
  *    kinds the filter offers each own a `-fg`/`-bg` pair, and the same pair colours the filter
- *    chip and every badge on a place of that kind. Each `-fg` clears 4.5:1 both on its own `-bg`
- *    and on white, so it is legible as badge text, as chip text, and as white-on-fill when the
+ *    chip and every badge on a place of that kind. None of the four is green, so no kind reads as
+ *    the accent. Each `-fg` clears 4.5:1 both on its own `-bg` and on white — measured:
+ *    restaurant 5.84:1 / 6.85:1, cafe 6.86:1 / 8.20:1, lunchbox 6.85:1 / 8.06:1, other
+ *    6.67:1 / 7.84:1 — so it is legible as badge text, as chip text, and as white-on-fill when the
  *    chip is pressed. The badge always spells its category out — colour never carries the fact
  *    alone (`docs/conventions.md` → Accessibility).
  * 6. The 거리 palette is a lightness ramp in ONE hue — near is the palest, far the darkest — and
  *    deliberately not a green-to-red scale. A hue change would read as good-to-bad, and "가까운
  *    곳이 더 나은 곳" is exactly the judgement `docs/conventions.md` forbids the product from
- *    making; the same reason `.top-place-delta` is drawn in brand red and band blue rather than in
- *    green and the system's error colour. Measured foreground on background: near 7.68:1, close
- *    6.44:1, mid 5.46:1, far 12.48:1 — all clear of WCAG 1.4.3's 4.5:1. Every badge prints its own
- *    kilometre figure in full, so the colour is a scanning aid over text rather than a channel of
- *    its own, and no legend is needed to read one.
+ *    making. The hue is the accent's own, so the ramp reads as part of the page rather than as a
+ *    second signal. Measured foreground on background: near 7.06:1, close 7.57:1, mid 5.16:1, far
+ *    11.74:1 — all clear of WCAG 1.4.3's 4.5:1. Every badge prints its own kilometre figure in
+ *    full, so the colour is a scanning aid over text rather than a channel of its own.
  *
  *    Note 5 counts the palettes that carry meaning, and a third one landing would falsify it
  *    silently — which is how it got out of date the first time. That sentence is registered in
  *    `src/ui/stylesheet-claims.test.ts`, which recomputes the count from the rules below and
  *    fails when the prose and the stylesheet stop agreeing. Nothing there guards this note's own
- *    contrast figures; re-measure them by hand when a token moves.
+ *    contrast figures; re-measure them when a token moves.
  */
 :root {
-  /* Decorative brand voltage: no text is ever placed on it. */
-  --rausch: #ff385c;
-  /* The text-bearing brand colour — 4.89:1 with white. */
-  --rausch-strong: #e00b41;
-  --rausch-active: #c10032;
-
+  --paper: #f6f7f4;
   --canvas: #ffffff;
-  --surface-soft: #f7f7f7;
-  --surface-strong: #f2f2f2;
+  /* The row a pointer is over. `--muted` is 4.93:1 on it, the tightest pair on the page. */
+  --surface-hover: #f1f3f1;
+  --surface-strong: #e9ece9;
 
-  --hairline: #dddddd;
-  --hairline-soft: #ebebeb;
-  /* Control boundaries, not decorative rules: 3.03:1 on white, the WCAG 1.4.11 floor. */
-  --border-control: #949494;
-  --border-strong: #767676;
+  --hairline: #d9ded9;
+  --hairline-soft: #e8ece8;
+  /* Control boundaries, not decorative rules: 3.30:1 on white and 3.07:1 on `--paper`, both over
+     the WCAG 1.4.11 floor. */
+  --border-control: #86908a;
+  --border-strong: #5f6c65;
 
-  --ink: #222222;
-  --body: #3f3f3f;
-  --muted: #6a6a6a;
-  --on-primary: #ffffff;
+  --ink: #14201b;
+  --body: #3b4a43;
+  /* 5.50:1 on white, 5.11:1 on `--paper`, 4.67:1 on `--accent-soft`. */
+  --muted: #5f6c65;
+  --on-accent: #ffffff;
 
-  --error: #c13515;
+  --accent: #1e5a46;
+  --accent-strong: #164536;
+  --accent-soft: #e4efe9;
+
+  --error: #b3261e;
 
   /* 업종 palette. `-fg` on `-bg` and `-fg` on white both clear 4.5:1; see note 5 above. */
-  --kind-restaurant-bg: #fff0e2;
-  --kind-restaurant-fg: #8f4300;
-  --kind-cafe-bg: #f2ecfd;
-  --kind-cafe-fg: #6127ab;
-  --kind-lunchbox-bg: #e6f5ea;
-  --kind-lunchbox-fg: #166b33;
-  --kind-other-bg: #ededed;
-  --kind-other-fg: #4a4a4a;
+  --kind-restaurant-bg: #f8ebdd;
+  --kind-restaurant-fg: #8a4a10;
+  --kind-cafe-bg: #f0e8f5;
+  --kind-cafe-fg: #6a3b82;
+  --kind-lunchbox-bg: #e6edf8;
+  --kind-lunchbox-fg: #2c4f8c;
+  --kind-other-bg: #ebedeb;
+  --kind-other-fg: #4b544e;
 
   /* 거리 밴드 팔레트 — see note 6 above. */
-  --dist-near-bg: #eaf1fb;
-  --dist-near-fg: #1c4b87;
-  --dist-close-bg: #b3cdee;
-  --dist-close-fg: #17406f;
-  --dist-mid-bg: #3a6ba8;
+  --dist-near-bg: #e9f2ed;
+  --dist-near-fg: #1e5a46;
+  --dist-close-bg: #c6dfd3;
+  --dist-close-fg: #184636;
+  --dist-mid-bg: #2f7a60;
   --dist-mid-fg: #ffffff;
-  --dist-far-bg: #12345f;
+  --dist-far-bg: #163f31;
   --dist-far-fg: #ffffff;
 
-  /* The tint the header and provenance bands sit on, and the accent rule under the list heading. */
-  --band: #fffafb;
-
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
   --radius-full: 9999px;
 
   /*
@@ -104,44 +111,24 @@
   --space-8: 48px;
   --space-9: 64px;
 
-  /*
-   * The elevation ladder. This was one tier, under a note forbidding a second; the page it
-   * described was hairline borders on white and read as a wireframe. Three tiers now, and the
-   * rule that replaces the old one is that nothing may invent a fourth — a surface picks the tier
-   * matching how far off the page it sits, never a shadow of its own.
-   *
-   * Two stops each: a tight contact shadow that draws the edge, and a wide diffuse one that
-   * carries the distance. Every stop is neutral black at low alpha — the floor is tinted
-   * (`--surface-soft`), and a coloured shadow over it shifts hue instead of darkening.
-   */
-  --shadow-chip: rgba(0, 0, 0, 0.04) 0 1px 2px, rgba(0, 0, 0, 0.06) 0 2px 6px;
-  --shadow-raised: rgba(0, 0, 0, 0.04) 0 1px 3px, rgba(0, 0, 0, 0.07) 0 8px 24px;
-  --shadow-overlay: rgba(0, 0, 0, 0.12) 0 2px 8px, rgba(0, 0, 0, 0.24) 0 16px 48px;
-
-  /* Not a fourth tier — the inverse of the ladder. A pressed control sinks and a well is cut into
-     its surface, so neither can be confused with the hover lift, which always rises. */
-  --shadow-inset: inset rgba(0, 0, 0, 0.12) 0 1px 3px;
-
-  /* Real glass, and only where it is earned: the sticky header and the dialog scrim are the two
-     surfaces with page content actually moving underneath them. Anywhere else a blur has nothing
-     to blur and degrades into a flat grey wash, so the rest of the page uses the ladder instead. */
-  --glass-band: rgba(255, 250, 251, 0.72);
-  --glass-blur: saturate(180%) blur(20px);
+  /* The one shadow on the page: the dialog, which is the one surface that is actually above
+     another. Nothing on the page itself is raised. */
+  --shadow-overlay: rgba(20, 32, 27, 0.18) 0 12px 40px, rgba(20, 32, 27, 0.1) 0 2px 8px;
 
   /* The measure `#content` is capped at, and the inset derived from it.
-     `--column-inset` exists so the full-bleed header and provenance bands line their text up with
-     `#content` without needing a wrapper element, which only holds while the two agree on the
-     width. Derived rather than written out: the inset was last a hand-computed literal for a
-     1440px column, and narrowing the column left it 240px out of true at every viewport wider
-     than the measure. The `- 24px` is `#content`'s own gutter. */
-  --content-max: 960px;
+     `--column-inset` exists so the full-bleed masthead lines its text up with `#content` without
+     needing a wrapper element, which only holds while the two agree on the width. Derived rather
+     than written out so a change to the measure cannot leave it out of true. The `- 24px` is
+     `#content`'s own gutter.
+
+     760px, not wider: a row puts the place name at the left and its count at the right, and a
+     wider measure moves the number away from the name it belongs to. */
+  --content-max: 760px;
   --column-inset: max(var(--space-6), calc(50% - (var(--content-max) / 2 - var(--space-6))));
-  /* Height of the sticky header band; the period bar parks directly beneath it. */
-  --header-height: 92px;
 
   --font-sans:
-    'Airbnb Cereal VF', Circular, 'Pretendard Variable', Pretendard, -apple-system,
-    BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Malgun Gothic', system-ui, sans-serif;
 
   color-scheme: light;
 }
@@ -150,18 +137,13 @@
   box-sizing: border-box;
 }
 
-/* Two elements are scrolled to programmatically, and both must stop clear of the sticky header. */
-html {
-  scroll-padding-top: calc(var(--header-height) + var(--space-2));
-}
-
 body {
   margin: 0;
-  background: var(--surface-soft);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.55;
   /*
    * Korean breaks at any syllable by default, so a place name splits mid-word at 360px. `keep-all`
    * holds each eojeol together; `break-word` still rescues a token with no break opportunity at
@@ -172,151 +154,104 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Shell ─────────────────────────────────────────────────────────────────────────────────── */
+/* ── Masthead ──────────────────────────────────────────────────────────────────────────────── */
 
 /*
- * A plain vertical stack: search, then the ranked list. Nothing on the page sits side by side any
- * more, so the container is back to a single readable measure — the 1440px it carried existed only
- * to fit four rankings across, and a lone list stretched that wide puts a row's name and its
- * figures at opposite ends of the screen.
+ * The header and the provenance band are one white masthead: the question, then the small print
+ * that says what it is answered from. The provenance is a separate `<footer>` element for the
+ * landmark it carries (`src/ui/shell.ts`), so the two share a background and the rule sits under
+ * the second of them.
  */
-#content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  max-width: var(--content-max);
-  margin: 0 auto;
-  /* The top padding is what holds the first control clear of the header's Rausch rule. At 0 the
-     rule read as an underline on the 업종 chips rather than as the header's own bottom edge. */
-  padding: var(--space-5) var(--space-6) var(--space-9);
-}
-
-/* The dialog inside is `position: fixed`, so the slot must not occupy a grid row of its own. */
-.detail-slot {
-  display: contents;
-}
-
-/* The top band: a barely-tinted brand wash rather than plain white, so the frame reads as part of
-   the product instead of as the page's background showing through. */
 .shell-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding: var(--space-5) var(--column-inset) var(--space-4);
-  border-bottom: 2px solid var(--rausch);
-  /* Glass rather than the flat tint: the list scrolls under this band, so a translucent, blurred
-     surface reports where the content went instead of hiding it behind an opaque lid. The
-     saturation boost keeps the 업종 chip colours passing underneath from going grey in the blur.
-
-     What passes underneath is not the page floor. `.kind-filter` is the first child of `#content`
-     and one chip is always pressed, so an `--ink` (#222) or 업종 `-fg` fill scrolls directly
-     behind this text. A full-coverage `--ink` fill would composite the band to #c1bebe, but that
-     is an arithmetic ceiling the page never reaches: `blur(20px)` spreads a 58–99px chip, so the
-     darkest pixel measured under the header text at either width is #d8d4d5. Both header pairs
-     are stated against that floor, decoded from a rendered frame rather than derived — the h1's
-     `--ink` is 10.8:1 on it and the tagline's `--body` 7.2:1. `--muted`, which the tagline used
-     to be, is 3.7:1 there, which is why it is no longer what the tagline uses. */
-  background: var(--glass-band);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-chip);
+  padding: var(--space-7) var(--column-inset) 0;
+  background: var(--canvas);
 }
 
-/* Every browser without `backdrop-filter` gets the opaque band this header used to carry: a 72%
-   surface with nothing blurring behind it is just washed-out text. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .shell-header {
-    background: var(--band);
-  }
-}
-
-.shell-header h1 {
+.shell-brand {
   margin: 0;
-  font-size: 24px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+
+/* The one large piece of type on the page. Tight, heavy, and left on the column edge. */
+.shell-headline {
+  margin: var(--space-2) 0 0;
+  max-width: 20ch;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1.2;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
 }
 
-/* The one decorative Rausch mark: a period after the wordmark, carrying no text. */
-.shell-header h1::after {
-  content: '.';
-  color: var(--rausch);
-}
-
-/*
- * `--body`, not the `--muted` a secondary line would otherwise take. This text sits on glass, and
- * the darkest backdrop measured under it is #d8d4d5 (see the note on `.shell-header` above, which
- * carries the measurement): `--muted` is 3.68:1 there and fails WCAG 1.4.3, `--body` is 7.17:1.
- * The tone lost is the price of the header being translucent at all.
- */
-.shell-tagline {
-  /* optical: 2px is below the --space-1 floor — a hairline tie to the line above, not a step. */
-  margin: 2px 0 0;
-  color: var(--body);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-/*
- * The provenance band, directly under the sticky header and above the list. It scrolls away with
- * the content — the header stays, this does not — so the padding is the compact step rather than
- * the generous one a page-closing footer took.
- */
 .shell-provenance {
-  padding: var(--space-4) var(--column-inset);
+  padding: var(--space-3) var(--column-inset) var(--space-6);
   border-bottom: 1px solid var(--hairline);
-  background: var(--band);
+  background: var(--canvas);
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
 }
 
 .shell-provenance p {
-  margin: 0 0 var(--space-1);
+  margin: 0;
 }
 
-.shell-provenance p:last-child {
-  margin-bottom: 0;
+/* Source and date on one line, wrapping at 360px; the disclaimer on its own line under them. */
+.shell-provenance p:first-child,
+.shell-updated {
+  display: inline;
+}
+
+.shell-updated::before {
+  content: ' · ';
 }
 
 .shell-disclaimer {
-  max-width: 52ch;
+  margin-top: var(--space-1);
+  max-width: 60ch;
 }
 
-/* ── Section surfaces ──────────────────────────────────────────────────────────────────────── */
+/* ── Content column ────────────────────────────────────────────────────────────────────────── */
 
-/*
- * Two tiers, not three. The surface belongs to the list as a whole rather than to the window it is
- * currently measuring: a card that changed with the selected period would read as a claim about
- * the data instead of about the layout.
- *
- * Tier 1 — the ranked list: a white card on the tinted floor (white on #f7f7f7 is 1.07:1 on its
- * own, so the hairline is what actually separates them).
- * Tier 2 — search: the same card, softer border, because it answers a different question.
- *
- * Both sit on `--shadow-raised` with the top-edge sheen. The hairline stays: the shadow says how
- * far off the floor the card is, the border says where it ends, and under `forced-colors` or a
- * user stylesheet the shadow is the one of the two that can vanish.
- */
-.place-list-body,
-.place-search {
-  min-width: 0;
+#content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-6) var(--space-9);
+}
+
+/* The dialog inside is `position: fixed`, so the slot must not occupy a row of its own. */
+.detail-slot {
+  display: contents;
+}
+
+/* Before any view has data there is no section to sit in, so the state stands on its own. */
+.data-state {
+  margin: 0;
   padding: var(--space-6);
-  border: 1px solid var(--hairline-soft);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
   background: var(--canvas);
-  box-shadow: var(--shadow-raised);
+  color: var(--muted);
+}
+
+/* ── Controls ──────────────────────────────────────────────────────────────────────────────── */
+
+/* Touch targets stay comfortable down to the 360px minimum width (PRD §36). */
+button,
+a[role='button'] {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /*
- * The page-wide 업종 control. Sits above the search card rather than inside it because it narrows
- * the ranked list too, and wraps rather than scrolls so all five options stay reachable at
- * 360px (PRD §36). Not a card itself: it is a strip of controls over the two cards below it.
- *
- * The label rides on the same baseline row as the chips instead of taking a 100%-wide line of its
- * own: as its own row it left a full line of empty space between the heading and the chips, which
- * read as a gap in the layout rather than as a grouping.
+ * The page-wide 업종 control: a row of small chips, wrapping rather than scrolling so all five
+ * stay reachable at 360px (PRD §36). The label rides on the same row as the chips.
  */
 .kind-filter {
   display: flex;
@@ -327,26 +262,23 @@ body {
 }
 
 .kind-filter-label {
-  margin-inline-end: var(--space-2);
+  margin-inline-end: var(--space-1);
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
-  line-height: 1.4;
 }
 
 .kind-filter-option {
-  padding: var(--space-2) var(--space-4);
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3);
   border: 1px solid var(--border-control);
   border-radius: var(--radius-full);
   background: var(--canvas);
   color: var(--body);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
-  box-shadow: var(--shadow-chip);
-  transition:
-    border-color 120ms ease, color 120ms ease, background-color 120ms ease,
-    box-shadow 120ms ease, transform 120ms ease;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
 }
 
 /*
@@ -355,73 +287,110 @@ body {
  * it is not a kind, it is the absence of the filter.
  */
 .kind-filter-option[data-kind='restaurant'] {
-  border-color: var(--kind-restaurant-fg);
+  border-color: var(--kind-restaurant-bg);
   background: var(--kind-restaurant-bg);
   color: var(--kind-restaurant-fg);
 }
 
 .kind-filter-option[data-kind='cafe'] {
-  border-color: var(--kind-cafe-fg);
+  border-color: var(--kind-cafe-bg);
   background: var(--kind-cafe-bg);
   color: var(--kind-cafe-fg);
 }
 
 .kind-filter-option[data-kind='lunchbox'] {
-  border-color: var(--kind-lunchbox-fg);
+  border-color: var(--kind-lunchbox-bg);
   background: var(--kind-lunchbox-bg);
   color: var(--kind-lunchbox-fg);
 }
 
 .kind-filter-option[data-kind='other'] {
-  border-color: var(--kind-other-fg);
+  border-color: var(--kind-other-bg);
   background: var(--kind-other-bg);
   color: var(--kind-other-fg);
 }
 
-/* Hover rises; the pressed state below sinks. The two gestures are opposites, so a chip's shadow
-   is never ambiguous between "the pointer is here" and "this filter is on". */
 .kind-filter-option:hover {
   border-color: var(--ink);
-  color: var(--ink);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-raised);
 }
 
-/* Marked by weight, fill and border as well as colour, never colour alone. The inset is a fourth
-   cue on top of those three, never the carrier: a chip whose shadows are stripped is still
-   legibly pressed. */
+/* Marked by weight, fill and border as well as colour, never colour alone. */
 .kind-filter-option[aria-pressed='true'] {
   border-color: var(--ink);
   background: var(--ink);
-  color: var(--on-primary);
+  color: var(--on-accent);
   font-weight: 700;
-  transform: none;
-  box-shadow: var(--shadow-inset);
 }
 
 .kind-filter-option[data-kind='restaurant'][aria-pressed='true'] {
   border-color: var(--kind-restaurant-fg);
   background: var(--kind-restaurant-fg);
-  color: var(--on-primary);
+  color: var(--on-accent);
 }
 
 .kind-filter-option[data-kind='cafe'][aria-pressed='true'] {
   border-color: var(--kind-cafe-fg);
   background: var(--kind-cafe-fg);
-  color: var(--on-primary);
+  color: var(--on-accent);
 }
 
 .kind-filter-option[data-kind='lunchbox'][aria-pressed='true'] {
   border-color: var(--kind-lunchbox-fg);
   background: var(--kind-lunchbox-fg);
-  color: var(--on-primary);
+  color: var(--on-accent);
 }
 
 .kind-filter-option[data-kind='other'][aria-pressed='true'] {
   border-color: var(--kind-other-fg);
   background: var(--kind-other-fg);
-  color: var(--on-primary);
+  color: var(--on-accent);
 }
+
+/*
+ * The window selector, a segmented control on screen at every width. Four equal cells rather than
+ * wrapping pills: the four windows are peers (`docs/conventions.md` → Accessibility & Responsive),
+ * and one track says so in a way four separate buttons do not.
+ */
+.period-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  max-width: 480px;
+  margin: 0 0 var(--space-5);
+  /* optical: 3px is the track's inner lip around the pressed cell, below the --space-1 step. */
+  padding: 3px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
+}
+
+.period-tab {
+  min-width: 0;
+  min-height: 38px;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--body);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.period-tab:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+
+/* The active window is marked by weight and fill as well as colour, never colour alone. */
+.period-tab[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+/* ── Badges ────────────────────────────────────────────────────────────────────────────────── */
 
 /*
  * The 업종 badge on a place row, in the detail dialog, and anywhere else a place is named. Text
@@ -431,14 +400,14 @@ body {
 .place-kind-badge {
   display: inline-block;
   flex: 0 0 auto;
-  /* optical: the badge height comes from its 12px/1.5 line box, so the vertical pad is sub-scale. */
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
+  /* optical: the badge height comes from its 12px/1.4 line box, so the vertical pad is sub-scale. */
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-xs);
   background: var(--kind-other-bg);
   color: var(--kind-other-fg);
   font-size: 12px;
   font-weight: 700;
-  line-height: 1.5;
+  line-height: 1.4;
   white-space: nowrap;
 }
 
@@ -457,302 +426,6 @@ body {
   color: var(--kind-lunchbox-fg);
 }
 
-.place-list-body {
-  border-color: var(--hairline);
-}
-
-/* The card is the list body; the list inside it is a bare heading over rows. */
-.top-places {
-  padding: 0;
-}
-
-.place-list-body h2,
-.place-search h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.18px;
-}
-
-/* An accent rule under the list heading. Decorative — the heading text already names the window,
-   so nothing is carried by the colour. */
-.place-list-body h2 {
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--rausch);
-}
-
-/* Inside the dialog the map sits under the place's own `h3`, so its label is a quieter tier. */
-.place-map h4 {
-  margin: var(--space-4) 0 0;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-/*
- * Names the span the row trend bars cover, once above the list.
- *
- * Sits under the heading rather than beside each row's bars: it is one fact about the whole list,
- * and the heading immediately above it names the *ranking* window, so the two spans are read
- * together and cannot be mistaken for one.
- */
-.top-places-trend-note,
-.top-places-count,
-.place-search-count {
-  margin: var(--space-2) 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.place-search-count {
-  margin-top: var(--space-3);
-}
-
-.top-places-empty,
-.place-search-empty,
-.place-detail-empty,
-.place-detail-empty-period {
-  margin: var(--space-4) 0 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-/* ── Buttons ───────────────────────────────────────────────────────────────────────────────── */
-
-/* Touch targets stay comfortable down to the 360px minimum width (PRD §36). */
-button,
-a[role='button'] {
-  min-height: 44px;
-  min-width: 44px;
-}
-
-/* {component.button-secondary} */
-.data-state-retry,
-.place-search-reset {
-  height: 48px;
-  margin-top: var(--space-3);
-  /* optical: 23px + the 1px border is the 24px inline inset; the 48px height is fixed, so the
-     vertical pad does not size this box and is off the scale for it. */
-  padding: 13px 23px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--canvas);
-  color: var(--ink);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--shadow-chip);
-  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease,
-    transform 120ms ease;
-}
-
-.data-state-retry:hover,
-.place-search-reset:hover {
-  background: var(--surface-soft);
-  border-color: var(--ink);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-raised);
-}
-
-/* ── Data states ───────────────────────────────────────────────────────────────────────────── */
-
-/* Before any view has data there is no section card to sit in, so the state carries its own. */
-.data-state {
-  margin: 0;
-  padding: var(--space-6);
-  border: 1px solid var(--hairline-soft);
-  border-radius: var(--radius-lg);
-  background: var(--canvas);
-  color: var(--muted);
-  box-shadow: var(--shadow-raised);
-}
-
-/* ── Period selector ───────────────────────────────────────────────────────────────────────── */
-
-/*
- * The window selector, on screen at every width. It used to appear only below 600px, where the
- * four-column grid collapsed; now it is the only way to reach a window at any width, so hiding it
- * anywhere would leave the reader stuck on whichever list happened to be rendered.
- */
-.period-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0 0 var(--space-4);
-}
-
-/* {component.category-strip}: pill filters, wrapping rather than overflowing at 360px (PRD §36). */
-.period-tab {
-  /* optical: the pill sits between --space-2 and --space-3; its height is tuned, not stepped. */
-  padding: 10px var(--space-5);
-  border: 1px solid var(--border-control);
-  border-radius: var(--radius-full);
-  background: var(--canvas);
-  color: var(--body);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: var(--shadow-chip);
-  transition:
-    border-color 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
-}
-
-.period-tab:hover {
-  border-color: var(--ink);
-  color: var(--ink);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-raised);
-}
-
-/* The active window is marked by weight, fill and border as well as colour, never colour alone;
-   the inset shadow is a fourth cue over those three, matching the 업종 chips. */
-.period-tab[aria-pressed='true'] {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--on-primary);
-  font-weight: 700;
-  transform: none;
-  box-shadow: var(--shadow-inset);
-}
-
-/* ── Ranked list & selectable rows ─────────────────────────────────────────────────────────── */
-
-.top-places-list,
-.place-search-list {
-  margin: var(--space-4) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-/*
- * Rows are ruled rather than floated: the spec drops separators because each of its cards is a
- * photograph with its own edges, and these rows are text.
- */
-.top-place,
-.place-search-list li {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin: 0 calc(var(--space-2) * -1);
-  border-radius: var(--radius-md);
-  border-bottom: 1px solid var(--hairline-soft);
-  transition: background-color 120ms ease, box-shadow 120ms ease;
-}
-
-.top-place:last-child,
-.place-search-list li:last-child {
-  border-bottom: 0;
-}
-
-/* The row does not lift — it is ruled, not floated, and eleven rows rising in turn is noise. The
-   tint stays the cue and the shadow only rounds its edges off the ruled stack. */
-.top-place:hover,
-.place-search-list li:hover {
-  background: var(--surface-soft);
-}
-
-/* Only the ranked list takes the shadow. `.place-search-list` is a scroll container, so its
-   `overflow-y: auto` forces `overflow-x` off `visible` and cuts the shadow flat at both sides of
-   every row — a half-drawn shadow reads as a rendering fault, so those rows keep the tint alone. */
-.top-place:hover {
-  box-shadow: var(--shadow-chip);
-}
-
-.top-place {
-  padding-inline: var(--space-2);
-}
-
-.place-search-list li {
-  padding-inline: var(--space-2);
-}
-
-/*
- * {component.icon-button-circle}, fixed width so the column stays aligned from 1 to 10. The rank is
- * always present as text; the ink fill on the leaders is a second cue, never the only one.
- */
-.top-place-rank {
-  display: flex;
-  flex: 0 0 32px;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  border-radius: var(--radius-full);
-  background: var(--surface-strong);
-  box-shadow: var(--shadow-inset);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.top-place:nth-child(-n + 3) .top-place-rank {
-  background: var(--rausch-strong);
-  color: var(--on-primary);
-}
-
-.top-place-body {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/*
- * `.top-place-body` is a `<button>` when the list is wired to the detail card and a `<div>` when it
- * is not, so the button case is stripped back to the text it already was — the row must not change
- * shape depending on whether it is interactive.
- *
- * The row's vertical padding lives on the button rather than on the `<li>`, so the tappable box is
- * the whole row (~64px) instead of the text's own 42px.
- */
-button.top-place-body,
-.place-select {
-  display: block;
-  width: 100%;
-  min-height: 0;
-  padding: var(--space-3) 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-
-div.top-place-body {
-  padding: var(--space-3) 0;
-}
-
-.top-place-name,
-.place-select-name {
-  display: block;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  /* 1.35, not the spec's 1.25: Hangul fills the em box top to bottom with no x-height relief, so a
-     Latin line-height crowds a name that wraps to two lines. */
-  line-height: 1.35;
-}
-
-/* The metadata line is a badge followed by figures, so it lays out rather than wrapping as text. */
-.top-place-meta,
-.place-select-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  /* optical: sub-scale, tying the metadata line to the name above it. */
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.top-place-location,
-.place-select-address {
-  min-width: 0;
-}
-
 /*
  * The distance is one token to a reader — `거리` above its own `1.2km` reads as a stray word. The
  * metadata line still wraps, but only between the district and the figure.
@@ -764,12 +437,13 @@ div.top-place-body {
 .top-place-distance,
 .place-detail-distance {
   /* optical: sub-scale vertical pad, matching the 업종 badge this sits beside. */
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-xs);
   background: var(--dist-near-bg);
   color: var(--dist-near-fg);
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.4;
   white-space: nowrap;
 }
 
@@ -791,34 +465,197 @@ div.top-place-body {
   color: var(--dist-far-fg);
 }
 
+/* ── Ranked list ───────────────────────────────────────────────────────────────────────────── */
+
+.top-places {
+  padding: 0;
+}
+
+.place-list-body h2,
+.place-search h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
 /*
- * The glyph carries the direction and `role="img"` carries the words; the colour is a third cue on
- * top of both, never the only one — a reader who cannot separate the two hues still has `▲`/`▼`
- * and the spoken label.
+ * Names the span the row trend bars cover, once above the list.
  *
- * Never green/red: that pair puts a decline in the system's *error* colour, which reads as a
- * judgement about the business — the framing `docs/conventions.md` forbids, and the one no
- * banned-phrase test can catch because it is not a string. The pair used instead is the brand red
- * and the 거리 ramp's mid blue, two colours the palette already carries for reasons that have
- * nothing to do with good and bad. All three measured on `--canvas`: #e00b41 4.89:1, #3a6ba8
- * 5.46:1, `--muted` 5.41:1 — and again on `--surface-soft`, which the row swaps to on hover, where
- * the tightest of the three is the rise at 4.57:1. That margin is what a future darkening of
- * `--surface-soft` has to keep.
+ * Sits under the heading rather than beside each row's bars: it is one fact about the whole list,
+ * and the heading immediately above it names the *ranking* window, so the two spans are read
+ * together and cannot be mistaken for one.
  */
-.top-place-delta {
-  flex: 0 0 auto;
+.top-places-trend-note,
+.top-places-count,
+.place-search-count {
+  margin: var(--space-1) 0 0;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.5;
+}
+
+.top-places-empty,
+.place-search-empty,
+.place-detail-empty,
+.place-detail-empty-period {
+  margin: var(--space-4) 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.top-places-list,
+.place-search-list {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * A ledger row: the rank numeral, the place, the figures. Ruled, never floated — the rule is the
+ * only structure a row has, and the hover tint is the only thing that changes on it.
+ */
+.top-place {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
+  align-items: center;
+  border-top: 1px solid var(--hairline);
+  transition: background-color 120ms ease;
+}
+
+.top-place:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.top-place:hover {
+  background: var(--surface-hover);
+}
+
+/* The rank is always present as text; the accent on the leaders is a second cue, never the only one. */
+.top-place-rank {
+  align-self: start;
+  padding-top: var(--space-4);
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.top-place:nth-child(-n + 3) .top-place-rank {
+  color: var(--accent);
+}
+
+.top-place-body {
+  min-width: 0;
+}
+
+/*
+ * `.top-place-body` is a `<button>` when the list is wired to the detail card and a `<div>` when it
+ * is not, so the button case is stripped back to the text it already was — the row must not change
+ * shape depending on whether it is interactive.
+ *
+ * The row's vertical padding lives on the body rather than on the `<li>`, so the tappable box is
+ * the whole row rather than the text's own line boxes.
+ */
+button.top-place-body,
+div.top-place-body,
+.place-select {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: var(--space-3) 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+
+button.top-place-body,
+.place-select {
+  cursor: pointer;
+}
+
+.top-place-name,
+.place-select-name {
+  display: block;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  /* 1.35, not 1.25: Hangul fills the em box top to bottom with no x-height relief, so a Latin
+     line-height crowds a name that wraps to two lines. */
+  line-height: 1.35;
+}
+
+/* The metadata line is a badge followed by figures, so it lays out rather than wrapping as text. */
+.top-place-meta,
+.place-select-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  /* optical: sub-scale, tying the metadata line to the name above it. */
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.top-place-location,
+.place-select-address {
+  min-width: 0;
+}
+
+/*
+ * The figures column: the count on the first line with the movement beside it, the trend bars
+ * under both, everything ranged right so the counts line up down the list.
+ */
+.top-place-figures {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: end;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  padding: var(--space-3) 0;
+}
+
+/* The one figure the ranking is by: the largest type on a row, in tabular numerals. */
+.top-place-count {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+/*
+ * The glyph carries the direction and `role="img"` carries the words; the colour is a third cue on
+ * top of both, never the only one — a reader who cannot separate the two tones still has `▲`/`▼`
+ * and the spoken label.
+ *
+ * A rise takes the accent and a fall stays muted. Never green against red, and never the system's
+ * error colour: a decline drawn in `--error` reads as a fault of the business — the framing
+ * `docs/conventions.md` forbids, and the one no banned-phrase test can catch because it is not a
+ * string. The rise is coloured because "최근 이용이 늘어난 곳" is the one thing the same document
+ * asks the product to surface; the fall is a plain fact in plain ink.
+ */
+.top-place-delta {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .top-place-delta[data-direction='up'] {
-  color: var(--rausch-strong);
+  color: var(--accent);
 }
 
 .top-place-delta[data-direction='down'] {
-  color: var(--dist-mid-bg);
+  color: var(--muted);
 }
 
 /* Stated, not inherited: the neutral is the *same* movement fact as the other two, so it is
@@ -828,11 +665,11 @@ div.top-place-body {
 }
 
 /*
- * The row's trend chart: twelve monthly bars, oldest at the left.
+ * The row's trend chart: twelve monthly bars, oldest at the left, on its own line under the count.
  *
  * Bars only — no axis, no numbers. Everything the shape says is also written out in the chart's
  * `aria-label` (`sparklineLabel`), which is what keeps it from conveying the series by height
- * alone, and the figures beside it state the counts the ranking actually used.
+ * alone, and the count above it states the figure the ranking actually used.
  *
  * Neutral ink, never a rising/falling colour pair: a decline rendered in the system's error colour
  * would be a judgement about the business, the framing `docs/conventions.md` forbids and the one
@@ -840,32 +677,34 @@ div.top-place-body {
  */
 .top-place-trend {
   display: flex;
-  flex: 0 0 auto;
+  grid-column: 1 / -1;
+  justify-self: end;
   align-items: flex-end;
-  /* optical: the gap between sparkline bars inside an 84px box, not layout spacing. */
+  /* optical: the gap between sparkline bars inside a 72px box, not layout spacing. */
   gap: 2px;
-  width: 84px;
-  height: 26px;
+  width: 72px;
+  height: 18px;
+  /* optical: sub-scale, tying the bars to the count they sit under. */
+  margin-top: 3px;
 }
 
 .top-place-trend-bar {
-  flex: 1 1 0;
+  flex: 0 0 4px;
   /* Two channels, not one. A month with a single visit against a tall peak scales to well under
      any floor, so a floor shared with the empty months would leave the two apart by tone alone —
      colour as a sole carrier, which `docs/conventions.md` → Accessibility bans. A month with
-     visits therefore keeps a 4px floor and an empty month a 1px baseline, so the pair differ in
+     visits therefore keeps a 3px floor and an empty month a 1px baseline, so the pair differ in
      height as well as in tone whatever the peak. */
-  min-height: 4px;
+  min-height: 3px;
   border-radius: 1px;
   background: var(--ink);
 }
 
 .top-place-trend-bar[data-empty='true'] {
   min-height: 1px;
-  /* Darker than the card it sits on — #ebebeb was 1.19:1 on white, #dddddd is 1.36:1. Still short
-     of the 3:1 non-text floor, and deliberately not chased further here: the height split above
-     is what carries the distinction, so the tone is a second cue rather than the channel. Under
-     `prefers-contrast: more` the token becomes #767676 (4.54:1). */
+  /* Darker than the floor it sits on but short of the 3:1 non-text floor, and deliberately not
+     chased further: the height split above is what carries the distinction, so the tone is a
+     second cue rather than the channel. Under `prefers-contrast: more` the token darkens. */
   background: var(--hairline);
 }
 
@@ -880,81 +719,93 @@ div.top-place-body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-2);
+  gap: var(--space-3);
   margin: var(--space-3) 0 0;
 }
 
-.top-places-more-button {
+/* {component.button-secondary} — the outlined control the retry, reset and 더 보기 buttons share. */
+.top-places-more-button,
+.data-state-retry,
+.place-search-reset {
+  min-height: 40px;
   padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--border-control);
-  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   background: var(--canvas);
-  color: var(--body);
+  color: var(--ink);
   font: inherit;
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--shadow-chip);
-  transition:
-    border-color 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease;
 }
 
-.top-places-more-button:hover {
-  border-color: var(--rausch-strong);
-  color: var(--rausch-strong);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-raised);
+.data-state-retry,
+.place-search-reset {
+  margin-top: var(--space-3);
 }
 
-
+.top-places-more-button:hover,
+.data-state-retry:hover,
+.place-search-reset:hover {
+  border-color: var(--ink);
+  background: var(--surface-hover);
+}
 
 /* ── Search ────────────────────────────────────────────────────────────────────────────────── */
 
 /*
- * {component.search-bar-pill}: white surface, fully rounded, split into segments by a single
- * hairline. It is the spec's most recognisable device and the only place this page spends it.
+ * The search foot: for a reader who already has a name. It sits after the list on its own white
+ * band, opened by a plain question rather than a pill, because it is the second thing on the page
+ * and should look it.
  */
+.place-search {
+  min-width: 0;
+  padding: var(--space-6);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--canvas);
+}
+
 .place-search-controls {
   display: flex;
-  align-items: stretch;
+  flex-wrap: wrap;
+  gap: var(--space-3);
   margin: var(--space-4) 0 0;
-  border: 1px solid var(--border-control);
-  border-radius: var(--radius-full);
-  background: var(--canvas);
-  box-shadow: var(--shadow-raised);
 }
 
 .place-search-field {
   display: flex;
-  flex: 1 1 60%;
+  flex: 1 1 240px;
   flex-direction: column;
-  justify-content: center;
   gap: var(--space-1);
-  padding: var(--space-3) var(--space-6);
+  min-width: 0;
   cursor: text;
 }
 
 .place-search-field + .place-search-field {
-  flex: 1 1 40%;
-  border-left: 1px solid var(--hairline);
+  flex: 0 1 200px;
   cursor: pointer;
 }
 
 .place-search-field > span {
-  font-size: 12px;
+  color: var(--body);
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.4;
-  color: var(--ink);
 }
 
 .place-search-input,
 .place-search-category {
   width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
   color: var(--ink);
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
 }
 
@@ -966,16 +817,8 @@ div.top-place-body {
   cursor: pointer;
 }
 
-/* The ring belongs to the pill, not to the borderless control sitting inside it. */
-.place-search-controls:focus-within {
-  border-color: var(--ink);
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-
-.place-search-input:focus-visible,
-.place-search-category:focus-visible {
-  outline: none;
+.place-search-count {
+  margin-top: var(--space-3);
 }
 
 /*
@@ -992,6 +835,18 @@ div.top-place-body {
   padding: 6px 0;
   /* optical: the same 6px, so a row scrolled to lands clear of the ring rather than against it. */
   scroll-padding: 6px 0;
+}
+
+.place-search-list li {
+  border-top: 1px solid var(--hairline-soft);
+}
+
+.place-search-list li:last-child {
+  border-bottom: 1px solid var(--hairline-soft);
+}
+
+.place-search-list li:hover {
+  background: var(--surface-hover);
 }
 
 /* ── Detail dialog ─────────────────────────────────────────────────────────────────────────── */
@@ -1015,38 +870,25 @@ div.top-place-body {
   display: none;
 }
 
-/* {colors.scrim} — the spec's black, pulled from 50% to 45% and given a blur. The list is still
-   there behind the dialog and a blur says so; the 5% the blur gives back keeps the scrim from
-   reading darker than the spec once the two compose. */
 .detail-dialog-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-}
-
-/* Without `backdrop-filter` the scrim is the only thing separating the panel from the list, so it
-   goes back to the spec's full 50%. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .detail-dialog-scrim {
-    background: rgba(0, 0, 0, 0.5);
-  }
+  background: rgba(20, 32, 27, 0.5);
 }
 
 .detail-dialog-panel {
   position: relative;
-  width: min(640px, 100%);
+  width: min(600px, 100%);
   max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--space-7);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--canvas);
   box-shadow: var(--shadow-overlay);
 }
 
-/* {component.button-secondary}, sized as an icon button and parked out of the reading order. */
+/* Sized as an icon button and parked out of the reading order. */
 .detail-dialog-close {
   position: absolute;
   top: var(--space-4);
@@ -1055,21 +897,19 @@ div.top-place-body {
   /* optical: the 44px minimum width sizes this control, so the inline pad follows it. */
   padding: 0 14px;
   border: 1px solid var(--border-control);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
   background: var(--canvas);
   color: var(--ink);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--shadow-chip);
-  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 .detail-dialog-close:hover {
-  background: var(--surface-soft);
+  background: var(--surface-hover);
   border-color: var(--ink);
-  box-shadow: var(--shadow-raised);
 }
 
 /* Inside the panel the card is content, not a surface — the panel already carries the edges. */
@@ -1086,7 +926,6 @@ div.top-place-body {
   font-size: 13px;
   font-weight: 700;
   color: var(--muted);
-  letter-spacing: 0.02em;
 }
 
 .place-detail-name {
@@ -1094,10 +933,10 @@ div.top-place-body {
      optical: that 56px is clearance for the control, not a spacing step, and the 2px below it is
      sub-scale. */
   margin: var(--space-1) 56px 2px 0;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: -0.44px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
 }
 
 .place-detail-meta,
@@ -1116,14 +955,21 @@ div.top-place-body {
   gap: var(--space-2);
 }
 
+/* Names the window the figures under it were counted over. */
+.place-detail-period {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--hairline);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .place-detail-figures {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--space-4) var(--space-7);
-  margin: var(--space-6) 0 0;
-  padding-bottom: var(--space-5);
-  border-bottom: 1px solid var(--hairline-soft);
+  margin: var(--space-2) 0 0;
 }
 
 .place-detail-figure dt {
@@ -1139,28 +985,25 @@ div.top-place-body {
   font-variant-numeric: tabular-nums;
 }
 
-/*
- * {typography.rating-display} — the spec's one oversized figure, spent on the number a listing is
- * actually judged by. Here that number is the visit count. Pulled down from the spec's 64px: a
- * two-or-three digit 회 count does not need it, and 48px against 18px is still a 2.7× step.
- */
+/* The one oversized figure, spent on the number the row was ranked by. */
 .place-detail-figure:first-child {
   flex: 0 0 auto;
   margin-inline-end: var(--space-1);
 }
 
 .place-detail-figure:first-child dd {
-  font-size: clamp(36px, 10vw, 48px);
+  font-size: clamp(36px, 10vw, 44px);
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -1px;
+  letter-spacing: -0.03em;
 }
 
 /* ── Histogram ─────────────────────────────────────────────────────────────────────────────── */
 
-.place-histogram h4 {
+.place-histogram h4,
+.place-map h4 {
   margin: var(--space-6) 0 var(--space-3);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
 }
@@ -1195,54 +1038,40 @@ div.top-place-body {
 .place-histogram-track {
   max-width: 100%;
   height: 8px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-xs);
   background: var(--surface-strong);
-  box-shadow: var(--shadow-inset);
 }
 
 /*
  * The bar restates the count beside it; it is never the only place the number appears. Ink rather
- * than the brand colour: a figure is data, and colouring it would make it look like a judgement.
+ * than the accent: a figure is data, and colouring it would make it look like a judgement.
  */
 .place-histogram-bar {
   display: block;
   height: 100%;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-xs);
   background: var(--ink);
 }
 
-/* {component.button-primary} — the one CTA, on the text-safe brand colour. */
+/* The one CTA, on the accent. */
 .place-detail-link {
   display: inline-flex;
   align-items: center;
-  min-height: 48px;
-  margin-top: var(--space-6);
-  /* optical: 14px twice around a 16px/1.3 label is 48.8px, so the pad sizes this box and the
-     48px min-height is the floor it clears. */
-  padding: 14px var(--space-6);
+  min-height: 44px;
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-sm);
-  background: var(--rausch-strong);
-  color: var(--on-primary);
-  font-size: 16px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 15px;
   font-weight: 600;
   line-height: 1.3;
   text-decoration: none;
-  /* The one tinted shadow on the page, and the one place the ladder is not used. A neutral shadow
-     under a saturated fill reads as dirt; this one is the fill's own colour, so it reads as the
-     button glowing. Nothing else may copy it — it marks the single CTA.
-
-     `color-mix` rather than the token's channels written out: a literal `rgba(224, 11, 65, …)` is
-     a copy of `--rausch-strong` that nothing keeps in step, so retuning the brand colour would
-     leave the glow at the old hue silently. A browser without `color-mix` drops the declaration
-     and the CTA loses its glow, which is the whole of the damage. */
-  box-shadow: color-mix(in srgb, var(--rausch-strong) 24%, transparent) 0 4px 14px;
-  transition: background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  transition: background-color 120ms ease;
 }
 
 .place-detail-link:hover {
-  background: var(--rausch-active);
-  transform: translateY(-1px);
-  box-shadow: color-mix(in srgb, var(--rausch-active) 32%, transparent) 0 8px 22px;
+  background: var(--accent-strong);
 }
 
 /* ── Map ───────────────────────────────────────────────────────────────────────────────────── */
@@ -1251,19 +1080,18 @@ div.top-place-body {
    zero pixels tall. `vh`-capped so it never eats a 360px screen whole. */
 .place-map-canvas {
   width: 100%;
-  height: min(60vh, 22rem);
-  margin-top: var(--space-3);
+  height: min(50vh, 18rem);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .place-map-fallback {
-  margin: var(--space-3) 0 0;
-  padding: var(--space-7) var(--space-4);
+  margin: 0;
+  padding: var(--space-6) var(--space-4);
   border: 1px dashed var(--hairline);
-  border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
   color: var(--muted);
   text-align: center;
   font-size: 14px;
@@ -1273,32 +1101,24 @@ div.top-place-body {
    rather than in the module that builds them.
 
    One marker, one meaning: the map shows the place the dialog is about, so there is no second kind
-   of pin for this one to be told apart from — the badge and selection variants went with the
-   page-level map. The name is carried in the marker's title, never by the pin alone. */
+   of pin for this one to be told apart from. The name is carried in the marker's title, never by
+   the pin alone. */
 .place-map-marker {
   display: block;
   width: 28px;
   height: 28px;
   border: 2px solid var(--canvas);
   border-radius: var(--radius-full);
-  background: var(--rausch-strong);
-  /* The one element that does not take a ladder tier. The two surface tiers are 4–7% black, tuned
-     against the page's own tinted floor; over Naver's photographic tiles that disappears and the
-     pin is left separated by its 2px white border alone. This shadow is sized for that backdrop. */
-  box-shadow: rgba(0, 0, 0, 0.18) 0 1px 3px;
-}
-
-/* The card's own slot for the map, so the figures below keep their gutter when it fails or loads. */
-.place-detail-map:not(:empty) {
-  margin: var(--space-1) 0 var(--space-3);
+  background: var(--accent);
+  /* Over Naver's photographic tiles the 2px white border alone does not separate the pin; this
+     shadow is sized for that backdrop and nothing on the page itself. */
+  box-shadow: rgba(0, 0, 0, 0.25) 0 1px 3px;
 }
 
 /* ── Focus ─────────────────────────────────────────────────────────────────────────────────── */
 
 /*
- * No `border-radius` here. It used to set 4px, which — at equal specificity and later in the file —
- * won against `.period-tab` (a pill) and `.place-detail-link`, so tabbing to them visibly
- * squared off their corners. The outline follows each element's own radius on its own.
+ * No `border-radius` here: the outline follows each element's own radius on its own.
  */
 :focus-visible {
   outline: 2px solid var(--ink);
@@ -1320,22 +1140,64 @@ div.top-place-body {
     --column-inset: var(--space-4);
   }
 
+  .shell-header {
+    padding-top: var(--space-6);
+  }
+
+  .shell-headline {
+    font-size: 26px;
+  }
+
+  .shell-provenance {
+    padding-bottom: var(--space-5);
+  }
+
   #content {
-    padding: var(--space-4) var(--space-4) var(--space-8);
+    gap: var(--space-6);
+    padding: var(--space-5) var(--space-4) var(--space-8);
+  }
+
+  .top-place {
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+    column-gap: var(--space-2);
   }
 
   /* Narrower, not hidden: the shape is the row's only account of when the visits happened, and
      dropping it on a phone would leave the smallest screen with the least of the data. */
   .top-place-trend {
-    width: 56px;
-    height: 22px;
+    /* optical: a 1px gap between 3px bars, so twelve months fit a 47px box beside the name. */
+    gap: 1px;
+    width: 47px;
+    height: 16px;
   }
 
-  .place-list-body,
+  .top-place-trend-bar {
+    flex-basis: 3px;
+  }
+
+  .top-place-count {
+    font-size: 18px;
+  }
+
+  /* One line of metadata under the name: the badge, the district and the distance at 12px fit
+     beside the figures column at 360px, and at 13px they did not. */
+  .top-place-meta {
+    font-size: 12px;
+  }
+
+  /* The label is `aria-hidden` and the group already carries its name; dropping it and the wider
+     chip pad is what lets all five chips share one line at 360px. */
+  .kind-filter-label {
+    display: none;
+  }
+
+  .kind-filter-option {
+    padding: var(--space-1) var(--space-2);
+  }
+
   .place-search,
   .data-state {
     padding: var(--space-5) var(--space-4);
-    border-radius: var(--radius-md);
   }
 
   .detail-dialog {
@@ -1343,8 +1205,6 @@ div.top-place-body {
     align-items: flex-end;
   }
 
-  /* A bottom sheet rather than a centred box: at 360px a centred dialog with margins wastes the
-     only space the histogram has. */
   /* The oversized figure takes its own row: at 360px it otherwise sits hard against the next
      figure's label with no gutter between them. */
   .place-detail-figures {
@@ -1356,39 +1216,13 @@ div.top-place-body {
     margin-inline-end: 0;
   }
 
+  /* A bottom sheet rather than a centred box: at 360px a centred dialog with margins wastes the
+     only space the histogram has. */
   .detail-dialog-panel {
     width: 100%;
     max-height: 92vh;
     padding: var(--space-6) var(--space-4);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  }
-
-  /* The pill loses its shape below the width that fits two segments; the segments stack as fields,
-     and each takes its own ring so focus is never ambiguous between them. */
-  .place-search-controls {
-    flex-direction: column;
-    border-radius: var(--radius-md);
-  }
-
-  .place-search-controls:focus-within {
-    border-color: var(--border-control);
-    outline: none;
-  }
-
-  .place-search-field {
-    /* optical: the field height is tuned against its own text, as the period pills are. */
-    padding: 10px var(--space-4);
-    border-radius: var(--radius-md);
-  }
-
-  .place-search-field:focus-within {
-    outline: 2px solid var(--ink);
-    outline-offset: -2px;
-  }
-
-  .place-search-field + .place-search-field {
-    border-left: 0;
-    border-top: 1px solid var(--hairline);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
   }
 }
 
@@ -1401,52 +1235,11 @@ div.top-place-body {
  */
 @media (prefers-contrast: more) {
   :root {
-    --muted: #565656;
-    --body: #2b2b2b;
-    --hairline: #767676;
-    --hairline-soft: #949494;
-    --border-control: #565656;
-  }
-
-  .top-place,
-  .place-search-list li {
-    border-bottom-color: var(--hairline);
-  }
-
-  /* The header goes opaque. A reader who asked for more contrast is the last one who should be
-     given text over a 72% surface with the page's own content showing through it. */
-  .shell-header {
-    background: var(--band);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  /* Likewise the scrim: the blur is a softening, and what separates the dialog from the list here
-     should be the full 50% black instead. */
-  .detail-dialog-scrim {
-    background: rgba(0, 0, 0, 0.5);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-}
-
-/*
- * Translucency and blur are the two effects this preference names, and both of the surfaces that
- * carry them fall back to what they were before the glass: an opaque band and the spec's scrim.
- * The shadow ladder stays — it is opacity over a surface, not through one, and stripping it would
- * flatten the page for a reader who asked only for the see-through parts to stop.
- */
-@media (prefers-reduced-transparency: reduce) {
-  .shell-header {
-    background: var(--band);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  .detail-dialog-scrim {
-    background: rgba(0, 0, 0, 0.5);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+    --muted: #4b5751;
+    --body: #24302a;
+    --hairline: #767f7a;
+    --hairline-soft: #949c97;
+    --border-control: #4b5751;
   }
 }
 
@@ -1454,16 +1247,5 @@ div.top-place-body {
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
-  }
-
-  /* Zeroing the duration only makes the hover lift instant — it still moves, which is the thing
-     this preference asks to stop. The shadow change carries the hover on its own here. */
-  .kind-filter-option:hover,
-  .period-tab:hover,
-  .top-places-more-button:hover,
-  .data-state-retry:hover,
-  .place-search-reset:hover,
-  .place-detail-link:hover {
-    transform: none !important;
   }
 }

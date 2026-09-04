@@ -10,6 +10,7 @@ import {
   histogramSpanLabel,
   monthLabel,
   renderKindBadge,
+  visitCountLabel,
 } from './place-labels';
 
 /**
@@ -71,9 +72,7 @@ export function periodStatsHeading(basis: Period): string {
   return `${PERIOD_LABELS[basis]} 기준`;
 }
 
-export function visitCountLabel(visitCount: number): string {
-  return `${visitCount}회`;
-}
+export { visitCountLabel };
 
 /** `new URL` throws on anything it cannot parse, which is itself a rejection. */
 function isHttpsUrl(value: string): boolean {
@@ -256,11 +255,14 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
 
   // Left empty here on purpose: the card stays pure DOM over already-computed numbers, and the map
   // is the one view that needs a third-party script. `src/ui/detail-dialog.ts` fills this slot, so
-  // a caller that has no map — or a test — renders the whole card without one.
+  // a caller that has no map — or a test — renders the whole card without one. Appended below the
+  // histogram, next to the link out.
   const mapSlot = document.createElement('div');
   mapSlot.className = 'place-detail-map';
 
-  section.append(name, meta, mapSlot, periodNote);
+  // The figures come before the map: the number is what the reader opened the row for, and the
+  // map — which may never arrive — answers the follow-up question, so it sits above the link out.
+  section.append(name, meta, periodNote);
 
   if (stats.visitCount === 0) {
     const empty = document.createElement('p');
@@ -280,7 +282,7 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
     section.append(figures);
   }
 
-  section.append(renderHistogram(histogram));
+  section.append(renderHistogram(histogram), mapSlot);
 
   // The only place a dataset string reaches an executable position in this app — see
   // `naverLinkHref`, which owns the scheme check. `src/data/load.ts` now rejects the whole file
