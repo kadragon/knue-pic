@@ -2,28 +2,28 @@
 
 ## Review Backlog
 
-### PR #52 — the combinator split in `target()` does not respect parens (2026-09-03)
+### PR #53 — the one selector split left on a live input (2026-09-04)
 
-- [ ] [debt] `selectorParts` now splits a selector *list* at top-level commas only, but `reaches`'s
-  inner `target()` still splits each part on `/[\s>+~]+/` with no depth tracking, so a combinator
-  inside a functional pseudo-class ends the compound early. Measured on PR #52:
-  `reaches('.badge', '.badge:is(.a .b)')` is `false` — a rule that really does style `.badge` is
-  invisible to the override guard, so `.place-kind-badge:is(.x .y) { white-space: normal }` would
-  slip past the nowrap guard. Pre-existing (`target` is byte-identical to the version on `main`)
-  and a false negative rather than a false red, which is why it was not folded into PR #52 — but it
-  is the same class of bug `selectorParts` was added to close, in the same function. Skip
-  bracketed and parenthesised runs when splitting on combinators (source: contract QA
-  re-verification on PR #52) — `src/ui/stylesheet-claims.test.ts`
+- [ ] [debt] `meaningCarryingPalettes`'s inner `elements()` still calls `selector.split(',')`
+  directly. It is the last naive split in the suite and the only one whose input is *live*:
+  `RULES`, parsed from `src/styles.css`, rather than a hand-written literal. A palette selector
+  holding a comma inside `:is(…)` or an attribute value — `.top-place-distance:is(.a, .b) { color:
+  … }` — splits into the keys `.top-place-distance:is(.a` and `.b)`, neither matching the
+  `.top-place-distance` key, so that rule's `text` role is dropped and `meaningCarryingPalettes()`
+  can lose `band` — which is what the `toEqual(['band', 'kind'])` guard and the `CLAIMS` counts
+  rest on. Latent today (no such selector in the sheet). Route it through `selectorParts` and add
+  a mutation probe (source: PR #53 review, `code-review` and Codex independently) —
+  `src/ui/stylesheet-claims.test.ts`
 
-### PR #52 — two selector splits the depth-aware helper did not reach (2026-09-03)
+### PR #53 — the escape the matcher does not honour (2026-09-04)
 
-- [ ] [debt] `selectorParts` tracks quotes but not a backslash escape outside one, so
-  `.a\,b { .c { … } }` resolves to `.a\ .c, b .c`; and `WRAPPING_ELEMENTS` still calls
-  `token.split(',')` directly. Neither has live impact — `src/styles.css` holds no escaped
-  selector, and the `WRAPPING_ELEMENTS` input is three hand-written literals with no functional
-  pseudo-class — so both are latent, and the second only matters once that list stops being
-  hand-written. Route both through the helper, and honour the escape inside it (source: contract QA
-  re-verification on PR #52) — `src/ui/stylesheet-claims.test.ts`
+- [ ] [debt] `reaches` now splits with escape awareness but still *matches* with
+  the pattern `\.<name>(?![\w-])`, which matches the `\.` of an escaped literal
+  dot: `reaches('.badge', '.a\\.badge')` is `true` though that selector styles a single
+  class named `a.badge` and never touches `.badge`. Same family as the `.a\,b` split PR #53
+  fixed, opposite direction — a false red in an override guard rather than a false negative.
+  Latent (no escaped selector in `src/styles.css`) (source: PR #53 review, `code-review`) —
+  `src/ui/stylesheet-claims.test.ts`
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
