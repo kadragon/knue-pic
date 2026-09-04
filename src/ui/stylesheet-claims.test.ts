@@ -223,27 +223,33 @@ const urlToken = (
 };
 
 /**
- * A selector list split at its **top-level** commas — the ones that separate selectors, not the
- * ones inside `:is(…)`, `:not(…)`, `:where(…)`, `:nth-child(…)` or a quoted attribute value.
+ * A selector split at the **top-level** characters `separates` accepts — the ones outside every
+ * `(…)`, `[…]`, quoted string and backslash escape.
  *
- * A bare `.split(',')` reads `:not(.b, .c) .d` as two selectors and every reader of a selector
- * here made that mistake. It is the same depth-and-quote state `flush` already tracks to find a
- * declaration's first top-level colon, and it is spelled out once rather than a third time.
+ * One scan, two separators. `selectorParts` wants top-level commas; `target` wants top-level
+ * combinators, and it used a bare `.split(/[\\s>+~]+/)` that ended a compound at the first
+ * combinator inside `:is(…)`. Spelling the depth-and-quote state a second time is how the two
+ * readers drifted apart in the first place, so the state lives here and the callers differ only
+ * in which character ends a piece.
  */
-const selectorParts = (selector: string): string[] => {
+const splitTopLevel = (selector: string, separates: (char: string) => boolean): string[] => {
   const parts: string[] = [];
   let depth = 0;
   let quote = '';
   let start = 0;
   for (let at = 0; at < selector.length; at += 1) {
-    const char = selector[at];
-    if (quote !== '') {
-      if (char === '\\') at += 1;
-      else if (char === quote) quote = '';
+    const char = selector[at] ?? '';
+    if (char === '\\') {
+      // A backslash escapes the next character wherever it stands, not only inside a quote:
+      // `.a\\,b` is one class whose name contains a comma, and splitting it yields two selectors
+      // that match nothing. CSS gives the escape the same meaning in both places, so does this.
+      at += 1;
+    } else if (quote !== '') {
+      if (char === quote) quote = '';
     } else if (char === "'" || char === '"') quote = char;
     else if (char === '(' || char === '[') depth += 1;
     else if (char === ')' || char === ']') depth -= 1;
-    else if (char === ',' && depth === 0) {
+    else if (depth === 0 && separates(char)) {
       parts.push(selector.slice(start, at));
       start = at + 1;
     }
@@ -251,6 +257,94 @@ const selectorParts = (selector: string): string[] => {
   parts.push(selector.slice(start));
   return parts.map((part) => part.trim()).filter((part) => part !== '');
 };
+
+/**
+ * A selector list split at its **top-level** commas — the ones that separate selectors, not the
+ * ones inside `:is(…)`, `:not(…)`, `:where(…)`, `:nth-child(…)` or a quoted attribute value.
+ *
+ * A bare `.split(',')` reads `:not(.b, .c) .d` as two selectors and every reader of a selector
+ * here made that mistake. It is the same depth-and-quote state `flush` already tracks to find a
+ * declaration's first top-level colon, and it is spelled out once rather than a third time.
+ */
+const selectorParts = (selector: string): string[] =>
+  splitTopLevel(selector, (char) => char === ',');
+
+/** The index just past the `)`/`]` that closes the run opened at `open`. */
+const closeAt = (text: string, open: number): number => {
+  let depth = 0;
+  let quote = '';
+  for (let at = open; at < text.length; at += 1) {
+    const char = text[at] ?? '';
+    if (char === '\\') at += 1;
+    else if (quote !== '') {
+      if (char === quote) quote = '';
+    } else if (char === "'" || char === '"') quote = char;
+    else if (char === '(' || char === '[') depth += 1;
+    else if (char === ')' || char === ']') {
+      depth -= 1;
+      if (depth === 0) return at + 1;
+    }
+  }
+  return text.length;
+};
+
+const COMBINATOR = /[\s>+~]/;
+
+/**
+ * The compound a selector part actually styles — its **subject** — with everything that names
+ * some *other* element removed.
+ *
+ * Taking the last top-level compound is only half of it. `.x:is(.badge .y)` styles a `.y` that
+ * has a `.badge` ancestor; the compound holds the token `.badge` and names it about an ancestor,
+ * so a guard that stopped at the compound would report a rule as an override of `.badge` that
+ * never touches one. Inside a functional pseudo-class only each argument's own subject applies
+ * to the element, which is this same reduction one level down — hence the recursion.
+ *
+ * Three kinds of run are dropped rather than reduced:
+ *
+ * - `:not(…)` states what the subject is *not*. `.foo:not(.badge)` is the one form that names a
+ *   class in order to exclude it, and dropping the run is the behaviour this helper has always
+ *   had.
+ * - `:has(…)` states what the subject *contains*, so `.foo:has(.badge)` styles `.foo`.
+ * - `[…]` holds an attribute name and an arbitrary quoted value. `[data-x=".badge"]` names a
+ *   class only as text.
+ */
+const reduceCompound = (compound: string): string => {
+  let out = '';
+  let at = 0;
+  while (at < compound.length) {
+    const char = compound[at] ?? '';
+    if (char === '\\') {
+      out += compound.slice(at, at + 2);
+      at += 2;
+      continue;
+    }
+    if (char === '[') {
+      at = closeAt(compound, at);
+      continue;
+    }
+    const functional = char === ':' ? /^::?(-{0,2}[\w-]+)\(/.exec(compound.slice(at)) : null;
+    if (functional) {
+      const open = at + functional[0].length - 1;
+      const end = closeAt(compound, open);
+      const name = (functional[1] ?? '').toLowerCase();
+      if (name !== 'not' && name !== 'has') {
+        const inner = selectorParts(compound.slice(open + 1, end - 1)).map(subjectOf);
+        out += `${functional[0]}${inner.join(', ')})`;
+      }
+      at = end;
+      continue;
+    }
+    out += char;
+    at += 1;
+  }
+  return out;
+};
+
+/** `reduceCompound` of the last top-level compound of `part`. */
+function subjectOf(part: string): string {
+  return reduceCompound(splitTopLevel(part, (char) => COMBINATOR.test(char)).pop() ?? '');
+}
 
 /**
  * A block's prelude resolved against the block it is written in — the element it actually styles.
@@ -708,9 +802,7 @@ const declarations = (selector: string): string => declarationsIn(RULES, selecto
 const reaches = (element: string, selector: string): boolean => {
   const name = element.replace(/^\./, '');
   const named = new RegExp(String.raw`\.${name}(?![\w-])`);
-  const target = (part: string): string =>
-    (part.replaceAll(/:not\([^)]*\)/g, '').split(/[\s>+~]+/).filter(Boolean).pop() ?? '');
-  return selectorParts(selector).some((part) => named.test(target(part)));
+  return selectorParts(selector).some((part) => named.test(subjectOf(part)));
 };
 
 /** The declaration blocks of every rule in `rules` that `reaches` `element`. */
@@ -876,9 +968,11 @@ const WRAPPING_TOKENS = [
  * The same three tokens as individual elements: a cascade override targets one selector, not the
  * comma-separated group the base rule happens to be written as.
  */
-const WRAPPING_ELEMENTS = [
-  ...new Set(WRAPPING_TOKENS.flatMap((token) => token.split(',').map(collapse))),
+const wrappingElementsOf = (tokens: string[]): string[] => [
+  ...new Set(tokens.flatMap((token) => selectorParts(token).map(collapse))),
 ];
+
+const WRAPPING_ELEMENTS = wrappingElementsOf(WRAPPING_TOKENS);
 
 describe('stylesheet scan', () => {
   // `SHEET.unterminated` only ever proves the scan did not run off the *end* of the file. These
@@ -1036,6 +1130,59 @@ describe('stylesheet scan', () => {
     // genuine top-level list still reaches each of its own members.
     expect(reaches('.c', ':is(.a, .b) .c')).toBe(true);
     expect(reaches('.b', '.a, .b')).toBe(true);
+  });
+
+  it('does not end a compound at a combinator written inside a functional pseudo-class', () => {
+    // The false negative. `target` split each part on `/[\s>+~]+/` with no depth tracking, so
+    // `.badge:is(.a .b)` ended at the space inside `:is(…)` and its last piece was `.b)` — a rule
+    // that really does style `.badge` invisible to every override guard here. The nowrap guard is
+    // the one that would have let it through, so probe the shape it would have seen.
+    expect(reaches('.badge', '.badge:is(.a .b)')).toBe(true);
+    expect(reaches('.badge', '.place-kind-badge:is(.x .y) .badge')).toBe(true);
+    expect(
+      reaches(
+        '.place-kind-badge',
+        rulesOf(scan('.place-kind-badge:is(.x .y) { white-space: normal }'))[0]?.selector ?? '',
+      ),
+    ).toBe(true);
+    // A combinator inside brackets is not a combinator either.
+    expect(reaches('.badge', '.badge[data-note="a > b"]')).toBe(true);
+  });
+
+  it('reads a functional pseudo-class argument for its own subject, not for every token in it', () => {
+    // The negative half of the fix above, and the reason the compound is reduced rather than
+    // matched whole. `.x:is(.badge .y)` styles a `.y` that has a `.badge` ancestor; matching the
+    // compound as written would report it as an override of `.badge`. Only each argument's own
+    // subject applies to the element.
+    expect(reaches('.badge', '.x:is(.badge .y)')).toBe(false);
+    expect(reaches('.badge', '.x:is(.a .badge)')).toBe(true);
+    // `:not(…)` names a class in order to exclude it and `:has(…)` in order to describe a
+    // descendant — neither styles it. An attribute value names one only as text.
+    expect(reaches('.badge', '.x:not(.badge)')).toBe(false);
+    expect(reaches('.badge', '.x:has(.badge)')).toBe(false);
+    expect(reaches('.badge', '.x[data-note=".badge"]')).toBe(false);
+  });
+
+  it('reads a class name whose escape holds a comma as one selector', () => {
+    // `selectorParts` tracked the backslash inside a quote but not outside one, so `.a\,b` — one
+    // class whose name contains a comma — split into `.a\` and `b`, and resolution crossed both
+    // with the child: `.a\ .c, b .c`, two selectors that match nothing.
+    const sheet = scan(String.raw`.a\,b { .c { left: 1px } }`);
+
+    expect(sheet.unterminated).toEqual([]);
+    expect(sheet.declarations.map(({ selector }) => selector)).toEqual([String.raw`.a\,b .c`]);
+    expect(selectorParts(String.raw`.a\,b, .d`)).toEqual([String.raw`.a\,b`, '.d']);
+  });
+
+  it('splits a wrapping token at its top-level commas only', () => {
+    // `WRAPPING_ELEMENTS` called `token.split(',')` directly — latent while its input is three
+    // hand-written literals with no functional pseudo-class, and a silent mis-split the moment
+    // that list stops being hand-written. Probed through the construction rather than the
+    // constant, which no test can feed.
+    expect(wrappingElementsOf(['.a:is(.b, .c)', '.d'])).toEqual(['.a:is(.b, .c)', '.d']);
+    expect(wrappingElementsOf(['.a, .b'])).toEqual(['.a', '.b']);
+    // The constant itself still resolves to the four elements its three tokens name.
+    expect(WRAPPING_ELEMENTS).toEqual(wrappingElementsOf(WRAPPING_TOKENS));
   });
 
   it('does not report a rule that styles a child as an override of its parent', () => {
