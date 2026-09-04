@@ -308,6 +308,12 @@ const COMBINATOR = /[\s>+~]/;
  * - `:has(…)` states what the subject *contains*, so `.foo:has(.badge)` styles `.foo`.
  * - `[…]` holds an attribute name and an arbitrary quoted value. `[data-x=".badge"]` names a
  *   class only as text.
+ *
+ * **The result is a probe, not a selector.** It is only ever handed to a class-name regex, and
+ * the reduction does not preserve anything else: `+` is a combinator here, so `:nth-child(2n+1)`
+ * comes back as `:nth-child(1)`. No class token can be lost that way, which is all `reaches`
+ * asks — but do not re-parse this string as CSS or hand it to a matcher that reads more than a
+ * class name.
  */
 const reduceCompound = (compound: string): string => {
   let out = '';
@@ -1181,8 +1187,15 @@ describe('stylesheet scan', () => {
     // constant, which no test can feed.
     expect(wrappingElementsOf(['.a:is(.b, .c)', '.d'])).toEqual(['.a:is(.b, .c)', '.d']);
     expect(wrappingElementsOf(['.a, .b'])).toEqual(['.a', '.b']);
-    // The constant itself still resolves to the four elements its three tokens name.
-    expect(WRAPPING_ELEMENTS).toEqual(wrappingElementsOf(WRAPPING_TOKENS));
+    // The constant itself, spelled out. `toEqual(wrappingElementsOf(WRAPPING_TOKENS))` was the
+    // first spelling and pinned nothing — it is the definition on the line that builds the
+    // constant, so it holds under every edit to either side of it.
+    expect(WRAPPING_ELEMENTS).toEqual([
+      '.place-kind-badge',
+      '.top-place-distance',
+      '.place-detail-distance',
+      '.top-place-delta',
+    ]);
   });
 
   it('does not report a rule that styles a child as an override of its parent', () => {
