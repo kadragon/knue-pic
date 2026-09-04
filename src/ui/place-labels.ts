@@ -114,6 +114,11 @@ export function histogramSpanLabel(span: HistogramSpan): string {
   return `${monthLabel(span.first)}~${monthLabel(span.last)}`;
 }
 
+/** `20` → `20회`: the in-window visit count, printed the same way on a row and on the card. */
+export function visitCountLabel(visitCount: number): string {
+  return `${visitCount}회`;
+}
+
 /**
  * `3.24` → `거리 3.2km`: a bare `거리` label and one decimal.
  *

@@ -7,6 +7,15 @@ export const DISCLAIMER =
   '이용 횟수는 공개된 업무추진비 결제 내역을 기준으로 계산합니다. ' +
   '특정 장소에 대한 공식적인 추천이나 평가를 뜻하지 않습니다.';
 
+export const BRAND = 'KNUE PICK';
+
+/**
+ * The page's one heading, phrased as the reader's own question. It names no place as good and
+ * frames nothing as oversight — `docs/conventions.md` → Framing Vocabulary — and the provenance
+ * band directly under it says what the answer is counted from.
+ */
+export const HEADLINE = '요즘 동료들은 어디를 자주 갈까';
+
 export interface ShellOptions {
   /** `updatedAt` from data/places.json, once the dataset is wired in. */
   updatedAt?: string;
@@ -32,12 +41,15 @@ export function renderShell(root: HTMLElement, options: ShellOptions = {}): void
   const header = document.createElement('header');
   header.className = 'shell-header';
 
+  // The wordmark is small print and the question is the heading: a reader arrives with the
+  // question, not with the product name, so the `h1` states what the page answers.
+  const brand = document.createElement('p');
+  brand.className = 'shell-brand';
+  brand.textContent = BRAND;
   const title = document.createElement('h1');
-  title.textContent = 'KNUE PICK';
-  const tagline = document.createElement('p');
-  tagline.className = 'shell-tagline';
-  tagline.textContent = '교직원이 자주 이용한 곳';
-  header.append(title, tagline);
+  title.className = 'shell-headline';
+  title.textContent = HEADLINE;
+  header.append(brand, title);
 
   const provenance = document.createElement('footer');
   provenance.className = 'shell-provenance';
