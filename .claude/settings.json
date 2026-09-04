@@ -13,5 +13,8 @@
       "Edit(./.env)",
       "Edit(./data/places.json)"
     ]
+  },
+  "enabledPlugins": {
+    "claude-md-management@claude-plugins-official": false
   }
 }

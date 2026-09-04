@@ -53,7 +53,8 @@ For 1 and 3, raise `--max-pages` (default 200 per traversal, a runaway cap) if t
 deeper than that. Pass `--allow-title-year-mismatch` only when the posts really are misdated in
 their titles — the authoritative month is still the date cells stage 2 reads.
 
-Then review the pending rows by hand (below). **After** their `status` is set — not before —
+Then review the pending rows by hand (below); `apply_review.py` writes down the reviewer's
+verdicts once they have them. **After** their `status` is set — not before —
 `--report` proposes the spellings worth merging:
 
 ```bash
@@ -128,8 +129,22 @@ what needs their judgement. Do not report success while a stage's skip list is u
 
 The scripts do the mechanical work and stop where the data stops being conclusive.
 
-**Never set `status` yourself.** Every row is written `pending`. Filling in `approved` is the
-human's step, and the value of the queue is that an agent didn't decide it.
+**Never originate a `status`.** Every row is written `pending`, and deciding it is the reviewer's
+step — the value of the queue is that an agent didn't judge the place. What you may do is write
+down a verdict they already stated, which is a different act: when they say `봉땅 approved로 바꿔줘`
+or `권역 밖 4건은 rejected로, 나머지는 approved로`, run `apply_review.py` with exactly the names
+they named.
+
+```bash
+python3 $SKILL/apply_review.py --approve 까망염소 봉땅 --reject 금관유통
+```
+
+The script writes `status` only for rows named on the command line and errors out on a name the
+queue doesn't hold, so a typo surfaces instead of quietly doing nothing. Two things it deliberately
+cannot do, and neither may you do by hand: there is no flag meaning "everything still pending", and
+a verdict phrased as a rule (`나머지는 approved`) is not a list of names — read the pending rows back
+to the reviewer, get the names, then transcribe those. Editing the CSV by hand is the other way to
+land a verdict on the wrong row; the script exists so you don't.
 
 **Non-food venues.** Stage 4 flags `category_ok=no` from the geocoder's own taxonomy rather than
 guessing from names — a name-substring rule once excluded `우공뭉티기(수서점)` because "수서점"
@@ -148,7 +163,8 @@ the transactions join on, so deleting a row drops its visits instead of merging 
 identical `lat`/`lng` and prints every group holding more than one spelling, loudest by visits
 first. Approved is the operative word — stage 4 appends new venues as `pending`, so running this
 straight after it shows you last month's settled clusters and none of the new spellings. Run it
-after the review pass, once this month's rows say `approved`.
+after the review pass, once this month's rows say `approved` — which is what `apply_review.py`
+records.
 
 A cluster collapses to the trailing count only when all of its spellings resolve to the *same*
 canonical name. Names that are each mapped but to *different* canonicals still print — that is one

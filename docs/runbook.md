@@ -55,7 +55,10 @@ Run by the operator; never in CI. Full cycle in `docs/workflows.md` → `data-up
 ```bash
 # collection is the knue-expense-collect skill — its SKILL.md holds the five stage commands
 # → writes collector/out/ and appends rows to review_candidates.csv
-# review pending rows by hand: set status to approved / rejected
+# review pending rows by hand; the reviewer's verdicts are written down with
+#   python3 .claude/skills/knue-expense-collect/scripts/apply_review.py \
+#     --approve NAME [NAME...] --reject NAME [NAME...]
+#   (it writes only the rows named on the command line — never the rest)
 # then `geocode_candidates.py --report` — approved rows only, so it must run AFTER that pass
 # merge spellings of one business in collector/aliases.json (see docs/architecture.md → Build)
 python -m collector.build_places             # emits data/places.json from approved rows

@@ -13,6 +13,7 @@ KNUE staff used most, from the university's public expense disclosures. It reads
 | `docs/conventions.md` | Before writing UI strings, stat logic, tests, commits, or branches |
 | `docs/workflows.md` | When starting any implementation cycle |
 | `docs/eval-criteria.md` | When writing a Sprint Contract or grading a finished feature |
+| `docs/harness-log.md` | Before changing a harness asset — skill, rule, hook; append the change row there |
 
 ## Golden Principles
 
