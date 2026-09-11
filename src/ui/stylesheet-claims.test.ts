@@ -312,27 +312,161 @@ const scan = (
 
 const SHEET = scan(source(STYLESHEET_PATH));
 
+/** A rule as `[selector, declarations]` — the shape every selector-reading guard below takes. */
+type Rule = [string, string];
+
 /**
- * Every rule in the sheet as `[selector, declarations]`, the declarations rejoined from the scan.
+ * Every rule in a scanned sheet as `[selector, declarations]`, the declarations rejoined from the
+ * scan.
  *
  * Rebuilt rather than sliced out of the source so the consumers below keep reading one normalised
  * shape — `prop: value; prop: value` — whatever the layout in the file. A rule that contains a
  * nested block now carries its own declarations here; under the brace regex they belonged to
- * nothing.
+ * nothing. A function of the scan rather than of the sheet so a probe can hand the guards a
+ * stylesheet of its own.
  */
-const RULES: [string, string][] = SHEET.rules
-  .map((rule): [string, string] => [
-    rule.selector,
-    SHEET.declarations
-      .filter((declaration) => declaration.bodyStart === rule.bodyStart)
-      .map(({ property, value }) => `${property}: ${value}`)
-      .join('; '),
-  ])
-  // An at-rule that owns no declarations is a container — `@media`, `@supports` — and holds rules
-  // rather than being one. The brace regex never emitted these, because their braces are not the
-  // innermost pair, and the three guards reading `RULES` were written against that shape. An
-  // at-rule that *does* own declarations (`@font-face`) is a rule and stays.
-  .filter(([selector, block]) => !selector.startsWith('@') || block !== '');
+const rulesOf = (sheet: ReturnType<typeof scan>): Rule[] =>
+  sheet.rules
+    .map((rule): Rule => [
+      rule.selector,
+      sheet.declarations
+        .filter((declaration) => declaration.bodyStart === rule.bodyStart)
+        .map(({ property, value }) => `${property}: ${value}`)
+        .join('; '),
+    ])
+    // An at-rule that owns no declarations is a container — `@media`, `@supports` — and holds rules
+    // rather than being one. The brace regex never emitted these, because their braces are not the
+    // innermost pair, and the three guards reading `RULES` were written against that shape. An
+    // at-rule that *does* own declarations (`@font-face`) is a rule and stays.
+    .filter(([selector, block]) => !selector.startsWith('@') || block !== '');
+
+const RULES: Rule[] = rulesOf(SHEET);
+
+/**
+ * Where the backslash escape starting at `at` ends. CSS spells an escape as a backslash and either
+ * one to six hex digits plus one optional whitespace character, or any single other character —
+ * so the space in `.a\2d b` belongs to the escape and is not a descendant combinator.
+ */
+const escapeEnd = (text: string, at: number): number => {
+  const hex = /^[0-9a-f]{1,6}[ \t\n\r\f]?/i.exec(text.slice(at + 1, at + 8));
+  return at + 1 + (hex?.[0].length ?? 1);
+};
+
+/** The character an escape body denotes: `2d ` is `-`, `.` is `.`. */
+const unescapeBody = (body: string): string =>
+  /^[0-9a-f]/i.test(body) ? String.fromCodePoint(Number.parseInt(body.trim(), 16)) : body;
+
+/** The groups a selector nests, each with the character that closes it. */
+const GROUP_CLOSE = new Map([
+  ['(', ')'],
+  ['[', ']'],
+  ["'", "'"],
+  ['"', '"'],
+]);
+
+/**
+ * The offset just past the group that opens at `at` — a `(…)`, an attribute `[…]` or a string —
+ * honouring escapes, strings inside brackets, and nesting (`:not(:is(.a))`). An unclosed group
+ * runs to the end of the text; the scan above already reports such a sheet as unterminated.
+ */
+const groupEnd = (text: string, at: number): number => {
+  const open = text[at] ?? '';
+  const close = GROUP_CLOSE.get(open);
+  const quoted = open === "'" || open === '"';
+  let index = at + 1;
+  while (index < text.length) {
+    const char = text[index] ?? '';
+    if (char === close) return index + 1;
+    if (char === '\\') index = escapeEnd(text, index);
+    else if (!quoted && GROUP_CLOSE.has(char)) index = groupEnd(text, index);
+    else index += 1;
+  }
+  return text.length;
+};
+
+/**
+ * `text` cut at every character `isSeparator` accepts that sits outside a group and outside an
+ * escape. A bare `split` is what this replaces: `:is(.a, .b)` and `[data-x='a,b']` each hold a
+ * comma that separates nothing, and `.a\,b` is one class whose name contains one.
+ */
+const splitOutside = (text: string, isSeparator: (char: string) => boolean): string[] => {
+  const parts: string[] = [];
+  let start = 0;
+  let at = 0;
+  while (at < text.length) {
+    const char = text[at] ?? '';
+    if (char === '\\') at = escapeEnd(text, at);
+    else if (GROUP_CLOSE.has(char)) at = groupEnd(text, at);
+    else if (isSeparator(char)) {
+      parts.push(text.slice(start, at));
+      at += 1;
+      start = at;
+    } else at += 1;
+  }
+  parts.push(text.slice(start));
+  return parts.map(collapse).filter(Boolean);
+};
+
+/**
+ * A selector list's comma-separated parts, each one complex selector. Every guard that reads a
+ * selector list goes through this; a second, naive split beside it is how the palette predicate
+ * kept reading `[data-x='a,b']` as two elements after the nowrap guard had stopped doing so.
+ */
+const selectorParts = (selector: string): string[] => splitOutside(selector, (char) => char === ',');
+
+/**
+ * A complex selector's compounds, cut at its combinators; the last is the element it styles. The
+ * `+` in `:nth-child(2n+1)` is inside a group and cuts nothing.
+ */
+const compounds = (part: string): string[] => splitOutside(part, (char) => /[\s>+~]/.test(char));
+
+/**
+ * The class names a compound carries, escapes decoded — `.a\.b` is the one class `a.b`, not a
+ * class `b`, and `.top-place\-distance` is `top-place-distance` spelled another way. Strings and
+ * attribute selectors are skipped whole, so `[data-note='.top-place-distance']` names no class,
+ * and so is `:not(…)`, the one form that names a class in order to exclude it.
+ */
+const classNames = (compound: string): string[] => {
+  const names: string[] = [];
+  let at = 0;
+  while (at < compound.length) {
+    const char = compound[at] ?? '';
+    if (char === '\\') at = escapeEnd(compound, at);
+    else if (/^:not\(/i.test(compound.slice(at, at + 5))) at = groupEnd(compound, at + 4);
+    else if (char !== '(' && GROUP_CLOSE.has(char)) at = groupEnd(compound, at);
+    else if (char === '.') {
+      let name = '';
+      at += 1;
+      while (at < compound.length) {
+        const next = compound[at] ?? '';
+        if (next === '\\') {
+          const end = escapeEnd(compound, at);
+          name += unescapeBody(compound.slice(at + 1, end));
+          at = end;
+        } else if (/[\w-]/.test(next) || next.charCodeAt(0) > 0x7f) {
+          name += next;
+          at += 1;
+        } else break;
+      }
+      if (name !== '') names.push(name);
+    } else at += 1;
+  }
+  return names;
+};
+
+/** A selector part minus its attribute selectors, which a palette's element key ignores. */
+const withoutAttributes = (part: string): string => {
+  let out = '';
+  let at = 0;
+  while (at < part.length) {
+    const char = part[at] ?? '';
+    const end =
+      char === '\\' ? escapeEnd(part, at) : GROUP_CLOSE.has(char) ? groupEnd(part, at) : at + 1;
+    if (char !== '[') out += part.slice(at, end);
+    at = end;
+  }
+  return out;
+};
 
 /**
  * The declaration block of one rule, or `''` when the selector is not in the sheet.
@@ -357,13 +491,14 @@ const declarations = (selector: string): string =>
  * arrives here as a plain selector, indistinguishable from a top-level one. That is what this
  * guard wants — an override is an override whichever block it sits in.
  *
- * Matched against the *last* compound of each comma-separated part, on a class-name boundary. Last
- * compound, because that is the one the rule actually styles: `.top-place-meta .top-place-distance`
- * and `.top-place-distance[data-band='far']` are overrides of this element and count, while
- * `.top-place-delta .delta-icon` styles a child that merely sits inside it and does not. A
- * substring test over the whole selector reads all four as overrides and turns legitimate CSS into
- * a red build naming the wrong element. `:not(…)` is stripped first for the same reason:
- * `.foo:not(.top-place-distance)` is the one form that names the class in order to exclude it.
+ * Matched against the class names of the *last* compound of each part (`selectorParts`,
+ * `compounds`, `classNames`). Last compound, because that is the one the rule actually styles:
+ * `.top-place-meta .top-place-distance` and `.top-place-distance[data-band='far']` are overrides of
+ * this element and count, while `.top-place-delta .delta-icon` styles a child that merely sits
+ * inside it and does not. A substring test over the whole selector reads all four as overrides and
+ * turns legitimate CSS into a red build naming the wrong element. Class names rather than a
+ * `\.name` pattern, because a pattern has no idea what an escape is: it read `.foo\.top-place-distance`
+ * — one class named `foo.top-place-distance` — as this element.
  *
  * **What this cannot see.** A selector reaching one of these elements without naming its class —
  * `.top-place-meta > span` — is invisible here, and nothing in the suite catches it: matching that
@@ -371,14 +506,13 @@ const declarations = (selector: string): string =>
  * a guard over the rules that name the token, which is where every override in this sheet has been
  * written so far. The unnamed-selector case stays open by design, not by oversight.
  */
-const reachingRules = (element: string): string[] => {
+const reachingRules = (element: string, rules: Rule[] = RULES): string[] => {
   const name = element.replace(/^\./, '');
-  const reaches = new RegExp(String.raw`\.${name}(?![\w-])`);
-  const target = (part: string): string =>
-    (part.replaceAll(/:not\([^)]*\)/g, '').split(/[\s>+~]+/).filter(Boolean).pop() ?? '');
-  return RULES.filter(([selector]) =>
-    selector.split(',').some((part) => reaches.test(target(part))),
-  ).map(([, block]) => block);
+  return rules
+    .filter(([selector]) =>
+      selectorParts(selector).some((part) => classNames(compounds(part).at(-1) ?? '').includes(name)),
+    )
+    .map(([, block]) => block);
 };
 
 /**
@@ -444,18 +578,17 @@ function paintedBy(property: string): 'fill' | 'text' | null {
  * as a third cue on top of a glyph and a spoken label, not as a palette, and a predicate that
  * swept it in would put the registered claims permanently out of date.
  */
-function meaningCarryingPalettes(): string[] {
+function meaningCarryingPalettes(rules: Rule[] = RULES): string[] {
   // `[=\]]` so a presence selector (`[data-flagged]`) counts too, and digits are in the name
   // class: `[data-tier2=…]` is as much an attribute as `[data-tier]`.
   const ATTRIBUTE = /\[data-([a-z0-9-]+)\s*[=\]]/g;
   const elements = (selector: string): string[] =>
-    selector
-      .split(',')
-      .map((part) => collapse(part.replaceAll(/\[[^\]]*\]/g, '')))
+    selectorParts(selector)
+      .map((part) => collapse(withoutAttributes(part)))
       .filter(Boolean);
 
   const rolesByElement = new Map<string, Set<'fill' | 'text'>>();
-  for (const [selector, block] of RULES) {
+  for (const [selector, block] of rules) {
     const painted = block
       .split(';')
       .map((declaration) => paintedBy(declaration.split(':')[0]?.trim() ?? ''))
@@ -470,7 +603,7 @@ function meaningCarryingPalettes(): string[] {
   }
 
   const found = new Set<string>();
-  for (const [selector] of RULES) {
+  for (const [selector] of rules) {
     const attributes = [...selector.matchAll(ATTRIBUTE)].map(([, name]) => name as string);
     if (attributes.length === 0) continue;
 
@@ -598,6 +731,58 @@ describe('white-space: nowrap', () => {
       whiteSpaceValues(element).filter((value) => value !== 'nowrap'),
       `${element} is handed a wrapping value other than nowrap by some rule reaching it`,
     ).toEqual([]);
+  });
+});
+
+/**
+ * Both selector-reading guards run against a stylesheet of the probe's own, so each shape is
+ * proved in both directions (`docs/conventions.md` → A guard's probe runs both ways). Every row
+ * marked "was wrong" failed under the bare `split(',')` / `\.name` matching these replaced.
+ */
+describe('selector structure', () => {
+  const probe = (css: string): Rule[] => {
+    const sheet = scan(css);
+    expect(sheet.unterminated, css).toEqual([]);
+    return rulesOf(sheet);
+  };
+
+  it.each([
+    ['.top-place-distance', true],
+    ['.top-place-meta > .top-place-distance', true],
+    [".top-place-distance[data-band='far']", true],
+    ['.a, .top-place-distance', true],
+    // Was wrong (missed): an escaped hyphen, and a hex escape whose trailing space is part of it,
+    // spell the same class — an override written either way went unseen.
+    ['.top-place\\-distance', true],
+    ['.top-place\\2d distance', true],
+    ['.top-place-distance-wide', false],
+    ['.top-place-delta .delta-icon', false],
+    ['.foo:not(.top-place-distance)', false],
+    // Was wrong: an escaped dot is part of one class name, `foo.top-place-distance`.
+    ['.foo\\.top-place-distance', false],
+    // Was wrong: `top-place-distance:hover` is a class of its own, not a pseudo-class.
+    ['.top-place-distance\\:hover', false],
+    // Was wrong: a quoted attribute value names no class.
+    ["[data-note='.top-place-distance']", false],
+    // Was wrong: the comma inside `:is()` split the list and made `.top-place-distance` a last
+    // compound; the element this rule styles is `.child`.
+    ['.foo:is(.top-place-distance, .bar) .child', false],
+  ])('`%s` reaches .top-place-distance: %s', (selector, expected) => {
+    const rules = probe(`${selector} { white-space: normal; }`);
+    expect(reachingRules('.top-place-distance', rules).length > 0).toBe(expected);
+  });
+
+  it.each([
+    // Was wrong: the comma inside the attribute value split one element into two keys, neither of
+    // which the text rule reached, so a real palette went uncounted.
+    [".probe { color: #000; } .probe[data-tier='a,b'] { background: #fff; }", ['tier']],
+    [".probe { color: #000; } .probe[data-tier='a'] { background: #fff; }", ['tier']],
+    // Was wrong: splitting inside `:is()` handed two unrelated elements the shared key `.y)`, so
+    // a fill on one and a text colour on the other read as one palette.
+    [".chip:is(.x, .y)[data-tier='t'] { background: #fff; } .q:is(.p, .y) { color: #000; }", []],
+    [".probe[data-tier='a,b'] { background: #fff; }", []],
+  ])('`%s` carries palettes %j', (css, expected) => {
+    expect(meaningCarryingPalettes(probe(css))).toEqual(expected);
   });
 });
 
