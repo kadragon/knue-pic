@@ -232,9 +232,17 @@ const escapeEnd = (text: string, at: number): number => {
   return at + 1 + (hex?.[0].length ?? 1);
 };
 
-/** The character an escape body denotes: `2d ` is `-`, `.` is `.`. */
-const unescapeBody = (body: string): string =>
-  /^[0-9a-f]/i.test(body) ? String.fromCodePoint(Number.parseInt(body.trim(), 16)) : body;
+/**
+ * The character an escape body denotes: `2d ` is `-`, `.` is `.`. Zero, a surrogate, or a code
+ * point past U+10FFFF is U+FFFD, as CSS says — and not a `RangeError` out of `fromCodePoint`.
+ */
+const unescapeBody = (body: string): string => {
+  if (!/^[0-9a-f]/i.test(body)) return body;
+  const code = Number.parseInt(body.trim(), 16);
+  return code === 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)
+    ? '\uFFFD'
+    : String.fromCodePoint(code);
+};
 
 /**
  * A selector split at the **top-level** characters `separates` accepts — the ones outside every
@@ -375,8 +383,13 @@ const classNames = (probe: string): string[] => {
     const char = probe[at] ?? '';
     if (char === '\\') at = escapeEnd(probe, at);
     else if (char === "'" || char === '"') {
-      const close = probe.indexOf(char, at + 1);
-      at = close === -1 ? probe.length : close + 1;
+      // Escape-aware: `"a\"b"` is one string, and an `indexOf` stopping at its escaped quote
+      // left the real closing quote to open a string that hid every class after it.
+      at += 1;
+      while (at < probe.length && probe[at] !== char) {
+        at = probe[at] === '\\' ? escapeEnd(probe, at) : at + 1;
+      }
+      at += 1;
     } else if (char === '.') {
       let name = '';
       at += 1;
@@ -1692,6 +1705,12 @@ describe('selector structure', () => {
     ['.top-place-distance\\:hover', false],
     ["[data-note='.top-place-distance']", false],
     ['.foo:is(.top-place-distance, .bar) .child', false],
+    // An escaped quote inside a string argument does not end the string, so the class after it
+    // is still read.
+    [':lang("a\\"b").top-place-distance', true],
+    [":lang('it\\'s').top-place-distance", true],
+    // A hex escape past U+10FFFF is U+FFFD in CSS, not a thrown RangeError.
+    ['.top-place-distance\\110000', false],
   ])('`%s` reaches .top-place-distance: %s', (selector, expected) => {
     const rules = probe(`${selector} { white-space: normal; }`);
     expect(reachingIn(rules, '.top-place-distance').length > 0).toBe(expected);
