@@ -11,10 +11,10 @@ import type { NaverMapsApi } from './naver-api';
  *
  * One failure mode is deliberately NOT covered here: an origin missing from the key's allowed-URL
  * list. The v3 script serves the full API bundle whatever the key says, so it loads, `naver.maps`
- * exists, and this promise resolves; the API only nulls the global and calls a
- * `window.navermap_authFailure` hook about a second later, after a map has already been
- * constructed. Catching that means reacting *after* the map mounted, which is a different mechanism
- * from this loader — `renderPlaceLocationMap` in `./place-map.ts` owns it.
+ * exists, and this promise resolves; the API then nulls the global and calls a
+ * `window.navermap_authFailure` hook. Catching that is a different mechanism from this loader —
+ * `renderPlaceLocationMap` in `./place-map.ts` owns it, listening from before this promise settles
+ * until the map is released, because when the hook fires relative to the mount is unverified.
  */
 
 /** `docs/conventions.md` → Naming. Vite inlines it; it is a browser key, public by design. */

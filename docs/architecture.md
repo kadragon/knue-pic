@@ -79,9 +79,11 @@ review_candidates.csv # manual location approval queue (committed)
   PRD §38 fallback message. The dialog mounts the map fire-and-forget after painting the figures,
   so the statistics never wait on it or fail with it. An origin missing from the key's allowed-URL
   list takes a second route: the v3 script serves its full bundle regardless, so the load succeeds,
-  a map mounts, and the API signals the rejection afterwards through a `window.navermap_authFailure`
-  global. `renderPlaceLocationMap` registers that hook after mounting and swaps the map for the same
-  fallback, which is why the two degraded states are indistinguishable on screen.
+  a map mounts, and the API signals the rejection through a `window.navermap_authFailure` global.
+  `renderPlaceLocationMap` registers that hook before awaiting the script and keeps it until the
+  map is released, so it catches the rejection on either side of the mount — which side the real
+  API uses is unverified (`backlog.md`) — and both routes end in the same single fallback, which is
+  why the two degraded states are indistinguishable on screen.
 - `src/data/` is the only module that knows the `places.json` wire format. Everything else uses its
   exported types.
 - `collector/` is never imported by `src/`, and `src/` is never imported by `collector/`.
