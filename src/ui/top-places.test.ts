@@ -60,19 +60,19 @@ describe('renderTopPlaces', () => {
     );
   });
 
-  it('leaves the visit count and the most recent date to the detail card', () => {
+  it('prints the in-window count on the row and leaves the date to the detail card', () => {
     const result = computeTopPlaces(SAMPLE_DATASET, '1y');
     const container = render(result);
     const entry = result.entries[0]!;
 
-    // Both figures live on the card the row opens (`src/ui/place-detail.ts` → `FIGURE_LABELS`),
-    // and the row is for reading where a place is. The nodes are gone, not merely emptied.
-    expect(container.querySelector('.top-place-figures')).toBeNull();
-    expect(container.querySelector('.top-place-visits')).toBeNull();
-    expect(container.querySelector('.top-place-recent')).toBeNull();
-
+    // The count is the number the row is ranked by, so it sits in the row's figures column, as a
+    // sibling of the button rather than inside it (the chart's label would otherwise join the
+    // button's accessible name). The most recent date belongs to the card the row opens.
     const row = container.querySelector('.top-place')!;
-    expect(row.textContent).not.toContain(`${entry.stats.visitCount}회 이용`);
+    const figures = row.querySelector('.top-place-figures')!;
+    expect(figures.parentElement).toBe(row);
+    expect(figures.querySelector('.top-place-count')?.textContent).toBe(`${entry.stats.visitCount}회`);
+    expect(row.querySelector('.top-place-body .top-place-count')).toBeNull();
     expect(row.textContent).not.toContain('최근 이용');
   });
 
@@ -124,14 +124,14 @@ describe('renderTopPlaces', () => {
     expect(badges).toEqual(['1', '2', '3', '4', '5', '6']);
   });
 
-  it('names the place and where it is, and leaves the figures to the card', () => {
+  it('names the place, where it is, and the count it is ranked by', () => {
     const container = render(computeTopPlaces(SAMPLE_DATASET, '1y'));
     const first = container.querySelector('.top-place');
 
-    // 000001 over 1y: 4 visits, most recent 2026-07-20 (hand-checked against the fixture). Both
-    // now belong to the detail card; the row carries the name and the location alone.
+    // 000001 over 1y: 4 visits, most recent 2026-07-20 (hand-checked against the fixture). The
+    // count is the number the ranking is by, so the row prints it; the date belongs to the card.
     expect(first?.textContent).toContain('한밭식당');
-    expect(first?.textContent).not.toContain('4회 이용');
+    expect(first?.querySelector('.top-place-count')?.textContent).toBe('4회');
     expect(first?.textContent).not.toContain('07-20');
     expect(first?.textContent).not.toContain('2026년 7월 20일');
   });
@@ -641,8 +641,8 @@ describe('rank movement colours', () => {
     // A stylesheet that failed to load would make every `not.toContain` below pass on ''.
     expect(CSS).toContain('.top-place-delta {');
 
-    expect(declaration('up')).toContain('var(--rausch-strong)');
-    expect(declaration('down')).toContain('var(--dist-mid-bg)');
+    expect(declaration('up')).toContain('var(--accent)');
+    expect(declaration('down')).toContain('var(--muted)');
     expect(declaration('same')).toContain('var(--muted)');
   });
 
@@ -655,6 +655,7 @@ describe('rank movement colours', () => {
     expect(declaration('down')).not.toBe('');
 
     expect(declaration('down')).not.toContain('--error');
-    expect(declaration('down')).not.toContain('--rausch');
+    // Nor the accent: a fall in the rise's own colour would pair the two as good and bad.
+    expect(declaration('down')).not.toContain('--accent');
   });
 });

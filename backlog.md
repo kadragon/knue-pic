@@ -2,57 +2,28 @@
 
 ## Review Backlog
 
-### PR #48 — a construct that loses sync and is rebalanced later is not reported (2026-09-03)
+### PR #53 — the one selector split left on a live input (2026-09-04)
 
-- [ ] [debt] `SHEET.unterminated` reports a comment, string, block or paren left open at the end of
-  the scan, which catches everything that ends the scan mid-way. It cannot catch a construct that
-  loses sync and is brought back to a settled state by an unrelated one later in the file: a
-  dropped `)` cancelled by a stray `)` in a later rule leaves the depth at zero, so every
-  declaration between them is merged into one and lost with the suite green. Verified with
-  `.probe { background: url(a; padding: 8px; }` followed by `.probe-b { margin: 8px); }` — two
-  on-scale raw px disappear, nothing is reported. Malformed CSS that the build rejects
-  so it cannot publish; recorded because the guard's own docstring now
-  names it as out of reach and that claim should have somewhere to point. Tracking the offset of
-  each unmatched `(` and requiring it to close inside its own block would cover it (source: contract
-  QA pass 4 on PR #48) — `src/ui/stylesheet-claims.test.ts`
+- [ ] [debt] `meaningCarryingPalettes`'s inner `elements()` still calls `selector.split(',')`
+  directly. It is the last naive split in the suite and the only one whose input is *live*:
+  `RULES`, parsed from `src/styles.css`, rather than a hand-written literal. A palette selector
+  holding a comma inside `:is(…)` or an attribute value — `.top-place-distance:is(.a, .b) { color:
+  … }` — splits into the keys `.top-place-distance:is(.a` and `.b)`, neither matching the
+  `.top-place-distance` key, so that rule's `text` role is dropped and `meaningCarryingPalettes()`
+  can lose `band` — which is what the `toEqual(['band', 'kind'])` guard and the `CLAIMS` counts
+  rest on. Latent today (no such selector in the sheet). Route it through `selectorParts` and add
+  a mutation probe (source: PR #53 review, `code-review` and Codex independently) —
+  `src/ui/stylesheet-claims.test.ts`
 
-### PR #48 — an unquoted `url()` holding `/*` is read as a comment open (2026-09-03)
+### PR #53 — the escape the matcher does not honour (2026-09-04)
 
-- [ ] [debt] The CSS tokenizer does not process comments inside an unquoted url token, so
-  `background: url(http://example.com/*a.png)` is valid CSS whose `/*` `scan()` reads as opening a
-  comment. It can come back out balanced — a later real `*/` closes it — so `SHEET.unterminated`
-  stays empty and the declarations in between are merged and lost: an on-scale `padding: 8px` after
-  such a url goes unreported with the suite green, and the sheet builds. Pre-existing in the same
-  shape on the brace regex, and unreachable today (`grep 'url(' src/styles.css` finds nothing), so
-  it is recorded rather than fixed. Closing it means treating `url(` as a token whose contents are
-  opaque until the matching `)` (source: contract QA pass 3 on PR #48)
-  — `src/ui/stylesheet-claims.test.ts`
-
-### PR #48 — a rule nested inside a rule is attributed to its own prelude (2026-09-03)
-
-- [ ] [debt] The scan that replaced the brace regex gives every block its own prelude as `selector`,
-  never a resolved ancestor chain. For a rule nested in an `@media` at top level that is right, and
-  it is what `reachingRules` has always assumed. For a rule nested inside *another rule* — the
-  `&:hover` and inner-`@media` shapes the scan newly understands — it loses the element: a raw px
-  there is reported as `@media (max-width: 600px) { margin: 8px }`, naming a rule the reader cannot
-  find, and `reachingRules('.place-kind-badge')` does not match `.place-kind-badge { @media … {
-  white-space: normal; } }`, so the nowrap guard cannot see an override written that way. Nothing
-  goes *unseen* — the declarations are scanned and an unannotated raw px still goes red — so this
-  is attribution, not a hole. Resolving the chain (`&` against the parent selector, an at-rule
-  frame passing its parent through) would fix both, and it changes what `reachingRules` matches,
-  which is why it was not folded into PR #48 (source: code-review + contract QA on PR #48)
-  — `src/ui/stylesheet-claims.test.ts`
-
-### PR #48 — `bodyEnd` backfill walks every declaration at every closing brace (2026-09-03)
-
-- [ ] [debt] Three places walk every declaration for every rule, about 593 × 146 on today's sheet:
-  `scan()` backfills each declaration's `bodyEnd` by looping over all declarations found so far at
-  every closing brace; `RULES` filters the whole declaration list once per rule; and the annotation
-  guard's adjacency test scans the whole sheet per raw-px declaration rather than the owning rule's
-  range. All three run in milliseconds and no test is slow because of them, so this is tidiness
-  rather than a defect: a frame recording the index of its first declaration would let all three
-  address a range instead (source: contract QA passes 1 and 2 on PR #48)
-  — `src/ui/stylesheet-claims.test.ts`
+- [ ] [debt] `reaches` now splits with escape awareness but still *matches* with
+  the pattern `\.<name>(?![\w-])`, which matches the `\.` of an escaped literal
+  dot: `reaches('.badge', '.a\\.badge')` is `true` though that selector styles a single
+  class named `a.badge` and never touches `.badge`. Same family as the `.a\,b` split PR #53
+  fixed, opposite direction — a false red in an override guard rather than a false negative.
+  Latent (no escaped selector in `src/styles.css`) (source: PR #53 review, `code-review`) —
+  `src/ui/stylesheet-claims.test.ts`
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
@@ -98,6 +69,16 @@
   `docs/architecture.md` → Build. No re-collect was needed for the schema; the committed dataset
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
+
+### `.claude/settings.json` lost its `Write` denies (2026-09-03)
+
+- [ ] [fix] The permissions deny list carries `Edit(./.env)` and `Edit(./data/places.json)` but no
+  longer the matching `Write(...)` entries, so the `Write` tool — which replaces a whole file —
+  can create a `.env` holding a Naver secret or hand-write the generated dataset that AGENTS.md
+  says only the collector may produce, both without a prompt. Flagged independently by two review
+  engines on PR #50; the change predates that PR and rode in from the branch point, so it was
+  recorded rather than reverted inside a `[FEAT]` PR. Restoring the two lines is the fix, but it is
+  the operator's permission decision to make — `.claude/settings.json`
 
 ## Someday
 

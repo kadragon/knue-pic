@@ -84,7 +84,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    * keeps the row the reader pressed alive to hand focus back to on close; selecting a period
    * rebuilds the list alone, inside `place-list.ts`, leaving the pressed button holding focus.
    *
-   * Source order — search, then the list — follows `docs/conventions.md` → Accessibility &
+   * Source order — the list, then search — follows `docs/conventions.md` → Accessibility &
    * Responsive. The dialog is not part of that flow: `.detail-slot` holds a modal, so selecting a
    * place opens over the list the reader was in rather than moving them somewhere else.
    */
@@ -102,7 +102,10 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     list.className = 'place-list-slot';
     const detail = document.createElement('div');
     detail.className = 'detail-slot';
-    content.replaceChildren(kinds, search, list, detail);
+    // The list before the search: the ranked list is the answer the page exists for, and search is
+    // the lookup for a reader who already has a name — `docs/conventions.md` → Accessibility &
+    // Responsive.
+    content.replaceChildren(kinds, list, search, detail);
 
     const dialog = createDetailDialog(detail, dialogOptions);
 

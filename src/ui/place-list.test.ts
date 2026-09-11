@@ -7,6 +7,7 @@ import {
   DEFAULT_PERIOD,
   PERIOD_TABS,
   TAB_GROUP_LABEL,
+  listHeading,
   markActivePeriod,
   periodLabel,
   renderPlaceList,
@@ -50,7 +51,7 @@ describe('renderPlaceList', () => {
     expect(DEFAULT_PERIOD).toBe('3m');
     expect(pressed(root)).toBe('3m');
     expect(root.querySelectorAll('.top-places')).toHaveLength(1);
-    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(periodLabel('3m'));
+    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(listHeading('3m'));
   });
 
   it('ranks the selected window, not one shared list', () => {
@@ -82,7 +83,7 @@ describe('renderPlaceList', () => {
     });
     expect(tabs[3]?.getAttribute('aria-pressed')).toBe('true');
     expect(tabs[1]?.getAttribute('aria-pressed')).toBe('false');
-    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(periodLabel('1y'));
+    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(listHeading('1y'));
   });
 
   it('leaves focus on the pressed button when the list is rebuilt', () => {
@@ -128,7 +129,7 @@ describe('renderPlaceList', () => {
     renderPlaceList(root, SAMPLE_DATASET, vi.fn(), { active: '1y' });
 
     expect(pressed(root)).toBe('1y');
-    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(periodLabel('1y'));
+    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(listHeading('1y'));
   });
 
   it('reports a switch, so a re-render can reopen where the reader was', () => {
@@ -160,7 +161,7 @@ describe('renderPlaceList', () => {
 
     // Resetting to the default here would move the reader to a window they never asked for.
     expect(pressed(root)).toBe('1y');
-    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(periodLabel('1y'));
+    expect(root.querySelector('.place-list-body h2')?.textContent).toBe(listHeading('1y'));
   });
 
   it('ranks only the places the narrowed dataset contains', () => {

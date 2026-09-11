@@ -29,7 +29,7 @@ jobs:
   secret-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Scan bundled sources for credentials
         run: |
           set -uo pipefail
@@ -68,8 +68,8 @@ jobs:
   web-checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -81,8 +81,8 @@ jobs:
   collector-checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - run: python3 -m pip install -r collector/requirements-dev.txt
@@ -102,8 +102,8 @@ jobs:
     outputs:
       validated: ${{ steps.gate.outputs.validated }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - name: Validate data/places.json
@@ -123,8 +123,8 @@ jobs:
     needs: [secret-scan, web-checks, collector-checks, validate-dataset]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -148,7 +148,7 @@ jobs:
         run: npm run build
       # No artifact unless a dataset was validated: without one there is nothing to publish, and
       # `deploy` below carries the identical condition so it never looks for a missing artifact.
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.validate-dataset.outputs.validated == 'true'
         with:
           path: dist
@@ -165,4 +165,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

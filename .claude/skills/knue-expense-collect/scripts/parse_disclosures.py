@@ -33,6 +33,12 @@ METHOD_COLS = ("집행방법", "결제방법", "지출방법")
 ADDRESS_COLS = ("소재지", "주소")
 
 NON_ROWS = {"", "none", "합계", "계", "소계", "총계", "합 계", "총 계", "-"}
+
+# A 사용처 cell naming several venues is one receipt shared between them. The
+# named ones are recoverable as their own visits; "외 N곳" hides the rest.
+MULTI_VENUE_SEP = re.compile(r"\s*(?:,|/|\s및\s)\s*")
+UNNAMED_VENUES = re.compile(r"외\s*(\d+)\s*곳")
+
 EXCEL_EPOCH = dt.date(1899, 12, 30)  # Excel's day 1 is 1900-01-01, with the 1900 leap bug
 
 
@@ -138,6 +144,31 @@ def find_header(rows: list[list], scan: int = 20) -> tuple[int, dict[str, int]] 
         if "venue" in mapping and "amount" in mapping and "date" in mapping:
             return index, mapping
     return None
+
+
+def split_venues(venue: str, amount: int) -> list[tuple[str, int]]:
+    """One row naming several venues -> one ``(venue, amount)`` pair per named venue.
+
+    ``build_places.py`` joins a transaction to a place through its raw 사용처
+    string, so a row naming two shops can only ever reach one of them: splitting
+    has to happen here, before that string becomes the join key, or one of the
+    two visits is simply lost.
+
+    The amount divides evenly over every venue the row accounts for, *including*
+    the ones ``외 N곳`` leaves unnamed — their shares leave with them, so a shared
+    receipt can never inflate the venues it does name. Integer division drops the
+    remainder for the same reason. A row that names no venue at all ("외 2곳")
+    returns nothing: there is no place to attribute it to.
+    """
+    hidden = UNNAMED_VENUES.search(venue)
+    unnamed = int(hidden.group(1)) if hidden else 0
+    named = [part.strip(" .-·")
+             for part in MULTI_VENUE_SEP.split(UNNAMED_VENUES.sub(" ", venue))]
+    named = [part for part in named if part and part.lower() not in NON_ROWS]
+    if not named:
+        return []
+    share = amount // (len(named) + unnamed)
+    return [(name, share) for name in named]
 
 
 def rows_from_sheet(rows: list[list], mapping: dict[str, int], header_row: int,
@@ -249,6 +280,7 @@ def main() -> int:
 
     transactions: list[dict] = []
     report: list[dict] = []
+    shared_rows: list[dict] = []
     duplicates = 0
 
     for post in manifest["posts"]:
@@ -267,6 +299,23 @@ def main() -> int:
             seen_in_post.add(key)
             return True
 
+        def emit(row: dict, source: dict, sheet: str) -> None:
+            """Append one parsed row, split first if it names several venues."""
+            parts = split_venues(row["venue"], row["amount"])
+            if len(parts) == 1 and parts[0][0] == row["venue"]:
+                if keep(row):
+                    transactions.append({**row, **source, "sheet": sheet})
+                return
+            shared_rows.append({"date": row["date"], "department": post["department"],
+                                "venue": row["venue"], "into": [name for name, _ in parts]})
+            for name, amount in parts:
+                # `sharedReceipt` keeps the published cell this visit came out of,
+                # so a split can be traced back to the row that produced it.
+                part = {**row, "venue": name, "amount": amount,
+                        "sharedReceipt": row["venue"]}
+                if keep(part):
+                    transactions.append({**part, **source, "sheet": sheet})
+
         for entry in post["files"]:
             path = os.path.join(root, entry["path"])
             ext = os.path.splitext(path)[1].lower()
@@ -279,8 +328,7 @@ def main() -> int:
                     report.append({**source, "sheet": "(pdf)", "status": f"error: {exc}"})
                     continue
                 for row in rows:
-                    if keep(row):
-                        transactions.append({**row, **source, "sheet": "(pdf)"})
+                    emit(row, source, "(pdf)")
                 report.append({**source, "sheet": "(pdf)", "rows": len(rows),
                                "unparsedLines": len(unparsed),
                                "status": "ok" if rows else "no rows"})
@@ -301,14 +349,14 @@ def main() -> int:
                 parsed, off_month, carried = rows_from_sheet(
                     rows, mapping, header_row, year, month)
                 for row in parsed:
-                    if keep(row):
-                        transactions.append({**row, **source, "sheet": name})
+                    emit(row, source, name)
                 report.append({**source, "sheet": name, "rows": len(parsed),
                                "offMonthRows": off_month, "carriedDates": carried,
                                "status": "ok" if parsed else "no rows for target month"})
 
     transactions.sort(key=lambda t: (t["date"], t["department"], t["venue"]))
-    payload = {"month": args.month, "transactions": transactions, "sheetReport": report}
+    payload = {"month": args.month, "transactions": transactions, "sheetReport": report,
+               "sharedReceiptRows": shared_rows}
     out_path = os.path.join(root, "raw_transactions.json")
     with open(out_path, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=1)
@@ -326,6 +374,11 @@ def main() -> int:
         if item.get("rows"):
             continue
         print(f"  {item['department']} / {item['sheet']}: {item['status']}")
+    if shared_rows:
+        print(f"  shared-receipt rows split: {len(shared_rows)}")
+        for item in shared_rows:
+            into = ", ".join(item["into"]) or "(no venue named — dropped)"
+            print(f"      {item['date']} {item['department']}: {item['venue']} -> {into}")
     if duplicates:
         print(f"  dropped {duplicates} rows duplicated across a post's attachments/sheets")
     return 0 if transactions else 1

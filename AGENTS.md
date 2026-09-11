@@ -14,6 +14,7 @@ KNUE staff used most, from the university's public expense disclosures. It reads
 | `docs/workflows.md` | When starting any implementation cycle |
 | `docs/eval-criteria.md` | When writing a Sprint Contract or grading a finished feature |
 | `docs/design/deferred-scope.md` | Before adding aggregates to `places.json`, or distance-from-me / favourites / heatmap |
+| `docs/harness-log.md` | Before changing a harness asset — skill, rule, hook; append the change row there |
 
 ## Golden Principles
 

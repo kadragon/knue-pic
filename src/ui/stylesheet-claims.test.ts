@@ -62,6 +62,8 @@ type ScannedDeclaration = {
   selector: string;
   property: string;
   value: string;
+  /** Index into `rules` of the block this declaration was written in. */
+  rule: number;
   /** Offset of the property name, and of the `;` or `}` that closes the declaration. */
   start: number;
   end: number;
@@ -70,7 +72,41 @@ type ScannedDeclaration = {
   bodyEnd: number;
 };
 
-type ScannedRule = { selector: string; bodyStart: number; bodyEnd: number };
+type ScannedRule = {
+  /** The block's own prelude, as written — `@media (…)` for an at-rule, `&:hover` for a nested rule. */
+  prelude: string;
+  /**
+   * Whether this block, or any block enclosing it, is an at-rule — so its declarations apply only
+   * when that condition holds.
+   *
+   * Carried down the open stack rather than read off the prelude, because both nesting directions
+   * produce a plain selector on the block that owns the declarations: `@media (…) { .x { … } }`
+   * and `.x { @media (…) { … } }` alike. A reader asking "is this declared unconditionally" cannot
+   * answer it from one block's own prelude.
+   */
+  conditional: boolean;
+  /** The prelude resolved against the ancestor chain: the element this block actually styles. */
+  selector: string;
+  bodyStart: number;
+  bodyEnd: number;
+  /**
+   * Half-open index ranges into the scan's own arrays, recorded as the block opens and closes:
+   * `[firstDeclaration, endDeclaration)` covers every declaration written inside this block —
+   * its own and its nested blocks' — and `[index + 1, endRule)` covers every block nested in it.
+   *
+   * Both are what let a reader address this rule instead of the sheet. Three readers used to walk
+   * every declaration for every rule: the `bodyEnd` backfill below, `RULES`, and the annotation
+   * guard's adjacency test. Nothing was slow because of it, but each of the three asks a question
+   * about one rule, and a scan of the whole sheet is not that question — it happens to give the
+   * same answer only because the discriminating field is unique per block.
+   *
+   * `-1` on either end means the block never closed, which only a malformed sheet produces. The
+   * readers treat it as "runs to the end", so an unclosed block cannot hide its own contents.
+   */
+  firstDeclaration: number;
+  endDeclaration: number;
+  endRule: number;
+};
 
 /**
  * One left-to-right scan of the stylesheet — the single place this suite decides what a *rule* and
@@ -98,20 +134,323 @@ type ScannedRule = { selector: string; bodyStart: number; bodyEnd: number };
  * The scan is stateful precisely where the regex could not be: it knows whether it is inside a
  * comment, inside a `'`/`"` string (backslash escapes honoured), and how deep it is in parens. The
  * paren depth is what stops `url(data:image/svg+xml;utf8,…)` from splitting a declaration in two,
- * and the string state is what stops `content: "a;b"` from doing the same.
+ * and the string state is what stops `content: "a;b"` from doing the same. An *unquoted* url token
+ * needs more than depth — its contents are opaque to a real parser, so a `/*` or a `;` in there
+ * means nothing — and it is skipped whole, to its matching `)`.
  *
- * A block's `selector` is its own prelude, never a resolved ancestor chain. That is deliberate and
- * preserves `reachingRules`'s existing reading: a rule nested in an `@media` has always arrived
- * there as a plain selector, because an override is an override whichever block it sits in.
+ * A block carries both its own `prelude` and the `selector` that prelude resolves to against the
+ * blocks enclosing it — see `resolveSelector`. The distinction is what lets two readers ask
+ * different questions of the same block: `RULES` asks the prelude whether a block is an at-rule
+ * *container*, while `reachingRules` and every offender message ask the selector which element the
+ * block styles.
  *
- * **The residue that choice leaves.** A rule nested inside *another rule* — `.badge { @media … {
- * … } }`, or an `&`-prefixed selector — is reported under its own prelude, which for an at-rule is
- * not an element at all. `reachingRules` cannot match such a rule, and an offender inside one is
- * named `@media (…) { margin: 8px }`, a rule the reader cannot find. Its declarations *are*
- * scanned, so nothing goes unseen; only the attribution is coarse. Resolving ancestor chains is
- * the fix and it is recorded in `backlog.md`, not done here: it changes what `reachingRules`
- * matches, which is a different guard's decision rule and a different contract.
+ * Resolution leaves the top-level reading untouched, which is the constraint it had to meet: a
+ * rule inside a top-level `@media` still arrives as its plain selector, and a top-level at-rule
+ * still carries its own `@…` prelude as its selector. What it fixes is the rule nested inside
+ * *another rule* — `.badge { @media … { … } }`, or an `&`-prefixed selector. That block used to be
+ * reported under its own prelude, which for an at-rule is not an element at all: an offender in it
+ * was named `@media (…) { margin: 8px }`, a rule the reader cannot find, and `reachingRules` could
+ * not see the override at all. Nothing went *unseen* even then — the declarations were scanned —
+ * but the attribution named nothing.
  */
+/** The code points a url token may not hold unescaped, per the url-token grammar. */
+const nonPrintable = (char: string): boolean => {
+  const code = char.charCodeAt(0);
+  return code <= 8 || code === 11 || (code >= 14 && code <= 31) || code === 127;
+};
+
+/**
+ * The unquoted url token starting at `start`, or `null` when this is not one.
+ *
+ * `null` means a quoted `url("…")`, which is an ordinary function token: its string must be read
+ * normally, so a `)` inside the quotes ends nothing. Everything else is a url token, whose
+ * contents are one opaque blob to a real parser — a `/*`, a `;` and a `{` in there are all just
+ * characters. Reading them as syntax is what let a url swallow the declarations after it with
+ * nothing reported, so the scan skips the whole token to the `)` this returns.
+ *
+ * `problem` is non-null when the token is malformed — a *bad url* (whitespace or a quote inside
+ * it) or one that runs to the end of the file. A real parser also consumes a bad url to its `)`
+ * and then throws the declaration away, so skipping it keeps the scan in step with the build
+ * while still naming the sheet as unreadable. The alternative, falling through to the paren
+ * handling, was worse in both directions: it reported the `(` of a *valid* url holding a `{`, and
+ * it left a real bad url unnamed.
+ *
+ * Follows CSS Syntax Level 3 §4.3.6 (consume a url token) and §4.3.14 (consume the remnants of a
+ * bad url), which is what makes the set of characters a url may hold a rule rather than a guess:
+ * only whitespace not immediately before the `)`, a quote, a `(`, a non-printable, and an invalid
+ * escape end it early. `;`, `{` and `}` are ordinary content.
+ */
+const urlToken = (
+  css: string,
+  start: number,
+): { end: number; problem: string | null } | null => {
+  /** §4.3.14: everything up to the first unescaped `)`, which is where the parser resumes too. */
+  const bad = (from: number): { end: number; problem: string } => {
+    let at = from;
+    while (at < css.length) {
+      if (css[at] === '\\') {
+        at += 2;
+        continue;
+      }
+      if (css[at] === ')') return { end: at, problem: `bad url( opened at ${start}` };
+      at += 1;
+    }
+    return { end: css.length, problem: `url( opened at ${start}` };
+  };
+
+  let at = start + 4;
+  while (at < css.length && /\s/.test(css[at] ?? '')) at += 1;
+  if (css[at] === '"' || css[at] === "'") return null;
+
+  while (at < css.length) {
+    const char = css[at] ?? '';
+    if (char === ')') return { end: at, problem: null };
+    if (/\s/.test(char)) {
+      // Whitespace is allowed only as padding before the close.
+      while (at < css.length && /\s/.test(css[at] ?? '')) at += 1;
+      return css[at] === ')' ? { end: at, problem: null } : bad(at);
+    }
+    if (char === '\\') {
+      // A backslash at the end of the file or before a newline is not a valid escape.
+      if (at + 1 >= css.length || css[at + 1] === '\n') return bad(at + 1);
+      at += 2;
+      continue;
+    }
+    if (char === '"' || char === "'" || char === '(' || nonPrintable(char)) return bad(at + 1);
+    at += 1;
+  }
+  return { end: css.length, problem: `url( opened at ${start}` };
+};
+
+/**
+ * The offset just past the backslash escape starting at `at`. A hex escape runs up to six digits
+ * and swallows one whitespace character after them — `\2d distance` is `-distance`, one class,
+ * not `\2d` then a descendant `distance` — so skipping a single character is not enough.
+ */
+const escapeEnd = (text: string, at: number): number => {
+  const hex = /^[0-9a-f]{1,6}[ \t\n\r\f]?/i.exec(text.slice(at + 1, at + 8));
+  return at + 1 + (hex?.[0].length ?? 1);
+};
+
+/** The character an escape body denotes: `2d ` is `-`, `.` is `.`. */
+const unescapeBody = (body: string): string =>
+  /^[0-9a-f]/i.test(body) ? String.fromCodePoint(Number.parseInt(body.trim(), 16)) : body;
+
+/**
+ * A selector split at the **top-level** characters `separates` accepts — the ones outside every
+ * `(…)`, `[…]`, quoted string and backslash escape.
+ *
+ * One scan, two separators. `selectorParts` wants top-level commas; `target` wants top-level
+ * combinators, and it used a bare `.split(/[\\s>+~]+/)` that ended a compound at the first
+ * combinator inside `:is(…)`. Spelling the depth-and-quote state a second time is how the two
+ * readers drifted apart in the first place, so the state lives here and the callers differ only
+ * in which character ends a piece.
+ */
+const splitTopLevel = (selector: string, separates: (char: string) => boolean): string[] => {
+  const parts: string[] = [];
+  let depth = 0;
+  let quote = '';
+  let start = 0;
+  for (let at = 0; at < selector.length; at += 1) {
+    const char = selector[at] ?? '';
+    if (char === '\\') {
+      // A backslash escapes the next character wherever it stands, not only inside a quote:
+      // `.a\\,b` is one class whose name contains a comma, and splitting it yields two selectors
+      // that match nothing. CSS gives the escape the same meaning in both places, so does this.
+      at = escapeEnd(selector, at) - 1;
+    } else if (quote !== '') {
+      if (char === quote) quote = '';
+    } else if (char === "'" || char === '"') quote = char;
+    else if (char === '(' || char === '[') depth += 1;
+    else if (char === ')' || char === ']') depth -= 1;
+    else if (depth === 0 && separates(char)) {
+      parts.push(selector.slice(start, at));
+      start = at + 1;
+    }
+  }
+  parts.push(selector.slice(start));
+  return parts.map((part) => part.trim()).filter((part) => part !== '');
+};
+
+/**
+ * A selector list split at its **top-level** commas — the ones that separate selectors, not the
+ * ones inside `:is(…)`, `:not(…)`, `:where(…)`, `:nth-child(…)` or a quoted attribute value.
+ *
+ * A bare `.split(',')` reads `:not(.b, .c) .d` as two selectors and every reader of a selector
+ * here made that mistake. It is the same depth-and-quote state `flush` already tracks to find a
+ * declaration's first top-level colon, and it is spelled out once rather than a third time.
+ */
+const selectorParts = (selector: string): string[] =>
+  splitTopLevel(selector, (char) => char === ',');
+
+/** The index just past the `)`/`]` that closes the run opened at `open`. */
+const closeAt = (text: string, open: number): number => {
+  let depth = 0;
+  let quote = '';
+  for (let at = open; at < text.length; at += 1) {
+    const char = text[at] ?? '';
+    if (char === '\\') at = escapeEnd(text, at) - 1;
+    else if (quote !== '') {
+      if (char === quote) quote = '';
+    } else if (char === "'" || char === '"') quote = char;
+    else if (char === '(' || char === '[') depth += 1;
+    else if (char === ')' || char === ']') {
+      depth -= 1;
+      if (depth === 0) return at + 1;
+    }
+  }
+  return text.length;
+};
+
+const COMBINATOR = /[\s>+~]/;
+
+/**
+ * The compound a selector part actually styles — its **subject** — with everything that names
+ * some *other* element removed.
+ *
+ * Taking the last top-level compound is only half of it. `.x:is(.badge .y)` styles a `.y` that
+ * has a `.badge` ancestor; the compound holds the token `.badge` and names it about an ancestor,
+ * so a guard that stopped at the compound would report a rule as an override of `.badge` that
+ * never touches one. Inside a functional pseudo-class only each argument's own subject applies
+ * to the element, which is this same reduction one level down — hence the recursion.
+ *
+ * Three kinds of run are dropped rather than reduced:
+ *
+ * - `:not(…)` states what the subject is *not*. `.foo:not(.badge)` is the one form that names a
+ *   class in order to exclude it, and dropping the run is the behaviour this helper has always
+ *   had.
+ * - `:has(…)` states what the subject *contains*, so `.foo:has(.badge)` styles `.foo`.
+ * - `[…]` holds an attribute name and an arbitrary quoted value. `[data-x=".badge"]` names a
+ *   class only as text.
+ *
+ * **The result is a probe, not a selector.** It is only ever handed to `classNames`, and
+ * the reduction does not preserve anything else: `+` is a combinator here, so `:nth-child(2n+1)`
+ * comes back as `:nth-child(1)`. No class token can be lost that way, which is all `reaches`
+ * asks — but do not re-parse this string as CSS or hand it to a matcher that reads more than a
+ * class name.
+ */
+const reduceCompound = (compound: string): string => {
+  let out = '';
+  let at = 0;
+  while (at < compound.length) {
+    const char = compound[at] ?? '';
+    if (char === '\\') {
+      const end = escapeEnd(compound, at);
+      out += compound.slice(at, end);
+      at = end;
+      continue;
+    }
+    if (char === '[') {
+      at = closeAt(compound, at);
+      continue;
+    }
+    const functional = char === ':' ? /^::?(-{0,2}[\w-]+)\(/.exec(compound.slice(at)) : null;
+    if (functional) {
+      const open = at + functional[0].length - 1;
+      const end = closeAt(compound, open);
+      const name = (functional[1] ?? '').toLowerCase();
+      if (name !== 'not' && name !== 'has') {
+        const inner = selectorParts(compound.slice(open + 1, end - 1)).map(subjectOf);
+        out += `${functional[0]}${inner.join(', ')})`;
+      }
+      at = end;
+      continue;
+    }
+    out += char;
+    at += 1;
+  }
+  return out;
+};
+
+/**
+ * The class names a `subjectOf` probe carries, escapes decoded — `.a\.b` is the one class `a.b`,
+ * not a class `b`; `.x\:hover` is the class `x:hover`; `.top-place\-distance` is
+ * `top-place-distance` spelled another way. A `\.name` regex read all three wrong. Quoted strings
+ * are skipped whole, so a string argument left in a functional pseudo-class names no class.
+ */
+const classNames = (probe: string): string[] => {
+  const names: string[] = [];
+  let at = 0;
+  while (at < probe.length) {
+    const char = probe[at] ?? '';
+    if (char === '\\') at = escapeEnd(probe, at);
+    else if (char === "'" || char === '"') {
+      const close = probe.indexOf(char, at + 1);
+      at = close === -1 ? probe.length : close + 1;
+    } else if (char === '.') {
+      let name = '';
+      at += 1;
+      while (at < probe.length) {
+        const next = probe[at] ?? '';
+        if (next === '\\') {
+          const end = escapeEnd(probe, at);
+          name += unescapeBody(probe.slice(at + 1, end));
+          at = end;
+        } else if (/[\w-]/.test(next) || next.charCodeAt(0) > 0x7f) {
+          name += next;
+          at += 1;
+        } else break;
+      }
+      if (name !== '') names.push(name);
+    } else at += 1;
+  }
+  return names;
+};
+
+/** A selector part minus its `[…]` attribute selectors, depth-, quote- and escape-aware. */
+const withoutAttributes = (part: string): string => {
+  let out = '';
+  let at = 0;
+  while (at < part.length) {
+    const char = part[at] ?? '';
+    const end = char === '\\' ? escapeEnd(part, at) : char === '[' ? closeAt(part, at) : at + 1;
+    if (char !== '[') out += part.slice(at, end);
+    at = end;
+  }
+  return out;
+};
+
+/** `reduceCompound` of the last top-level compound of `part`. */
+function subjectOf(part: string): string {
+  return reduceCompound(splitTopLevel(part, (char) => COMBINATOR.test(char)).pop() ?? '');
+}
+
+/**
+ * A block's prelude resolved against the block it is written in — the element it actually styles.
+ *
+ * Three cases, and the first is the one that had to be preserved rather than invented:
+ *
+ * - **No enclosing rule** (top level, or inside an at-rule that is itself at top level): the
+ *   prelude stands as written. A rule inside a top-level `@media` has always arrived at
+ *   `reachingRules` as a plain selector, because an override is an override whichever viewport it
+ *   applies at, and a top-level at-rule keeps its own `@…` prelude so `RULES` can still tell a
+ *   container from a rule.
+ * - **An at-rule inside a rule** — `.badge { @media (…) { … } }`: the at-rule styles nothing of its
+ *   own, so the enclosing rule's resolved selector passes straight through. Its declarations then
+ *   belong to `.badge`, which is what CSS nesting means by them and what a reader can go and find.
+ * - **A rule inside a rule**: every parent part crossed with every prelude part — `&` substituted
+ *   where written, a bare compound made a descendant of it.
+ *
+ * **Distributed, not wrapped in `:is(…)`.** Wrapping was the first spelling and it was wrong in a
+ * way the sheet would never have shown: `.a, .b { & .c { … } }` became `:is(.a, .b) .c`, one string
+ * holding a comma that is *not* a selector separator. Every reader downstream then split it into
+ * `:is(.a` and `.b) .c`, and `reaches('.a', …)` matched the fragment — a rule that styles `.c`
+ * reported as an override of `.a`. Distribution emits `.a .c, .b .c`, which matches the same
+ * elements with no comma that means anything else. Equivalent for *matching*, which is all any
+ * guard here asks: the two forms differ in specificity, and nothing in this suite reads that.
+ */
+const resolveSelector = (prelude: string, parent: string | undefined): string => {
+  if (parent === undefined || parent.startsWith('@')) return prelude;
+  if (prelude.startsWith('@')) return parent;
+  return selectorParts(parent)
+    .flatMap((reference) =>
+      selectorParts(prelude).map((part) =>
+        part.includes('&') ? part.replaceAll('&', reference) : `${reference} ${part}`,
+      ),
+    )
+    .join(', ');
+};
+
 const scan = (
   css: string,
 ): {
@@ -119,19 +458,23 @@ const scan = (
   rules: ScannedRule[];
   declarations: ScannedDeclaration[];
   /**
-   * What the scan ran off the end of — an unclosed comment, string, block or paren.
+   * What the scan lost sync on — an unclosed comment, string, block or paren, and a `(` that
+   * outlived the block it opened in.
    *
-   * This catches the whole class that ends the scan mid-way, which is what silently blinded every
-   * guard before it existed. Empty is weaker than "the sheet is well formed": a construct can lose
-   * sync and come back out balanced, and two such cases are known and recorded in `backlog.md`.
-   * They are not equally contained, so do not read them as one:
+   * The end-of-scan checks catch the whole class that ends the scan mid-way, which is what
+   * silently blinded every guard before they existed. On their own they were weaker than "the
+   * sheet is well formed", because a construct can lose sync and be brought back to a settled
+   * state by an unrelated one later in the file — the depth reads zero at the end and every
+   * declaration in between has been merged into one and dropped. Two such shapes were known:
    *
-   * - a dropped `)` cancelled by a stray one later in the file is malformed CSS, and the build
-   *   rejects it, so it cannot publish;
-   * - an unquoted `url(…` holding a comment-open sequence is **valid CSS that builds**. The `/*`
-   *   inside the url token is not a comment to a real parser, is one to this scan, and a later
-   *   comment close ends it — swallowing the declarations in between. Nothing downstream stops it.
-   *   The only reason it cannot reach the sheet today is that the sheet contains no `url(` at all.
+   * - a dropped `)` cancelled by a stray one in a later rule. Now reported where it happens: a
+   *   `(` still open at a `{` or `}` never closed inside its own block, and no valid CSS does
+   *   that.
+   * - an unquoted `url(…` holding a comment-open sequence, which is **valid CSS that builds** —
+   *   the `/*` inside the url token is not a comment to a real parser, and a later real comment
+   *   close ended the one this scan opened, swallowing the declarations in between. Now closed at
+   *   the source: the url token is skipped whole, so nothing inside it is read at all. A url
+   *   the grammar rejects is skipped the same way a parser skips it, and named here as a bad url.
    */
   unterminated: string[];
 } => {
@@ -140,14 +483,31 @@ const scan = (
   const declarations: ScannedDeclaration[] = [];
   const unterminated: string[] = [];
   /** The open blocks, innermost last. `end` is filled in when the block closes. */
-  const open: { selector: string; bodyStart: number; rule: number }[] = [];
+  const open: {
+    prelude: string;
+    selector: string;
+    conditional: boolean;
+    bodyStart: number;
+    rule: number;
+  }[] = [];
 
   let index = 0;
   /** Where the current selector prelude or declaration began. */
   let pieceStart = 0;
-  let parens = 0;
-  /** Where the depth last left zero, so an unclosed `(` can be reported at a place, not a count. */
-  let parenOpenedAt = -1;
+  /**
+   * The offsets of the `(`s currently open, innermost last; its length is the paren depth.
+   *
+   * Offsets rather than a counter so an unclosed `(` is reported at a place, and so the block
+   * check below can name *which* paren outlived its block.
+   */
+  const parenOpens: number[] = [];
+  /**
+   * Every `(` already reported as outliving its block, so one offender yields one entry.
+   *
+   * A set, not the last offset: with two offenders open at once the inner one is reported, popped,
+   * and the outer one then looks new again at the next brace, so a scalar reports it twice.
+   */
+  const parenReported = new Set<number>();
 
   /**
    * The source between two offsets with any comment inside it removed.
@@ -220,6 +580,7 @@ const scan = (
     if (property === '') return;
     declarations.push({
       selector: frame.selector,
+      rule: frame.rule,
       property,
       value: collapse(piece.slice(colon + 1)),
       start: contentStart(pieceOffset, end),
@@ -240,6 +601,32 @@ const scan = (
       comments.push({ start: index, end, text: css.slice(index, end) });
       index = end;
       continue;
+    }
+
+    // An unquoted `url(…)` is one token to a real parser: the `/*` in
+    // `url(http://example.com/*a.png)` opens no comment and a `;` in there ends no declaration.
+    // Read character by character it does both, and the comment a later real `*/` closes swallows
+    // every declaration in between — valid CSS that builds, and `unterminated` stays empty because
+    // the comment did close. Skipping such a token whole makes its contents opaque, which is what
+    // they are.
+    //
+    // A malformed one is skipped too, and named: `url(a;` is a bad url, which a real parser also
+    // consumes to its `)` before discarding the declaration. Falling through to the paren handling
+    // instead was wrong in both directions — it reported the `(` of a *valid* url holding a `{`,
+    // and left a real bad url unnamed. A quoted `url("…")` is not a url token at all and does
+    // fall through, so a `)` inside the quotes still ends nothing. See `urlToken`.
+    if (
+      (char === 'u' || char === 'U') &&
+      /^url\(/i.test(css.slice(index, index + 4)) &&
+      // Not preceded by an identifier character, or `--brand-url(` would be read as a url token.
+      !/[\w-]/.test(css[index - 1] ?? '')
+    ) {
+      const token = urlToken(css, index);
+      if (token !== null) {
+        if (token.problem !== null) unterminated.push(token.problem);
+        index = token.end + 1;
+        continue;
+      }
     }
 
     if (char === "'" || char === '"') {
@@ -264,209 +651,170 @@ const scan = (
       continue;
     }
 
-    if (char === '(') {
-      if (parens === 0) parenOpenedAt = index;
-      parens += 1;
-    } else if (char === ')') parens = Math.max(0, parens - 1);
+    if (char === '(') parenOpens.push(index);
+    else if (char === ')') parenOpens.pop();
+
+    // A `(` still open at a block boundary never closed inside the block it opened in, and no
+    // valid CSS leaves one there. Reported here rather than at the end of the scan because a
+    // stray `)` in a later rule cancels the depth: by the end the sheet looks balanced, while
+    // every declaration between the two has been merged into one and lost. Recorded once per
+    // offending `(`, so a sheet with one typo does not produce an entry per later brace.
+    if (parenOpens.length > 0 && (char === '{' || char === '}')) {
+      const opened = parenOpens[parenOpens.length - 1] ?? -1;
+      if (!parenReported.has(opened)) {
+        parenReported.add(opened);
+        unterminated.push(`( opened at ${opened}, still open at ${char} at ${index}`);
+      }
+    }
 
     // No resynchronising here. Forcing the paren depth back to zero at a brace was tried and
     // removed: it manufactured a closed block out of a sheet the scan could not follow, taking the
     // report's own block arm out with it. What replaces it is not the block stack but the depth
     // check at the end of the scan — a `(` that never closes is reported as itself.
-    if (parens === 0 && char === '{') {
-      const selector = collapse(between(pieceStart, index));
-      open.push({ selector, bodyStart: index + 1, rule: rules.length });
-      rules.push({ selector, bodyStart: index + 1, bodyEnd: -1 });
+    if (parenOpens.length === 0 && char === '{') {
+      const prelude = collapse(between(pieceStart, index));
+      const parent = open.at(-1);
+      const selector = resolveSelector(prelude, parent?.selector);
+      const conditional = prelude.startsWith('@') || parent?.conditional === true;
+      open.push({ prelude, selector, conditional, bodyStart: index + 1, rule: rules.length });
+      rules.push({
+        prelude,
+        selector,
+        conditional,
+        bodyStart: index + 1,
+        bodyEnd: -1,
+        firstDeclaration: declarations.length,
+        endDeclaration: -1,
+        endRule: -1,
+      });
       pieceStart = index + 1;
-    } else if (parens === 0 && char === '}') {
+    } else if (parenOpens.length === 0 && char === '}') {
       flush(index);
       const frame = open.pop();
       if (frame !== undefined) {
         // The frame carries its own index rather than taking the most recent rule: with nesting,
         // `rules.at(-1)` is the *inner* rule at the moment the outer one closes.
         const rule = rules[frame.rule];
-        if (rule !== undefined) rule.bodyEnd = index;
-        for (const declaration of declarations) {
-          if (declaration.bodyEnd === -1 && declaration.bodyStart === frame.bodyStart) {
-            declaration.bodyEnd = index;
+        if (rule !== undefined) {
+          rule.bodyEnd = index;
+          rule.endDeclaration = declarations.length;
+          rule.endRule = rules.length;
+          // From this block's first declaration, not from the sheet's. Everything before that
+          // index was flushed before the block opened and cannot be waiting on this brace. The
+          // `bodyStart` test stays: a declaration inside a nested block that never closed is
+          // still in this range with `bodyEnd === -1`, and it is not this frame's to fill.
+          for (let at = rule.firstDeclaration; at < declarations.length; at += 1) {
+            const declaration = declarations[at];
+            if (
+              declaration !== undefined &&
+              declaration.bodyEnd === -1 &&
+              declaration.bodyStart === frame.bodyStart
+            ) {
+              declaration.bodyEnd = index;
+            }
           }
         }
       }
       pieceStart = index + 1;
-    } else if (parens === 0 && char === ';') {
+    } else if (parenOpens.length === 0 && char === ';') {
       flush(index);
     }
 
     index += 1;
   }
   for (const frame of open) {
-    unterminated.push(`block opened at ${frame.bodyStart - 1} (${frame.selector || '?'})`);
+    unterminated.push(`block opened at ${frame.bodyStart - 1} (${frame.prelude || '?'})`);
   }
   // The paren axis, reported in its own right rather than through the block stack. Two earlier
   // attempts each covered half of it: resetting the depth at a brace hid an unclosed *block*, and
   // removing that reset hid an unbalanced `(` in a prelude, where no block is open to go unclosed
   // — `@media (min-width: 40rem {` is the likeliest typo in the family and had no arm at all.
-  if (parens !== 0) unterminated.push(`( opened at ${parenOpenedAt}, depth ${parens} at end`);
+  // This arm is what catches a `(` in a prelude, where no brace follows inside its own block; the
+  // block-boundary check above is what catches one that a later stray `)` would have cancelled.
+  // Only what the block check has not already named — a `(` that outlived its block *and* ran to
+  // the end of the file is one fault, and reporting it twice is noise in the one place a reader
+  // goes to find out what the scan could not read.
+  const unreportedOpens = parenOpens.filter((opened) => !parenReported.has(opened));
+  if (unreportedOpens.length > 0) {
+    unterminated.push(`( opened at ${unreportedOpens[0]}, depth ${parenOpens.length} at end`);
+  }
   return { comments, rules, declarations, unterminated };
 };
 
+/** One scanned stylesheet. Named so the readers below can take a synthetic one in a test. */
+type ScannedSheet = ReturnType<typeof scan>;
+
 const SHEET = scan(source(STYLESHEET_PATH));
 
-/** A rule as `[selector, declarations]` — the shape every selector-reading guard below takes. */
-type Rule = [string, string];
-
 /**
- * Every rule in a scanned sheet as `[selector, declarations]`, the declarations rejoined from the
- * scan.
+ * Every rule in the sheet as `[selector, declarations]`, the declarations rejoined from the scan.
  *
  * Rebuilt rather than sliced out of the source so the consumers below keep reading one normalised
  * shape — `prop: value; prop: value` — whatever the layout in the file. A rule that contains a
  * nested block now carries its own declarations here; under the brace regex they belonged to
- * nothing. A function of the scan rather than of the sheet so a probe can hand the guards a
- * stylesheet of its own.
+ * nothing.
  */
-const rulesOf = (sheet: ReturnType<typeof scan>): Rule[] =>
+/**
+ * The declarations the scan recorded inside `rule` — its own and its nested blocks'.
+ *
+ * A slice of the recorded range rather than a filter over the sheet. `-1` is the unclosed-block
+ * marker (see `ScannedRule`) and reads as "to the end", so a malformed sheet still surfaces every
+ * declaration it holds rather than none.
+ */
+const spanOf = (sheet: ScannedSheet, rule: ScannedRule): ScannedDeclaration[] =>
+  sheet.declarations.slice(
+    rule.firstDeclaration,
+    rule.endDeclaration === -1 ? sheet.declarations.length : rule.endDeclaration,
+  );
+
+/**
+ * The blocks nested inside one rule of `sheet`, identified by its index in `sheet.rules`.
+ *
+ * Every block opened after this one and before it closed is nested in it, which is exactly the
+ * recorded rule range — the offset comparison it replaces (`bodyStart` after, `bodyEnd` at or
+ * before) selects the same blocks by arithmetic over the whole sheet.
+ */
+const nestedIn = (sheet: ScannedSheet, index: number): ScannedRule[] => {
+  const rule = sheet.rules[index];
+  if (rule === undefined) return [];
+  return sheet.rules.slice(index + 1, rule.endRule === -1 ? sheet.rules.length : rule.endRule);
+};
+
+/** One rule as the guards below read it. */
+type SheetRule = { selector: string; block: string; prelude: string; conditional: boolean };
+
+/**
+ * A scanned sheet's rules, each with its declarations rejoined.
+ *
+ * A function of the sheet rather than a constant over `SHEET`, so the guards below can be pointed
+ * at a synthetic sheet. They could not before: `RULES` closed over the real stylesheet, so a test
+ * exercising a nesting shape had to stop at the scan output and assert what a consumer *would*
+ * make of it — leaving the consumers themselves unguarded on every shape `src/styles.css` does not
+ * happen to contain, which is all of them.
+ */
+const rulesOf = (sheet: ScannedSheet): SheetRule[] =>
   sheet.rules
-    .map((rule): Rule => [
-      rule.selector,
-      sheet.declarations
-        .filter((declaration) => declaration.bodyStart === rule.bodyStart)
-        .map(({ property, value }) => `${property}: ${value}`)
-        .join('; '),
-    ])
+    .map(
+      (rule): SheetRule => ({
+        selector: rule.selector,
+        block: spanOf(sheet, rule)
+          // Its own, not its nested blocks': the range covers both, and `bodyStart` is the block.
+          .filter((declaration) => declaration.bodyStart === rule.bodyStart)
+          .map(({ property, value }) => `${property}: ${value}`)
+          .join('; '),
+        prelude: rule.prelude,
+        conditional: rule.conditional,
+      }),
+    )
     // An at-rule that owns no declarations is a container — `@media`, `@supports` — and holds rules
     // rather than being one. The brace regex never emitted these, because their braces are not the
     // innermost pair, and the three guards reading `RULES` were written against that shape. An
     // at-rule that *does* own declarations (`@font-face`) is a rule and stays.
-    .filter(([selector, block]) => !selector.startsWith('@') || block !== '');
+    // Asked of the PRELUDE, not the resolved selector: a container nested inside a rule resolves to
+    // that rule's selector and would otherwise slip through as a rule owning nothing.
+    .filter(({ prelude, block }) => !prelude.startsWith('@') || block !== '');
 
-const RULES: Rule[] = rulesOf(SHEET);
-
-/**
- * Where the backslash escape starting at `at` ends. CSS spells an escape as a backslash and either
- * one to six hex digits plus one optional whitespace character, or any single other character —
- * so the space in `.a\2d b` belongs to the escape and is not a descendant combinator.
- */
-const escapeEnd = (text: string, at: number): number => {
-  const hex = /^[0-9a-f]{1,6}[ \t\n\r\f]?/i.exec(text.slice(at + 1, at + 8));
-  return at + 1 + (hex?.[0].length ?? 1);
-};
-
-/** The character an escape body denotes: `2d ` is `-`, `.` is `.`. */
-const unescapeBody = (body: string): string =>
-  /^[0-9a-f]/i.test(body) ? String.fromCodePoint(Number.parseInt(body.trim(), 16)) : body;
-
-/** The groups a selector nests, each with the character that closes it. */
-const GROUP_CLOSE = new Map([
-  ['(', ')'],
-  ['[', ']'],
-  ["'", "'"],
-  ['"', '"'],
-]);
-
-/**
- * The offset just past the group that opens at `at` — a `(…)`, an attribute `[…]` or a string —
- * honouring escapes, strings inside brackets, and nesting (`:not(:is(.a))`). An unclosed group
- * runs to the end of the text; the scan above already reports such a sheet as unterminated.
- */
-const groupEnd = (text: string, at: number): number => {
-  const open = text[at] ?? '';
-  const close = GROUP_CLOSE.get(open);
-  const quoted = open === "'" || open === '"';
-  let index = at + 1;
-  while (index < text.length) {
-    const char = text[index] ?? '';
-    if (char === close) return index + 1;
-    if (char === '\\') index = escapeEnd(text, index);
-    else if (!quoted && GROUP_CLOSE.has(char)) index = groupEnd(text, index);
-    else index += 1;
-  }
-  return text.length;
-};
-
-/**
- * `text` cut at every character `isSeparator` accepts that sits outside a group and outside an
- * escape. A bare `split` is what this replaces: `:is(.a, .b)` and `[data-x='a,b']` each hold a
- * comma that separates nothing, and `.a\,b` is one class whose name contains one.
- */
-const splitOutside = (text: string, isSeparator: (char: string) => boolean): string[] => {
-  const parts: string[] = [];
-  let start = 0;
-  let at = 0;
-  while (at < text.length) {
-    const char = text[at] ?? '';
-    if (char === '\\') at = escapeEnd(text, at);
-    else if (GROUP_CLOSE.has(char)) at = groupEnd(text, at);
-    else if (isSeparator(char)) {
-      parts.push(text.slice(start, at));
-      at += 1;
-      start = at;
-    } else at += 1;
-  }
-  parts.push(text.slice(start));
-  return parts.map(collapse).filter(Boolean);
-};
-
-/**
- * A selector list's comma-separated parts, each one complex selector. Every guard that reads a
- * selector list goes through this; a second, naive split beside it is how the palette predicate
- * kept reading `[data-x='a,b']` as two elements after the nowrap guard had stopped doing so.
- */
-const selectorParts = (selector: string): string[] => splitOutside(selector, (char) => char === ',');
-
-/**
- * A complex selector's compounds, cut at its combinators; the last is the element it styles. The
- * `+` in `:nth-child(2n+1)` is inside a group and cuts nothing.
- */
-const compounds = (part: string): string[] => splitOutside(part, (char) => /[\s>+~]/.test(char));
-
-/**
- * The class names a compound carries, escapes decoded — `.a\.b` is the one class `a.b`, not a
- * class `b`, and `.top-place\-distance` is `top-place-distance` spelled another way. Strings and
- * attribute selectors are skipped whole, so `[data-note='.top-place-distance']` names no class,
- * and so is `:not(…)`, the one form that names a class in order to exclude it.
- */
-const classNames = (compound: string): string[] => {
-  const names: string[] = [];
-  let at = 0;
-  while (at < compound.length) {
-    const char = compound[at] ?? '';
-    if (char === '\\') at = escapeEnd(compound, at);
-    else if (/^:not\(/i.test(compound.slice(at, at + 5))) at = groupEnd(compound, at + 4);
-    else if (char !== '(' && GROUP_CLOSE.has(char)) at = groupEnd(compound, at);
-    else if (char === '.') {
-      let name = '';
-      at += 1;
-      while (at < compound.length) {
-        const next = compound[at] ?? '';
-        if (next === '\\') {
-          const end = escapeEnd(compound, at);
-          name += unescapeBody(compound.slice(at + 1, end));
-          at = end;
-        } else if (/[\w-]/.test(next) || next.charCodeAt(0) > 0x7f) {
-          name += next;
-          at += 1;
-        } else break;
-      }
-      if (name !== '') names.push(name);
-    } else at += 1;
-  }
-  return names;
-};
-
-/** A selector part minus its attribute selectors, which a palette's element key ignores. */
-const withoutAttributes = (part: string): string => {
-  let out = '';
-  let at = 0;
-  while (at < part.length) {
-    const char = part[at] ?? '';
-    const end =
-      char === '\\' ? escapeEnd(part, at) : GROUP_CLOSE.has(char) ? groupEnd(part, at) : at + 1;
-    if (char !== '[') out += part.slice(at, end);
-    at = end;
-  }
-  return out;
-};
+const RULES: SheetRule[] = rulesOf(SHEET);
 
 /**
  * The declaration block of one rule, or `''` when the selector is not in the sheet.
@@ -479,26 +827,40 @@ const withoutAttributes = (part: string): string => {
  * property split into a second block is as present as one in the first. Taking the first block
  * would report the property missing and send whoever reads the failure looking for a deletion
  * that never happened.
+ *
+ * **Unconditional blocks only.** This is the declared-value reading — "the rule for this element
+ * says X" — and a block inside an at-rule says X only at some viewport. Both nesting directions
+ * reach here with a plain selector (`@media (…) { .x { … } }` and `.x { @media (…) { … } }`), so
+ * the exclusion is keyed on `conditional`, which the scan carries down the open stack; a test on
+ * the block's own prelude would close one direction and leave the other open. Without it a
+ * `white-space: nowrap` written only under `max-width: 599px` satisfies the never-breaks guard
+ * while the token still wraps at desktop width. `reachingRules` deliberately keeps the opposite
+ * reading — an override is an override whichever viewport it applies at.
  */
-const declarations = (selector: string): string =>
-  RULES.filter(([candidate]) => candidate === selector)
-    .map(([, block]) => block)
+const declarationsIn = (rules: SheetRule[], selector: string): string =>
+  rules
+    .filter((rule) => rule.selector === selector && !rule.conditional)
+    .map(({ block }) => block)
     .join(' ');
 
+const declarations = (selector: string): string => declarationsIn(RULES, selector);
+
 /**
- * Every rule in the sheet whose selector reaches `element`, `@media` blocks included: a rule's
- * selector is its own prelude and never a resolved ancestor chain, so one nested in a media block
- * arrives here as a plain selector, indistinguishable from a top-level one. That is what this
- * guard wants — an override is an override whichever block it sits in.
+ * Whether `selector` reaches `element`.
  *
- * Matched against the class names of the *last* compound of each part (`selectorParts`,
- * `compounds`, `classNames`). Last compound, because that is the one the rule actually styles:
- * `.top-place-meta .top-place-distance` and `.top-place-distance[data-band='far']` are overrides of
- * this element and count, while `.top-place-delta .delta-icon` styles a child that merely sits
- * inside it and does not. A substring test over the whole selector reads all four as overrides and
- * turns legitimate CSS into a red build naming the wrong element. Class names rather than a
- * `\.name` pattern, because a pattern has no idea what an escape is: it read `.foo\.top-place-distance`
- * — one class named `foo.top-place-distance` — as this element.
+ * A rule nested in a top-level `@media` arrives here as a plain selector, indistinguishable from a
+ * top-level one, and that is what this guard wants — an override is an override whichever viewport
+ * it applies at. A rule nested inside *another rule* arrives resolved against its parent, so
+ * `.badge { @media (…) { white-space: normal } }` is seen as an override of `.badge`; before the
+ * chain was resolved it arrived as `@media (…)` and this predicate could not match it at all.
+ *
+ * Matched against the *last* compound of each comma-separated part, on a class-name boundary. Last
+ * compound, because that is the one the rule actually styles: `.top-place-meta .top-place-distance`
+ * and `.top-place-distance[data-band='far']` are overrides of this element and count, while
+ * `.top-place-delta .delta-icon` styles a child that merely sits inside it and does not. A
+ * substring test over the whole selector reads all four as overrides and turns legitimate CSS into
+ * a red build naming the wrong element. `:not(…)` is stripped first for the same reason:
+ * `.foo:not(.top-place-distance)` is the one form that names the class in order to exclude it.
  *
  * **What this cannot see.** A selector reaching one of these elements without naming its class —
  * `.top-place-meta > span` — is invisible here, and nothing in the suite catches it: matching that
@@ -506,14 +868,16 @@ const declarations = (selector: string): string =>
  * a guard over the rules that name the token, which is where every override in this sheet has been
  * written so far. The unnamed-selector case stays open by design, not by oversight.
  */
-const reachingRules = (element: string, rules: Rule[] = RULES): string[] => {
+const reaches = (element: string, selector: string): boolean => {
   const name = element.replace(/^\./, '');
-  return rules
-    .filter(([selector]) =>
-      selectorParts(selector).some((part) => classNames(compounds(part).at(-1) ?? '').includes(name)),
-    )
-    .map(([, block]) => block);
+  return selectorParts(selector).some((part) => classNames(subjectOf(part)).includes(name));
 };
+
+/** The declaration blocks of every rule in `rules` that `reaches` `element`. */
+const reachingIn = (rules: SheetRule[], element: string): string[] =>
+  rules.filter(({ selector }) => reaches(element, selector)).map(({ block }) => block);
+
+const reachingRules = (element: string): string[] => reachingIn(RULES, element);
 
 /**
  * The properties that decide whether a token may break, as `white-space` and the two longhand
@@ -578,17 +942,20 @@ function paintedBy(property: string): 'fill' | 'text' | null {
  * as a third cue on top of a glyph and a spoken label, not as a palette, and a predicate that
  * swept it in would put the registered claims permanently out of date.
  */
-function meaningCarryingPalettes(rules: Rule[] = RULES): string[] {
+function meaningCarryingPalettes(rules: SheetRule[] = RULES): string[] {
   // `[=\]]` so a presence selector (`[data-flagged]`) counts too, and digits are in the name
   // class: `[data-tier2=…]` is as much an attribute as `[data-tier]`.
   const ATTRIBUTE = /\[data-([a-z0-9-]+)\s*[=\]]/g;
+  // `selectorParts` and `withoutAttributes`, not `.split(',')` and a `\[[^\]]*\]` strip: a comma
+  // inside `[data-tier='a,b']` split one element into two keys, and a comma inside `:is(.x, .y)`
+  // handed unrelated elements a shared `.y)` key.
   const elements = (selector: string): string[] =>
     selectorParts(selector)
       .map((part) => collapse(withoutAttributes(part)))
       .filter(Boolean);
 
   const rolesByElement = new Map<string, Set<'fill' | 'text'>>();
-  for (const [selector, block] of rules) {
+  for (const { selector, block } of rules) {
     const painted = block
       .split(';')
       .map((declaration) => paintedBy(declaration.split(':')[0]?.trim() ?? ''))
@@ -603,7 +970,7 @@ function meaningCarryingPalettes(rules: Rule[] = RULES): string[] {
   }
 
   const found = new Set<string>();
-  for (const [selector] of rules) {
+  for (const { selector } of rules) {
     const attributes = [...selector.matchAll(ATTRIBUTE)].map(([, name]) => name as string);
     if (attributes.length === 0) continue;
 
@@ -671,9 +1038,342 @@ const WRAPPING_TOKENS = [
  * The same three tokens as individual elements: a cascade override targets one selector, not the
  * comma-separated group the base rule happens to be written as.
  */
-const WRAPPING_ELEMENTS = [
-  ...new Set(WRAPPING_TOKENS.flatMap((token) => token.split(',').map(collapse))),
+const wrappingElementsOf = (tokens: string[]): string[] => [
+  ...new Set(tokens.flatMap((token) => selectorParts(token).map(collapse))),
 ];
+
+const WRAPPING_ELEMENTS = wrappingElementsOf(WRAPPING_TOKENS);
+
+describe('stylesheet scan', () => {
+  // `SHEET.unterminated` only ever proves the scan did not run off the *end* of the file. These
+  // cover the harder half — a construct that loses sync and is brought back to a settled state
+  // later, where the end-of-scan checks see a balanced sheet while every declaration in between
+  // has been merged into one and dropped with the suite green.
+
+  it('reports a `(` that outlived its block, though a later stray `)` rebalances the depth', () => {
+    // `.a`'s `(` never closes inside `.a`; `.c`'s stray `)` cancels it, so the depth is zero by the
+    // end and the end-of-scan paren arm says nothing. Meanwhile all three rules have collapsed into
+    // one `color` declaration, and the spacing guards see none of them. What reports it is the `(`
+    // still being open at `.a`'s closing brace, which no valid CSS leaves there.
+    const css = '.a { color: rgb(0, 0, 0; }\n.b { color: red; }\n.c { color: blue); }';
+
+    expect(scan(css).unterminated).toEqual(['( opened at 15, still open at } at 25']);
+  });
+
+  it('names each offending `(` once — not once per later brace, nor again at the end', () => {
+    // Two offenders open at once. The inner one is reported and popped, which makes the outer one
+    // look new again at the next brace, so a single "last reported" offset reports it twice; and
+    // a `(` that outlives its block *and* runs to the end of the file is one fault, not two.
+    // Neither offset appears more than once here, and there is no trailing `depth … at end`.
+    const css = '.a { x: f( ; }\n.b { y: g( }\n.c { z: 1 ) ; }';
+
+    expect(scan(css).unterminated).toEqual([
+      '( opened at 9, still open at } at 13',
+      '( opened at 24, still open at } at 26',
+      'block opened at 3 (.a)',
+    ]);
+  });
+
+  it('reads no comment inside an unquoted url token, so the declarations after it survive', () => {
+    // Valid CSS that builds: `/*` inside a url is not a comment to a real parser. Read as one, it
+    // is closed by the next real comment's `*/` — blanking the `;` between them, so `background`
+    // and `padding` merge into one declaration and the raw px goes unreported. `unterminated`
+    // stays empty throughout, because the comment did close.
+    const css = [
+      '.probe {',
+      '  background: url(http://example.com/*a.png);',
+      '  /* a real comment */',
+      '  padding: 8px;',
+      '}',
+    ].join('\n');
+
+    const result = scan(css);
+
+    expect(result.unterminated).toEqual([]);
+    expect(result.declarations.map(({ property, value }) => `${property}: ${value}`)).toEqual([
+      'background: url(http://example.com/*a.png)',
+      'padding: 8px',
+    ]);
+  });
+
+  it('reads a valid url whole, whatever CSS-legal characters its contents hold', () => {
+    // The direction the skip can fail in that no other test here would catch. A url token may hold
+    // a `{`, a `}`, a `;` and an escaped `)` — only whitespace, a quote, a `(` and a non-printable
+    // end it early. Narrowing the skip to contents that merely *look* safe made the scan fall
+    // through on all three below, and the block-boundary arm above then reported the url's own `(`
+    // on a sheet that builds — a guard failing on valid CSS, which is the worse direction to be
+    // wrong in. The escaped `)` is the sharper half: stopping there resumes the scan *inside* the
+    // token and reopens the swallowing this whole suite exists to close — so its case carries a
+    // `/*` after the escape, which is what makes resuming there observable. Without one the scan
+    // resumes on inert text, the declarations still come out right, and the case proves nothing.
+    for (const url of [
+      'url(/img/{id}.png)',
+      'url(a\\)/*x.png)',
+      'url(data:image/svg+xml;utf8,x)',
+    ]) {
+      const result = scan(`.p { background: ${url}; padding: 8px; }`);
+
+      expect(result.unterminated, url).toEqual([]);
+      expect(
+        result.declarations.map(({ property }) => property),
+        url,
+      ).toEqual(['background', 'padding']);
+    }
+  });
+
+  it('names a bad url token instead of letting its `(` fall through to the paren arm', () => {
+    // `url(a; padding: 8px; }` is a bad url — whitespace inside a url token that is not padding
+    // before the `)`. A real parser consumes it to the next `)` too and then throws the
+    // declaration away, so the two `8px` here were never declarations to anything; the sheet is
+    // unreadable, and saying so is the whole job. Reported as a bad url rather than as an unclosed
+    // paren, because the paren belongs to a token, not to a typo'd function call.
+    const css = '.probe { background: url(a; padding: 8px; }\n.probe-b { margin: 8px); }\n';
+
+    expect(scan(css).unterminated).toEqual(['bad url( opened at 21']);
+  });
+
+  it('resolves a block written inside a rule against its parent, top-level blocks untouched', () => {
+    const sheet = scan(
+      '@media (min-width: 1px) { .top { color: red } }' +
+        '.badge { @media (max-width: 600px) { white-space: normal }' +
+        ' &:hover { top: 1px } .child { left: 2px } }' +
+        '.a, .b { & .c { right: 3px } }',
+    );
+
+    expect(sheet.unterminated).toEqual([]);
+    expect(sheet.declarations.map(({ selector, property }) => `${selector} { ${property} }`)).toEqual([
+      // Inside a TOP-LEVEL at-rule: the plain selector, exactly as it arrived before resolution.
+      '.top { color }',
+      // An at-rule inside a rule styles nothing of its own — its parent's selector passes through.
+      '.badge { white-space }',
+      '.badge:hover { top }',
+      '.badge .child { left }',
+      // A parent that is a selector list is distributed, not wrapped: one string holding a comma
+      // that is not a selector separator is what every reader downstream then mis-splits.
+      '.a .c, .b .c { right }',
+    ]);
+  });
+
+  it('lets the reaches predicate see an override written inside the rule it overrides', () => {
+    const nested = scan('.place-kind-badge { @media (max-width: 600px) { white-space: normal } }');
+    // The shape the scan newly understands, and the one whose attribution used to name nothing:
+    // the declaration is reported against the element, and the predicate matches it.
+    expect(nested.declarations[0]?.selector).toBe('.place-kind-badge');
+    expect(reaches('.place-kind-badge', nested.declarations[0]?.selector ?? '')).toBe(true);
+    // What it used to arrive as. Kept as the prelude, and the predicate cannot match that — which
+    // is why the override was invisible to `reachingRules` before the chain was resolved.
+    expect(nested.rules[1]?.prelude).toBe('@media (max-width: 600px)');
+    expect(reaches('.place-kind-badge', nested.rules[1]?.prelude ?? '')).toBe(false);
+
+    // The reading resolution had to preserve: inside a top-level at-rule, nothing changes.
+    const top = scan('@media (max-width: 600px) { .place-kind-badge { white-space: normal } }');
+    expect(top.rules.map(({ selector }) => selector)).toEqual([
+      '@media (max-width: 600px)',
+      '.place-kind-badge',
+    ]);
+    expect(reaches('.place-kind-badge', top.declarations[0]?.selector ?? '')).toBe(true);
+  });
+
+  it('splits a prelude at its top-level commas only, so a functional selector list survives', () => {
+    // `:is(…)`, `:not(…)` and an attribute value all hold commas that separate nothing. Split
+    // naively, each fragment is resolved against the parent on its own and the block ends up
+    // naming an element that does not exist — the very failure resolution was added to remove.
+    const sheet = scan(
+      '.a { :is(.b, .c) { top: 1px } :not(.b, .c) .d { left: 2px } [title="x,y"] { right: 3px } }',
+    );
+
+    expect(sheet.unterminated).toEqual([]);
+    expect(sheet.declarations.map(({ selector }) => selector)).toEqual([
+      '.a :is(.b, .c)',
+      '.a :not(.b, .c) .d',
+      '.a [title="x,y"]',
+    ]);
+  });
+
+  it('reads a hand-written functional selector list as one selector, not as two', () => {
+    // Resolution no longer emits a comma inside `:is(…)`, but nothing stops the sheet from
+    // holding one. Split naively, `:is(.a, .b) .c` yields the fragment `:is(.a`, whose last
+    // compound matches `.a` — a rule that styles `.c` read as an override of `.a`.
+    expect(reaches('.a', ':is(.a, .b) .c')).toBe(false);
+    expect(reaches('.b', ':is(.a, .b) .c')).toBe(false);
+    // The should-fire half: the element the selector actually styles is still matched, and a
+    // genuine top-level list still reaches each of its own members.
+    expect(reaches('.c', ':is(.a, .b) .c')).toBe(true);
+    expect(reaches('.b', '.a, .b')).toBe(true);
+  });
+
+  it('does not end a compound at a combinator written inside a functional pseudo-class', () => {
+    // The false negative. `target` split each part on `/[\s>+~]+/` with no depth tracking, so
+    // `.badge:is(.a .b)` ended at the space inside `:is(…)` and its last piece was `.b)` — a rule
+    // that really does style `.badge` invisible to every override guard here. The nowrap guard is
+    // the one that would have let it through, so probe the shape it would have seen.
+    expect(reaches('.badge', '.badge:is(.a .b)')).toBe(true);
+    expect(reaches('.badge', '.place-kind-badge:is(.x .y) .badge')).toBe(true);
+    expect(
+      reaches(
+        '.place-kind-badge',
+        rulesOf(scan('.place-kind-badge:is(.x .y) { white-space: normal }'))[0]?.selector ?? '',
+      ),
+    ).toBe(true);
+    // A combinator inside brackets is not a combinator either.
+    expect(reaches('.badge', '.badge[data-note="a > b"]')).toBe(true);
+  });
+
+  it('reads a functional pseudo-class argument for its own subject, not for every token in it', () => {
+    // The negative half of the fix above, and the reason the compound is reduced rather than
+    // matched whole. `.x:is(.badge .y)` styles a `.y` that has a `.badge` ancestor; matching the
+    // compound as written would report it as an override of `.badge`. Only each argument's own
+    // subject applies to the element.
+    expect(reaches('.badge', '.x:is(.badge .y)')).toBe(false);
+    expect(reaches('.badge', '.x:is(.a .badge)')).toBe(true);
+    // `:not(…)` names a class in order to exclude it and `:has(…)` in order to describe a
+    // descendant — neither styles it. An attribute value names one only as text.
+    expect(reaches('.badge', '.x:not(.badge)')).toBe(false);
+    expect(reaches('.badge', '.x:has(.badge)')).toBe(false);
+    expect(reaches('.badge', '.x[data-note=".badge"]')).toBe(false);
+  });
+
+  it('reads a class name whose escape holds a comma as one selector', () => {
+    // `selectorParts` tracked the backslash inside a quote but not outside one, so `.a\,b` — one
+    // class whose name contains a comma — split into `.a\` and `b`, and resolution crossed both
+    // with the child: `.a\ .c, b .c`, two selectors that match nothing.
+    const sheet = scan(String.raw`.a\,b { .c { left: 1px } }`);
+
+    expect(sheet.unterminated).toEqual([]);
+    expect(sheet.declarations.map(({ selector }) => selector)).toEqual([String.raw`.a\,b .c`]);
+    expect(selectorParts(String.raw`.a\,b, .d`)).toEqual([String.raw`.a\,b`, '.d']);
+  });
+
+  it('splits a wrapping token at its top-level commas only', () => {
+    // `WRAPPING_ELEMENTS` called `token.split(',')` directly — latent while its input is three
+    // hand-written literals with no functional pseudo-class, and a silent mis-split the moment
+    // that list stops being hand-written. Probed through the construction rather than the
+    // constant, which no test can feed.
+    expect(wrappingElementsOf(['.a:is(.b, .c)', '.d'])).toEqual(['.a:is(.b, .c)', '.d']);
+    expect(wrappingElementsOf(['.a, .b'])).toEqual(['.a', '.b']);
+    // The constant itself, spelled out. `toEqual(wrappingElementsOf(WRAPPING_TOKENS))` was the
+    // first spelling and pinned nothing — it is the definition on the line that builds the
+    // constant, so it holds under every edit to either side of it.
+    expect(WRAPPING_ELEMENTS).toEqual([
+      '.place-kind-badge',
+      '.top-place-distance',
+      '.place-detail-distance',
+      '.top-place-delta',
+    ]);
+  });
+
+  it('does not report a rule that styles a child as an override of its parent', () => {
+    // The negative probe for distribution. `.a, .b { & .c { … } }` styles `.c`; wrapping the
+    // parent as `:is(.a, .b) .c` put a comma inside the selector that `reaches` then split, and
+    // the fragment `:is(.a` matched `.a` — a child's own rule reported as the parent's override.
+    const rules = rulesOf(scan('.a, .b { & .c { white-space: normal } }'));
+
+    expect(rules.map(({ selector }) => selector)).toEqual(['.a, .b', '.a .c, .b .c']);
+    // The parent's own (empty) block is all `.a` and `.b` reach — the child's declaration is not
+    // theirs. Wrapping put `white-space: normal` in both of these lists.
+    expect(reachingIn(rules, '.a')).toEqual(['']);
+    expect(reachingIn(rules, '.b')).toEqual(['']);
+    // The should-fire half of the same probe: the element it really styles is still seen.
+    expect(reachingIn(rules, '.c')).toEqual(['white-space: normal']);
+  });
+
+  it('reaches a nested override through the consumer, not just through the scan output', () => {
+    // `reachingRules` reads `RULES`, so asserting on a scan's selector alone leaves the container
+    // filter and the rule rebuild unexercised on every shape `src/styles.css` does not contain.
+    const rules = rulesOf(
+      scan('.place-kind-badge { white-space: nowrap; @media (max-width: 600px) { white-space: normal } }'),
+    );
+
+    expect(reachingIn(rules, '.place-kind-badge')).toEqual([
+      'white-space: nowrap',
+      'white-space: normal',
+    ]);
+  });
+
+  it('keeps a conditional block out of the declared-value reading, in both nesting directions', () => {
+    // `declarations` asks what the rule for this element says; a block inside an at-rule says it
+    // only at some viewport. Both directions arrive with a plain selector, so the exclusion is
+    // keyed on the enclosing at-rule rather than on the block's own prelude.
+    const inner = rulesOf(scan('.badge { @media (max-width: 599px) { white-space: nowrap } }'));
+    expect(declarationsIn(inner, '.badge')).toBe('');
+    // Still visible to the override reading, which deliberately spans viewports. The leading `''`
+    // is the enclosing rule's own empty block, and pins that both entries arrive under `.badge`.
+    expect(reachingIn(inner, '.badge')).toEqual(['', 'white-space: nowrap']);
+
+    const outer = rulesOf(scan('@media (max-width: 599px) { .badge { white-space: nowrap } }'));
+    expect(declarationsIn(outer, '.badge')).toBe('');
+
+    // An unconditional block is untouched, so the exclusion cannot be passing by emptying everything.
+    const plain = rulesOf(scan('.badge { white-space: nowrap }'));
+    expect(declarationsIn(plain, '.badge')).toBe('white-space: nowrap');
+  });
+
+  it('lets an unclosed block still surface its own contents, per the -1 sentinel', () => {
+    // `firstDeclaration`/`endDeclaration`/`endRule` stay -1 for a block the scan never saw close.
+    // The readers treat that as "runs to the end"; documented, and red here if either drops it.
+    const sheet = scan('.a { margin: 1px; @media q { padding: 2px }');
+
+    expect(sheet.unterminated).toEqual(['block opened at 3 (.a)']);
+    expect(sheet.rules[0]?.endDeclaration).toBe(-1);
+    expect(sheet.rules[0]?.endRule).toBe(-1);
+    expect(spanOf(sheet, sheet.rules[0] as ScannedRule).map(({ property }) => property)).toEqual([
+      'margin',
+      'padding',
+    ]);
+    expect(nestedIn(sheet, 0).map(({ prelude }) => prelude)).toEqual(['@media q']);
+  });
+
+  it('records each block\'s declaration and nested-rule ranges, so a reader can address one rule', () => {
+    // The three readers that used to walk the whole sheet per rule read these ranges instead, so
+    // the ranges themselves are the claim. A shape with a block nested between two of its parent's
+    // own declarations is the one that discriminates: the parent's range has to span the nested
+    // block's declarations without claiming them, and the sibling after it must fall outside.
+    const sheet = scan('.a { margin: 1px; @media (min-width: 1px) { padding: 2px } gap: 3px } .b { top: 4px }');
+
+    expect(sheet.unterminated).toEqual([]);
+    expect(sheet.rules.map(({ prelude }) => prelude)).toEqual([
+      '.a',
+      '@media (min-width: 1px)',
+      '.b',
+    ]);
+    expect(sheet.declarations.map(({ property, rule }) => `${property}@${rule}`)).toEqual([
+      'margin@0',
+      'padding@1',
+      'gap@0',
+      'top@2',
+    ]);
+    expect(
+      sheet.rules.map(({ firstDeclaration, endDeclaration, endRule }) => [
+        firstDeclaration,
+        endDeclaration,
+        endRule,
+      ]),
+    ).toEqual([
+      [0, 3, 2],
+      [1, 2, 2],
+      [3, 4, 3],
+    ]);
+    // The backfill now starts at the frame's own first declaration; every declaration must still
+    // end at its own block's `}`, the nested one at the inner brace rather than the outer.
+    expect(sheet.declarations.map(({ property, bodyEnd }) => `${property}@${bodyEnd}`)).toEqual([
+      'margin@68',
+      'padding@57',
+      'gap@68',
+      'top@84',
+    ]);
+  });
+
+  it('still reads a quoted `url("…")` as a string, so a `)` inside the quotes ends nothing', () => {
+    // A quoted url is not a url token at all — it is an ordinary function token whose argument is
+    // a string. Skipping to the first `)` would stop inside the string and misread the rest.
+    const css = '.probe { background: url("a)b.png"); padding: 8px; }';
+
+    const result = scan(css);
+
+    expect(result.unterminated).toEqual([]);
+    expect(result.declarations.map(({ property }) => property)).toEqual(['background', 'padding']);
+  });
+});
 
 describe('superlative claims', () => {
   it('reads all three files, so no claim is guarded by an empty string', () => {
@@ -731,58 +1431,6 @@ describe('white-space: nowrap', () => {
       whiteSpaceValues(element).filter((value) => value !== 'nowrap'),
       `${element} is handed a wrapping value other than nowrap by some rule reaching it`,
     ).toEqual([]);
-  });
-});
-
-/**
- * Both selector-reading guards run against a stylesheet of the probe's own, so each shape is
- * proved in both directions (`docs/conventions.md` → A guard's probe runs both ways). Every row
- * marked "was wrong" failed under the bare `split(',')` / `\.name` matching these replaced.
- */
-describe('selector structure', () => {
-  const probe = (css: string): Rule[] => {
-    const sheet = scan(css);
-    expect(sheet.unterminated, css).toEqual([]);
-    return rulesOf(sheet);
-  };
-
-  it.each([
-    ['.top-place-distance', true],
-    ['.top-place-meta > .top-place-distance', true],
-    [".top-place-distance[data-band='far']", true],
-    ['.a, .top-place-distance', true],
-    // Was wrong (missed): an escaped hyphen, and a hex escape whose trailing space is part of it,
-    // spell the same class — an override written either way went unseen.
-    ['.top-place\\-distance', true],
-    ['.top-place\\2d distance', true],
-    ['.top-place-distance-wide', false],
-    ['.top-place-delta .delta-icon', false],
-    ['.foo:not(.top-place-distance)', false],
-    // Was wrong: an escaped dot is part of one class name, `foo.top-place-distance`.
-    ['.foo\\.top-place-distance', false],
-    // Was wrong: `top-place-distance:hover` is a class of its own, not a pseudo-class.
-    ['.top-place-distance\\:hover', false],
-    // Was wrong: a quoted attribute value names no class.
-    ["[data-note='.top-place-distance']", false],
-    // Was wrong: the comma inside `:is()` split the list and made `.top-place-distance` a last
-    // compound; the element this rule styles is `.child`.
-    ['.foo:is(.top-place-distance, .bar) .child', false],
-  ])('`%s` reaches .top-place-distance: %s', (selector, expected) => {
-    const rules = probe(`${selector} { white-space: normal; }`);
-    expect(reachingRules('.top-place-distance', rules).length > 0).toBe(expected);
-  });
-
-  it.each([
-    // Was wrong: the comma inside the attribute value split one element into two keys, neither of
-    // which the text rule reached, so a real palette went uncounted.
-    [".probe { color: #000; } .probe[data-tier='a,b'] { background: #fff; }", ['tier']],
-    [".probe { color: #000; } .probe[data-tier='a'] { background: #fff; }", ['tier']],
-    // Was wrong: splitting inside `:is()` handed two unrelated elements the shared key `.y)`, so
-    // a fill on one and a text colour on the other read as one palette.
-    [".chip:is(.x, .y)[data-tier='t'] { background: #fff; } .q:is(.p, .y) { color: #000; }", []],
-    [".probe[data-tier='a,b'] { background: #fff; }", []],
-  ])('`%s` carries palettes %j', (css, expected) => {
-    expect(meaningCarryingPalettes(probe(css))).toEqual(expected);
   });
 });
 
@@ -856,7 +1504,7 @@ describe('spacing scale adoption', () => {
 
   it('routes the spacing-bearing custom property through the scale too', () => {
     // `SPACING_PROPERTY` tests property names, so a custom property holding a spacing value is
-    // invisible to it — `--column-inset` feeds the header, content and footer inline padding and
+    // invisible to it — `--column-inset` feeds the header, content and provenance inline padding and
     // would carry a raw 24px back into all three with the scan still green. Asserted by name
     // rather than by widening the scan: `--radius-sm: 8px` and `--radius-lg: 20px` are on scale
     // numbers that mean nothing by it, and a predicate over every `--*: Npx` would fail on them.
@@ -947,15 +1595,13 @@ const rawSpacingByAnnotation = (): { annotated: string[]; bare: string[] } => {
      * the `preceding` comment for the parent's next value, and license it. Only reachable at all
      * because the scan understands nesting; the brace regex emitted the parent declaration from
      * nothing, so the shape could not arise.
+     *
+     * Read off the owning rule's recorded ranges rather than by scanning the sheet per raw-px
+     * declaration. An unclosed owner is still handled — both range reads treat `-1` as "to the
+     * end", so its nested blocks stay recognisable and their comments cannot license it.
      */
-    // `bodyEnd` is -1 for a block the scan never saw close. Treating that as "ends after
-    // everything" keeps an unclosed parent from making its nested blocks unrecognisable, which
-    // would let their comments license the parent again. The suite already fails on such a sheet
-    // (`SHEET.unterminated`), so this is the second lock on the same door, not the only one.
-    const bodyEnd = declaration.bodyEnd === -1 ? Number.MAX_SAFE_INTEGER : declaration.bodyEnd;
-    const nested = SHEET.rules.filter(
-      (rule) => rule.bodyStart > declaration.bodyStart && rule.bodyEnd <= bodyEnd,
-    );
+    const nested = nestedIn(SHEET, declaration.rule);
+    const owner = SHEET.rules[declaration.rule];
     const preceding = COMMENTS.filter(
       ({ start, end }) =>
         start >= declaration.bodyStart &&
@@ -968,7 +1614,9 @@ const rawSpacingByAnnotation = (): { annotated: string[]; bare: string[] } => {
       // previous one's, and this value is riding an explanation written about something else.
       // Compared on the earlier declaration's *end*: one written with no gap after the comment
       // starts exactly at `preceding.end`, and a `start >` test would not see it as intervening.
-      !SHEET.declarations.some(
+      // Searched within the owning rule, not across the sheet: both the comment and this
+      // declaration sit inside that block, so anything textually between them does too.
+      !(owner === undefined ? SHEET.declarations : spanOf(SHEET, owner)).some(
         ({ start, end }) => end > preceding.end && start < declaration.start,
       );
 
@@ -985,8 +1633,9 @@ describe('optical spacing annotations', () => {
     // meets malformed input by losing sync — a quote, comment, block or paren that never closes —
     // and each of those used to end with the scan silently reading nothing for the rest of the file
     // while every guard reported green. Rather than patching the shapes one at a time, the scan now
-    // says how it ended, and that is checked here. It does not catch a construct that loses sync
-    // and is rebalanced later by an unrelated one; `backlog.md` carries those.
+    // says how it ended, and that is checked here. A construct that loses sync and is rebalanced
+    // later by an unrelated one is covered too, by the block-boundary arm and the url token —
+    // see the `stylesheet scan` suite above, which exercises both on synthetic sheets.
     expect(SHEET.unterminated).toEqual([]);
   });
 
@@ -1015,5 +1664,49 @@ describe('optical spacing annotations', () => {
     // without this the sentence in `:root` claiming so is an assertion nothing checks, and it was
     // already false once, in the commit that introduced it.
     expect(rawSpacingByAnnotation().bare).toEqual([]);
+  });
+});
+
+describe('selector structure', () => {
+  const probe = (css: string): SheetRule[] => {
+    const sheet = scan(css);
+    expect(sheet.unterminated, css).toEqual([]);
+    return rulesOf(sheet);
+  };
+
+  it.each([
+    ['.top-place-distance', true],
+    ['.top-place-meta > .top-place-distance', true],
+    [".top-place-distance[data-band='far']", true],
+    ['.a, .top-place-distance', true],
+    // Was wrong (missed): an escaped hyphen, and a hex escape whose trailing space is part of it,
+    // spell the same class — an override written either way went unseen.
+    ['.top-place\\-distance', true],
+    ['.top-place\\2d distance', true],
+    ['.top-place-distance-wide', false],
+    ['.top-place-delta .delta-icon', false],
+    ['.foo:not(.top-place-distance)', false],
+    // Was wrong: an escaped dot is part of one class name, `foo.top-place-distance`.
+    ['.foo\\.top-place-distance', false],
+    // Was wrong: `top-place-distance:hover` is a class of its own, not a pseudo-class.
+    ['.top-place-distance\\:hover', false],
+    ["[data-note='.top-place-distance']", false],
+    ['.foo:is(.top-place-distance, .bar) .child', false],
+  ])('`%s` reaches .top-place-distance: %s', (selector, expected) => {
+    const rules = probe(`${selector} { white-space: normal; }`);
+    expect(reachingIn(rules, '.top-place-distance').length > 0).toBe(expected);
+  });
+
+  it.each([
+    // Was wrong: the comma inside the attribute value split one element into two keys, neither of
+    // which the text rule reached, so a real palette went uncounted.
+    [".probe { color: #000; } .probe[data-tier='a,b'] { background: #fff; }", ['tier']],
+    [".probe { color: #000; } .probe[data-tier='a'] { background: #fff; }", ['tier']],
+    // Was wrong: splitting inside `:is()` handed two unrelated elements the shared key `.y)`, so
+    // a fill on one and a text colour on the other read as one palette.
+    [".chip:is(.x, .y)[data-tier='t'] { background: #fff; } .q:is(.p, .y) { color: #000; }", []],
+    [".probe[data-tier='a,b'] { background: #fff; }", []],
+  ])('`%s` carries palettes %j', (css, expected) => {
+    expect(meaningCarryingPalettes(probe(css))).toEqual(expected);
   });
 });

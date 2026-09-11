@@ -120,14 +120,20 @@ dance per file.
   prints `campusDistanceLabel` in full, which is what makes the fill a scanning aid rather than a
   channel of its own. There is deliberately no legend: the ranges it named were already on every
   row as a number, and four range chips above the list cost more width at 360px than they bought.
-- Rank movement is coloured, and the colours are the brand red (`--rausch-strong`) for a rise, the
-  거리 ramp's mid blue (`--dist-mid-bg`) for a fall, and `--muted` for no change — never green and
-  the system's error colour. A decline drawn in `--error` reads as a fault of the business, the
-  same judgement the paragraph above rules out, and no banned-phrase test can catch it because it
-  is not a string. The glyph (`▲`/`▼`/`–`) and the spoken `rankDeltaLabel` both stay, so the hue
-  is a third cue rather than the carrier: see `.top-place-delta` in `src/styles.css` for the
-  measured ratios.
-- Layout must hold at 360px width; source order is search → the ranked list.
+- Rank movement is coloured one way only: the accent (`--accent`) for a rise, `--muted` for a fall
+  and for no change — never a green/red pair, and never the system's error colour. A decline drawn
+  in `--error` reads as a fault of the business, the same judgement the paragraph above rules out,
+  and no banned-phrase test can catch it because it is not a string; a fall in the rise's own
+  colour would pair the two as good and bad, which `src/ui/top-places.test.ts` forbids by token.
+  The rise is coloured because "최근 이용이 늘어난 곳" is the one thing the Framing Vocabulary asks
+  the product to surface. The glyph (`▲`/`▼`/`–`) and the spoken `rankDeltaLabel` both stay, so
+  the hue is a third cue rather than the carrier.
+- Every ranked row prints the in-window visit count (`N회`) it is ranked by, in the figures column
+  beside the trend bars. The order is the page's claim, and a row that stated the order without the
+  number made the reader open every row to learn why it sat where it did.
+- Layout must hold at 360px width; source order is the ranked list → search. The list is the answer
+  the page exists for, and search is the lookup for a reader who already has a name, so it follows
+  the list rather than standing between the reader and the first row.
 - One ranked list at a time, over the window the reader selected. The four windows — 최근 1개월 /
   3개월 / 6개월 / 1년 — are peers in the selector (`.period-tabs`, on screen at every width): same
   pill, same heading tier, same page size once chosen. Making one heavier states something about
