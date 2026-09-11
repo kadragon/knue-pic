@@ -132,6 +132,71 @@ describe('renderPlaceLocationMap', () => {
     expect(root.querySelector('.place-map-fallback')).toBeNull();
   });
 
+  /**
+   * The other ordering. Whether the real API calls the hook before or after the map mounts is
+   * unverified (`backlog.md`), so the render must hold either way — these cases drive the hook
+   * while the script is still arriving, which the fake can do and a real browser has not been
+   * shown to.
+   */
+  function pendingApi(): { load: () => Promise<FakeNaverApi>; settle: (api: FakeNaverApi | null) => void } {
+    let settle: (api: FakeNaverApi | null) => void = () => {};
+    const pending = new Promise<FakeNaverApi>((resolve, reject) => {
+      settle = (api) => (api ? resolve(api) : reject(new Error('script blocked')));
+    });
+    return { load: () => pending, settle };
+  }
+
+  it('listens for a rejected key before the script has arrived', () => {
+    const { load } = pendingApi();
+    void renderPlaceLocationMap(container(), PLACE, { loadApi: load });
+
+    expect(authFailureHook()).toBeTypeOf('function');
+  });
+
+  it('shows one fallback and mounts nothing when the key is rejected before the script resolves', async () => {
+    const root = container();
+    const api = createFakeNaverApi();
+    const { load, settle } = pendingApi();
+    const rendering = renderPlaceLocationMap(root, PLACE, { loadApi: load });
+
+    authFailureHook()?.();
+    settle(api);
+    const release = await rendering;
+
+    expect(root.querySelectorAll('.place-map-fallback')).toHaveLength(1);
+    expect(root.querySelector('.place-map-canvas')).toBeNull();
+    expect(api.maps).toHaveLength(0);
+    expect(authFailureHook()).toBeUndefined();
+    expect(() => release()).not.toThrow();
+  });
+
+  it('shows one fallback when the key is rejected and then the script fails anyway', async () => {
+    const root = container();
+    const { load, settle } = pendingApi();
+    const rendering = renderPlaceLocationMap(root, PLACE, { loadApi: load });
+
+    authFailureHook()?.();
+    settle(null);
+    await rendering;
+
+    expect(root.querySelectorAll('.place-map-fallback')).toHaveLength(1);
+    expect(authFailureHook()).toBeUndefined();
+  });
+
+  it('keeps the newer render listening when an older one resolves after it', async () => {
+    const older = pendingApi();
+    const first = container();
+    const firstRender = renderPlaceLocationMap(first, PLACE, { loadApi: older.load });
+    const { root: second } = await render(createFakeNaverApi(), SAMPLE_DATASET.places[1]!);
+
+    older.settle(createFakeNaverApi());
+    await firstRender;
+    authFailureHook()?.();
+
+    expect(second.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
+    expect(first.querySelector('.place-map-fallback')).toBeNull();
+  });
+
   it('hands back a release even when nothing mounted', async () => {
     const release = await renderPlaceLocationMap(container(), PLACE, {
       loadApi: () => Promise.reject(new Error('script blocked')),

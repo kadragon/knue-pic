@@ -175,6 +175,56 @@ def test_a_clamping_board_does_not_run_to_max_pages(monkeypatch):
     assert max(read) <= 2
 
 
+# --- Sanctioned limits -------------------------------------------------------------------------
+#
+# Pinned as they are, not as they should be: docs/runbook.md -> "Stage 1 collected fewer
+# departments than expected" documents each, and a test that flips means the doc is now wrong.
+# Widening the stop rule was ruled out on PR #23 with no board evidence that these shapes occur.
+
+
+def test_limit_a_a_late_cluster_below_older_pages_is_missed_and_the_guard_passes(monkeypatch):
+    """Two all-older pages arm the stop, then `quiet_pages` misses end the walk.
+
+    A department that publishes the month late lands below older posts; past
+    that budget it is never read, and the year guard sees the first cluster's
+    correct stamp, so the run would exit 0. `--quiet-pages` is the lever.
+    """
+    pages = [[_post(900, "2026년 7월")], [_post(800, "2026년 6월")], [_post(790, "2026년 6월")]]
+    pages += _notices(2, start=500 + 10 * len(pages))
+    pages += [[_post(700, "2026년 7월")]]
+    _board(monkeypatch, pages)
+
+    posts = fd.collect_posts(2026, 7, max_pages=50, quiet_pages=3)
+
+    assert {p["nttNo"] for p in posts} == {"900"}
+    assert fd.wrong_year_only(posts, 2026, 7) is False
+
+    # The documented mitigation: a wider quiet budget reaches the late cluster.
+    assert "700" in {p["nttNo"] for p in fd.collect_posts(2026, 7, max_pages=50, quiet_pages=4)}
+
+
+def test_limit_b_a_board_clamping_to_a_cycle_walks_to_max_pages(monkeypatch):
+    """The repeat guard compares only the previous page, so an A, B, A, B board never trips it."""
+    cycle = [[_post(900, "2026년 8월")], [_post(899, "2026년 8월")]]
+    read = _board(monkeypatch, cycle * 150)
+
+    fd.collect_posts(2020, 6, max_pages=20, quiet_pages=3)
+
+    assert len(read) == 2 * 20
+
+
+@pytest.mark.parametrize("label", ["2026년 8월", None])
+def test_limit_c_a_walk_that_never_arms_costs_the_full_cap(monkeypatch, label):
+    """A month older than the whole board (every page is newer), or titles that carry no date,
+    never produce the all-older pages that arm the stop — both traversals read to the cap."""
+    title = f"[기획처] {label} 업무추진비 공개" if label else "[기획처] 업무추진비 공개"
+    read = _board(monkeypatch, [[(str(1000 - i), title)] for i in range(60)])
+
+    fd.collect_posts(2020, 6, max_pages=25, quiet_pages=3)
+
+    assert len(read) == 2 * 25
+
+
 @pytest.mark.parametrize("titles, expected", [
     ([["2026-06"]], True),
     ([["2026-06"], ["2025-06"]], False),

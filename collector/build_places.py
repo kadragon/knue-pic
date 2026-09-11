@@ -85,6 +85,8 @@ class Approved:
     address: str
     lat: float
     lng: float
+    # `None` when the path has no distinct second segment; the key is then left out of the place.
+    subcategory: str | None = None
 
 
 def text(value: Any) -> str:
@@ -98,6 +100,27 @@ def parse_float(value: str) -> float | None:
         return float(value)
     except ValueError:
         return None
+
+
+def derive_subcategory(category_path: str) -> str | None:
+    """The second segment of the Naver taxonomy path, in NFC, or ``None``.
+
+    ``category`` keeps only the first segment, and the roots are inconsistent: one kind of
+    restaurant arrives as `음식점>한식` or as `한식>육류,고기요리`, so the first segment alone
+    says `음식점` for one and `한식` for the other. The second is the finer label the 업종 badge
+    can show. Published only when it says something the first does not — a blank segment, a path
+    with one segment, a segment repeating the first, or a path with no first segment (published
+    as `기타`, under which a second segment would describe a parent nobody sees) yields ``None``,
+    and the place carries no ``subcategory`` key at all.
+    """
+    segments = category_path.split(">")
+    if len(segments) < 2:
+        return None
+    first = normalize_name(segments[0])
+    second = normalize_name(segments[1])
+    if first is None or second is None or second == first:
+        return None
+    return second
 
 
 def load_aliases(path: Path) -> dict[str, str]:
@@ -247,6 +270,7 @@ def load_approved(path: Path, aliases: dict[str, str]) -> dict[str, Approved]:
         # identical option hiding the composed one's places.
         category_path = text(row.get("category"))
         category = normalize_name(category_path.split(">")[0]) or UNCLASSIFIED_CATEGORY
+        subcategory = derive_subcategory(category_path)
         # From the whole path, not the truncated `category` above: the segment that separates a
         # café from a lunchbox shop is usually not the first one (`collector/kinds.py`).
         kind = derive_kind(category_path)
@@ -262,7 +286,8 @@ def load_approved(path: Path, aliases: dict[str, str]) -> dict[str, Approved]:
                 f"{path} line {number}: approved row {display!r} has unusable coordinates "
                 f"({row.get('lat')!r}, {row.get('lng')!r})")
 
-        approved[canonical] = Approved(canonical, display, category, kind, address, lat, lng)
+        approved[canonical] = Approved(canonical, display, category, kind, address, lat, lng,
+                                       subcategory)
 
     # An alias pointing at a name no approved row carries is the silent-loss case this whole
     # mechanism exists to prevent: `collect_transactions` would resolve the merged spelling to that
@@ -470,6 +495,10 @@ def build(
             "id": id_map[name],
             "name": approved[name].display_name,
             "category": approved[name].category,
+            # Absent rather than empty: the loader rejects a blank one, and a dataset built before
+            # the field existed must keep loading, so "no finer label" is spelled by omission.
+            **({"subcategory": approved[name].subcategory}
+               if approved[name].subcategory is not None else {}),
             "kind": approved[name].kind,
             "address": approved[name].address,
             "lat": approved[name].lat,

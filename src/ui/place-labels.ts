@@ -50,9 +50,11 @@ export function displayShortDate(date: string): string {
 /**
  * The 업종 badge carried by every place row and by the detail dialog.
  *
- * The text is Naver's own category (`한식`, `카페·디저트`, `중식`…), which is finer than the four
- * kinds the 업종 filter offers; the colour comes from the kind, so the badge lines up with the
- * filter chip that would select it. The kind reaches the stylesheet as `data-kind` and never as a
+ * The text is Naver's own classification — the `subcategory` when the dataset carries one
+ * (`육류·고기요리` rather than `한식`, `한식` rather than `음식점`), else the `category` — which is
+ * finer than the four kinds the 업종 filter offers; the colour comes from the kind, so the badge
+ * lines up with the filter chip that would select it. `src/stats/search.ts` matches both fields,
+ * so whichever one the badge shows can be typed back. The kind reaches the stylesheet as `data-kind` and never as a
  * colour chosen here — this module knows no colour values, and the palette stays in one file.
  *
  * The category is always spelled out. Colour alone may not carry the fact
@@ -63,7 +65,7 @@ export function renderKindBadge(place: PlaceRecord): HTMLSpanElement {
   const badge = document.createElement('span');
   badge.className = 'place-kind-badge';
   badge.dataset['kind'] = place.kind;
-  badge.textContent = displayCategory(place.category);
+  badge.textContent = displayCategory(place.subcategory ?? place.category);
   return badge;
 }
 

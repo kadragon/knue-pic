@@ -109,6 +109,12 @@ describe('renderKindBadge', () => {
     expect(badge.dataset['kind']).toBe('cafe');
     expect(badge.className).toBe('place-kind-badge');
   });
+
+  it('prefers the finer subcategory when the dataset carries one', () => {
+    const place = { ...SAMPLE_DATASET.places[0]!, category: '한식', subcategory: '육류,고기요리' };
+
+    expect(renderKindBadge(place).textContent).toBe('육류·고기요리');
+  });
 });
 
 describe('histogramSpanLabel', () => {

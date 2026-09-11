@@ -128,6 +128,27 @@ describe('parseDataset', () => {
     expect(() => parseDataset(payload)).toThrow(new RegExp(`places\\[0\\]\\.${field}`));
   });
 
+  it('accepts a dataset with no subcategory anywhere, and adds no key for it', () => {
+    // Every dataset built before the field existed; the committed one among them.
+    const parsed = parseDataset(validPayload());
+
+    expect(parsed.places.some((place) => 'subcategory' in place)).toBe(false);
+  });
+
+  it('keeps a subcategory it was given, trimmed', () => {
+    const payload = validPayload();
+    firstPlace(payload)['subcategory'] = ' 육류,고기요리 ';
+
+    expect(parseDataset(payload).places[0]?.subcategory).toBe('육류,고기요리');
+  });
+
+  it.each(['', '   ', null, 42])('rejects the present subcategory %p', (subcategory) => {
+    const payload = validPayload();
+    firstPlace(payload)['subcategory'] = subcategory;
+
+    expect(() => parseDataset(payload)).toThrow(/places\[0\]\.subcategory/);
+  });
+
   it('rejects a duplicate place id', () => {
     const payload = validPayload();
     const places = payload['places'] as Record<string, unknown>[];

@@ -223,6 +223,28 @@ const urlToken = (
 };
 
 /**
+ * The offset just past the backslash escape starting at `at`. A hex escape runs up to six digits
+ * and swallows one whitespace character after them — `\2d distance` is `-distance`, one class,
+ * not `\2d` then a descendant `distance` — so skipping a single character is not enough.
+ */
+const escapeEnd = (text: string, at: number): number => {
+  const hex = /^[0-9a-f]{1,6}[ \t\n\r\f]?/i.exec(text.slice(at + 1, at + 8));
+  return at + 1 + (hex?.[0].length ?? 1);
+};
+
+/**
+ * The character an escape body denotes: `2d ` is `-`, `.` is `.`. Zero, a surrogate, or a code
+ * point past U+10FFFF is U+FFFD, as CSS says — and not a `RangeError` out of `fromCodePoint`.
+ */
+const unescapeBody = (body: string): string => {
+  if (!/^[0-9a-f]/i.test(body)) return body;
+  const code = Number.parseInt(body.trim(), 16);
+  return code === 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)
+    ? '\uFFFD'
+    : String.fromCodePoint(code);
+};
+
+/**
  * A selector split at the **top-level** characters `separates` accepts — the ones outside every
  * `(…)`, `[…]`, quoted string and backslash escape.
  *
@@ -243,7 +265,7 @@ const splitTopLevel = (selector: string, separates: (char: string) => boolean): 
       // A backslash escapes the next character wherever it stands, not only inside a quote:
       // `.a\\,b` is one class whose name contains a comma, and splitting it yields two selectors
       // that match nothing. CSS gives the escape the same meaning in both places, so does this.
-      at += 1;
+      at = escapeEnd(selector, at) - 1;
     } else if (quote !== '') {
       if (char === quote) quote = '';
     } else if (char === "'" || char === '"') quote = char;
@@ -275,7 +297,7 @@ const closeAt = (text: string, open: number): number => {
   let quote = '';
   for (let at = open; at < text.length; at += 1) {
     const char = text[at] ?? '';
-    if (char === '\\') at += 1;
+    if (char === '\\') at = escapeEnd(text, at) - 1;
     else if (quote !== '') {
       if (char === quote) quote = '';
     } else if (char === "'" || char === '"') quote = char;
@@ -309,7 +331,7 @@ const COMBINATOR = /[\s>+~]/;
  * - `[…]` holds an attribute name and an arbitrary quoted value. `[data-x=".badge"]` names a
  *   class only as text.
  *
- * **The result is a probe, not a selector.** It is only ever handed to a class-name regex, and
+ * **The result is a probe, not a selector.** It is only ever handed to `classNames`, and
  * the reduction does not preserve anything else: `+` is a combinator here, so `:nth-child(2n+1)`
  * comes back as `:nth-child(1)`. No class token can be lost that way, which is all `reaches`
  * asks — but do not re-parse this string as CSS or hand it to a matcher that reads more than a
@@ -321,8 +343,9 @@ const reduceCompound = (compound: string): string => {
   while (at < compound.length) {
     const char = compound[at] ?? '';
     if (char === '\\') {
-      out += compound.slice(at, at + 2);
-      at += 2;
+      const end = escapeEnd(compound, at);
+      out += compound.slice(at, end);
+      at = end;
       continue;
     }
     if (char === '[') {
@@ -343,6 +366,59 @@ const reduceCompound = (compound: string): string => {
     }
     out += char;
     at += 1;
+  }
+  return out;
+};
+
+/**
+ * The class names a `subjectOf` probe carries, escapes decoded — `.a\.b` is the one class `a.b`,
+ * not a class `b`; `.x\:hover` is the class `x:hover`; `.top-place\-distance` is
+ * `top-place-distance` spelled another way. A `\.name` regex read all three wrong. Quoted strings
+ * are skipped whole, so a string argument left in a functional pseudo-class names no class.
+ */
+const classNames = (probe: string): string[] => {
+  const names: string[] = [];
+  let at = 0;
+  while (at < probe.length) {
+    const char = probe[at] ?? '';
+    if (char === '\\') at = escapeEnd(probe, at);
+    else if (char === "'" || char === '"') {
+      // Escape-aware: `"a\"b"` is one string, and an `indexOf` stopping at its escaped quote
+      // left the real closing quote to open a string that hid every class after it.
+      at += 1;
+      while (at < probe.length && probe[at] !== char) {
+        at = probe[at] === '\\' ? escapeEnd(probe, at) : at + 1;
+      }
+      at += 1;
+    } else if (char === '.') {
+      let name = '';
+      at += 1;
+      while (at < probe.length) {
+        const next = probe[at] ?? '';
+        if (next === '\\') {
+          const end = escapeEnd(probe, at);
+          name += unescapeBody(probe.slice(at + 1, end));
+          at = end;
+        } else if (/[\w-]/.test(next) || next.charCodeAt(0) > 0x7f) {
+          name += next;
+          at += 1;
+        } else break;
+      }
+      if (name !== '') names.push(name);
+    } else at += 1;
+  }
+  return names;
+};
+
+/** A selector part minus its `[…]` attribute selectors, depth-, quote- and escape-aware. */
+const withoutAttributes = (part: string): string => {
+  let out = '';
+  let at = 0;
+  while (at < part.length) {
+    const char = part[at] ?? '';
+    const end = char === '\\' ? escapeEnd(part, at) : char === '[' ? closeAt(part, at) : at + 1;
+    if (char !== '[') out += part.slice(at, end);
+    at = end;
   }
   return out;
 };
@@ -807,8 +883,7 @@ const declarations = (selector: string): string => declarationsIn(RULES, selecto
  */
 const reaches = (element: string, selector: string): boolean => {
   const name = element.replace(/^\./, '');
-  const named = new RegExp(String.raw`\.${name}(?![\w-])`);
-  return selectorParts(selector).some((part) => named.test(subjectOf(part)));
+  return selectorParts(selector).some((part) => classNames(subjectOf(part)).includes(name));
 };
 
 /** The declaration blocks of every rule in `rules` that `reaches` `element`. */
@@ -880,18 +955,20 @@ function paintedBy(property: string): 'fill' | 'text' | null {
  * as a third cue on top of a glyph and a spoken label, not as a palette, and a predicate that
  * swept it in would put the registered claims permanently out of date.
  */
-function meaningCarryingPalettes(): string[] {
+function meaningCarryingPalettes(rules: SheetRule[] = RULES): string[] {
   // `[=\]]` so a presence selector (`[data-flagged]`) counts too, and digits are in the name
   // class: `[data-tier2=…]` is as much an attribute as `[data-tier]`.
   const ATTRIBUTE = /\[data-([a-z0-9-]+)\s*[=\]]/g;
+  // `selectorParts` and `withoutAttributes`, not `.split(',')` and a `\[[^\]]*\]` strip: a comma
+  // inside `[data-tier='a,b']` split one element into two keys, and a comma inside `:is(.x, .y)`
+  // handed unrelated elements a shared `.y)` key.
   const elements = (selector: string): string[] =>
-    selector
-      .split(',')
-      .map((part) => collapse(part.replaceAll(/\[[^\]]*\]/g, '')))
+    selectorParts(selector)
+      .map((part) => collapse(withoutAttributes(part)))
       .filter(Boolean);
 
   const rolesByElement = new Map<string, Set<'fill' | 'text'>>();
-  for (const { selector, block } of RULES) {
+  for (const { selector, block } of rules) {
     const painted = block
       .split(';')
       .map((declaration) => paintedBy(declaration.split(':')[0]?.trim() ?? ''))
@@ -906,7 +983,7 @@ function meaningCarryingPalettes(): string[] {
   }
 
   const found = new Set<string>();
-  for (const { selector } of RULES) {
+  for (const { selector } of rules) {
     const attributes = [...selector.matchAll(ATTRIBUTE)].map(([, name]) => name as string);
     if (attributes.length === 0) continue;
 
@@ -1600,5 +1677,55 @@ describe('optical spacing annotations', () => {
     // without this the sentence in `:root` claiming so is an assertion nothing checks, and it was
     // already false once, in the commit that introduced it.
     expect(rawSpacingByAnnotation().bare).toEqual([]);
+  });
+});
+
+describe('selector structure', () => {
+  const probe = (css: string): SheetRule[] => {
+    const sheet = scan(css);
+    expect(sheet.unterminated, css).toEqual([]);
+    return rulesOf(sheet);
+  };
+
+  it.each([
+    ['.top-place-distance', true],
+    ['.top-place-meta > .top-place-distance', true],
+    [".top-place-distance[data-band='far']", true],
+    ['.a, .top-place-distance', true],
+    // Was wrong (missed): an escaped hyphen, and a hex escape whose trailing space is part of it,
+    // spell the same class — an override written either way went unseen.
+    ['.top-place\\-distance', true],
+    ['.top-place\\2d distance', true],
+    ['.top-place-distance-wide', false],
+    ['.top-place-delta .delta-icon', false],
+    ['.foo:not(.top-place-distance)', false],
+    // Was wrong: an escaped dot is part of one class name, `foo.top-place-distance`.
+    ['.foo\\.top-place-distance', false],
+    // Was wrong: `top-place-distance:hover` is a class of its own, not a pseudo-class.
+    ['.top-place-distance\\:hover', false],
+    ["[data-note='.top-place-distance']", false],
+    ['.foo:is(.top-place-distance, .bar) .child', false],
+    // An escaped quote inside a string argument does not end the string, so the class after it
+    // is still read.
+    [':lang("a\\"b").top-place-distance', true],
+    [":lang('it\\'s').top-place-distance", true],
+    // A hex escape past U+10FFFF is U+FFFD in CSS, not a thrown RangeError.
+    ['.top-place-distance\\110000', false],
+  ])('`%s` reaches .top-place-distance: %s', (selector, expected) => {
+    const rules = probe(`${selector} { white-space: normal; }`);
+    expect(reachingIn(rules, '.top-place-distance').length > 0).toBe(expected);
+  });
+
+  it.each([
+    // Was wrong: the comma inside the attribute value split one element into two keys, neither of
+    // which the text rule reached, so a real palette went uncounted.
+    [".probe { color: #000; } .probe[data-tier='a,b'] { background: #fff; }", ['tier']],
+    [".probe { color: #000; } .probe[data-tier='a'] { background: #fff; }", ['tier']],
+    // Was wrong: splitting inside `:is()` handed two unrelated elements the shared key `.y)`, so
+    // a fill on one and a text colour on the other read as one palette.
+    [".chip:is(.x, .y)[data-tier='t'] { background: #fff; } .q:is(.p, .y) { color: #000; }", []],
+    [".probe[data-tier='a,b'] { background: #fff; }", []],
+  ])('`%s` carries palettes %j', (css, expected) => {
+    expect(meaningCarryingPalettes(probe(css))).toEqual(expected);
   });
 });

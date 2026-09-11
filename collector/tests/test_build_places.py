@@ -481,6 +481,38 @@ def test_kind_is_derived_from_the_path_the_published_category_truncates(
     assert published["kind"] == "lunchbox"
 
 
+@pytest.mark.parametrize("path, expected", [
+    ("한식>육류,고기요리", "육류,고기요리"),
+    ("음식점>한식", "한식"),
+    ("음식점>일식>초밥,롤", "일식"),  # the second segment, not the leaf
+    ("음식점> 카페,디저트 ", "카페,디저트"),
+    (unicodedata.normalize("NFD", "음식점>한식"), "한식"),  # NFC like `category`
+])
+def test_the_second_taxonomy_segment_publishes_as_subcategory(
+        fixture: Fixture, path: str, expected: str) -> None:
+    write_csv(fixture.candidates, [row(category=path)])
+    assert fixture.run() == EXIT_OK
+    assert fixture.places()[0]["subcategory"] == expected
+
+
+@pytest.mark.parametrize("path", ["한식", "", "  ", "음식점>", "음식점> ", "한식>한식", ">한식"])
+def test_a_path_with_no_distinct_second_segment_publishes_no_subcategory_key(
+        fixture: Fixture, path: str) -> None:
+    """Absent, never empty — `parsePlace` rejects a blank one, and `>한식` publishes `기타`, under
+    which a second segment would describe a parent nobody sees."""
+    write_csv(fixture.candidates, [row(category=path)])
+    assert fixture.run() == EXIT_OK
+    assert "subcategory" not in fixture.places()[0]
+
+
+def test_a_built_subcategory_passes_the_validator(fixture: Fixture, capsys: Any) -> None:
+    write_csv(fixture.candidates, [row(category="음식점>카페,디저트")])
+    assert fixture.run() == EXIT_OK
+    capsys.readouterr()
+    assert validate_main([str(fixture.output), "--candidates", str(fixture.candidates),
+                          "--id-map", str(fixture.id_map)]) == 0
+
+
 def test_a_row_with_no_category_publishes_as_기타(fixture: Fixture) -> None:
     """The loader rejects the whole file on an empty category, so it is never emitted empty."""
     write_csv(fixture.candidates, [row(category="")])

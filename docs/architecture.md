@@ -79,9 +79,11 @@ review_candidates.csv # manual location approval queue (committed)
   PRD §38 fallback message. The dialog mounts the map fire-and-forget after painting the figures,
   so the statistics never wait on it or fail with it. An origin missing from the key's allowed-URL
   list takes a second route: the v3 script serves its full bundle regardless, so the load succeeds,
-  a map mounts, and the API signals the rejection afterwards through a `window.navermap_authFailure`
-  global. `renderPlaceLocationMap` registers that hook after mounting and swaps the map for the same
-  fallback, which is why the two degraded states are indistinguishable on screen.
+  a map mounts, and the API signals the rejection through a `window.navermap_authFailure` global.
+  `renderPlaceLocationMap` registers that hook before awaiting the script and keeps it until the
+  map is released, so it catches the rejection on either side of the mount — which side the real
+  API uses is unverified (`backlog.md`) — and both routes end in the same single fallback, which is
+  why the two degraded states are indistinguishable on screen.
 - `src/data/` is the only module that knows the `places.json` wire format. Everything else uses its
   exported types.
 - `collector/` is never imported by `src/`, and `src/` is never imported by `collector/`.
@@ -93,7 +95,7 @@ review_candidates.csv # manual location approval queue (committed)
 ```json
 { "updatedAt": "2026-08-01",
   "places": [ { "id": "restaurant_000134", "name": "...", "category": "한식",
-                "kind": "restaurant",
+                "subcategory": "육류,고기요리", "kind": "restaurant",
                 "address": "...", "lat": 36.6, "lng": 127.3, "naverUrl": "...",
                 "transactions": [ { "date": "2026-07-18", "amount": 230000 } ] } ] }
 ```
@@ -110,7 +112,8 @@ browser's `Response.json()` do not). Both stop publication — a future CI step 
 apart, nothing else does.
 
 It also runs a tenth, `loader-parity` check, because the nine are not sufficient on their own:
-`parsePlace` in `src/data/load.ts` rejects the *whole file* when `category` is empty, when `kind`
+`parsePlace` in `src/data/load.ts` rejects the *whole file* when `category` is empty, when an
+optional `subcategory` is present but empty or not a string, when `kind`
 is outside the closed set `restaurant | cafe | lunchbox | other` (`src/data/types.ts` →
 `PLACE_KINDS`; membership, not non-emptiness, because a plausible unknown value belongs to no
 filter option and makes its place unreachable through the control that exists to reach it), and when
@@ -207,10 +210,18 @@ already minted for one before the merge stays in the map, unused and unreusable.
 `data-update` cycle — the only thing that writes `data/places.json`. It joins `review_candidates.csv`
 rows with `status=approved` against the transactions in `collector/out/<month>/`, via the raw venue
 spellings the normalizer merged, and imports `window_floor` from `validate.py` so the build and the
-gate cannot disagree about the window. Four fields are derived rather than copied:
+gate cannot disagree about the window. Five fields are derived rather than copied:
 
 - `category` is the first segment of the CSV's Naver taxonomy path (`한식>육류,고기요리` → `한식`),
   falling back to `기타` — the loader rejects the whole file on an empty category.
+- `subcategory` is the path's second segment in NFC (`육류,고기요리`), published only when it is
+  non-blank, differs from the first, and the first is non-blank; otherwise the key is **absent**,
+  never empty. It is optional end to end — the loader, check 10 and every dataset built before it
+  existed agree — and the 업종 badge shows it in place of `category` when present, so
+  `src/stats/search.ts` matches it as a field. The 상세 분류 select still lists `category` values.
+  The CSV already holds the full path, so the next `build_places` run publishes it on a machine
+  that still holds `collector/out/`; where that gitignored directory is gone, collection stages
+  1–3 have to regenerate the transactions first. The committed dataset predates the field.
 - `kind` is the coarse venue bucket the global 업종 filter narrows by, derived by
   `collector/kinds.py` from the **whole** path rather than that first segment: `음식점>도시락,컵밥`,
   `음식점>카페,디저트` and `음식점>한식` share a first segment and are three different kinds, so a

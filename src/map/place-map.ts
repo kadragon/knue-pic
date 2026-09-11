@@ -80,9 +80,10 @@ function message(text: string, className: string): HTMLParagraphElement {
 
 /**
  * The one failure the loader cannot see. An origin outside the key's allowed-URL list still gets the
- * full v3 bundle, so the script loads, `naver.maps` is there and a map mounts; the API only nulls
- * the global and calls this hook about a second later. Reacting to it therefore belongs here, after
- * the mount, not in `src/map/loader.ts` — see its module comment.
+ * full v3 bundle, so the script loads, `naver.maps` is there and a map mounts; the API nulls the
+ * global and calls this hook. Reacting to it belongs to the render that owns the map, not to
+ * `src/map/loader.ts` — see its module comment — and the render listens for its whole life, so it
+ * does not depend on when the hook fires relative to the mount.
  */
 interface AuthFailureGlobal {
   navermap_authFailure?: () => void;
@@ -138,12 +139,6 @@ export async function renderPlaceLocationMap(
 ): Promise<ReleasePlaceLocationMap> {
   const { loadApi = () => loadNaverMaps() } = options;
 
-  // A previous render's handler closes over a section this call is about to replace: left
-  // installed, it would remove an already-detached canvas and append the fallback where nobody can
-  // see it, while the live map stays up. The caller releases the previous render before entering
-  // here; this clear is the backstop for a caller that did not.
-  setAuthFailureHandler(undefined);
-
   const section = document.createElement('section');
   section.className = 'place-map';
   section.append(heading());
@@ -153,8 +148,34 @@ export async function renderPlaceLocationMap(
   section.append(canvas);
   container.replaceChildren(section);
 
+  // One failure path for every way the map can fail — the script never usable, a constructor
+  // throwing, the key rejecting the origin — so however they interleave, exactly one fallback
+  // appears, and never after the caller released this render. The fallback is the same message the
+  // loader failures produce, so the degraded states are indistinguishable to the user and to the
+  // tests.
+  let live = true;
+  const fail = (): void => {
+    if (!live) return;
+    live = false;
+    canvas.remove();
+    section.append(message(MAP_ERROR_MESSAGE, 'place-map-fallback'));
+  };
+
+  // Registered *before* the script is awaited, and kept until release, so the hook is caught
+  // whichever side of the mount the API calls it on. Which side that is has not been observed:
+  // `backlog.md` carries the real-browser check against a rejected origin, and nothing here depends
+  // on its answer. Installing ours also replaces any handler a previous render left behind — one
+  // closing over a section this call just replaced.
+  setAuthFailureHandler(fail);
+
   try {
     const api = await loadApi();
+    // The key was rejected while the script was still arriving: the fallback is up, so mount
+    // nothing behind it.
+    if (!live) {
+      clearAuthFailureHandler(fail);
+      return () => {};
+    }
     // Mounting is inside the try as well: a script that loaded can still throw from a constructor
     // (a rejected key, an API version that moved). Leaving that outside would reject the promise
     // and leave an empty canvas where the fallback message belongs.
@@ -167,36 +188,17 @@ export async function renderPlaceLocationMap(
       icon: markerIcon(api),
     });
 
-    // The mounted map is swapped for the same fallback the loader failures produce, so the two
-    // degraded states are indistinguishable to the user and to the tests.
-    //
-    // Registered *after* the mount, which assumes the API calls this hook after constructing a map
-    // rather than during script init. That ordering is the repo's own assertion, not a sourced
-    // vendor guarantee — `backlog.md` carries the real-browser check that would settle it. Moving
-    // the registration earlier is not the cheap fix it looks like: the `catch` below has already
-    // appended the fallback, so a pre-installed handler would append a second one.
-    let live = true;
-    const onAuthFailure = (): void => {
-      // Idempotent: nothing documents how many times the API calls this, and a second call would
-      // otherwise append a second message under the heading.
-      if (!live) return;
-      live = false;
-      canvas.remove();
-      section.append(message(MAP_ERROR_MESSAGE, 'place-map-fallback'));
-    };
-    setAuthFailureHandler(onAuthFailure);
-
     return () => {
       // `live` also gates the hook, so a rejection arriving after the dialog closed cannot append
       // a fallback into a section that is no longer on screen.
       live = false;
-      clearAuthFailureHandler(onAuthFailure);
+      clearAuthFailureHandler(fail);
       releaseMap(map);
     };
   } catch {
     // The reason is dropped on purpose — see MAP_ERROR_MESSAGE.
-    canvas.remove();
-    section.append(message(MAP_ERROR_MESSAGE, 'place-map-fallback'));
+    fail();
+    clearAuthFailureHandler(fail);
     // Nothing mounted, so there is nothing to release — but the caller still gets a function, so it
     // never has to branch on whether the map came up.
     return () => {};

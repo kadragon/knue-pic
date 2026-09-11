@@ -123,6 +123,30 @@ dataset or queue, check 9 needs `collector/id_map.json` — it joins each place'
 through that map — so a missing or self-contradicting map stops the run before any check. Rebuild
 it with `python -m collector.build_places` and commit it with the dataset.
 
+### Stage 1 collected fewer departments than expected (known walk limits)
+
+`fetch_disclosures.py` (stage 1 of the collection skill) stops walking the board by position, and
+three shapes fall outside that rule. They were reproduced in review on PR #23 and accepted rather
+than fixed — there is no board evidence that any of them occurs — and each is pinned as-is by a
+`test_limit_*` case in `collector/tests/test_fetch_disclosures.py`, so a change to the walk that
+alters one fails there and this section has to move with it.
+
+- **(a) A late department below older pages is missed, and the run exits 0.** Two consecutive
+  pages whose dated 업무추진비 titles are all older than the month arm the stop; `--quiet-pages`
+  (default 3) pages without a match then end the walk. A target-month post further down than that
+  is never read, and the year guard cannot object because the first cluster already carries the
+  right stamp. **The only one of the three that can lose data.** Compare stage 1's post count
+  with the roughly 20 departments that publish a month; if one you expect is absent, find it on the
+  board and re-run with a wider `--quiet-pages` — each extra page reaches one page further past
+  the point the stop armed.
+- **(b) A board that clamps an out-of-range `pageIndex` to a cycle walks to `--max-pages`.** The
+  repeat-page guard compares only the preceding page, so a board serving its last page forever
+  stops at once, but one alternating between two pages never trips it. Costs time, not data.
+- **(c) A walk that never arms costs the full cap on both traversals.** A month older than
+  everything the board still carries (every dated page is newer), or a board whose 업무추진비 titles
+  are all undated, never yields the all-older pages the stop needs — up to 2 × `--max-pages`
+  listing requests. Costs time, not data; the run then ends in stage 1's exit 1 or 3.
+
 ### 404 on the deployed site, works locally
 
 **Symptom:** blank page or missing assets on the Pages URL.

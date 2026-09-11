@@ -18,5 +18,8 @@ __pycache__/
 # Batch-run git worktrees (`dev:task-next --all`); removed when the run converges
 .worktrees/
 
+# Isolated review-agent worktrees (Agent `isolation: worktree`); removed by the harness when the agent ends
+.claude/worktrees/
+
 # Playwright MCP screenshots and console logs (local verification artifacts)
 .playwright-mcp/
