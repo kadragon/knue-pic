@@ -38,6 +38,12 @@ export interface PlaceRecord {
   name: string;
   /** Cuisine or venue category; `기타` when classification was uncertain. */
   category: string;
+  /**
+   * The second segment of Naver's taxonomy path (`한식>육류,고기요리` → `육류,고기요리`), when it
+   * says something `category` does not. Optional: absent on a path with no distinct second
+   * segment, and on every dataset built before the field existed.
+   */
+  subcategory?: string;
   /** The coarse kind the global filter narrows by. Always one of `PLACE_KINDS`. */
   kind: PlaceKind;
   address: string;

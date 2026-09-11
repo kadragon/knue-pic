@@ -277,6 +277,20 @@ def test_loader_parity_fields_are_reported() -> None:
         assert checks_reported(violations) == {10}, key
 
 
+@pytest.mark.parametrize("subcategory", ["", "   ", None, 42, ["육류"]])
+def test_a_present_subcategory_that_is_not_text_is_reported(subcategory: Any) -> None:
+    """`parsePlace` rejects the whole file over a present-but-unusable `subcategory`."""
+    violations = check(dataset(place(subcategory=subcategory)), approvals())
+    assert checks_reported(violations) == {10}, subcategory
+
+
+def test_subcategory_is_optional() -> None:
+    """Every dataset published before the field existed carries none, and must still pass."""
+    assert "subcategory" not in place()
+    assert check(dataset(place()), approvals()) == []
+    assert check(dataset(place(subcategory="육류,고기요리")), approvals()) == []
+
+
 @pytest.mark.parametrize("kind", ["", None, "restaurants", "식당", "RESTAURANT"])
 def test_a_kind_outside_the_published_set_is_reported(kind: Any) -> None:
     """`parsePlace` in `src/data/load.ts` rejects the whole file over a kind it does not know, so a

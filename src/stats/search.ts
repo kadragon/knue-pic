@@ -36,7 +36,7 @@ export function filterByKind(dataset: PlacesDataset, kind: PlaceKind | null): Pl
 }
 
 export interface PlaceQuery {
-  /** Free text; matched against name, category, and address. Empty means "no text filter". */
+  /** Free text; matched against name, category, subcategory, and address. Empty means "no text filter". */
   text: string;
   /** A category name, or `ALL_CATEGORIES`. */
   category: string | null;
@@ -92,10 +92,15 @@ function matchesText(place: PlaceRecord, text: string): boolean {
   // `docs/conventions.md` -> Accessibility requires a reader to be able to type back what the row
   // showed them. Folding the suffix out of the *needle* did that too, and cost far more than it
   // bought: `스시` became `스` and matched 66 places, most of them not sushi. A field costs one
-  // more `includes` per place and changes no other query.
-  return [place.name, place.category, place.address, shortAddress(place.address)].some((field) =>
-    normalize(field).includes(needle),
-  );
+  // more `includes` per place and changes no other query. `subcategory` is a field for the same
+  // reason: the 업종 badge shows it in place of the category when the dataset carries one.
+  return [
+    place.name,
+    place.category,
+    place.subcategory ?? '',
+    place.address,
+    shortAddress(place.address),
+  ].some((field) => normalize(field).includes(needle));
 }
 
 /** Both filters apply together; dataset order is preserved so the result is stable. */

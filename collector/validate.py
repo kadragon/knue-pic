@@ -86,8 +86,8 @@ CHECK_NAMES = {
     7: "name-present",
     8: "address-present",
     9: "review-approved",
-    # Beyond the nine: `src/data/load.ts` rejects the *whole file* when `category` or `naverUrl` is
-    # unusable, so a dataset this gate passes could still leave the site with zero places rendered.
+    # Beyond the nine: `src/data/load.ts` rejects the *whole file* when `category`, `kind`,
+    # `naverUrl` or a present `subcategory` is unusable, so a dataset this gate passes could still leave the site with zero places rendered.
     # A gate weaker than the loader it guards is not a gate.
     10: "loader-parity",
     # And an eleventh: check 1 makes each `id` unique, which one business published twice under the
@@ -493,6 +493,17 @@ def _validate_place(
                     f"{path}.{key} must be a non-empty string, got {describe(place.get(key))}",
                 )
             )
+
+    # Also check 10: `subcategory` is optional — a dataset built before it existed carries none —
+    # but `parsePlace` rejects the whole file over one that is present and not non-empty text.
+    if "subcategory" in place and text_or_none(place.get("subcategory")) is None:
+        violations.append(
+            Violation(
+                10,
+                f"{path}.subcategory must be a non-empty string when present, "
+                f"got {describe(place.get('subcategory'))}",
+            )
+        )
 
     # Also check 10, but the loader wants more than text here — see `naver_url_or_none`.
     if naver_url_or_none(place.get("naverUrl")) is None:

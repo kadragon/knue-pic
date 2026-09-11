@@ -113,6 +113,11 @@ function parsePlace(raw: unknown, path: string): PlaceRecord {
     id: requireText(place['id'], `${path}.id`),
     name: requireText(place['name'], `${path}.name`),
     category: requireText(place['category'], `${path}.category`),
+    // Optional, but not optional-and-blank: a present key is held to the same rule as `category`
+    // (`collector/validate.py`, check 10). Absent stays absent rather than becoming `undefined`.
+    ...('subcategory' in place
+      ? { subcategory: requireText(place['subcategory'], `${path}.subcategory`) }
+      : {}),
     kind: requireKind(place['kind'], `${path}.kind`),
     address: requireText(place['address'], `${path}.address`),
     lat: requireCoordinate(place['lat'], `${path}.lat`, 90),
