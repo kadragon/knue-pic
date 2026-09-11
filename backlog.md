@@ -71,13 +71,9 @@
   one that can lose data; consider documenting it in SKILL.md rather than widening the rule
   — `.claude/skills/knue-expense-collect/scripts/fetch_disclosures.py`,
   `.claude/skills/knue-expense-collect/SKILL.md`
-  *(done: documented in `docs/runbook.md` → Common Failures, with `--quiet-pages` as the lever for
-  (a), and pinned as-is by the `test_limit_*` cases; behaviour unchanged)*
-- [ ] [doc] Point SKILL.md's stage 1 section at `docs/runbook.md` → "Stage 1 collected fewer
-  departments than expected", and `collect_posts`' docstring likewise — the operator reads the skill,
-  not the runbook, mid-collection. Not done with the item above because the agent session that did
-  it was denied writes under `.claude/` — `.claude/skills/knue-expense-collect/SKILL.md`,
-  `.claude/skills/knue-expense-collect/scripts/fetch_disclosures.py`
+  *(done: documented in `docs/runbook.md` → Common Failures, pointed to from the collection skill
+  and `collect_posts`' docstring, with `--quiet-pages` as the lever for (a), and pinned as-is by the
+  `test_limit_*` cases; behaviour unchanged)*
 
 ### UI label pass — review findings left out of PR #24 (2026-08-25)
 

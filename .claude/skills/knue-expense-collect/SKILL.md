@@ -53,6 +53,12 @@ For 1 and 3, raise `--max-pages` (default 200 per traversal, a runaway cap) if t
 deeper than that. Pass `--allow-title-year-mismatch` only when the posts really are misdated in
 their titles — the authoritative month is still the date cells stage 2 reads.
 
+The positional stop has three sanctioned limits: a late target-month cluster can sit below the
+older-page stop, a repeating multi-page clamp can run to `--max-pages`, and an all-undated or
+already-newer board can consume the full cap. See `docs/runbook.md` → **Stage 1 collected fewer
+departments than expected (known walk limits)** for the exact failure shapes and the `--quiet-pages`
+mitigation; the collector tests pin the behaviour as documented.
+
 Then review the pending rows by hand (below). **After** their `status` is set — not before —
 `--report` proposes the spellings worth merging:
 

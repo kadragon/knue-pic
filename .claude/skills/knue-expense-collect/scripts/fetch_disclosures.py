@@ -69,6 +69,13 @@ def collect_posts(year: int, month: int, max_pages: int, quiet_pages: int) -> li
     between two clusters of the same month would end the walk mid-month — a
     silent partial collection that the year guard below cannot catch, because
     the first cluster already carries the right stamp.
+
+    Three sanctioned limits of this positional rule are documented in
+    ``docs/runbook.md`` -> "Stage 1 collected fewer departments than expected
+    (known walk limits)" and pinned by ``test_limit_*`` cases: a late target
+    cluster below the stop can be missed, a multi-page clamp cycle can run to
+    ``max_pages``, and an all-undated or already-newer board can consume the
+    full cap. Keep the behavior and the documentation in sync.
     """
     target = (year, month)
     found: dict[str, dict] = {}
