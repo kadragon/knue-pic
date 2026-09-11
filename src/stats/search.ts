@@ -38,21 +38,25 @@ export function filterByKind(dataset: PlacesDataset, kind: PlaceKind | null): Pl
 export interface PlaceQuery {
   /** Free text; matched against name, category, subcategory, and address. Empty means "no text filter". */
   text: string;
-  /** A category name, or `ALL_CATEGORIES`. */
+  /** A category or subcategory name (matches either field), or `ALL_CATEGORIES`. */
   category: string | null;
 }
 
 /**
- * Every category present in the dataset, deduplicated.
+ * Every category and subcategory present in the dataset, deduplicated.
  *
  * Derived from the data rather than from a fixed list because the collector's classifier can emit
  * any category, `기타` included (`docs/conventions.md` → Statistics Rules) — a hardcoded list would
  * silently make some places unreachable through the filter the month a new one appears.
+ * Subcategories are listed because the 업종 badge shows one in place of the category, and Naver's
+ * roots are inconsistent (`음식점>한식` badges `한식`); a badge the reader cannot pick back from this
+ * list would be a label that selects nothing.
  */
 export function listCategories(dataset: PlacesDataset): string[] {
-  return [...new Set(dataset.places.map((place) => toNfc(place.category)))].sort((a, b) =>
-    a.localeCompare(b, 'ko'),
+  const values = dataset.places.flatMap((place) =>
+    place.subcategory === undefined ? [place.category] : [place.category, place.subcategory],
   );
+  return [...new Set(values.map(toNfc))].sort((a, b) => a.localeCompare(b, 'ko'));
 }
 
 /**
@@ -110,7 +114,9 @@ export function filterPlaces(dataset: PlacesDataset, query: PlaceQuery): PlaceRe
 
   return dataset.places.filter(
     (place) =>
-      (category === ALL_CATEGORIES || toNfc(place.category) === category) &&
+      (category === ALL_CATEGORIES ||
+        toNfc(place.category) === category ||
+        (place.subcategory !== undefined && toNfc(place.subcategory) === category)) &&
       matchesText(place, query.text),
   );
 }

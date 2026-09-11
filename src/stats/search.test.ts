@@ -65,6 +65,30 @@ describe('filterPlaces', () => {
     expect(filterPlaces(SAMPLE_DATASET, { ...NO_FILTER, text: '고기요리' })).toEqual([]);
   });
 
+  it('offers every badge label as a category option that selects that place', () => {
+    // Taxonomy roots are inconsistent: `음식점>한식` badges `한식` while `한식>육류,고기요리` badges
+    // `육류·고기요리`. A reader picking the badge they saw from the 업종 dropdown must keep the place.
+    const dataset: PlacesDataset = {
+      ...SAMPLE_DATASET,
+      places: SAMPLE_DATASET.places.map((place, index) =>
+        index === 0
+          ? { ...place, category: '음식점', subcategory: '한식' }
+          : index === 1
+            ? { ...place, category: '한식', subcategory: '육류,고기요리' }
+            : place,
+      ),
+    };
+    const options = listCategories(dataset);
+
+    for (const place of dataset.places) {
+      const label = place.subcategory ?? place.category;
+      expect(options).toContain(label);
+      expect(filterPlaces(dataset, { ...NO_FILTER, category: label })).toContainEqual(place);
+    }
+    // The coarser root still selects what sits under it.
+    expect(filterPlaces(dataset, { ...NO_FILTER, category: '한식' })).toContainEqual(dataset.places[1]);
+  });
+
   it('ignores case and surrounding whitespace', () => {
     const dataset: PlacesDataset = {
       updatedAt: '2026-08-01',
