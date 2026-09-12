@@ -2,29 +2,6 @@
 
 ## Review Backlog
 
-### PR #53 — the one selector split left on a live input (2026-09-04)
-
-- [ ] [debt] `meaningCarryingPalettes`'s inner `elements()` still calls `selector.split(',')`
-  directly. It is the last naive split in the suite and the only one whose input is *live*:
-  `RULES`, parsed from `src/styles.css`, rather than a hand-written literal. A palette selector
-  holding a comma inside `:is(…)` or an attribute value — `.top-place-distance:is(.a, .b) { color:
-  … }` — splits into the keys `.top-place-distance:is(.a` and `.b)`, neither matching the
-  `.top-place-distance` key, so that rule's `text` role is dropped and `meaningCarryingPalettes()`
-  can lose `band` — which is what the `toEqual(['band', 'kind'])` guard and the `CLAIMS` counts
-  rest on. Latent today (no such selector in the sheet). Route it through `selectorParts` and add
-  a mutation probe (source: PR #53 review, `code-review` and Codex independently) —
-  `src/ui/stylesheet-claims.test.ts`
-
-### PR #53 — the escape the matcher does not honour (2026-09-04)
-
-- [ ] [debt] `reaches` now splits with escape awareness but still *matches* with
-  the pattern `\.<name>(?![\w-])`, which matches the `\.` of an escaped literal
-  dot: `reaches('.badge', '.a\\.badge')` is `true` though that selector styles a single
-  class named `a.badge` and never touches `.badge`. Same family as the `.a\,b` split PR #53
-  fixed, opposite direction — a false red in an override guard rather than a false negative.
-  Latent (no escaped selector in `src/styles.css`) (source: PR #53 review, `code-review`) —
-  `src/ui/stylesheet-claims.test.ts`
-
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] No vendor doc or captured trace establishes when the v3 API calls `navermap_authFailure` relative to map construction, or that it calls it at all on a rejected origin. The render no longer depends on the ordering — the hook is registered before the script is awaited and routed through one idempotent failure path, tested for both orderings against the fake API — but that is repo-side robustness, not evidence. Still needed: load the site on an origin the key rejects, in a real browser, and record whether the hook fires and whether the fallback replaces the map (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*
