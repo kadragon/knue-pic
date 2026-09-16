@@ -9,12 +9,12 @@ import {
   DETAIL_EMPTY_MESSAGE,
   FIGURE_LABELS,
   histogramHeading,
-  META_SEPARATOR,
   KAKAO_LINK_LABEL,
   NAVER_LINK_LABEL,
   NO_VISIT_IN_PERIOD_MESSAGE,
   periodStatsHeading,
   renderPlaceDetail,
+  visitCountLabel,
 } from './place-detail';
 import { campusDistanceLabel, monthLabel } from './place-labels';
 import { distanceBand, distanceFromCampusKm } from '../stats/distance';
@@ -32,48 +32,24 @@ function detailFor(placeIndex = 0, basis: Period = '1y') {
 }
 
 describe('renderPlaceDetail', () => {
-  it('keeps the separator out of the accessibility tree', () => {
-    const container = document.createElement('div');
-
-    renderPlaceDetail(container, detailFor(0, '1y'));
-    const separator = container.querySelector('.place-detail-address span[aria-hidden="true"]');
-
-    // A spoken "middle dot" between two facts a screen reader already reads as separate elements is
-    // noise. `aria-hidden` subtrees are excluded from name computation, so the dot is drawn and not
-    // announced.
-    expect(separator?.textContent).toBe(`\u00A0${META_SEPARATOR}`);
-  });
-
-  it('separates the address from the distance with a dot that cannot wrap away from it', () => {
+  it('puts both badges on one row and the full address alone on the next', () => {
     const container = document.createElement('div');
     const detail = detailFor(0, '1y');
 
     renderPlaceDetail(container, detail);
-    const distance = container.querySelector('.place-detail-distance');
+    const meta = container.querySelector('.place-detail-meta');
+    const address = container.querySelector('.place-detail-address');
 
-    // One node, not a sibling separator: at 360px the address wraps and a separate flex item was
-    // pushed to the head of the next line, leaving the dot stranded above its figure.
-    expect(distance?.textContent).toBe(campusDistanceLabel(distanceFromCampusKm(detail.place)));
-    // Trailing the address, so a wrap never strands it at the head of the next line.
-    expect(container.querySelector('.place-detail-address')?.textContent).toBe(
-      `${detail.place.address}\u00A0${META_SEPARATOR}`,
-    );
-  });
-
-  it('adds the campus distance beside the full address rather than replacing it', () => {
-    const container = document.createElement('div');
-    const detail = detailFor(0, '1y');
-
-    renderPlaceDetail(container, detail);
-
-    // The dialog is where the exact location is read, so the address stays whole here; the
-    // distance is the one thing the address does not tell the reader.
-    expect(container.querySelector('.place-detail-address')?.textContent).toBe(
-      `${detail.place.address}\u00A0${META_SEPARATOR}`,
-    );
-    expect(container.querySelector('.place-detail-distance')?.textContent).toBe(
+    // Sharing one line, the address wrapped at 360px and stranded a trailing dot with the distance
+    // badge dropped below it. The badges now share a row, so the address needs no separator and
+    // stays whole — the dialog is where the exact location is read.
+    expect(meta?.querySelector('.place-kind-badge')).not.toBeNull();
+    expect(meta?.querySelector('.place-detail-distance')?.textContent).toBe(
       campusDistanceLabel(distanceFromCampusKm(detail.place)),
     );
+    expect(meta?.contains(address ?? null)).toBe(false);
+    expect(address?.textContent).toBe(detail.place.address);
+    expect(meta?.nextElementSibling).toBe(address);
   });
 
   it('carries the same distance band the ranked row does', () => {
@@ -164,11 +140,40 @@ describe('renderPlaceDetail', () => {
     // different span than these whole calendar months.
     expect(container.textContent).not.toContain(`최근 ${buckets.length}개월 이용 횟수`);
     expect(entries).toHaveLength(12);
-    for (const entry of entries) {
-      expect(entry.querySelector('.place-histogram-month')?.textContent).toMatch(/\d+년 \d+월/);
-      expect(entry.querySelector('.place-histogram-count')?.textContent).toMatch(/^\d+회$/);
-    }
+    entries.forEach((entry, index) => {
+      const bucket = buckets[index]!;
+      // The column draws only the month number and the count, but the text still reads in full.
+      expect(entry.querySelector('.place-histogram-month')?.textContent).toBe(monthLabel(bucket.month));
+      expect(entry.querySelector('.place-histogram-count')?.textContent).toBe(
+        visitCountLabel(bucket.visitCount),
+      );
+      expect(entry.textContent).toBe(`${monthLabel(bucket.month)}${visitCountLabel(bucket.visitCount)}`);
+    });
     expect(container.textContent).toContain(`${monthLabel(monthKey(2026, 7))}`);
+  });
+
+  it('marks empty months and draws the year only where it starts', () => {
+    const container = document.createElement('div');
+    const detail = detailFor(0, '1y');
+
+    renderPlaceDetail(container, detail);
+    const entries = [...container.querySelectorAll<HTMLElement>('.place-histogram-entry')];
+
+    const empties = entries.map((entry) => entry.dataset['empty']);
+    expect(empties).toEqual(detail.histogram.map((bucket) => String(bucket.visitCount === 0)));
+    // The fixture must hold both kinds of month, or the mapping above could not tell them apart.
+    expect(empties).toContain('true');
+    expect(empties).toContain('false');
+
+    const starts = entries.flatMap((entry, index) =>
+      entry.querySelector<HTMLElement>('.place-histogram-year')?.dataset['start'] === 'true' ? [index] : [],
+    );
+    const expected = detail.histogram.flatMap((bucket, index) =>
+      index === 0 || bucket.month.endsWith('-01') ? [index] : [],
+    );
+    expect(starts).toEqual(expected);
+    // A span crossing a new year, so the January marker is exercised and not only the first column.
+    expect(expected.length).toBeGreaterThan(1);
   });
 
   it('scales bars without dividing by zero when the place has no charted visit', () => {
@@ -178,8 +183,10 @@ describe('renderPlaceDetail', () => {
 
     renderPlaceDetail(container, detail);
 
-    for (const bar of container.querySelectorAll<HTMLElement>('.place-histogram-bar')) {
-      expect(bar.style.width).toBe('0%');
+    const bars = [...container.querySelectorAll<HTMLElement>('.place-histogram-bar')];
+    expect(bars).toHaveLength(12);
+    for (const bar of bars) {
+      expect(bar.style.height).toBe('0%');
     }
   });
 

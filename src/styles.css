@@ -940,14 +940,15 @@ button.top-place-body,
 }
 
 .place-detail-meta,
+.place-detail-address,
 .place-detail-period {
-  margin: var(--space-1) 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
 }
 
-/* Same badge-then-text shape as a list row's metadata line. */
+/* The two badges share a row; the address wraps on its own line under them. */
 .place-detail-meta {
   display: flex;
   flex-wrap: wrap;
@@ -955,21 +956,39 @@ button.top-place-body,
   gap: var(--space-2);
 }
 
+.place-detail-address {
+  margin-top: var(--space-1);
+}
+
+/*
+ * One rhythm between the card's sections — figures, monthly chart, location — so each reads as
+ * its own block rather than as the next line of the one above. The map slot takes it only once the
+ * dialog has filled it; an empty slot would draw a rule over nothing.
+ */
+.place-detail-period,
+.place-histogram,
+.place-detail-map:not(:empty) {
+  margin-top: var(--space-7);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--hairline-soft);
+}
+
 /* Names the window the figures under it were counted over. */
 .place-detail-period {
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--hairline);
   font-size: 13px;
   font-weight: 700;
 }
 
+/* A tinted block, so the figures read as one answer rather than as loose text under a label. */
 .place-detail-figures {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--space-4) var(--space-7);
-  margin: var(--space-2) 0 0;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--paper);
 }
 
 .place-detail-figure dt {
@@ -1002,55 +1021,112 @@ button.top-place-body,
 
 .place-histogram h4,
 .place-map h4 {
-  margin: var(--space-6) 0 var(--space-3);
+  margin: 0 0 var(--space-4);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
 }
 
 .place-histogram-list {
+  display: flex;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/*
+ * One column per month, oldest at the left: the count on top, the bar, the month under the axis.
+ * The DOM order is month, bar, count so a screen reader hears `2025년 10월 9회`; `order` only moves
+ * what is drawn.
+ */
 .place-histogram-entry {
-  display: grid;
-  /* The month and count columns are fixed so the bars share one baseline at any width. */
-  grid-template-columns: 5.5rem 1fr 2.5rem;
-  align-items: center;
-  gap: var(--space-3);
-  /* optical: 3px sets the histogram row rhythm against its 13px text. */
-  padding: 3px 0;
-  font-size: 13px;
-}
-
-.place-histogram-month,
-.place-histogram-count {
-  color: var(--muted);
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
 .place-histogram-count {
-  text-align: end;
+  order: -1;
+  /* optical: sub-scale, tying the figure to the bar it sits on. */
+  margin-bottom: 2px;
+  color: var(--body);
+  font-weight: 600;
 }
 
+.place-histogram-entry[data-empty='true'] .place-histogram-count {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* The axis: every column's track ends on the same rule, so the bars share one baseline. */
 .place-histogram-track {
-  max-width: 100%;
-  height: 8px;
-  border-radius: var(--radius-xs);
-  background: var(--surface-strong);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 88px;
+  border-bottom: 1px solid var(--border-control);
 }
 
 /*
- * The bar restates the count beside it; it is never the only place the number appears. Ink rather
+ * The bar restates the count above it; it is never the only place the number appears. Ink rather
  * than the accent: a figure is data, and colouring it would make it look like a judgement.
+ *
+ * Two channels for an empty month, as on the row sparkline: a month with visits keeps a 3px floor,
+ * and an empty one draws nothing above the axis, so the two differ in height and not by tone alone.
  */
 .place-histogram-bar {
   display: block;
-  height: 100%;
-  border-radius: var(--radius-xs);
+  /* The columns touch so the axis under them is one unbroken rule; the bar's own width leaves the
+     gap between months. Capped so a wide panel draws columns rather than slabs. */
+  width: min(calc(100% - 4px), 28px);
+  min-height: 3px;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   background: var(--ink);
+}
+
+.place-histogram-entry[data-empty='true'] .place-histogram-bar {
+  min-height: 0;
+}
+
+.place-histogram-month {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* optical: sub-scale, the gap between the axis rule and the month numbers under it. */
+  padding-top: 6px;
+  color: var(--muted);
+}
+
+/* The year is text on every column and drawn only where it starts: the first month and each
+   January. It sits under the month number and may run past its narrow column into the next. */
+.place-histogram-year {
+  order: 1;
+  align-self: flex-start;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* A January in the last column would otherwise run past the panel's edge. */
+.place-histogram-entry:last-child .place-histogram-year {
+  align-self: flex-end;
+}
+
+/* Read aloud, not drawn: the units, and the repeated years, a narrow chart column has no room for. */
+.visually-hidden,
+.place-histogram-year[data-start='false'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* The two map links share one margin above the pair and one gap between them, and wrap onto a
@@ -1215,15 +1291,20 @@ button.top-place-body,
     align-items: flex-end;
   }
 
-  /* The oversized figure takes its own row: at 360px it otherwise sits hard against the next
-     figure's label with no gutter between them. */
   .place-detail-figures {
     gap: var(--space-3) var(--space-6);
+    padding: var(--space-4) var(--space-5);
   }
 
-  .place-detail-figure:first-child {
-    flex: 1 0 100%;
-    margin-inline-end: 0;
+  .place-detail-period,
+  .place-histogram,
+  .place-detail-map:not(:empty) {
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+  }
+
+  .place-histogram-entry {
+    font-size: 11px;
   }
 
   /* A bottom sheet rather than a centred box: at 360px a centred dialog with margins wastes the
