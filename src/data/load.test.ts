@@ -272,12 +272,10 @@ describe('naverUrl', () => {
     // not would pass this at the gate and then blank the site here.
     'https://evil.com\\@naver.com/x',
     // A host with an `xn--` label is held to the same rule as in `collector/validate.py` ->
-    // `naver_url_or_none`: reject the label shape rather than lean on what IDNA does to it. The
-    // first decodes to a real host and the second is not decodable punycode at all, and both are
-    // rejected here for the same reason — the collector emits plain ASCII `*.naver.com` only, so
-    // a row in either shape is a collector defect, and the gate already refuses both.
+    // `naver_url_or_none`: reject the label shape rather than lean on what IDNA does to it. This
+    // one decodes to a real host, so every runtime parses it and the host rule is what rejects
+    // it — which makes it the case that stays red on both Node versions if that rule is removed.
     'https://xn--h32b.naver.com/x',
-    'https://xn--a.naver.com/x',
   ])('rejects %s', (url) => {
     const payload = validPayload();
     firstPlace(payload)['naverUrl'] = url;
@@ -291,5 +289,19 @@ describe('naverUrl', () => {
     firstPlace(payload)['naverUrl'] = url;
 
     expect(() => parseDataset(payload)).toThrow(/places\[0\]\.naverUrl is not a valid URL/);
+  });
+
+  // `xn--a` is not decodable punycode, and which check catches it is the runtime's business:
+  // Node 22 throws inside `new URL`, Node 26 parses the host and leaves it to the shape rule. The
+  // invariant is that the loader rejects it, so that is all this asserts — naming one message
+  // would put a claim about a foreign parser back into the suite, which is what `xn--a` was moved
+  // out of the unparseable group to stop doing. `rejects https://xn--h32b.naver.com/x` above is
+  // the case that pins the host rule itself on every runtime.
+  it('rejects https://xn--a.naver.com/x, whichever check catches it', () => {
+    const payload = validPayload();
+    firstPlace(payload)['naverUrl'] = 'https://xn--a.naver.com/x';
+
+    expect(() => parseDataset(payload)).toThrow(DatasetLoadError);
+    expect(() => parseDataset(payload)).toThrow(/^places\[0\]\.naverUrl /);
   });
 });
