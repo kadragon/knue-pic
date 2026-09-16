@@ -1036,8 +1036,8 @@ button.top-place-body,
 
 /*
  * One column per month, oldest at the left: the count on top, the bar, the month under the axis.
- * The DOM order is month, bar, count so a screen reader hears `2025년 10월 9회`; `order` only moves
- * what is drawn.
+ * A screen reader hears the entry's one hidden phrase, `2025년 10월 9회`; the drawn parts are
+ * `aria-hidden`, so `order` only moves what is drawn.
  */
 .place-histogram-entry {
   display: flex;

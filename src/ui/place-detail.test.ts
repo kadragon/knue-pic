@@ -147,7 +147,11 @@ describe('renderPlaceDetail', () => {
       expect(entry.querySelector('.place-histogram-count')?.textContent).toBe(
         visitCountLabel(bucket.visitCount),
       );
-      expect(entry.textContent).toBe(`${monthLabel(bucket.month)}${visitCountLabel(bucket.visitCount)}`);
+      // Read as one phrase: the drawn parts are hidden from assistive tech, the full phrase is not.
+      expect(entry.querySelector(':scope > .visually-hidden')?.textContent).toBe(
+        `${monthLabel(bucket.month)} ${visitCountLabel(bucket.visitCount)}`,
+      );
+      expect(entry.querySelectorAll(':scope > [aria-hidden="true"]')).toHaveLength(3);
     });
     expect(container.textContent).toContain(`${monthLabel(monthKey(2026, 7))}`);
   });

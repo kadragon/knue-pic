@@ -260,9 +260,18 @@ function renderHistogram(buckets: MonthlyHistogram): HTMLElement {
     // text to `monthLabel` and `visitCountLabel`, so a reworded label fails there, not silently.
     count.append(String(bucket.visitCount), hiddenText('회'));
 
-    // DOM order is month, bar, count so a screen reader hears `2025년 10월 9회`; the stylesheet
-    // draws the count on top and the month under the axis.
-    item.append(label, track, count);
+    // One accessible phrase per entry. The drawn parts are split across flex items and
+    // absolutely positioned units, which a screen reader may read as `10`, `월`, `9`, `회`; they are
+    // hidden from it, and the stylesheet draws the count on top and the month under the axis.
+    for (const drawn of [label, track, count]) {
+      drawn.setAttribute('aria-hidden', 'true');
+    }
+    item.append(
+      hiddenText(`${monthLabel(bucket.month)} ${visitCountLabel(bucket.visitCount)}`),
+      label,
+      track,
+      count,
+    );
     list.append(item);
   });
 
