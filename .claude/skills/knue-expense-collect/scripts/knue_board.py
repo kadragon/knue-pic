@@ -127,6 +127,10 @@ def department(title: str) -> str:
     return title.split("20")[0].strip(" []") or title.strip()
 
 
+# The tail is greedy so that "2026년 2월~6월" yields the whole range rather than
+# stopping at the first 월.
+_MONTH = re.compile(r"(?:(\d{4})|'?(\d{2}))\s*(?:년|\.)\s*([0-9,~\-\s월]*\d)\s*월")
+
 def title_months(title: str) -> set[tuple[int, int]]:
     """Best-effort (year, month) set from a post title.
 
@@ -136,10 +140,7 @@ def title_months(title: str) -> set[tuple[int, int]]:
     """
     body = _DEPT.sub("", title)
     months: set[tuple[int, int]] = set()
-    # The tail is greedy so that "2026년 2월~6월" yields the whole range rather
-    # than stopping at the first 월.
-    pattern = r"(?:(\d{4})|'?(\d{2}))\s*(?:년|\.)\s*([0-9,~\-\s월]*\d)\s*월"
-    for chunk in re.finditer(pattern, body):
+    for chunk in _MONTH.finditer(body):
         y4, y2, tail = chunk.groups()
         year = int(y4) if y4 else 2000 + int(y2)
         nums = [int(n) for n in re.findall(r"\d{1,2}", tail)]
@@ -152,3 +153,33 @@ def title_months(title: str) -> set[tuple[int, int]]:
             if 1 <= m <= 12:
                 months.add((year, m))
     return months
+
+
+# Words that make a title's pre-month text ordinary boilerplate rather than a
+# fund name. "[제3대학] 업무추진비 사용 내역 공개(2026. 6~7월 )" puts the whole
+# standard phrase ahead of the month; reading that as a program would split a
+# department from its own re-posts.
+_BOILERPLATE = ("업무추진비", "수의계약", "집행", "사용", "내역", "공개", "상품권", "수정")
+
+
+def program(title: str) -> str:
+    """The budget-program qualifier sitting between the department and the month.
+
+    One department can publish two different funds for the same month —
+    2026-08 has both "[기획평가과] 2026년 8월" and "[기획평가과] 국립대학육성사업
+    2026년 8월", the same program that 2026-07 carried inside the bracket. Keyed
+    on department and month alone they collide, and the general post is dropped
+    as a re-post. Empty whenever the text is absent or is standard wording, so
+    genuine re-posts still supersede each other.
+    """
+    if not _DEPT.match(title):
+        # No bracket means department() already read this text as the department
+        # itself ("재무과 2025년 8월 …"), so what is left is not a program.
+        return ""
+    body = _DEPT.sub("", title)
+    hit = _MONTH.search(body)
+    head = body[: hit.start()] if hit else ""
+    head = " ".join(head.split()).strip(" []()<>·-,")
+    if any(word in head for word in _BOILERPLATE):
+        return ""
+    return head

@@ -33,6 +33,7 @@ from knue_board import (  # noqa: E402
     fetch_text,
     list_url,
     parse_rows,
+    program,
     title_months,
 )
 
@@ -115,6 +116,7 @@ def collect_posts(year: int, month: int, max_pages: int, quiet_pages: int) -> li
                         "title": title,
                         "department": department(title),
                         "titleMonths": sorted(f"{y:04d}-{m:02d}" for y, m in months),
+                        "program": program(title),
                     },
                 )
             # Reset on every page that is not itself all-older, undated pages
@@ -158,7 +160,7 @@ def wrong_year_only(posts: list[dict], year: int, month: int) -> bool:
 
 
 def drop_superseded(posts: list[dict]) -> tuple[list[dict], list[dict]]:
-    """Keep the highest nttNo per department *for the same declared months*.
+    """Keep the highest nttNo per department, program and declared months.
 
     Keying on department alone was wrong: posts with unparseable titles are kept
     on purpose ("the attachment decides"), and such a post from a later month
@@ -166,11 +168,14 @@ def drop_superseded(posts: list[dict]) -> tuple[list[dict], list[dict]]:
     post and that department would contribute nothing — logged as `superseded:`,
     which reads like intended behaviour. Including the title months in the key
     means only a genuine re-post of the same month can supersede, and stage 2's
-    date filter still throws out anything off-month.
+    date filter still throws out anything off-month. The program qualifier is in
+    the key for the same reason: 2026-08 published 기획평가과's general fund and
+    its 국립대학육성사업 fund as two posts of the same month.
     """
     best: dict[tuple, dict] = {}
     for post in posts:
-        key = (post["department"], tuple(post["titleMonths"]) or (post["nttNo"],))
+        key = (post["department"], post.get("program", ""),
+               tuple(post["titleMonths"]) or (post["nttNo"],))
         if key not in best or int(post["nttNo"]) > int(best[key]["nttNo"]):
             best[key] = post
     kept_ids = {p["nttNo"] for p in best.values()}
