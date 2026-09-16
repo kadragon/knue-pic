@@ -1729,3 +1729,25 @@ describe('selector structure', () => {
     expect(meaningCarryingPalettes(probe(css))).toEqual(expected);
   });
 });
+
+/**
+ * The detail card's two map links are peers by construction: one class, one rule, and a
+ * `data-service` attribute that names the service for the tests without ever reaching the
+ * stylesheet. Nothing else can see this — `place-detail.test.ts` asserts both links carry the same
+ * `className`, which stays true while a `[data-service="naver"] { background: … }` rule draws one
+ * of them heavier than the other. The usage data says nothing about which map to open, and a card
+ * that made one look like the recommended one would say it for the data
+ * (`docs/conventions.md` → Framing Vocabulary).
+ */
+describe('map links are styled as peers', () => {
+  it('finds the shared rule, so the ban below is not guarded by an empty string', () => {
+    expect(CSS).toContain('.place-detail-link {');
+    expect(CSS).toContain('.place-detail-links {');
+  });
+
+  it('selects neither service by name', () => {
+    // Comments are stripped from `CSS`, so the prose above `.place-detail-link` naming the
+    // attribute does not register as a selector here.
+    expect(CSS).not.toContain('[data-service');
+  });
+});

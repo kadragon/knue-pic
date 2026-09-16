@@ -161,9 +161,12 @@ function kakaoLinkHref(place: PlaceRecord): string | null {
 }
 
 /**
- * One map link. The service name rides a `data-` attribute rather than a second class: the two are
- * the same control pointing at different services, so they share every style, and a per-service
- * class would invite a stylesheet rule that makes one of them look like the preferred one.
+ * One map link. Both services get the same class, and the service name rides a `data-` attribute
+ * that exists for the tests to aim at rather than for the stylesheet to style by — the two are the
+ * same control pointing at different places, and a card that drew one heavier than the other would
+ * state a preference the usage data does not support. The attribute is targetable like any other,
+ * so the equal weight is held by a rule in `src/ui/stylesheet-claims.test.ts` rather than by this
+ * sentence: no rule in `src/styles.css` may select `[data-service]`.
  */
 function renderMapLink(service: 'naver' | 'kakao', href: string, label: string): HTMLAnchorElement {
   const link = document.createElement('a');

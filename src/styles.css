@@ -1053,7 +1053,6 @@ button.top-place-body,
   background: var(--ink);
 }
 
-/* The one CTA, on the accent. */
 /* The two map links share one margin above the pair and one gap between them, and wrap onto a
    second line at 360px rather than shrinking either below its 44px target. */
 .place-detail-links {
@@ -1063,8 +1062,9 @@ button.top-place-body,
   margin-top: var(--space-4);
 }
 
-/* Both services get this rule and nothing else: same fill, same weight, same size. The usage data
-   says nothing about which map to open, so the card must not either. */
+/* The card's CTAs, on the accent. Both services get this rule and nothing else — same fill, same
+   weight, same size. The usage data says nothing about which map to open, so the card must not
+   either, and `stylesheet-claims.test.ts` fails on any rule that selects one service by name. */
 .place-detail-link {
   display: inline-flex;
   align-items: center;
