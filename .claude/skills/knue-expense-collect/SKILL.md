@@ -114,7 +114,8 @@ a sheet that yields zero rows looks identical to a sheet that doesn't exist unle
 the log. After each run, check and report:
 
 - **Stage 1** — how many posts, which were `superseded` (a re-post is a correction; the highest
-  `nttNo` per department wins) and which departments were skipped.
+  `nttNo` wins among posts sharing a department, a budget program and a declared month — a second
+  fund such as 국립대학육성사업 is its own post, not a correction) and which departments were skipped.
 - **Stage 2** — every `no rows for target month` line. Old-month sheets bundled in the same file
   are expected; a *current* department reporting zero is not, and means the layout changed.
 - **Stage 3** — the multi-venue rows it dropped. Each one is a real visit the dataset loses.
