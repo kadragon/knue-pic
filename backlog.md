@@ -47,16 +47,6 @@
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
 
-### `.claude/settings.json` lost its `Write` denies (2026-09-03)
-
-- [ ] [fix] The permissions deny list carries `Edit(./.env)` and `Edit(./data/places.json)` but no
-  longer the matching `Write(...)` entries, so the `Write` tool — which replaces a whole file —
-  can create a `.env` holding a Naver secret or hand-write the generated dataset that AGENTS.md
-  says only the collector may produce, both without a prompt. Flagged independently by two review
-  engines on PR #50; the change predates that PR and rode in from the branch point, so it was
-  recorded rather than reverted inside a `[FEAT]` PR. Restoring the two lines is the fix, but it is
-  the operator's permission decision to make — `.claude/settings.json`
-
 ## Someday
 
 - [x] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget
