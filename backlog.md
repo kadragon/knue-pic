@@ -57,6 +57,18 @@
   recorded rather than reverted inside a `[FEAT]` PR. Restoring the two lines is the fix, but it is
   the operator's permission decision to make — `.claude/settings.json`
 
+### Node 26 parses the punycode host `load.ts` expects `new URL` to reject (2026-09-16)
+
+- [ ] [fix] `src/data/load.test.ts` asserts `https://xn--a.naver.com/x` is rejected as unparseable,
+  and `parsePlace`'s `naverUrl` check leans on `new URL` throwing there: the host ends with
+  `.naver.com`, so once it parses, the suffix test passes it. Node 26.8.2 parses it — the test fails
+  locally today and the whole suite goes red the moment CI moves off its pinned `node-version: 22`.
+  The test is a claim about a foreign parser's behaviour rather than about the invariant, which is
+  that a host be a real Naver one; decide whether the loader should reject the label shape itself
+  (`xn--a` is not decodable punycode) or whether the case should go. Found while shipping PR #58,
+  which touches neither file — `src/data/load.ts`, `src/data/load.test.ts`,
+  `.github/workflows/ci.yml`
+
 ## Someday
 
 - [x] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget
