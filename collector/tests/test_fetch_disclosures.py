@@ -188,3 +188,54 @@ def test_a_clamping_board_does_not_run_to_max_pages(monkeypatch):
 def test_wrong_year_only(titles, expected):
     posts = [{"titleMonths": t} for t in titles]
     assert fd.wrong_year_only(posts, 2025, 6) is expected
+
+
+def _dated(ntt_no, title):
+    return {
+        "nttNo": str(ntt_no),
+        "title": title,
+        "department": fd.department(title),
+        "titleMonths": sorted(f"{y:04d}-{m:02d}" for y, m in fd.title_months(title)),
+        "program": fd.program(title),
+    }
+
+
+def _kept(titles):
+    posts = [_dated(n, t) for n, t in titles]
+    kept, _ = fd.drop_superseded(posts)
+    return {p["nttNo"] for p in kept}
+
+
+def test_a_budget_program_is_not_a_repost_of_the_department_post():
+    """2026-08 moved 국립대학육성사업 out of the bracket, so both posts read as
+    기획평가과/2026-08 and the general one was dropped as superseded — a whole
+    department-month of real visits lost, logged as intended behaviour."""
+    assert _kept([
+        ("84235", "[기획평가과] 2026년 8월 업무추진비 집행 내역"),
+        ("84479", "[기획평가과] 국립대학육성사업 2026년 8월 업무추진비 집행 내역"),
+    ]) == {"84235", "84479"}
+
+
+def test_a_repost_of_the_same_month_still_supersedes():
+    assert _kept([
+        ("81697", "[기획평가과] 2026년 4월 업무추진비 집행내역"),
+        ("82100", "[기획평가과] 2026년 4월 업무추진비 집행내역"),
+    ]) == {"82100"}
+
+
+def test_boilerplate_wording_does_not_split_a_repost():
+    """The 2025-06 pair differs in wording before the month, not in program."""
+    assert _kept([
+        ("20010", "[학생지원과] 2023년 6월 업무추진비 집행 내역"),
+        ("20023", "[학생지원과]2023.6월 업무추진비 내역"),
+    ]) == {"20023"}
+
+
+def test_an_unbracketed_department_is_not_read_as_a_program():
+    """Without a bracket the department falls back to the text before the year,
+    so treating that same text as a program would stop a bracketed re-post from
+    superseding the plain one."""
+    assert _kept([
+        ("70001", "재무과 2025년 8월 업무추진비 집행내역"),
+        ("70002", "[재무과] 2025년 8월 업무추진비 집행내역"),
+    ]) == {"70002"}
