@@ -49,11 +49,8 @@ export const NAVER_LINK_LABEL = '네이버지도에서 보기';
  */
 export const KAKAO_LINK_LABEL = '카카오지도에서 보기';
 
-/** The dot between the address and the distance — the same one the ranked row's meta line uses. */
-export const META_SEPARATOR = '·';
-
 /**
- * The distance line, beside the address rather than replacing it.
+ * The distance badge, alongside the address rather than replacing it.
  *
  * The dialog is where a reader goes for the exact location, so the full address stays whole here
  * and the shortened form the list row carries (`src/ui/top-places.ts`) has no place on this screen.
@@ -195,10 +192,23 @@ function renderFigure(term: string, value: string): HTMLElement {
   return row;
 }
 
+/** Text a screen reader reads but the column does not draw — the column is too narrow for it. */
+function hiddenText(text: string): HTMLElement {
+  const span = document.createElement('span');
+  span.className = 'visually-hidden';
+  span.textContent = text;
+  return span;
+}
+
 /**
- * Each bar carries its month and its count as text. A bar length alone would put the whole chart
- * behind sighted, precise-width perception — `docs/conventions.md` → Accessibility bans conveying
- * importance by visual channel alone, and the same reasoning covers a chart.
+ * Each column carries its month and its count as text. A bar height alone would put the whole
+ * chart behind sighted, precise-height perception — `docs/conventions.md` → Accessibility bans
+ * conveying importance by visual channel alone, and the same reasoning covers a chart.
+ *
+ * Twelve columns share 328px at 360px width, so each draws only the month number and the count;
+ * the year and the `월`/`회` units are still in the text, so every entry reads in full as
+ * `2025년 10월 9회`. The year is drawn once where it starts — the first column and each January —
+ * instead of on all twelve.
  */
 function renderHistogram(buckets: MonthlyHistogram): HTMLElement {
   const section = document.createElement('section');
@@ -216,28 +226,54 @@ function renderHistogram(buckets: MonthlyHistogram): HTMLElement {
   // a place with no charted visit would otherwise divide by zero and produce `NaN%` widths.
   const busiest = buckets.reduce((max, bucket) => Math.max(max, bucket.visitCount), 0);
 
-  for (const bucket of buckets) {
+  buckets.forEach((bucket, index) => {
     const item = document.createElement('li');
     item.className = 'place-histogram-entry';
+    // Same two-channel rule as the row sparkline: an empty month differs from a quiet one in
+    // height as well as tone, so the stylesheet gives it a baseline rather than a floor.
+    item.dataset['empty'] = String(bucket.visitCount === 0);
 
+    // Split out of `monthLabel` rather than re-derived from the key, so the entry reads as the
+    // label every other surface prints.
+    const [yearPart = '', monthPart = ''] = monthLabel(bucket.month).split(' ');
     const label = document.createElement('span');
     label.className = 'place-histogram-month';
-    label.textContent = monthLabel(bucket.month);
+    const year = document.createElement('span');
+    year.className = 'place-histogram-year';
+    // A January next to the first column labels the new year itself; labelling both would draw
+    // two years over each other, since each spills past its narrow column.
+    const opensSpan = index === 0 && !buckets[1]?.month.endsWith('-01');
+    year.dataset['start'] = String(opensSpan || monthPart === '1월');
+    year.textContent = `${yearPart} `;
+    label.append(year, monthPart.replace('월', ''), hiddenText('월'));
 
     const track = document.createElement('span');
     track.className = 'place-histogram-track';
     const bar = document.createElement('span');
     bar.className = 'place-histogram-bar';
-    bar.style.width = busiest === 0 ? '0%' : `${(bucket.visitCount / busiest) * 100}%`;
+    bar.style.height = busiest === 0 ? '0%' : `${(bucket.visitCount / busiest) * 100}%`;
     track.append(bar);
 
     const count = document.createElement('span');
     count.className = 'place-histogram-count';
-    count.textContent = visitCountLabel(bucket.visitCount);
+    // The units are written here rather than sliced off the labels; the test pins both entries'
+    // text to `monthLabel` and `visitCountLabel`, so a reworded label fails there, not silently.
+    count.append(String(bucket.visitCount), hiddenText('회'));
 
-    item.append(label, track, count);
+    // One accessible phrase per entry. The drawn parts are split across flex items and
+    // absolutely positioned units, which a screen reader may read as `10`, `월`, `9`, `회`; they are
+    // hidden from it, and the stylesheet draws the count on top and the month under the axis.
+    for (const drawn of [label, track, count]) {
+      drawn.setAttribute('aria-hidden', 'true');
+    }
+    item.append(
+      hiddenText(`${monthLabel(bucket.month)} ${visitCountLabel(bucket.visitCount)}`),
+      label,
+      track,
+      count,
+    );
     list.append(item);
-  }
+  });
 
   section.append(heading, list);
   return section;
@@ -279,27 +315,16 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   name.className = 'place-detail-name';
   name.textContent = place.name;
 
+  // Two badges on one row, the address alone on the next. On one shared line the full address
+  // wrapped at 360px and stranded its separator at the end of a line with the distance badge
+  // dropped below it; with the badges together the address wraps on its own and needs no separator.
   const meta = document.createElement('p');
   meta.className = 'place-detail-meta';
   meta.append(renderKindBadge(place));
-  const address = document.createElement('span');
-  address.className = 'place-detail-address';
-  meta.append(address);
 
-  // The dot trails the address rather than leading the distance: at 360px the address wraps, and a
-  // separator at the head of the next line reads as a bullet. It is text rather than a `::before`
-  // rule so a test can see it — jsdom applies no stylesheet, and Vitest returns a `?raw` CSS import
-  // as an empty string, so a purely stylistic dot could be deleted with every test still green.
-  // The ranked row joins the same two facts the same way (`src/ui/top-places.ts`).
+  const address = document.createElement('p');
+  address.className = 'place-detail-address';
   address.textContent = place.address;
-  // The dot is a child element rather than part of the address text, so `aria-hidden` can keep it
-  // out of the accessibility tree: a spoken "middle dot" between two facts a screen reader already
-  // reads as separate is noise. `textContent` still reads as the address plus the separator, which
-  // is what the trailing-dot rule needs and what the test pins.
-  const separator = document.createElement('span');
-  separator.setAttribute('aria-hidden', 'true');
-  separator.textContent = `\u00A0${META_SEPARATOR}`;
-  address.append(separator);
 
   const distance = document.createElement('span');
   distance.className = 'place-detail-distance';
@@ -309,8 +334,7 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   distance.dataset['band'] = distanceBand(distanceFromCampusKm(place));
   distance.textContent = distanceLabel(place);
   // No separating text node here: `.place-detail-meta` is a flex container, where a whitespace-only
-  // run between items is not rendered at all — the gap comes from the container's own `gap`. The
-  // ranked row's location line is an inline context, which is why it does need one.
+  // run between items is not rendered at all — the gap comes from the container's own `gap`.
   meta.append(distance);
 
   const periodNote = document.createElement('p');
@@ -326,7 +350,7 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
 
   // The figures come before the map: the number is what the reader opened the row for, and the
   // map — which may never arrive — answers the follow-up question, so it sits above the link out.
-  section.append(name, meta, periodNote);
+  section.append(name, meta, address, periodNote);
 
   if (stats.visitCount === 0) {
     const empty = document.createElement('p');

@@ -2,6 +2,10 @@
 
 ## Review Backlog
 
+### Detail card monthly chart (follow-up, 2026-09-16)
+
+- [ ] [debt] The top-ranked place's 2026-09 column reads `0` while `updatedAt` is 2026-09-16. Unknown whether September is a partial month the collector has not reached or a month with no disclosure yet; either way the column draws the same as a month with no visits. Read `data/places.json` for September transactions before deciding whether the chart needs an in-progress marker (source: PR #63 design analysis, unverified) — `src/ui/place-detail.ts`, `src/stats/histogram.ts`
+
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
 - [ ] [debt] No vendor doc or captured trace establishes when the v3 API calls `navermap_authFailure` relative to map construction, or that it calls it at all on a rejected origin. The render no longer depends on the ordering — the hook is registered before the script is awaited and routed through one idempotent failure path, tested for both orderings against the fake API — but that is repo-side robustness, not evidence. Still needed: load the site on an origin the key rejects, in a real browser, and record whether the hook fires and whether the fallback replaces the map (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*
