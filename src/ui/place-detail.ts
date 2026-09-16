@@ -15,7 +15,8 @@ import {
 
 /**
  * The detail card for one selected place: a slot for the location map, the figures for the period
- * the place was picked from, a monthly visit histogram, and a link out to Naver Maps.
+ * the place was picked from, a monthly visit histogram, and the links out to Naver Maps and
+ * Kakao Map.
  *
  * Every number arrives already computed — `src/stats/place-stats.ts` and `src/stats/histogram.ts`
  * own them — so there is no second definition of a visit count on this screen. Strings are
@@ -40,6 +41,13 @@ export function histogramHeading(buckets: MonthlyHistogram): string {
 }
 
 export const NAVER_LINK_LABEL = '네이버지도에서 보기';
+
+/**
+ * The second map service, worded the same way as the first. Both labels name where the link goes
+ * and nothing else: picking a different verb for one of them would read as a preference between
+ * two services this dataset says nothing about (`docs/conventions.md` → Framing Vocabulary).
+ */
+export const KAKAO_LINK_LABEL = '카카오지도에서 보기';
 
 /** The dot between the address and the distance — the same one the ranked row's meta line uses. */
 export const META_SEPARATOR = '·';
@@ -91,6 +99,15 @@ function isHttpsUrl(value: string): boolean {
 const NAVER_SEARCH_PREFIX = 'https://map.naver.com/p/search/';
 
 /**
+ * Kakao Map's own search URL. `https://map.kakao.com/link/search/<query>` answers 302 with exactly
+ * this form, so the redirect target is what is written here rather than the hop to it.
+ *
+ * There is no `kakaoUrl` in the dataset and none is being added: the query below is composed from
+ * `name` and `address`, which every published row already carries.
+ */
+const KAKAO_SEARCH_PREFIX = 'https://map.kakao.com/?q=';
+
+/**
  * Where the Naver Maps link points, or `null` when no link should be rendered at all.
  *
  * The dataset's `naverUrl` searches the trade name alone, which finds the wrong branch whenever the
@@ -113,9 +130,56 @@ const NAVER_SEARCH_PREFIX = 'https://map.naver.com/p/search/';
 function naverLinkHref(place: PlaceRecord): string | null {
   const region = addressRegion(place.address);
   if (region !== null) {
-    return NAVER_SEARCH_PREFIX + encodeURIComponent(`${region} ${place.name}`);
+    return NAVER_SEARCH_PREFIX + encodeURIComponent(mapSearchQuery(region, place));
   }
   return isHttpsUrl(place.naverUrl) ? place.naverUrl : null;
+}
+
+/** The one query both services search, so the two links can never point at different places. */
+function mapSearchQuery(region: string, place: PlaceRecord): string {
+  return `${region} ${place.name}`;
+}
+
+/**
+ * Where the Kakao Map link points, or `null` when no link should be rendered.
+ *
+ * Only the composed branch exists here. Naver's fallback reads `naverUrl` out of the dataset;
+ * Kakao has no such field, and the one query that could stand in for it — the trade name alone —
+ * is the nationwide-collision search that composing a region-prefixed query exists to avoid. An
+ * address `addressRegion` refuses therefore yields no Kakao link rather than a link to the wrong
+ * branch, which is the same refusal `shortAddress` makes.
+ *
+ * Safe by construction like the composed Naver href: a constant https prefix over a
+ * percent-encoded query, with no dataset string reaching an executable position.
+ */
+function kakaoLinkHref(place: PlaceRecord): string | null {
+  const region = addressRegion(place.address);
+  if (region === null) {
+    return null;
+  }
+  return KAKAO_SEARCH_PREFIX + encodeURIComponent(mapSearchQuery(region, place));
+}
+
+/**
+ * One map link. Both services get the same class, and the service name rides a `data-` attribute
+ * that exists for the tests to aim at rather than for the stylesheet to style by — the two are the
+ * same control pointing at different places, and a card that drew one heavier than the other would
+ * state a preference the usage data does not support. The attribute is targetable like any other,
+ * so the equal weight is held by a rule in `src/ui/stylesheet-claims.test.ts` rather than by this
+ * sentence: no rule in `src/styles.css` may select `[data-service]`.
+ */
+function renderMapLink(service: 'naver' | 'kakao', href: string, label: string): HTMLAnchorElement {
+  const link = document.createElement('a');
+  link.className = 'place-detail-link';
+  link.dataset['service'] = service;
+  link.href = href;
+  link.target = '_blank';
+  // `noopener` denies the opened tab a handle back to this window; `noreferrer` keeps the
+  // referrer off the outbound request. Neither costs anything here and both are the default
+  // expectation for a `target="_blank"` link.
+  link.rel = 'noopener noreferrer';
+  link.textContent = label;
+  return link;
 }
 
 function renderFigure(term: string, value: string): HTMLElement {
@@ -285,22 +349,28 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
   section.append(renderHistogram(histogram), mapSlot);
 
   // The only place a dataset string reaches an executable position in this app — see
-  // `naverLinkHref`, which owns the scheme check. `src/data/load.ts` now rejects the whole file
+  // `naverLinkHref`, which owns the scheme check; `kakaoLinkHref` composes its href and reads no
+  // dataset URL at all. `src/data/load.ts` now rejects the whole file
   // unless `naverUrl` is an https URL on a Naver host, so a `javascript:` value never reaches that
   // check — but it stays, because the cost of being wrong is that value running in the page origin
   // on click.
-  const href = naverLinkHref(place);
-  if (href !== null) {
-    const link = document.createElement('a');
-    link.className = 'place-detail-link';
-    link.href = href;
-    link.target = '_blank';
-    // `noopener` denies the opened tab a handle back to this window; `noreferrer` keeps the
-    // referrer off the outbound request. Neither costs anything here and both are the default
-    // expectation for a `target="_blank"` link.
-    link.rel = 'noopener noreferrer';
-    link.textContent = NAVER_LINK_LABEL;
-    section.append(link);
+  const links: HTMLAnchorElement[] = [];
+  const naverHref = naverLinkHref(place);
+  if (naverHref !== null) {
+    links.push(renderMapLink('naver', naverHref, NAVER_LINK_LABEL));
+  }
+  const kakaoHref = kakaoLinkHref(place);
+  if (kakaoHref !== null) {
+    links.push(renderMapLink('kakao', kakaoHref, KAKAO_LINK_LABEL));
+  }
+  if (links.length > 0) {
+    // A wrapper rather than two siblings on the card: the pair shares one margin above it and one
+    // gap between, so neither link owns the spacing of the other. It is omitted entirely when
+    // there is no link, so an empty row never takes the margin.
+    const linkRow = document.createElement('div');
+    linkRow.className = 'place-detail-links';
+    linkRow.append(...links);
+    section.append(linkRow);
   }
 
   container.replaceChildren(section);
