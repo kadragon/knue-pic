@@ -195,6 +195,17 @@ function requireKind(raw: unknown, path: string): PlaceKind {
  */
 const NAVER_HOSTS = ['naver.com', 'naver.me'];
 
+/**
+ * Plain ASCII letters/digits/hyphens per label — the same shape `collector/validate.py` ->
+ * `naver_url_or_none` holds the host to, and for the same reason. WHATWG runs IDNA on the host,
+ * and what that step does to a punycode label is a runtime's answer, not ours: Node 22 threw on
+ * `xn--a.naver.com`, Node 26 parses it. Testing the label shape instead keeps this module's
+ * verdict a property of the value rather than of the parser under it, and keeps the gate and the
+ * loader in agreement by construction instead of by corpus. It costs nothing real: every URL the
+ * collector emits is an ASCII `*.naver.com` address.
+ */
+const ASCII_HOST = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
+
 function requireNaverUrl(raw: unknown, path: string): string {
   const text = requireText(raw, path);
 
@@ -206,9 +217,11 @@ function requireNaverUrl(raw: unknown, path: string): string {
     throw new DatasetLoadError(`${path} is not a valid URL: ${describe(text)}`);
   }
 
-  const hostAllowed = NAVER_HOSTS.some(
-    (host) => url.hostname === host || url.hostname.endsWith(`.${host}`),
-  );
+  // `url.hostname` is already lowercased by the parser, so both tests below read one casing.
+  const hostAllowed =
+    NAVER_HOSTS.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`)) &&
+    ASCII_HOST.test(url.hostname) &&
+    !url.hostname.split('.').some((label) => label.startsWith('xn--'));
   if (url.protocol !== 'https:' || !hostAllowed) {
     throw new DatasetLoadError(
       `${path} must be an https URL on ${NAVER_HOSTS.join(' or ')}, got ${describe(text)}`,
