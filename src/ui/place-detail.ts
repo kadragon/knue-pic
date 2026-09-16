@@ -240,7 +240,10 @@ function renderHistogram(buckets: MonthlyHistogram): HTMLElement {
     label.className = 'place-histogram-month';
     const year = document.createElement('span');
     year.className = 'place-histogram-year';
-    year.dataset['start'] = String(index === 0 || monthPart === '1월');
+    // A January next to the first column labels the new year itself; labelling both would draw
+    // two years over each other, since each spills past its narrow column.
+    const opensSpan = index === 0 && !buckets[1]?.month.endsWith('-01');
+    year.dataset['start'] = String(opensSpan || monthPart === '1월');
     year.textContent = `${yearPart} `;
     label.append(year, monthPart.replace('월', ''), hiddenText('월'));
 

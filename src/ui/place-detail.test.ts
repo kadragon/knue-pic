@@ -169,11 +169,33 @@ describe('renderPlaceDetail', () => {
       entry.querySelector<HTMLElement>('.place-histogram-year')?.dataset['start'] === 'true' ? [index] : [],
     );
     const expected = detail.histogram.flatMap((bucket, index) =>
-      index === 0 || bucket.month.endsWith('-01') ? [index] : [],
+      (index === 0 && !detail.histogram[1]?.month.endsWith('-01')) || bucket.month.endsWith('-01')
+        ? [index]
+        : [],
     );
     expect(starts).toEqual(expected);
     // A span crossing a new year, so the January marker is exercised and not only the first column.
     expect(expected.length).toBeGreaterThan(1);
+  });
+
+  it('leaves the first column unlabelled when the next column is a January', () => {
+    const container = document.createElement('div');
+    const months = [monthKey(2025, 12), ...Array.from({ length: 11 }, (_, i) => monthKey(2026, i + 1))];
+    const [first, ...rest] = months.map((month) => ({ month, visitCount: 1 }));
+    const detail = { ...detailFor(0, '1y'), histogram: [first!, ...rest] as const };
+
+    renderPlaceDetail(container, detail);
+    const starts = [...container.querySelectorAll<HTMLElement>('.place-histogram-year')].map(
+      (year) => year.dataset['start'],
+    );
+
+    // Both labels are wider than a 360px column and spill right, so a December first column and
+    // the January beside it would draw `2025년` and `2026년` over each other.
+    expect(starts[0]).toBe('false');
+    expect(starts[1]).toBe('true');
+    expect(starts.filter((start) => start === 'true')).toHaveLength(1);
+    // The first column still reads in full.
+    expect(container.querySelector('.place-histogram-month')?.textContent).toBe(monthLabel(months[0]!));
   });
 
   it('scales bars without dividing by zero when the place has no charted visit', () => {

@@ -1021,7 +1021,7 @@ button.top-place-body,
 
 .place-histogram h4,
 .place-map h4 {
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--space-3);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
@@ -1069,7 +1069,7 @@ button.top-place-body,
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  height: 88px;
+  height: 72px;
   border-bottom: 1px solid var(--border-control);
 }
 
@@ -1099,8 +1099,7 @@ button.top-place-body,
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* optical: sub-scale, the gap between the axis rule and the month numbers under it. */
-  padding-top: 6px;
+  padding-top: var(--space-1);
   color: var(--muted);
 }
 
