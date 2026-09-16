@@ -248,7 +248,10 @@ describe('naverUrl', () => {
     // Both parsers read host `naver.com` and the rest as path — kept so the gate and the
     // loader are pinned to the same answer on the backslash case in both directions.
     'https://naver.com\\@evil.com/x',
-    'https://xn--h32b.naver.com/x',
+    // `new URL` lowercases the host, so the ASCII-shape test never sees the capitals. Pinned so
+    // the rule is not accidentally written against a case-sensitive host and made stricter than
+    // the gate, which lowercases before matching.
+    'https://MAP.NAVER.COM/p/entry/place/1',
   ])('accepts %s', (url) => {
     const payload = validPayload();
     firstPlace(payload)['naverUrl'] = url;
@@ -268,6 +271,11 @@ describe('naverUrl', () => {
     // here is `evil.com`. `collector/validate.py` normalises the same way; a parser that did
     // not would pass this at the gate and then blank the site here.
     'https://evil.com\\@naver.com/x',
+    // A host with an `xn--` label is held to the same rule as in `collector/validate.py` ->
+    // `naver_url_or_none`: reject the label shape rather than lean on what IDNA does to it. This
+    // one decodes to a real host, so every runtime parses it and the host rule is what rejects
+    // it — which makes it the case that stays red on both Node versions if that rule is removed.
+    'https://xn--h32b.naver.com/x',
   ])('rejects %s', (url) => {
     const payload = validPayload();
     firstPlace(payload)['naverUrl'] = url;
@@ -276,16 +284,24 @@ describe('naverUrl', () => {
     expect(() => parseDataset(payload)).toThrow(/places\[0\]\.naverUrl must be an https URL/);
   });
 
-  it.each([
-    '한밭식당',
-    // `new URL` runs IDNA on the host and throws outright on a label that claims to be punycode
-    // without being it, so this fails at the parse rather than at the host allowlist.
-    // `collector/validate.py` decodes the host for the same reason — see its own regression case.
-    'https://xn--a.naver.com/x',
-  ])('rejects %s as unparseable', (url) => {
+  it.each(['한밭식당'])('rejects %s as unparseable', (url) => {
     const payload = validPayload();
     firstPlace(payload)['naverUrl'] = url;
 
     expect(() => parseDataset(payload)).toThrow(/places\[0\]\.naverUrl is not a valid URL/);
+  });
+
+  // `xn--a` is not decodable punycode, and which check catches it is the runtime's business:
+  // Node 22 throws inside `new URL`, Node 26 parses the host and leaves it to the shape rule. The
+  // invariant is that the loader rejects it, so that is all this asserts — naming one message
+  // would put a claim about a foreign parser back into the suite, which is what `xn--a` was moved
+  // out of the unparseable group to stop doing. `rejects https://xn--h32b.naver.com/x` above is
+  // the case that pins the host rule itself on every runtime.
+  it('rejects https://xn--a.naver.com/x, whichever check catches it', () => {
+    const payload = validPayload();
+    firstPlace(payload)['naverUrl'] = 'https://xn--a.naver.com/x';
+
+    expect(() => parseDataset(payload)).toThrow(DatasetLoadError);
+    expect(() => parseDataset(payload)).toThrow(/^places\[0\]\.naverUrl /);
   });
 });
