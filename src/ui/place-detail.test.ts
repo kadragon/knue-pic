@@ -10,6 +10,7 @@ import {
   FIGURE_LABELS,
   histogramHeading,
   META_SEPARATOR,
+  KAKAO_LINK_LABEL,
   NAVER_LINK_LABEL,
   NO_VISIT_IN_PERIOD_MESSAGE,
   periodStatsHeading,
@@ -196,7 +197,10 @@ describe('renderPlaceDetail', () => {
       });
 
       expect(container.querySelector('.place-detail-link')).toBeNull();
+      // The wrapper goes with them — an empty row would still take the margin above the links.
+      expect(container.querySelector('.place-detail-links')).toBeNull();
       expect(container.textContent).not.toContain(NAVER_LINK_LABEL);
+      expect(container.textContent).not.toContain(KAKAO_LINK_LABEL);
       // The rest of the card still renders — one bad field does not blank the whole view.
       expect(container.textContent).toContain(detail.place.name);
     }
@@ -206,7 +210,7 @@ describe('renderPlaceDetail', () => {
     const container = document.createElement('div');
 
     renderPlaceDetail(container, detailFor(0, '1y'));
-    const link = container.querySelector<HTMLAnchorElement>('.place-detail-link');
+    const link = container.querySelector<HTMLAnchorElement>('[data-service="naver"]');
 
     // 한밭식당 sits in 청주's 강내면 (`충북 청주시 흥덕구 강내면 태성탑연로 111`), so the query is
     // `청주 강내면 한밭식당` — city, then narrowest unit, then the name. The dataset's own
@@ -229,7 +233,7 @@ describe('renderPlaceDetail', () => {
       const detail = detailFor(0, '1y');
 
       renderPlaceDetail(container, { ...detail, place: { ...detail.place, naverUrl } });
-      const link = container.querySelector<HTMLAnchorElement>('.place-detail-link');
+      const link = container.querySelector<HTMLAnchorElement>('[data-service="naver"]');
 
       expect(link?.getAttribute('href')).toBe(
         `https://map.naver.com/p/search/${encodeURIComponent('청주 강내면 한밭식당')}`,
@@ -246,19 +250,75 @@ describe('renderPlaceDetail', () => {
       ...detail,
       place: { ...detail.place, address: '태성탑연로 111' },
     });
-    const link = container.querySelector<HTMLAnchorElement>('.place-detail-link');
+    const link = container.querySelector<HTMLAnchorElement>('[data-service="naver"]');
 
     expect(link?.getAttribute('href')).toBe(PLACE.naverUrl);
   });
 
-  it('links out to Naver Maps without handing the new tab a window handle', () => {
+  it('links out to both map services without handing the new tab a window handle', () => {
     const container = document.createElement('div');
 
     renderPlaceDetail(container, detailFor(0, '1y'));
-    const link = container.querySelector<HTMLAnchorElement>('.place-detail-link');
+    const links = [...container.querySelectorAll<HTMLAnchorElement>('.place-detail-link')];
 
-    expect(link?.textContent).toBe(NAVER_LINK_LABEL);
-    expect(link?.getAttribute('target')).toBe('_blank');
-    expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    // Source order is Naver then Kakao; the labels are pinned so a swap has to be deliberate.
+    expect(links.map((link) => link.textContent)).toEqual([NAVER_LINK_LABEL, KAKAO_LINK_LABEL]);
+    expect(links.map((link) => link.dataset['service'])).toEqual(['naver', 'kakao']);
+    for (const link of links) {
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+      // Peers: the same class, so the stylesheet cannot give one of them more weight than the
+      // other without doing it to both.
+      expect(link.className).toBe('place-detail-link');
+      expect(link.parentElement?.className).toBe('place-detail-links');
+    }
+  });
+
+  it('searches the same composed query on Kakao Map as on Naver Maps', () => {
+    const container = document.createElement('div');
+
+    renderPlaceDetail(container, detailFor(0, '1y'));
+    const kakao = container.querySelector<HTMLAnchorElement>('[data-service="kakao"]');
+
+    // `https://map.kakao.com/link/search/<q>` answers 302 to this form, so the link is written as
+    // the destination rather than as the hop to it.
+    expect(kakao?.getAttribute('href')).toBe(
+      `https://map.kakao.com/?q=${encodeURIComponent('청주 강내면 한밭식당')}`,
+    );
+  });
+
+  it('composes the Kakao link from the address, never from the dataset URL', () => {
+    // The dataset has no Kakao field, and `naverUrl` is the one string a place carries that could
+    // be mistaken for one. A `naverUrl` this unusable must change nothing about the Kakao link.
+    for (const naverUrl of ['javascript:alert(1)', 'http://map.naver.com/x', 'not a url']) {
+      const container = document.createElement('div');
+      const detail = detailFor(0, '1y');
+
+      renderPlaceDetail(container, { ...detail, place: { ...detail.place, naverUrl } });
+
+      expect(
+        container.querySelector<HTMLAnchorElement>('[data-service="kakao"]')?.getAttribute('href'),
+      ).toBe(`https://map.kakao.com/?q=${encodeURIComponent('청주 강내면 한밭식당')}`);
+    }
+  });
+
+  it('renders no Kakao link when the address names no administrative unit', () => {
+    const container = document.createElement('div');
+    const detail = detailFor(0, '1y');
+
+    // Naver still links, by falling back to the dataset URL. Kakao has no such fallback, and the
+    // trade name alone is the nationwide-collision search the composed query exists to avoid.
+    renderPlaceDetail(container, {
+      ...detail,
+      place: { ...detail.place, address: '태성탑연로 111' },
+    });
+
+    expect(container.querySelector('[data-service="kakao"]')).toBeNull();
+    expect(container.textContent).not.toContain(KAKAO_LINK_LABEL);
+    expect(
+      container.querySelector<HTMLAnchorElement>('[data-service="naver"]')?.getAttribute('href'),
+    ).toBe(
+      PLACE.naverUrl,
+    );
   });
 });

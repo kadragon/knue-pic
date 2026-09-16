@@ -236,6 +236,12 @@ gate cannot disagree about the window. Five fields are derived rather than copie
   place's own `address` (`청주 강내면 신토불이`), because a bare trade name finds a same-named
   business elsewhere in the country, and a bare district name is shared by five or six cities. This field is the fallback for an address naming no administrative unit, and stays the
   field the loader and the validator police.
+  The card carries a second link beside it, to Kakao Map (`https://map.kakao.com/?q=…`, the form
+  `https://map.kakao.com/link/search/…` redirects to), over that same composed query, so the two
+  services can never be sent to different places. There is no `kakaoUrl` in the dataset and no
+  fallback for it: an address `addressRegion` refuses yields the Naver link alone, because the only
+  query left — the bare trade name — is the nationwide collision the composed query exists to
+  avoid. Both links carry the same class and weight; the service rides a `data-service` attribute.
 
 **Spelling merges.** The disclosures spell one business several ways, and stage 3 merges only exact
 normalised matches (see *Key Abstractions* below), so `신토불이교원대점` and `신토불이` arrive as two
