@@ -92,7 +92,7 @@ thing a wrong assumption would corrupt silently.
 ## Knowing there is something new to collect
 
 `collector/board_seen.json` holds one number — `lastNttNo`, the highest `nttNo` this repo has
-already collected (84344 = 2026-08's 사무국장실 post). The board publishes an RSS feed of the same
+already collected (84550 = 2026-08's 종합교육연수원 post). The board publishes an RSS feed of the same
 `bbsNo=18`:
 
 ```bash
