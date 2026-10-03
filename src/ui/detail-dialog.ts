@@ -115,9 +115,19 @@ export function createDetailDialog(
    */
   let paintId = 0;
 
+  /**
+   * Cleared before the call, and the call cannot throw out: `closeDialog` and `paint` both start
+   * here, so an escaping throw would skip the listener removal and focus restore, and a release left
+   * stored would be retried — and throw again — on every later paint.
+   */
   function dropMap(): void {
-    releaseMap?.();
+    const release = releaseMap;
     releaseMap = null;
+    try {
+      release?.();
+    } catch {
+      // The map is unusable either way; nothing here can recover it.
+    }
   }
 
   function isOpen(): boolean {

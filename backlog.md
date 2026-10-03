@@ -2,9 +2,9 @@
 
 ## Review Backlog
 
-### PR #68 — detail map release survives a throwing destroy (2026-10-03)
+### PR #69 — detail dialog survives a throwing map release (2026-10-03)
 
-- [ ] [debt] `dropMap` calls the stored release before nulling it, and `closeDialog` hides the root first, so any release that throws (an injected `renderMap`, a future throw in `clearAuthFailureHandler`) still escapes `closeDialog` and every later `paint()`, leaving the keydown listener attached and focus unrestored. Null the field before calling it and cover a throwing injected release in `src/ui/detail-dialog.test.ts` (source: code-review) — `src/ui/detail-dialog.ts:118`
+- [ ] [debt] A synchronous throw from an injected `renderMap` escapes `paint()` before the trailing `.catch` attaches, so `open()` throws after rendering the body but before unhiding the root and adding the keydown listener; the comment above the mount claims the catch covers a renderer that breaks the promise, but it only covers async rejection. Defer the call into the promise chain and cover a sync-throwing renderer in `src/ui/detail-dialog.test.ts` (source: code-review) — `src/ui/detail-dialog.ts:223`
 
 ### PR #67 — loader re-injection after auth failure (2026-10-03)
 
