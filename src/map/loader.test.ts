@@ -89,11 +89,16 @@ describe('loadNaverMaps', () => {
   });
 
   it('injects a fresh tag once a resolved API has been nulled, rather than replaying it', async () => {
-    // A rejected origin resolves the first load, then the auth-failure hook nulls `naver.maps`
-    // (`./loader.ts` module comment). A second render must not get that dead object back.
+    // A rejected origin resolves the first load, then the API nulls `naver.maps` and calls the
+    // auth-failure hook (`./loader.ts` module comment). A second render must not get that dead
+    // object back.
     const first = createFakeNaverApi();
-    let api: ReturnType<typeof createFakeNaverApi> | undefined;
-    const readApi = (): typeof api => api;
+    type Api = ReturnType<typeof createFakeNaverApi>;
+    let api: Api | null | undefined;
+    // `null`, not `undefined`, is what the API leaves behind (`naver.maps === null`, observed
+    // 2026-10-03 on `:5179`), and `naver?.maps` hands it on past the declared type — so the cast is
+    // the production value, not a convenience.
+    const readApi = (): Api | undefined => api as Api | undefined;
 
     const firstLoad = loadNaverMaps({ clientId: 'key', readApi });
     api = first;
@@ -101,7 +106,7 @@ describe('loadNaverMaps', () => {
     await expect(firstLoad).resolves.toBe(first);
     expect(injectedScript()).toBeNull();
 
-    api = undefined;
+    api = null;
     const secondLoad = loadNaverMaps({ clientId: 'key', readApi });
     expect(injectedScript()).not.toBeNull();
 
