@@ -8,7 +8,7 @@
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
-- [ ] [debt] No vendor doc or captured trace establishes when the v3 API calls `navermap_authFailure` relative to map construction, or that it calls it at all on a rejected origin. The render no longer depends on the ordering — the hook is registered before the script is awaited and routed through one idempotent failure path, tested for both orderings against the fake API — but that is repo-side robustness, not evidence. Still needed: load the site on an origin the key rejects, in a real browser, and record whether the hook fires and whether the fallback replaces the map (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*
+- [ ] [debt] No vendor doc or captured trace establishes when the v3 API calls `navermap_authFailure` relative to map construction, or that it calls it at all on a rejected origin. The render no longer depends on the ordering — the hook is registered before the script is awaited and routed through one idempotent failure path, tested for both orderings against the fake API — but that is repo-side robustness, not evidence. Still needed: load the site on an origin the key rejects, in a real browser, and record whether the hook fires and whether the fallback replaces the map (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts`. Partly observed 2026-10-03 (PR #65): on `npx vite --port 5179` (a rejected origin) `/v3/auth` answered 401, `window.naver.maps` was gone, and the detail showed the fallback text. Still open: whether `navermap_authFailure` itself was called, and when — the loader's "loaded without an API" rejection would produce the same screen. A rejected origin is now reproducible locally, so this is no longer deferred.
 
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
@@ -50,6 +50,71 @@
   `docs/architecture.md` → Build. No re-collect was needed for the schema; the committed dataset
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
+
+### PR #65 — pin the dev server to the Naver-accepted port (2026-10-03)
+
+- [ ] [harness] `vite preview` stays on `:4173`, which the key rejects, so a production bundle cannot be
+  checked against the real map locally. Pin `preview: { port: 5173, strictPort: true }` and verify the
+  map mounts there, or record the limit as accepted (source: code-review) — `vite.config.ts:15`
+
+## Map-first 2 — summary line and 업종 chip counts (2026-10-03)
+
+- [ ] [feat] Add `{updatedAt} 기준 · N곳 · N회` above the filters and an in-window place count on
+  each 업종 chip, both computed in `src/stats/` as pure functions (N곳 = places with ≥1 in-window
+  transaction under the current filters; N회 = in-window transaction count). Lands in today's
+  layout, so it ships independently of the map. Accept: stats unit tests hand-computable from a
+  fixture; banned-phrase test covers the new strings; 360px holds (source:
+  `docs/design/map-first-layout.md` → Implementation Decisions 6–7) — `src/stats/`,
+  `src/ui/kind-filter.ts`, `src/ui/shell.ts`
+
+## Map-first 3 — page map shell with neutral dots and the fallback layout (2026-10-03)
+
+- [ ] [feat] Desktop (≥ 768px): full-bleed Naver map with the existing content in a ~360px left
+  panel; every place passing the period and 업종 filters is a small neutral dot (no size/shade/hue
+  from visit count); a `학교로` control recentres on `CAMPUS_ORIGIN`. Either failure route
+  (load rejection, `navermap_authFailure`) switches to today's full-width layout with
+  `지도를 불러오지 못했습니다.` once. Below 768px the page stays today's layout until ticket 6. The
+  detail dialog is untouched. Accept: fake-API tests for dot set = filtered set, no
+  count-derived marker option, both failure routes → full-width state; list paints before the map
+  mounts; real-map check per `docs/runbook.md` → Verify the real map (source: `docs/design/map-first-layout.md` →
+  Solution, Implementation Decisions 1, 3, 5, 8) — `src/map/place-map.ts`, `src/ui/shell.ts`,
+  `src/ui/bootstrap.ts`, `src/styles.css`
+
+## Map-first 4 — numbered pins synced with the visible rows (2026-10-03)
+
+- [ ] [feat] Rows currently visible in the list become pins printing the row's rank label; row
+  hover/focus and selection highlight the matching pin and vice versa; `더 보기` extends the pin
+  set. `src/map/` receives `{ place, label? }` from the UI and still imports nothing from
+  `src/stats/`. Amend `docs/architecture.md` → Layer Rules and rewrite the
+  `src/map/place-map.ts` header to record why the page map returned (PR #17 removed it for sitting
+  three screens away). Accept: fake-API tests for pin labels = visible rows' labels, highlight
+  sync both ways, no count-derived marker option (source: `docs/design/map-first-layout.md` →
+  Implementation Decisions 1–2) — `src/map/place-map.ts`, `src/ui/place-list.ts`,
+  `src/ui/top-places.ts`, `docs/architecture.md` *(blocked by: 3-page-map-shell)*
+
+## Map-first 5 — detail inside the panel with `#place=<id>` (2026-10-03)
+
+- [ ] [feat] Selecting a place (row, pin, dot, search result) replaces the list inside the panel
+  with the detail card and a `← 목록` control, pans the map to it, and writes `#place=<id>`;
+  loading with that hash opens it, an unknown id falls back to the list silently, and the back
+  button returns to the list. At ≥ 768px the modal dialog and its single-marker map go away; below
+  768px the dialog stays until ticket 6 lands the mobile sheet, since merging publishes. The card's
+  sections move unchanged. Accept: hash round-trip and unknown-id tests; dot click → detail; focus
+  moves to the card and back to the originating row; `device-state.test.ts` unchanged (source:
+  `docs/design/map-first-layout.md` → Implementation Decision 4) — `src/ui/detail-dialog.ts`,
+  `src/ui/place-detail.ts`, `src/ui/bootstrap.ts`, `src/map/place-map.ts`
+  *(blocked by: 4-numbered-pins)*
+
+## Map-first 6 — mobile bottom sheet (2026-10-03)
+
+- [ ] [feat] Below 768px: full-screen map with the panel as a bottom sheet snapping to peek / half
+  / full (default half) with a grab handle; the panel's list → search source order and the
+  map-failure fallback (full-screen list) carry over; the modal dialog left below 768px by ticket 5
+  is removed here. Accept: works at 360px with the map loaded
+  and with the Naver script blocked; snap states reachable by keyboard as well as drag; all four
+  `docs/eval-criteria.md` criteria graded for the finished layout (source:
+  `docs/design/map-first-layout.md` → Solution, Implementation Decision 9) — `src/ui/shell.ts`,
+  `src/styles.css` *(blocked by: 5-detail-inside-panel)*
 
 ## Someday
 
