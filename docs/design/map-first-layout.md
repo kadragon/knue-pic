@@ -79,7 +79,8 @@ shows `지도를 불러오지 못했습니다.` once at the top. Everything the 
    in-window transaction under the current filters, N회 = in-window transaction count. Pure function,
    unit-tested like every other statistic.
 7. **업종 chip counts** = in-window places per kind, same function family as the summary.
-8. **`학교로` control** recentres the map on `CAMPUS_ORIGIN` (`src/stats/distance.ts`). No
+8. **`학교로` control** recentres the map on `CAMPUS_ORIGIN` (`src/stats/distance.ts`). The UI
+   passes the coordinate into `src/map/`, which still never imports `src/stats/` (Decision 2). No
    distance-from-me.
 9. **Source order** stays ranked list → search inside the panel (`docs/conventions.md` →
    Accessibility & Responsive), so the 360px rule and its reasoning carry over unchanged.
@@ -107,11 +108,9 @@ shows `지도를 불러오지 못했습니다.` once at the top. Everything the 
 
 ## Further Notes
 
-- **Open risk — dev verification origin.** This session's dev server at
-  `http://localhost:5179/knue-pic/` received `401 (Unauthorized)` from `oapi.map.naver.com/v3/auth`
-  for the committed client ID, although `docs/runbook.md` lists `http://localhost:*` as allowed.
-  The first slice must establish an origin where the real map loads (registered port, `vite
-  preview`, or the Pages URL) before any visual acceptance can be claimed.
+- **Dev verification origin — resolved.** The key accepts only `http://localhost:5173` locally
+  (`:5179` and `vite preview`'s `:4173` got `401`); `vite.config.ts` pins the dev port, and
+  `docs/runbook.md` → Verify the real map is the visual-acceptance route for every ticket.
 - The detail card's sections (figures, monthly columns, links) move unchanged from the dialog into
   the panel; PR #63's chart rhythm is kept.
 - The backlog debt on `navermap_authFailure` timing becomes more visible, not less: the page map is

@@ -8,7 +8,7 @@
 
 ### Map auth-failure hook (follow-up, 2026-08-19)
 
-- [ ] [debt] No vendor doc or captured trace establishes when the v3 API calls `navermap_authFailure` relative to map construction, or that it calls it at all on a rejected origin. The render no longer depends on the ordering — the hook is registered before the script is awaited and routed through one idempotent failure path, tested for both orderings against the fake API — but that is repo-side robustness, not evidence. Still needed: load the site on an origin the key rejects, in a real browser, and record whether the hook fires and whether the fallback replaces the map (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts` *(deferred: needs a real browser on an origin the Naver key rejects)*
+- [ ] [debt] No vendor doc or captured trace establishes when the v3 API calls `navermap_authFailure` relative to map construction, or that it calls it at all on a rejected origin. The render no longer depends on the ordering — the hook is registered before the script is awaited and routed through one idempotent failure path, tested for both orderings against the fake API — but that is repo-side robustness, not evidence. Still needed: load the site on an origin the key rejects, in a real browser, and record whether the hook fires and whether the fallback replaces the map (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts`. Partly observed 2026-10-03 (PR #65): on `npx vite --port 5179` (a rejected origin) `/v3/auth` answered 401, `window.naver.maps` was gone, and the detail showed the fallback text. Still open: whether `navermap_authFailure` itself was called, and when — the loader's "loaded without an API" rejection would produce the same screen. A rejected origin is now reproducible locally, so this is no longer deferred.
 
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
@@ -51,6 +51,12 @@
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
 
+### PR #65 — pin the dev server to the Naver-accepted port (2026-10-03)
+
+- [ ] [harness] `vite preview` stays on `:4173`, which the key rejects, so a production bundle cannot be
+  checked against the real map locally. Pin `preview: { port: 5173, strictPort: true }` and verify the
+  map mounts there, or record the limit as accepted (source: code-review) — `vite.config.ts:15`
+
 ## Map-first 2 — summary line and 업종 chip counts (2026-10-03)
 
 - [ ] [feat] Add `{updatedAt} 기준 · N곳 · N회` above the filters and an in-window place count on
@@ -91,22 +97,24 @@
 - [ ] [feat] Selecting a place (row, pin, dot, search result) replaces the list inside the panel
   with the detail card and a `← 목록` control, pans the map to it, and writes `#place=<id>`;
   loading with that hash opens it, an unknown id falls back to the list silently, and the back
-  button returns to the list. Remove the modal dialog and its single-marker map; the card's
+  button returns to the list. At ≥ 768px the modal dialog and its single-marker map go away; below
+  768px the dialog stays until ticket 6 lands the mobile sheet, since merging publishes. The card's
   sections move unchanged. Accept: hash round-trip and unknown-id tests; dot click → detail; focus
   moves to the card and back to the originating row; `device-state.test.ts` unchanged (source:
   `docs/design/map-first-layout.md` → Implementation Decision 4) — `src/ui/detail-dialog.ts`,
   `src/ui/place-detail.ts`, `src/ui/bootstrap.ts`, `src/map/place-map.ts`
-  *(blocked by: 4-ranked-pins)*
+  *(blocked by: 4-numbered-pins)*
 
 ## Map-first 6 — mobile bottom sheet (2026-10-03)
 
 - [ ] [feat] Below 768px: full-screen map with the panel as a bottom sheet snapping to peek / half
   / full (default half) with a grab handle; the panel's list → search source order and the
-  map-failure fallback (full-screen list) carry over. Accept: works at 360px with the map loaded
+  map-failure fallback (full-screen list) carry over; the modal dialog left below 768px by ticket 5
+  is removed here. Accept: works at 360px with the map loaded
   and with the Naver script blocked; snap states reachable by keyboard as well as drag; all four
   `docs/eval-criteria.md` criteria graded for the finished layout (source:
   `docs/design/map-first-layout.md` → Solution, Implementation Decision 9) — `src/ui/shell.ts`,
-  `src/styles.css` *(blocked by: 5-panel-detail-hash)*
+  `src/styles.css` *(blocked by: 5-detail-inside-panel)*
 
 ## Someday
 

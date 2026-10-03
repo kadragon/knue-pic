@@ -43,8 +43,8 @@ of sliding to a port the key rejects. Check that the map mounted without relying
 
 - open a place's detail at `http://localhost:5173/knue-pic/`;
 - `http://oapi.map.naver.com/v3/auth` answered `200` (a rejected origin gets `401`);
-- `document.querySelector('.place-map-canvas').children.length > 0` and `window.naver.maps` is
-  defined (the auth-failure hook nulls the global);
+- `document.querySelector('.place-map-canvas').children.length > 0` and
+  `window.naver?.maps != null` (a rejected origin leaves the global without it);
 - no `.place-map-fallback` element is present.
 
 ## Build & Test
