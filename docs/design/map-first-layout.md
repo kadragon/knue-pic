@@ -113,5 +113,6 @@ shows `지도를 불러오지 못했습니다.` once at the top. Everything the 
   `docs/runbook.md` → Verify the real map is the visual-acceptance route for every ticket.
 - The detail card's sections (figures, monthly columns, links) move unchanged from the dialog into
   the panel; PR #63's chart rhythm is kept.
-- The backlog debt on `navermap_authFailure` timing becomes more visible, not less: the page map is
-  now on the first screen, so a rejected origin degrades the whole layout.
+- `navermap_authFailure` fires after the map mounts on a rejected origin (observed 2026-10-03,
+  `src/map/loader.ts` module comment), so the fallback becomes more visible, not less: the page map
+  is now on the first screen, and a rejected origin degrades the whole layout.

@@ -162,10 +162,10 @@ export async function renderPlaceLocationMap(
   };
 
   // Registered *before* the script is awaited, and kept until release, so the hook is caught
-  // whichever side of the mount the API calls it on. Which side that is has not been observed:
-  // `backlog.md` carries the real-browser check against a rejected origin, and nothing here depends
-  // on its answer. Installing ours also replaces any handler a previous render left behind — one
-  // closing over a section this call just replaced.
+  // whichever side of the mount the API calls it on. The real API was observed calling it after
+  // the mount (`./loader.ts` module comment); the earlier side is held anyway, because nothing
+  // pins that ordering. Installing ours also replaces any handler a previous render left behind —
+  // one closing over a section this call just replaced.
   setAuthFailureHandler(fail);
 
   try {
@@ -177,7 +177,8 @@ export async function renderPlaceLocationMap(
       return () => {};
     }
     // Mounting is inside the try as well: a script that loaded can still throw from a constructor
-    // (a rejected key, an API version that moved). Leaving that outside would reject the promise
+    // (an API version that moved). A rejected key does not throw here — it mounts, then fails
+    // through the auth-failure hook (`./loader.ts` module comment). Leaving that outside would reject the promise
     // and leave an empty canvas where the fallback message belongs.
     const position = new api.LatLng(place.lat, place.lng);
     const map: NaverMap = new api.Map(canvas, { center: position, zoom: PLACE_ZOOM });

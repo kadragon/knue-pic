@@ -41,7 +41,9 @@ acceptance of any map change runs on `npm run dev` — not on `npm run preview` 
 `vite.config.ts` pins port 5173 with `strictPort`: if the port is taken, `npm run dev` exits instead
 of sliding to a port the key rejects. Check that the map mounted without relying on a screenshot:
 
-- open a place's detail at `http://localhost:5173/knue-pic/`;
+- open a place's detail at `http://localhost:5173/knue-pic/` and wait at least 2 s — a rejected
+  origin mounts the map first and replaces it with the fallback about 1.1 s after the `401`
+  (`src/map/loader.ts` module comment), so the two checks below pass on it if read too early;
 - `http://oapi.map.naver.com/v3/auth` answered `200` (a rejected origin gets `401`);
 - `document.querySelector('.place-map-canvas').children.length > 0` and
   `window.naver?.maps != null` (a rejected origin leaves the global without it);
@@ -112,7 +114,9 @@ The collector's server/search credentials are never Vite variables and never liv
 - **Browser Client ID** — the only key in the web app. Restrict its allowed Web Service URL to
   `https://kadragon.github.io` and `http://localhost:5173` for development. Observed 2026-10-03:
   `:5173` authenticates; `:5179` and `vite preview`'s `:4173` get `401` from `/v3/auth` and the map
-  falls back — the list is per port, not a `localhost:*` wildcard.
+  falls back — the list is per port, not a `localhost:*` wildcard. The fallback comes from
+  `window.navermap_authFailure`, called after the map has mounted (`src/map/loader.ts` module
+  comment); the loader itself resolves.
 - **Server / search secret** — used by the collector for geocoding. Lives in the operator's local
   environment only. It must never appear in `src/`, in a committed file, or in an Actions secret
   used by the web build.
