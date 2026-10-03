@@ -118,14 +118,15 @@ function clearAuthFailureHandler(handler: () => void): void {
  *
  * A throw is swallowed. On a rejected origin, once the auth-failure hook has fired, the real
  * `destroy` throws `TypeError: Cannot read properties of null (reading 'isArray')` (observed
- * 2026-10-03, `localhost:5179`, Chromium) — the API has already torn the map down, so there is
- * nothing left to release. Letting it escape would break the caller's close and every later paint.
+ * 2026-10-03, `localhost:5179`, Chromium). Whether that map's resources were freed is unverified;
+ * the map is unusable either way. Letting the throw escape would break the caller's close and every
+ * later paint.
  */
 function releaseMap(map: NaverMap): void {
   try {
     map.destroy?.();
   } catch {
-    // Nothing to recover: the map is unusable either way, and release must not throw.
+    // Nothing to recover, and release must not throw.
   }
 }
 

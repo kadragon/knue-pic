@@ -133,6 +133,8 @@ describe('renderPlaceLocationMap', () => {
       throw new TypeError("Cannot read properties of null (reading 'isArray')");
     };
 
+    // The regression guard. The hook check below passes either way: `release` clears the hook
+    // before it calls `destroy`.
     expect(() => release()).not.toThrow();
     expect(authFailureHook()).toBeUndefined();
 
