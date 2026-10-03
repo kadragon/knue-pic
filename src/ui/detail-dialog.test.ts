@@ -278,4 +278,27 @@ describe('createDetailDialog map lifecycle', () => {
     dialog.close();
     document.body.replaceChildren();
   });
+
+  it('swaps to the next place when the open card release throws', async () => {
+    const { container } = mount();
+    let calls = 0;
+    const dialog = createDetailDialog(container, {
+      renderMap: () =>
+        Promise.resolve(() => {
+          calls += 1;
+          throw new TypeError('destroy failed');
+        }),
+    });
+
+    dialog.open(detailFor(0));
+    await Promise.resolve();
+
+    // Repainting while open reaches the release through `paint`, not `close`.
+    expect(() => dialog.open(detailFor(1))).not.toThrow();
+    expect(container.textContent).toContain(SAMPLE_DATASET.places[1]!.name);
+    expect(calls).toBe(1);
+
+    dialog.close();
+    document.body.replaceChildren();
+  });
 });
