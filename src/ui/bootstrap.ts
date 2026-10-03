@@ -226,7 +226,10 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
         // The filters may have moved while the script was still downloading — the markers are read
         // again here rather than captured, so the map cannot answer a window the list has left.
         handle.setPlaces(pageMapPlaces());
-        if (selectedDetail) handle.focusPlace(selectedDetail.place);
+        if (selectedDetail) {
+          handle.focusPlace(selectedDetail.place);
+          handle.highlight(selectedDetail.place.id);
+        }
       })
       .finally(() => {
         mounting = false;
@@ -267,6 +270,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    * Responsive. `.detail-slot` replaces the list on desktop and holds a modal on mobile.
    */
   function renderDataset(dataset: PlacesDataset): void {
+    detailView?.release();
     // The frame is never rebuilt here: `renderShell` would replace `root` and detach the `content`
     // node captured above, taking whatever held focus with it. Only the provenance date changes,
     // and `setShellUpdatedAt` writes it in place.
@@ -294,7 +298,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
     detailView = createDetailPanel(detail, [filters, list, search], {
       wide: () => viewport?.wide() ?? false,
-      resolve: (placeId) => currentDetail(placeId, activePeriod),
+      resolve: (placeId, basis) => currentDetail(placeId, basis ?? activePeriod),
       dialog: dialogOptions,
       onSelection: (selection) => {
         selectedDetail = selection;

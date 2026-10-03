@@ -235,5 +235,8 @@ Desktop detail uses `src/ui/detail-panel.ts` to keep selection consistent across
 and viewport changes. It hides the existing list/search/filter nodes instead of rebuilding them,
 so returning restores paging, query, filters and the originating control. Unknown or malformed
 `#place=` values show the list silently. A second selection replaces the detail history entry so
-browser Back reaches the list; the `← 목록` control clears the hash. Widening an open mobile
+browser Back reaches the list. Dismissal pops a detail entry created from the list instead of
+leaving a duplicate list entry; a directly loaded shared URL clears its hash in place. History
+metadata retains the selected figures basis, so a search selection stays at `1y` on Forward
+and reload while the canonical URL still contains only the id. Widening an open mobile
 dialog moves its selection into the panel and releases its map, and narrowing restores the dialog.

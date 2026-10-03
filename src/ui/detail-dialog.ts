@@ -22,6 +22,8 @@ export const CLOSE_LABEL = '닫기';
 export interface DetailDialogOptions {
   /** Reports user dismissal so the URL selection can return to the list too. */
   onClose?: () => void;
+  /** Optional shared focus owner for a detail that can migrate between dialog and panel. */
+  restoreFocus?: () => void;
   /**
    * Fills the card's map slot. Injectable for the same reason `renderPlaceLocationMap` takes a
    * `loadApi`: jsdom cannot run the Naver script, and the dialog's own behaviour — focus, Escape,
@@ -38,7 +40,7 @@ export interface DetailDialogOptions {
 export interface DetailDialogHandle {
   /** Renders `detail` and shows the dialog. Calling it while open just swaps the contents. */
   open: (detail: PlaceDetail) => void;
-  close: () => void;
+  close: (restoreFocus?: boolean) => void;
   isOpen: () => boolean;
   /**
    * Re-renders an already-open dialog with new figures for the same selection. A no-op when
@@ -136,7 +138,7 @@ export function createDetailDialog(
     return !root.hidden;
   }
 
-  function closeDialog(): void {
+  function closeDialog(restoreFocus = true): void {
     if (!isOpen()) return;
     root.hidden = true;
     // Invalidates any mount still in flight: its release is spent on arrival instead of being
@@ -147,7 +149,11 @@ export function createDetailDialog(
     // Restoring focus is the whole point of holding `opener`: without it the caret drops to the top
     // of the document and a keyboard user has to tab back through the entire list they came from.
     // `isConnected` guards the case where the list was re-rendered while the dialog was open.
-    if (opener?.isConnected) {
+    if (!restoreFocus) {
+      // A layout transition keeps the shared opener and focuses the replacement view.
+    } else if (options.restoreFocus) {
+      options.restoreFocus();
+    } else if (opener?.isConnected) {
       opener.focus();
     } else {
       // No opener to go back to — a programmatic open, or the row was re-rendered underneath. Focus
@@ -200,8 +206,8 @@ export function createDetailDialog(
     }
   }
 
-  scrim.addEventListener('click', closeDialog);
-  close.addEventListener('click', closeDialog);
+  scrim.addEventListener('click', () => { closeDialog(); });
+  close.addEventListener('click', () => { closeDialog(); });
 
   /**
    * Renders the card, then fills its map slot.

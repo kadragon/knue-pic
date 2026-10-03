@@ -3,6 +3,7 @@ import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { createFakeNaverApi } from '../map/fake-naver-api';
 import { renderPageMap, resetAuthFailureState } from '../map/place-map';
 import { bootstrap, type MatchMedia } from './bootstrap';
+import { createDetailPanel } from './detail-panel';
 
 const flush = async (): Promise<void> => { await Promise.resolve(); await Promise.resolve(); };
 const views: HTMLElement[] = [];
@@ -40,6 +41,9 @@ async function setup(wide = true) {
 }
 
 function row(root: HTMLElement) { return root.querySelector<HTMLButtonElement>('.top-place-body')!; }
+function returnedToList(): Promise<void> {
+  return new Promise((resolve) => window.addEventListener('hashchange', () => resolve(), { once: true }));
+}
 function navigate(hash: string) {
   history.replaceState(null, '', location.pathname + location.search + hash);
   window.dispatchEvent(new HashChangeEvent('hashchange'));
@@ -69,7 +73,9 @@ describe('panel detail and URL selection', () => {
     expect(location.hash).toBe(`#place=${id}`);
     const place = SAMPLE_DATASET.places.find((p) => p.id === id)!;
     expect(api.maps[0]?.centers.at(-1)).toMatchObject({ latitude: place.lat, longitude: place.lng });
+    const returned = returnedToList();
     root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click();
+    await returned;
     expect(location.hash).toBe('');
     expect(root.querySelector<HTMLElement>('.place-list-slot')?.hidden).toBe(false);
     expect(document.activeElement).toBe(opener);
@@ -92,7 +98,9 @@ describe('panel detail and URL selection', () => {
     const marker = api.markers[0]!;
     marker.emit('click');
     expect(root.querySelector('.detail-panel .place-detail-name')?.textContent).toBe(marker.title);
+    const returned = returnedToList();
     root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click();
+    await returned;
     // A larger fixture makes the last in-window place an unnumbered dot, beyond page one.
     const extra = SAMPLE_DATASET.places[0]!;
     const dataset = { ...SAMPLE_DATASET, places: Array.from({ length: 15 }, (_, i) => ({
@@ -146,9 +154,79 @@ describe('panel detail and URL selection', () => {
     expect(root.querySelector('.detail-panel')).not.toBeNull();
     view.set(false);
     expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(false);
+    const returned = returnedToList();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await returned;
     expect(location.hash).toBe('');
     expect(document.activeElement).toBe(opener);
+  });
+
+  it('pops a pushed detail entry on return so Forward still restores it', async () => {
+    const { root } = await setup();
+    row(root).click();
+    const hash = location.hash;
+    const back = new Promise<void>((resolve) => window.addEventListener('hashchange', () => resolve(), { once: true }));
+    root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click();
+    await back;
+    expect(location.hash).toBe('');
+    const forward = new Promise<void>((resolve) => window.addEventListener('hashchange', () => resolve(), { once: true }));
+    history.forward(); await forward;
+    expect(location.hash).toBe(hash);
+    expect(root.querySelector('.detail-panel')).not.toBeNull();
+  });
+
+  it('restores search figures on Forward and a reload with the same canonical URL', async () => {
+    const { root } = await setup();
+    const input = root.querySelector<HTMLInputElement>('.place-search-input')!;
+    input.value = SAMPLE_DATASET.places[0]!.name; input.dispatchEvent(new Event('input'));
+    root.querySelector<HTMLButtonElement>('.place-search-results button')!.click();
+    const back = new Promise<void>((resolve) => window.addEventListener('hashchange', () => resolve(), { once: true }));
+    history.back(); await back;
+    const forward = new Promise<void>((resolve) => window.addEventListener('hashchange', () => resolve(), { once: true }));
+    history.forward(); await forward;
+    expect(root.querySelector('.place-detail-period')?.textContent).toContain('최근 1년');
+    root.remove();
+    const reloaded = await setup();
+    expect(reloaded.root.querySelector('.place-detail-period')?.textContent).toContain('최근 1년');
+  });
+
+  it('lights the selected pin when a shared URL mounts its page map', async () => {
+    const place = SAMPLE_DATASET.places[0]!;
+    navigate(`#place=${place.id}`);
+    const { api } = await setup();
+    expect(api.markers.find((marker) => marker.title === place.name)?.icon?.content).toContain('is-active');
+  });
+
+  it('reuses an open mobile dialog when a second place is selected', async () => {
+    const { root } = await setup(false);
+    row(root).click();
+    const dialog = root.querySelector('.detail-dialog');
+    root.querySelectorAll<HTMLButtonElement>('.top-place-body')[1]!.click();
+    expect(root.querySelector('.detail-dialog')).toBe(dialog);
+    const returned = returnedToList();
+    root.querySelector<HTMLButtonElement>('.detail-dialog-close')!.click();
+    await returned;
+  });
+
+  it('re-centres and highlights an existing page map when an open mobile selection widens', async () => {
+    const { root, api, view } = await setup();
+    view.set(false); row(root).click();
+    const before = api.maps[0]!.centers.length;
+    view.set(true);
+    expect(api.maps[0]!.centers.length).toBeGreaterThan(before);
+    expect(api.markers.some((marker) => marker.icon?.content.includes('is-active'))).toBe(true);
+  });
+
+  it('releases its hash subscription when a dataset view is replaced', () => {
+    const container = document.createElement('div');
+    document.body.append(container); views.push(container);
+    const resolve = vi.fn(() => null);
+    const handle = createDetailPanel(container, [], {
+      wide: () => true, resolve, dialog: {}, onSelection: () => {},
+    });
+    handle.release();
+    navigate(`#place=${SAMPLE_DATASET.places[0]!.id}`);
+    expect(resolve).not.toHaveBeenCalled();
   });
 
   it('keeps desktop detail usable after a map failure', async () => {
@@ -157,7 +235,9 @@ describe('panel detail and URL selection', () => {
     row(root).click();
     expect(root.querySelector('.detail-panel')).not.toBeNull();
     expect(root.querySelector('.map-shell-map')).toBeNull();
+    const returned = returnedToList();
     root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click();
+    await returned;
     expect(root.querySelector<HTMLElement>('.place-list-slot')?.hidden).toBe(false);
   });
 });

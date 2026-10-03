@@ -1,9 +1,10 @@
+import type { Period } from '../data/types';
 import { createDetailDialog, type DetailDialogHandle, type DetailDialogOptions } from './detail-dialog';
 import { renderPlaceDetail, type PlaceDetail } from './place-detail';
 
 export interface DetailPanelOptions {
   wide: () => boolean;
-  resolve: (placeId: string) => PlaceDetail | null;
+  resolve: (placeId: string, basis?: Period) => PlaceDetail | null;
   dialog: DetailDialogOptions;
   onSelection: (detail: PlaceDetail | null) => void;
 }
@@ -12,6 +13,25 @@ export interface DetailPanelHandle {
   open(detail: PlaceDetail): void;
   syncLayout(): void;
   syncHash(): void;
+  release(): void;
+}
+
+function historyState(): Record<string, unknown> {
+  const state: unknown = history.state;
+  return typeof state === 'object' && state !== null ? state as Record<string, unknown> : {};
+}
+
+/** Validated history metadata preserves figures without adding anything beyond the id to the URL. */
+function selectionState(placeId: string): { basis?: Period; fromList: boolean } {
+  const state = historyState()['knuePickDetail'];
+  if (typeof state !== 'object' || state === null) return { fromList: false };
+  const route = state as Record<string, unknown>;
+  if (route['placeId'] !== placeId) return { fromList: false };
+  const basis = route['basis'];
+  return {
+    ...(basis === '1m' || basis === '3m' || basis === '6m' || basis === '1y' ? { basis } : {}),
+    fromList: route['fromList'] === true,
+  };
 }
 
 /** One selection across URL navigation and the desktop panel / mobile dialog boundary. */
@@ -24,6 +44,7 @@ export function createDetailPanel(
   let opener: HTMLElement | null = null;
   let dialog: DetailDialogHandle | null = null;
   let switching = false;
+  let fromList = false;
 
   function restoreFocus(): void {
     if (opener?.isConnected) opener.focus();
@@ -31,29 +52,43 @@ export function createDetailPanel(
     opener = null;
   }
 
-  function clearDialog(): void {
+  function closeDialog(): void {
     switching = true;
-    dialog?.close();
-    dialog = null;
+    // The selection controller restores focus once, after the list becomes visible again.
+    dialog?.close(false);
     switching = false;
-    container.replaceChildren();
   }
 
   function close(): void {
     if (switching) return;
-    history.replaceState(history.state, '', location.pathname + location.search);
+    if (fromList) history.back();
+    else {
+      const state = historyState();
+      delete state['knuePickDetail'];
+      history.replaceState(state, '', location.pathname + location.search);
+    }
+    fromList = false;
     show(null);
   }
 
   function paint(): void {
-    clearDialog();
     const panelMode = options.wide();
     listViews.forEach((view) => { view.hidden = panelMode && selection !== null; });
     if (!panelMode) {
-      dialog = createDetailDialog(container, { ...options.dialog, onClose: close });
+      if (!dialog) {
+        dialog = createDetailDialog(container, {
+          ...options.dialog, onClose: close,
+          // Shared opener state must survive a desktop/mobile transition.
+          restoreFocus: () => {},
+        });
+      }
       if (selection) dialog.open(selection);
+      else closeDialog();
       return;
     }
+    closeDialog();
+    dialog = null;
+    container.replaceChildren();
     if (!selection) return;
 
     const panel = document.createElement('div');
@@ -64,9 +99,7 @@ export function createDetailPanel(
     back.textContent = '← 목록';
     back.addEventListener('click', close);
     const body = document.createElement('div');
-    renderPlaceDetail(body, selection);
-    // The page map answers location on desktop; figures, chart and links keep their existing DOM.
-    body.querySelector('.place-detail-map')?.remove();
+    renderPlaceDetail(body, selection, { withMap: false });
     panel.append(back, body);
     container.append(panel);
     body.querySelector<HTMLElement>('.place-detail')?.focus();
@@ -89,24 +122,38 @@ export function createDetailPanel(
     try {
       if (location.hash.startsWith('#place=')) id = decodeURIComponent(location.hash.slice(7));
     } catch { /* A malformed shared URL is an unknown selection, never a load error. */ }
-    show(id === null ? null : options.resolve(id));
+    const route = id === null ? { fromList: false } : selectionState(id);
+    fromList = route.fromList;
+    show(id === null ? null : options.resolve(id, route.basis));
   }
 
-  window.addEventListener('hashchange', () => {
-    // A bootstrapped view may have been replaced (or removed by a test); detached views never
-    // navigate or steal focus from the current page.
+  function onHashChange(): void {
     if (container.isConnected) syncHash();
-  });
+  }
+  window.addEventListener('hashchange', onHashChange);
 
   paint();
   return {
     syncHash,
-    syncLayout: paint,
+    syncLayout() {
+      paint();
+      options.onSelection(selection);
+    },
+    release() {
+      window.removeEventListener('hashchange', onHashChange);
+      closeDialog();
+      container.replaceChildren();
+      listViews.forEach((view) => { view.hidden = false; });
+    },
     open(detail) {
       const hash = `#place=${encodeURIComponent(detail.place.id)}`;
-      // A second place replaces the detail entry; one Back always reaches the originating list.
-      if (selection) history.replaceState(history.state, '', hash);
-      else history.pushState(null, '', hash);
+      if (!selection) fromList = true;
+      const state = { ...historyState(), knuePickDetail: {
+        placeId: detail.place.id, basis: detail.basis, fromList,
+      } };
+      // A second place replaces the detail entry; one Back reaches the originating list.
+      if (selection) history.replaceState(state, '', hash);
+      else history.pushState(state, '', hash);
       show(detail);
     },
   };
