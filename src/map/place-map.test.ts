@@ -123,6 +123,26 @@ describe('renderPlaceLocationMap', () => {
     expect(api.maps[0]?.destroyCalls).toBe(1);
   });
 
+  it('survives a destroy that throws after the key was rejected, so the next place still renders', async () => {
+    // Observed on a rejected origin: once the hook has fired, the real `map.destroy()` throws
+    // `TypeError: Cannot read properties of null (reading 'isArray')`.
+    const api = createFakeNaverApi();
+    const { release } = await render(api);
+    authFailureHook()?.();
+    api.maps[0]!.destroy = () => {
+      throw new TypeError("Cannot read properties of null (reading 'isArray')");
+    };
+
+    expect(() => release()).not.toThrow();
+    expect(authFailureHook()).toBeUndefined();
+
+    const next = createFakeNaverApi();
+    const { root: second } = await render(next, SAMPLE_DATASET.places[1]!);
+    expect(next.maps).toHaveLength(1);
+    authFailureHook()?.();
+    expect(second.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
+  });
+
   it('takes its auth-failure hook down with the map', async () => {
     const { root, release } = await render(createFakeNaverApi());
 

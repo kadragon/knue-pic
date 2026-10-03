@@ -4,11 +4,7 @@
 
 ### PR #67 — loader re-injection after auth failure (2026-10-03)
 
-- [ ] [debt] On a rejected origin every detail render re-downloads the v3 bundle and calls `/v3/auth` again, since nothing remembers that `navermap_authFailure` fired; once it has, later `loadNaverMaps()` calls could reject straight to the fallback (source: code-review) — `src/map/loader.ts:63`, `src/map/place-map.ts`
-
-### Detail card on a rejected origin — `destroy()` throws after auth failure (2026-10-03)
-
-- [ ] [bug] On a rejected origin, once `navermap_authFailure` has fired, Naver's `map.destroy()` throws `TypeError: Cannot read properties of null (reading 'isArray')`. `dropMap` calls the stored release before clearing it, so the throw escapes `closeDialog` and every later `paint()`; the second detail card never opens and stays broken until reload. Observed on `:5179`, Chromium, 2 of 2 fresh loads. Reproduce with a fake whose `destroy` throws, then make the release survive it; cover a second render after the hook in `src/map/place-map.test.ts`. After the fix, observe on `:5179` whether the second render's fresh bundle calls `navermap_authFailure` again — the throw kept that unobserved, and without a second call the card would show a dead map with no fallback — `src/map/place-map.ts:120`, `src/ui/detail-dialog.ts:118`
+- [ ] [debt] On a rejected origin every detail render re-downloads the v3 bundle and calls `/v3/auth` again, since nothing remembers that `navermap_authFailure` fired; once it has, later `loadNaverMaps()` calls could reject straight to the fallback (source: code-review) — `src/map/loader.ts:63`, `src/map/place-map.ts`. Observed 2026-10-03 on `:5179`, Chromium, 3 sequential detail renders after the `destroy` fix: one `maps.js` request in total, but `/v3/auth` once per render (each mounted, then the hook fired ~1.1 s later) — re-check whether the bundle is re-downloaded at all before scoping this
 
 ### Detail card monthly chart (follow-up, 2026-09-16)
 

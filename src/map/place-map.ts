@@ -115,9 +115,18 @@ function clearAuthFailureHandler(handler: () => void): void {
  * only third-party runtime input, and this repo has verified nothing about `destroy` against the
  * live v3 bundle. Calling it when it is there is what keeps a dialog opened thirty times from
  * holding thirty live maps; calling it blindly would be a claim about an API nobody here has read.
+ *
+ * A throw is swallowed. On a rejected origin, once the auth-failure hook has fired, the real
+ * `destroy` throws `TypeError: Cannot read properties of null (reading 'isArray')` (observed
+ * 2026-10-03, `localhost:5179`, Chromium) — the API has already torn the map down, so there is
+ * nothing left to release. Letting it escape would break the caller's close and every later paint.
  */
 function releaseMap(map: NaverMap): void {
-  map.destroy?.();
+  try {
+    map.destroy?.();
+  } catch {
+    // Nothing to recover: the map is unusable either way, and release must not throw.
+  }
 }
 
 /**
