@@ -139,15 +139,18 @@ export function setShellMapFirst(root: HTMLElement, on: boolean): void {
  * origin — because they are the same state to the reader, and two sentences would be two answers.
  * The region's own canvas is removed with the region, and the map is released by the caller that
  * mounted it; what is left is today's page plus one line at the top of it.
+ *
+ * Keyed on the region still being there rather than on the layout class, because a failure that
+ * lands after the reader has narrowed the window is still a failure: gating on the class dropped it,
+ * and the window then widened to a panel with no map and no line saying why. The caller decides
+ * *whether* a map was ever asked for — nothing below the breakpoint ever calls this, which is what
+ * keeps a phone from being told about a map it never had.
  */
 export function setShellMapUnavailable(root: HTMLElement): void {
   const region = root.querySelector('.map-shell-map');
   const content = root.querySelector('#content');
-  // The layout is not map-first, so no map was ever mounted: below the breakpoint the region is
-  // still in the DOM but the stylesheet keeps it off screen, and a reader there must not be told
-  // the map is missing when they never had one. Also the second failure of one mount — the first
-  // call took the class and the region with it.
-  if (!root.classList.contains(MAP_FIRST_CLASS) || !region || !content) return;
+  // No region: already fallen back, and this is the second failure of one mount.
+  if (!region || !content) return;
 
   root.classList.remove(MAP_FIRST_CLASS);
   region.remove();

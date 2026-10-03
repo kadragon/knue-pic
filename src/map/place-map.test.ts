@@ -511,6 +511,26 @@ describe('renderPageMap', () => {
     expect(api.maps[0]?.centers).toHaveLength(1);
   });
 
+  it('releases the map and stops listening when the key is rejected after the mount', async () => {
+    const api = createFakeNaverApi();
+    const unavailable = vi.fn();
+    const { map } = await page(api, [ALWAYS, CAFE], { onUnavailable: unavailable });
+
+    // The real API calls the hook ~1.1 s after a mounted map (./loader.ts module comment), and this
+    // page map is the one that stays mounted for the life of the page: leaving the instance, its
+    // markers and the listener behind would keep all three for good.
+    authFailureHook()?.();
+
+    expect(api.maps[0]?.destroyCalls).toBe(1);
+    expect(api.markers.every((marker) => marker.attached.at(-1) === null)).toBe(true);
+    expect(authFailureHook()).toBeUndefined();
+
+    // And the page's own release, which arrives afterwards, must not destroy the same map twice.
+    expect(() => map.release()).not.toThrow();
+    expect(api.maps[0]?.destroyCalls).toBe(1);
+    expect(unavailable).toHaveBeenCalledTimes(1);
+  });
+
   it('hands back a handle even when nothing mounted', async () => {
     const map = await renderPageMap(container(), [ALWAYS], {
       loadApi: () => Promise.reject(new Error('script blocked')),

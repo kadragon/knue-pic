@@ -689,6 +689,36 @@ describe('bootstrap page map', () => {
     expect(root.querySelector('.detail-slot')).not.toBeNull();
   });
 
+  it('mounts one map however often the filters change while the script is still loading', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+    let settle!: (api: FakeNaverApi) => void;
+    const pending = new Promise<FakeNaverApi>((resolve) => {
+      settle = resolve;
+    });
+
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: viewport(true).matchMedia,
+      renderMap: (container, places, options) =>
+        renderPageMap(container, places, { ...options, loadApi: () => pending }),
+    });
+
+    // The script is a third-party download and the reader is not waiting for it: a 기간 or 업종 press
+    // in that window must not start a second mount, or the first map instance is orphaned on a
+    // detached canvas with nobody left holding its release.
+    periodTab(root, periodLabel('1y'))?.click();
+    kindOption(root, KIND_LABELS.cafe)?.click();
+
+    settle(api);
+    await flush();
+
+    expect(api.maps).toHaveLength(1);
+    expect(root.querySelectorAll('.page-map-canvas')).toHaveLength(1);
+    expect(liveDots(api)).toHaveLength(1);
+    expect(liveDots(api)[0]?.title).toBe('청람카페');
+  });
+
   it('falls back the same way when the key rejects the origin after the map mounted', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
@@ -743,6 +773,59 @@ describe('bootstrap page map', () => {
     expect(root.classList.contains('is-map-first')).toBe(true);
     expect(liveDots(api)).toHaveLength(1);
     expect(liveDots(api)[0]?.title).toBe('청람카페');
+  });
+
+  it('keeps the full-width fallback when a map that failed is followed by a resize', async () => {
+    const root = document.createElement('div');
+    const view = viewport(true);
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: view.matchMedia,
+      renderMap: (container, places, options) =>
+        renderPageMap(container, places, { ...options, loadApi: () => Promise.reject(new Error()) }),
+    });
+    await flush();
+    expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
+
+    view.set(false);
+    view.set(true);
+    await flush();
+
+    // A failed map is gone for the life of the page — the auth-failure memo sends a later mount
+    // straight back to the fallback, so there is nothing to make room for. Widening must not restore
+    // the panel width beside an absent map.
+    expect(root.classList.contains('is-map-first')).toBe(false);
+    expect(root.querySelector('.map-shell-map')).toBeNull();
+    expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
+    expect(root.querySelectorAll('.place-list-body .top-place').length).toBeGreaterThan(0);
+  });
+
+  it('falls back even when the window was narrowed before the failure arrived', async () => {
+    const root = document.createElement('div');
+    const view = viewport(true);
+    let reject!: (reason: Error) => void;
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: view.matchMedia,
+      renderMap: (container, places, options) =>
+        renderPageMap(container, places, {
+          ...options,
+          loadApi: () => new Promise<FakeNaverApi>((_resolve, r) => (reject = r)),
+        }),
+    });
+
+    // The map was asked for, so a failure is a failure at whatever width the reader has since moved
+    // to — dropping it would leave a narrow reader who widens the window with neither a map nor the
+    // line that says why.
+    view.set(false);
+    reject(new Error('blocked'));
+    await flush();
+
+    expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
+
+    view.set(true);
+    expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
+    expect(root.classList.contains('is-map-first')).toBe(false);
   });
 
   it('leaves a mounted map alone when a wide window narrows, rather than calling it a failure', async () => {

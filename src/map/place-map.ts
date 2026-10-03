@@ -396,10 +396,17 @@ export async function renderPageMap(
   // "exactly once" true without counting calls: a second failure, or a call that arrives after the
   // page released the map, finds it false and does nothing.
   let live = true;
+  // What the mounted map needs released — set once it exists, and callable from either the failure
+  // path or the caller's release. A rejection arriving after the mount still leaves a live map
+  // instance, its markers and its auth-failure listener behind, and this page map is the one that
+  // would stay mounted for the life of the page.
+  let mounted: (() => void) | null = null;
   const fail = (): void => {
     if (!live) return;
     live = false;
     canvas.remove();
+    mounted?.();
+    mounted = null;
     onUnavailable?.();
   };
 
@@ -455,6 +462,13 @@ export async function renderPageMap(
 
     draw(places);
 
+    mounted = () => {
+      stopListening();
+      for (const marker of markers.values()) marker.setMap(null);
+      markers.clear();
+      releaseMap(map);
+    };
+
     return {
       setPlaces: draw,
       recenter: () => {
@@ -462,11 +476,12 @@ export async function renderPageMap(
         map.setCenter(new api.LatLng(origin.lat, origin.lng));
       },
       release: () => {
+        // `live` gates this as well as `fail`, so a release that arrives after the failure path
+        // already released the map does not destroy the same instance a second time.
+        if (!live) return;
         live = false;
-        stopListening();
-        for (const marker of markers.values()) marker.setMap(null);
-        markers.clear();
-        releaseMap(map);
+        mounted?.();
+        mounted = null;
       },
     };
   } catch {

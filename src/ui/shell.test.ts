@@ -220,15 +220,35 @@ describe('setShellMapUnavailable', () => {
     expect(root.textContent).toContain(DISCLAIMER);
   });
 
+  it('falls back even when the layout was already narrowed before the failure arrived', () => {
+    const root = document.createElement('div');
+    renderShell(root, { mapFirst: true, onRecentre: () => {} });
+
+    // A map was mounted, so a failure is a failure whatever the reader has resized to. Keying this
+    // on the layout class instead would drop it, and widening the window would then show a panel
+    // beside a map that never came.
+    setShellMapFirst(root, false);
+    setShellMapUnavailable(root);
+
+    expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
+    expect(root.querySelector('.map-shell-map')).toBeNull();
+  });
+
   it('does nothing to a shell that never had a map', () => {
     const root = document.createElement('div');
     renderShell(root, { mapFirst: false });
 
     setShellMapUnavailable(root);
 
-    // Below the breakpoint no map was mounted, so nothing failed and there is nothing to say —
-    // a reader on a phone must not be told the map is missing when they never had one.
-    expect(root.querySelector('.shell-map-note')).toBeNull();
-    expect(root.classList.contains('is-map-first')).toBe(false);
+    // Nothing was mounted, so nothing failed — and the caller below the breakpoint is the one that
+    // knows that: `setShellMapUnavailable` applies a transition it was asked for, and a reader on a
+    // phone is never asked. Only the second call is a no-op here, which the case above covers.
+    expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
+
+    const second = document.createElement('div');
+    renderShell(second, { mapFirst: true, onRecentre: () => {} });
+    setShellMapUnavailable(second);
+    setShellMapUnavailable(second);
+    expect(second.querySelectorAll('.shell-map-note')).toHaveLength(1);
   });
 });

@@ -140,11 +140,22 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   let dotPlaces: PlaceRecord[] = [];
   /** Set once the map has failed, so a later widening does not ask for it again. */
   let mapUnavailable = false;
+  /**
+   * A mount is in flight.
+   *
+   * `pageMap` only holds a handle once the script has resolved, and the script is a third-party
+   * download the reader does not wait for — so a 기간 or 업종 press in that window would start a
+   * second mount. The first map instance would be orphaned on a detached canvas with its listener
+   * still registered and nobody left holding its release.
+   */
+  let mounting = false;
 
   viewport?.onChange((wide) => {
     // A narrowing hides the region rather than releasing the map, so widening the window again
-    // finds the same dots — and a resize is never reported as a failure.
-    setShellMapFirst(root, wide);
+    // finds the same dots — and a resize is never reported as a failure. The exception is a map
+    // that is already gone: nothing will be mounted beside the panel, so the full-width fallback
+    // has to survive the resize too.
+    setShellMapFirst(root, wide && !mapUnavailable);
     if (wide) mountPageMap();
   });
 
@@ -158,9 +169,10 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    * window the list has left.
    */
   function mountPageMap(): void {
-    if (pageMap || mapUnavailable || (viewport?.wide() ?? false) === false) return;
+    if (pageMap || mounting || mapUnavailable || (viewport?.wide() ?? false) === false) return;
     const region = root.querySelector<HTMLElement>('.map-shell-map');
     if (!region) return;
+    mounting = true;
 
     void renderMap(region, dotPlaces, {
       origin: CAMPUS_ORIGIN,
@@ -168,10 +180,16 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
         mapUnavailable = true;
         setShellMapUnavailable(root);
       },
-    }).then((handle) => {
-      pageMap = handle;
-      handle.setPlaces(dotPlaces);
-    });
+    })
+      .then((handle) => {
+        pageMap = handle;
+        // The filters may have moved while the script was still downloading — `dotPlaces` is read
+        // again here rather than captured, so the dots cannot answer a window the list has left.
+        handle.setPlaces(dotPlaces);
+      })
+      .finally(() => {
+        mounting = false;
+      });
   }
 
   function onRetry(): void {
