@@ -3,7 +3,7 @@ import { renderPlaceLocationMap, type ReleasePlaceLocationMap } from '../map/pla
 import { DETAIL_HEADING, renderPlaceDetail, type PlaceDetail } from './place-detail';
 
 /**
- * The detail card as a modal dialog rather than the last section of the page.
+ * The mobile detail card as a modal dialog rather than the last section of the page.
  *
  * It was a section until a UI review found the defect: selecting a place from any list rendered the
  * card ~3,400px down the page and moved focus to it, so every act of curiosity was a one-way trip
@@ -20,6 +20,10 @@ import { DETAIL_HEADING, renderPlaceDetail, type PlaceDetail } from './place-det
 export const CLOSE_LABEL = '닫기';
 
 export interface DetailDialogOptions {
+  /** Reports user dismissal so the URL selection can return to the list too. */
+  onClose?: () => void;
+  /** Optional shared focus owner for a detail that can migrate between dialog and panel. */
+  restoreFocus?: () => void;
   /**
    * Fills the card's map slot. Injectable for the same reason `renderPlaceLocationMap` takes a
    * `loadApi`: jsdom cannot run the Naver script, and the dialog's own behaviour — focus, Escape,
@@ -145,7 +149,9 @@ export function createDetailDialog(
     // Restoring focus is the whole point of holding `opener`: without it the caret drops to the top
     // of the document and a keyboard user has to tab back through the entire list they came from.
     // `isConnected` guards the case where the list was re-rendered while the dialog was open.
-    if (opener?.isConnected) {
+    if (options.restoreFocus) {
+      options.restoreFocus();
+    } else if (opener?.isConnected) {
       opener.focus();
     } else {
       // No opener to go back to — a programmatic open, or the row was re-rendered underneath. Focus
@@ -155,6 +161,7 @@ export function createDetailDialog(
       fallback()?.focus();
     }
     opener = null;
+    options.onClose?.();
   }
 
   /**
@@ -197,8 +204,8 @@ export function createDetailDialog(
     }
   }
 
-  scrim.addEventListener('click', closeDialog);
-  close.addEventListener('click', closeDialog);
+  scrim.addEventListener('click', () => { closeDialog(); });
+  close.addEventListener('click', () => { closeDialog(); });
 
   /**
    * Renders the card, then fills its map slot.

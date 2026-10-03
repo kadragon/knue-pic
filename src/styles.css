@@ -225,7 +225,7 @@ body {
   padding: var(--space-6) var(--space-6) var(--space-9);
 }
 
-/* The dialog inside is `position: fixed`, so the slot must not occupy a row of its own. */
+/* The slot contains a fixed mobile dialog or an in-flow desktop detail panel. */
 .detail-slot {
   display: contents;
 }
@@ -1526,4 +1526,24 @@ button.top-place-body,
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+}
+
+/* Preserve list controls and paging while the desktop panel shows a selection. */
+.filter-head[hidden] {
+  display: none;
+}
+
+.detail-panel-back {
+  margin-bottom: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.detail-panel-back:hover {
+  background: var(--surface-hover);
 }

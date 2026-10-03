@@ -57,18 +57,6 @@
   built-in clusterer (the commonly cited `MarkerClustering.js` is example code to vendor), so this is
   a follow-up ticket, not a rider on the next one — `src/map/place-map.ts`
 
-## Map-first 5 — detail inside the panel with `#place=<id>` (2026-10-03)
-
-- [ ] [feat] Selecting a place (row, pin, dot, search result) replaces the list inside the panel
-  with the detail card and a `← 목록` control, pans the map to it, and writes `#place=<id>`;
-  loading with that hash opens it, an unknown id falls back to the list silently, and the back
-  button returns to the list. At ≥ 768px the modal dialog and its single-marker map go away; below
-  768px the dialog stays until ticket 6 lands the mobile sheet, since merging publishes. The card's
-  sections move unchanged. Accept: hash round-trip and unknown-id tests; dot click → detail; focus
-  moves to the card and back to the originating row; `device-state.test.ts` unchanged (source:
-  `docs/design/map-first-layout.md` → Implementation Decision 4) — `src/ui/detail-dialog.ts`,
-  `src/ui/place-detail.ts`, `src/ui/bootstrap.ts`, `src/map/place-map.ts`
-
 ## Map-first 6 — mobile bottom sheet (2026-10-03)
 
 - [ ] [feat] Below 768px: full-screen map with the panel as a bottom sheet snapping to peek / half
@@ -78,7 +66,7 @@
   and with the Naver script blocked; snap states reachable by keyboard as well as drag; all four
   `docs/eval-criteria.md` criteria graded for the finished layout (source:
   `docs/design/map-first-layout.md` → Solution, Implementation Decision 9) — `src/ui/shell.ts`,
-  `src/styles.css` *(blocked by: 5-detail-inside-panel)*
+  `src/styles.css`
 
 ## Someday
 

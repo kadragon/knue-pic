@@ -87,6 +87,8 @@ function renderTabs(active: Period, onSelect: (period: Period) => void): HTMLEle
  * the caller learns of a switch it did not make.
  */
 export interface PlaceListOptions {
+  /** Reads the responsive detail view's live selection instead of retaining a pressed row. */
+  selection?: () => string | null;
   active?: Period;
   onActiveChange?: (period: Period) => void;
   /**
@@ -134,7 +136,7 @@ export function renderPlaceList(
         onSelect(placeId, period);
       },
       listHeading(period),
-      { onVisibleChange, onHighlight },
+      { onVisibleChange, onHighlight, selection: options.selection },
     );
   }
 

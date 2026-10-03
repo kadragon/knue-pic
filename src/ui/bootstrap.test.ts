@@ -75,6 +75,7 @@ const flush = (): Promise<void> => Promise.resolve().then(() => {});
  */
 afterEach(() => {
   resetAuthFailureState();
+  history.replaceState(null, '', location.pathname + location.search);
 });
 
 describe('bootstrap', () => {
@@ -425,7 +426,9 @@ describe('bootstrap place selection', () => {
     const button = firstRow(root, '1y');
     button?.focus();
     button?.click();
+    const returned = new Promise<void>((resolve) => window.addEventListener('hashchange', () => resolve(), { once: true }));
     root.querySelector<HTMLButtonElement>('.detail-dialog-close')?.click();
+    await returned;
 
     // The whole point of the dialog over the old bottom-of-page card: the reader keeps their place
     // in the list they were reading.

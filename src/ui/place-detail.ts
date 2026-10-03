@@ -289,7 +289,11 @@ export interface PlaceDetail {
 }
 
 /** `null` renders the placeholder — the card is always on the page, empty until a place is picked. */
-export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | null): void {
+export function renderPlaceDetail(
+  container: HTMLElement,
+  detail: PlaceDetail | null,
+  options: { withMap?: boolean } = {},
+): void {
   const section = document.createElement('section');
   section.className = 'place-detail';
   // Not in the tab order, but focusable programmatically: `bootstrap.ts` moves focus here after a
@@ -370,7 +374,8 @@ export function renderPlaceDetail(container: HTMLElement, detail: PlaceDetail | 
     section.append(figures);
   }
 
-  section.append(renderHistogram(histogram), mapSlot);
+  section.append(renderHistogram(histogram));
+  if (options.withMap !== false) section.append(mapSlot);
 
   // The only place a dataset string reaches an executable position in this app — see
   // `naverLinkHref`, which owns the scheme check; `kakaoLinkHref` composes its href and reads no

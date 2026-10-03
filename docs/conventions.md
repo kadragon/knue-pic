@@ -153,13 +153,14 @@ dance per file.
   (`src/ui/bootstrap.test.ts` → `bootstrap page map`), because both read one predicate. One channel
   each way: a row's hover, focus and selection light its pin through `onHighlight`, and a pin the
   reader touches lights its row through `setTopPlaceHighlight`. Selection outranks the pointer — the
-  detail dialog takes focus the instant a row is pressed, so leaving a row reports the selection
+  desktop panel or mobile dialog takes focus the instant a row is pressed, so leaving a row reports the selection
   rather than `null` (`src/ui/top-places.test.ts` → *page map*). Below 768px
   the page is the single column it has always been and the Naver script is never loaded; either map
   failure — the script or a rejected key — gives the panel the whole width back and says
-  `지도를 불러오지 못했습니다.` once. The detail dialog is untouched by all of this: it keeps its
-  own single-marker map until detail moves into the panel.
-- The place detail is a modal dialog, not a section: it opens over the list the reader is in,
+  `지도를 불러오지 못했습니다.` once. Desktop selection replaces the panel contents with the detail card and a `← 목록` control,
+  centres the page map on the place and writes `#place=<id>`. Mobile keeps the dialog and its
+  single-marker map until the bottom sheet lands.
+- Below 768px the place detail is a modal dialog: it opens over the list the reader is in,
   traps Tab, closes on Escape or scrim click, and returns focus to the control that opened it.
   It was the last section on the page until a UI review found that selecting anything threw the
   reader three screens down with no way back — see `src/ui/detail-dialog.ts`. It carries the
@@ -186,6 +187,19 @@ dance per file.
   label** — as a searchable field, not as a fold applied to the needle: folding `시` out of the
   query turned `스시` into `스` and matched 66 places.
 - Every interactive control has a visible label or an `aria-label`; search is keyboard-operable.
+
+Desktop detail uses `src/ui/detail-panel.ts` to keep selection consistent across hash navigation
+and viewport changes. It hides the existing list/search/filter nodes instead of rebuilding them,
+so returning restores paging, query, filters and the originating control. Unknown or malformed
+`#place=` values show the list silently. A second selection replaces the detail history entry so
+browser Back reaches the list. Dismissal pops a detail entry created from the list instead of
+leaving a duplicate list entry; a directly loaded shared URL clears its hash in place. History
+metadata retains the selected figures basis, so a search selection stays at `1y` on Forward
+and reload while the canonical URL still contains only the id. A selection arriving during a
+pending Back traversal waits for the list entry before opening. The ranked view reads the live
+panel selection on row departure, falling back to the keyboard-focused row rather than a
+previously pressed row. Unchanged hash/layout notifications preserve card focus and map position. Widening an open mobile
+dialog moves its selection into the panel and releases its map, and narrowing restores the dialog.
 
 ## Docs
 
