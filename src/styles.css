@@ -1188,9 +1188,11 @@ button.top-place-body,
  * `src/ui/bootstrap.ts`, which decides whether to load the Naver script at all. They have to move
  * together — a layout that showed a panel where no map is mounted is a column with a hole in it.
  *
- * The region is `fixed` and behind everything (`z-index: -1`) rather than in flow, which is what
- * makes it full-bleed: the masthead and the panel paint above it without either needing a z-index
- * of its own.
+ * The region is `fixed` rather than in flow, which is what makes it full-bleed, and it sits at
+ * `z-index: 0` with the masthead and the panel one level above it. Not `-1`: a negative level paints
+ * under `body` and `#app` too, so they took every pointer event and the map could be neither
+ * dragged, zoomed, nor hovered — a pin's hover never reached its row (observed at 1440px,
+ * 2026-10-03; `src/ui/stylesheet-claims.test.ts` guards both halves).
  */
 .map-shell-map {
   display: none;
@@ -1198,7 +1200,7 @@ button.top-place-body,
 
 .map-recentre {
   position: absolute;
-  /* Bottom-right, not top-right: the region paints behind the masthead (`z-index: -1`), and
+  /* Bottom-right, not top-right: the region paints below the masthead (`z-index: 0` to its 1), and
      everything inside it is in that same stacking context — so a control placed along the top edge
      is simply hidden under the header. Raised off the corner by one step because Naver's own logo
      and scale strip sit in it (observed on the real map, 2026-10-03). */
@@ -1254,8 +1256,18 @@ button.top-place-body,
   .map-shell-map {
     position: fixed;
     inset: 0;
-    z-index: -1;
+    z-index: 0;
     display: block;
+  }
+
+  /* The surfaces drawn over the map. Positioned, or the region — now above in-flow blocks — would
+     paint over them. `#content` comes last in source order, so at an equal level the detail dialog
+     inside it still covers the masthead. */
+  .is-map-first .shell-header,
+  .is-map-first .shell-provenance,
+  .is-map-first #content {
+    position: relative;
+    z-index: 1;
   }
 }
 

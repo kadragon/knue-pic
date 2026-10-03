@@ -1751,3 +1751,46 @@ describe('map links are styled as peers', () => {
     expect(CSS).not.toContain('[data-service');
   });
 });
+
+/**
+ * The page map has to take the pointer. The region used to sit at `z-index: -1`, which put it under
+ * the root stacking context's in-flow blocks — `body` and `#app` — so every pin, the drag, the wheel
+ * and the `학교로` button hit `#app` instead. The suite stayed green throughout: the pin tests fire
+ * the fake API's events directly, and jsdom applies no stylesheet, so nothing in it hit-tests.
+ * Observed in a real browser at 1440px, 2026-10-03.
+ *
+ * What keeps the masthead and the panel over a region that now paints above in-flow content is a
+ * stacking level of their own, so the guard asserts both halves: the region is not negative, and
+ * each surface drawn over it is positioned with a higher `z-index`. A negative region with
+ * positioned surfaces, or a raised region with unpositioned ones, fails one half each.
+ */
+describe('the page map takes the pointer', () => {
+  const REGION = '.map-shell-map';
+  const OVER_MAP = ['.is-map-first .shell-header', '.is-map-first .shell-provenance', '.is-map-first #content'];
+
+  /** Every declaration block, at any viewport, of a rule listing `part` as one of its selectors. */
+  const blocksListing = (part: string): string =>
+    RULES.filter(({ selector }) => selectorParts(selector).includes(part))
+      .map(({ block }) => block)
+      .join('; ');
+
+  const zIndexOf = (part: string): number | null => {
+    const match = /(?:^|;\s*)z-index:\s*(-?\d+)/.exec(blocksListing(part));
+    return match ? Number(match[1]) : null;
+  };
+
+  it('finds the region rule, so the bounds below do not read an empty block', () => {
+    expect(blocksListing(REGION)).toContain('position: fixed');
+  });
+
+  it('keeps the region at or above the in-flow blocks', () => {
+    const region = zIndexOf(REGION);
+    expect(region).not.toBeNull();
+    expect(region).toBeGreaterThanOrEqual(0);
+  });
+
+  it.each(OVER_MAP)('raises `%s` above the region on a stacking level of its own', (part) => {
+    expect(blocksListing(part)).toMatch(/(?:^|;\s*)position:\s*(?:relative|sticky|absolute|fixed)/);
+    expect(zIndexOf(part)).toBeGreaterThan(zIndexOf(REGION) ?? 0);
+  });
+});
