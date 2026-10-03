@@ -78,6 +78,7 @@ Run by the operator; never in CI. Full cycle in `docs/workflows.md` → `data-up
 # then `geocode_candidates.py --report` — approved rows only, so it must run AFTER that pass
 # merge spellings of one business in collector/aliases.json (see docs/architecture.md → Build)
 python -m collector.build_places             # emits data/places.json from approved rows
+# → updatedAt = last day of the newest collected month; collect the month before building
 # → also appends any new place to collector/id_map.json; commit that file with the dataset
 python -m collector.validate data/places.json  # PRD §32 checks; non-zero exit = do not publish
 npm run preview                              # eyeball the result before committing
@@ -93,7 +94,7 @@ Publication is never automatic: the validator passing is necessary, a human look
 
 1. Merge the PR into `main`.
 2. Actions runs validate → build → deploy. A validator failure aborts before deploy.
-3. Confirm the "최근 데이터 업데이트" date in the provenance band under the header matches what you
+3. Confirm the "데이터 기준일" date in the provenance band under the header matches what you
    published.
 
 Because merging to `main` publishes, treat merge as the release step.

@@ -109,14 +109,16 @@ class Fixture:
     def write_aliases(self, aliases: dict[str, str]) -> None:
         self.aliases.write_text(json.dumps(aliases, ensure_ascii=False), encoding="utf-8")
 
-    def run(self, updated_at: date = UPDATED_AT) -> int:
+    def run(self, updated_at: date | None = UPDATED_AT) -> int:
+        """``updated_at=None`` omits the flag, so the build derives its own anchor."""
+        anchor = [] if updated_at is None else ["--updated-at", updated_at.isoformat()]
         return main([
             "--candidates", str(self.candidates),
             "--out-dir", str(self.out_dir),
             "--id-map", str(self.id_map),
             "--aliases", str(self.aliases),
             "--output", str(self.output),
-            "--updated-at", updated_at.isoformat(),
+            *anchor,
         ])
 
     def dataset(self) -> dict[str, Any]:
@@ -321,6 +323,40 @@ def test_transactions_after_the_anchor_are_dropped(fixture: Fixture) -> None:
     assert fixture.run() == EXIT_OK
     dates = [item["date"] for place in fixture.places() for item in place["transactions"]]
     assert "2026-08-02" not in dates
+
+
+@pytest.mark.parametrize(("newest", "expected"), [
+    ("2026-08", "2026-08-31"),
+    ("2025-12", "2025-12-31"),
+    ("2024-02", "2024-02-29"),
+])
+def test_the_default_anchor_is_the_last_day_of_the_newest_collected_month(
+        tmp_path: Path, newest: str, expected: str) -> None:
+    """Not the build date: a month is disclosed only after it ends, so a build run mid-month would
+    otherwise anchor every chart and window on a month no data can have reached yet, and draw it
+    the same as a month with no visits."""
+    built = Fixture(tmp_path)
+    write_csv(built.candidates, [row()])
+    # An older month beside it, so taking the first or the oldest directory fails too.
+    write_month(built.out_dir, "2023-11", [normalized()], [transaction(when="2023-11-02")])
+    write_month(built.out_dir, newest, [normalized()], [transaction(when=f"{newest}-01")])
+    assert built.run(updated_at=None) == EXIT_OK
+    assert built.dataset()["updatedAt"] == expected
+
+
+def test_an_explicit_anchor_overrides_the_derived_one(fixture: Fixture) -> None:
+    assert fixture.run(updated_at=date(2026, 7, 20)) == EXIT_OK
+    assert fixture.dataset()["updatedAt"] == "2026-07-20"
+
+
+@pytest.mark.parametrize("name", ["2026-13", "2026-7", "latest"])
+@pytest.mark.parametrize("updated_at", [None, UPDATED_AT])
+def test_a_month_directory_that_names_no_month_stops_the_build(
+        fixture: Fixture, name: str, updated_at: date | None) -> None:
+    """With or without ``--updated-at``: the same inputs must not pass on one path only."""
+    write_month(fixture.out_dir, name, [normalized()], [transaction()])
+    assert fixture.run(updated_at=updated_at) == EXIT_UNUSABLE
+    assert not fixture.output.exists()
 
 
 def test_a_place_with_no_surviving_transaction_is_not_published(tmp_path: Path) -> None:

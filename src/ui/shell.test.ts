@@ -25,7 +25,7 @@ describe('renderShell', () => {
     expect(content).not.toBeNull();
     expect(provenance?.textContent).toContain(SOURCE_LINE);
     expect(provenance?.textContent).toContain(DISCLAIMER);
-    expect(provenance?.textContent).toContain('최근 데이터 업데이트: 2026년 8월 1일');
+    expect(provenance?.textContent).toContain('데이터 기준일: 2026년 8월 1일');
     const order = [...root.children].map((child) => child.className || child.id);
     expect(order.indexOf('shell-provenance')).toBeLessThan(order.indexOf('content'));
     // Moved, not replaced: `<footer>` is the page's only `contentinfo` landmark, and it is what a
@@ -38,11 +38,11 @@ describe('renderShell', () => {
   it('shows the update date only when the dataset provides one', () => {
     const withDate = document.createElement('div');
     renderShell(withDate, { updatedAt: '2026-08-01' });
-    expect(withDate.textContent).toContain('최근 데이터 업데이트: 2026년 8월 1일');
+    expect(withDate.textContent).toContain('데이터 기준일: 2026년 8월 1일');
 
     const withoutDate = document.createElement('div');
     renderShell(withoutDate);
-    expect(withoutDate.textContent).not.toContain('최근 데이터 업데이트');
+    expect(withoutDate.textContent).not.toContain('데이터 기준일');
   });
 
   it('rewrites the update date in place instead of adding a second line', () => {
@@ -56,7 +56,7 @@ describe('renderShell', () => {
     // lines, and the band order source → updated → disclaimer has to survive the rewrite.
     expect(root.querySelector('.shell-updated')).toBe(line);
     expect(root.querySelectorAll('.shell-updated')).toHaveLength(1);
-    expect(root.textContent).toContain('최근 데이터 업데이트: 2026년 8월 1일');
+    expect(root.textContent).toContain('데이터 기준일: 2026년 8월 1일');
     expect(root.textContent).not.toContain('2026년 7월 1일');
     const bandText = [...root.querySelectorAll('.shell-provenance p')].map((p) => p.className);
     expect(bandText).toEqual(['', 'shell-updated', 'shell-disclaimer']);

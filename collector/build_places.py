@@ -29,6 +29,7 @@ from __future__ import annotations
 # `docs/runbook.md` -> Prerequisites declares Python 3.11+ for the collector; nothing here may use
 # a newer stdlib name.
 import argparse
+import calendar
 import csv
 import json
 import os
@@ -313,13 +314,45 @@ def month_dirs(out_dir: Path) -> list[Path]:
     A month directory missing one of the two files is skipped rather than fatal: an interrupted
     collection leaves a partial directory behind, and the months that did complete are still
     publishable. The summary reports how many months were read so a silent skip is visible.
+
+    A directory that does hold both files must be named ``YYYY-MM``. The name is what anchors
+    ``updatedAt`` (``coverage_end``), so it is checked here, where every build reads it, rather than
+    only on the path that derives the anchor: the same ``collector/out/`` must not pass or fail
+    depending on whether ``--updated-at`` was given.
     """
     if not out_dir.is_dir():
         return []
     found = [child for child in sorted(out_dir.iterdir())
              if (child / "normalized_places.json").is_file()
              and (child / "raw_transactions.json").is_file()]
+    for month in found:
+        if parse_iso_date(f"{month.name}-01") is None:
+            raise DatasetUnusable(f"{month} holds month data but is not named YYYY-MM; rename it")
     return found
+
+
+def no_month_data(out_dir: Path) -> DatasetUnusable:
+    return DatasetUnusable(
+        f"{out_dir} holds no month directory with both normalized_places.json and "
+        "raw_transactions.json — nothing to build from. Run the collection skill first")
+
+
+def coverage_end(out_dir: Path, months: list[Path]) -> date:
+    """The last day of the newest collected month — the default ``updatedAt``.
+
+    Not the build date. A month is disclosed only after it ends, so a build run on any day of month
+    M+1 has no data for M+1 yet; anchoring there would make the newest bar of every chart, and the
+    back half of every period window, a month nothing could have reached, drawn the same as a month
+    with no visits. The collected months are what the file actually covers, so they set the anchor,
+    which also keeps a build that runs before the latest month is collected honest about it.
+
+    ``month_dirs`` has already refused any directory not named ``YYYY-MM``, so its sorted order is
+    chronological and the last entry is the newest month.
+    """
+    if not months:
+        raise no_month_data(out_dir)
+    year, month = (int(part) for part in months[-1].name.split("-"))
+    return date(year, month, calendar.monthrange(year, month)[1])
 
 
 def raw_name_index(normalized: Any, path: Path) -> dict[str, str]:
@@ -376,9 +409,7 @@ def collect_transactions(
     unusable = 0
     months = month_dirs(out_dir)
     if not months:
-        raise DatasetUnusable(
-            f"{out_dir} holds no month directory with both normalized_places.json and "
-            "raw_transactions.json — nothing to build from. Run the collection skill first")
+        raise no_month_data(out_dir)
     for month in months:
         index = raw_name_index(read_json(month / "normalized_places.json"),
                                month / "normalized_places.json")
@@ -538,19 +569,20 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT,
                         help="dataset to write (default: data/places.json)")
     parser.add_argument("--updated-at", type=date.fromisoformat, default=None,
-                        help="ISO date anchoring the rolling window (default: today)")
+                        help="ISO date anchoring the rolling window "
+                             "(default: last day of the newest collected month)")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    updated_at = args.updated_at or date.today()
-    window_start = window_floor(updated_at)
 
     # The writes are inside the `try` with everything else: an unwritable target or a full disk is
     # a run that could not proceed, and exit 2 is what says so. Escaping as a traceback would look
     # like a crash to the operator and to any script reading the exit code.
     try:
+        updated_at = args.updated_at or coverage_end(args.out_dir, month_dirs(args.out_dir))
+        window_start = window_floor(updated_at)
         aliases = load_aliases(args.aliases)
         approved = load_approved(args.candidates, aliases)
         transactions, months, unusable = collect_transactions(

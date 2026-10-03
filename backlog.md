@@ -2,23 +2,20 @@
 
 ## Review Backlog
 
-### Detail card monthly chart (follow-up, 2026-09-16)
+### PR #71 — anchor updatedAt on the newest collected month (2026-10-03)
 
-- [ ] [debt] The newest month in every chart and the back half of 최근 1개월 are a month no
-  disclosure has reached yet, and draw the same as a month with no visits. Verified 2026-10-03 on
-  the committed `data/places.json`: `updatedAt` is `2026-09-16`, the newest transaction is
-  `2026-08-31`, and all 525 places carry 0 September transactions — a coverage gap, not a partial
-  month per place. `updatedAt` is the build date (`collector/build_places.py` defaults it to
-  `date.today()`), and month M is disclosed only after it ends, so every mid-month build repeats
-  this. Anchors affected: `chartedMonths` (last bar), `resolvePeriodWindow` (every window's end),
-  and the Map-first summary line's `{updatedAt} 기준`. Options, none chosen: (a) the collector
-  publishes the coverage end (last disclosed month's last day) as the anchor, alongside or instead
-  of the build date — schema/semantics change, re-derive every window; (b) the browser anchors
-  charts and windows at the newest transaction month — no schema change, but an all-quiet real
-  month becomes indistinguishable from an undisclosed one; (c) mark the anchor month as
-  not-yet-disclosed in the chart only — leaves 최근 1개월 half empty. Needs a spec before code
-  (source: PR #63 design analysis, verified by this batch) — `collector/build_places.py`,
-  `src/stats/period.ts`, `src/stats/histogram.ts`, `src/ui/place-detail.ts`
+- [ ] [debt] With `updatedAt` now always a month end, `resolveMonthsWindow` still steps back by
+  day with clamping, so a 2026-09-30 anchor makes 최근 1개월 `(2026-08-30, 2026-09-30]` — it counts
+  Aug 31, which the September histogram bar does not, and the prior window shifts with it; a
+  February anchor reaches into Jan 29-31. Consider whole-calendar-month windows (source:
+  code-review) — `src/stats/period.ts:46`
+- [ ] [debt] A transaction dated after its directory's month (a straggler `2026-09-01` inside
+  `2026-08/`) now falls past the derived anchor and is dropped without being counted as unusable;
+  the payload's own `month` field is never checked against the directory name (source:
+  code-review) — `collector/build_places.py` → `collect_transactions`
+- [ ] [constraint] Nothing enforces that `updatedAt` is a month end or no later than the newest
+  collected month: `--updated-at 2026-10-03` out of habit passes the gate and reships the
+  undisclosed-month gap (source: code-review) — `collector/validate.py:395`
 
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
