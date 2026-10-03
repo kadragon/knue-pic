@@ -8,11 +8,12 @@ import type { PlacesDataset } from '../types';
  * and therefore every expected value in the stats tests — are deterministic.
  *
  * Windows are half-open — the start day is excluded, the end day included (see
- * `src/stats/period.ts`). With `updatedAt` at 2026-08-01 that gives:
- *   1m           → after 2026-07-01, through 2026-08-01
- *   3m           → after 2026-05-01, through 2026-08-01
- *   6m           → after 2026-02-01, through 2026-08-01
- *   1y           → after 2025-08-01, through 2026-08-01
+ * `src/stats/period.ts`) and cover whole calendar months. `updatedAt` is a month end, as in every
+ * published file, and at 2026-07-31 that gives:
+ *   1m           → after 2026-06-30, through 2026-07-31
+ *   3m           → after 2026-04-30, through 2026-07-31
+ *   6m           → after 2026-01-31, through 2026-07-31
+ *   1y           → after 2025-07-31, through 2026-07-31
  *
  * Coverage by place:
  *   000001 visits spread across all three window boundaries; 6m average is fractional (rounding)
@@ -26,7 +27,7 @@ import type { PlacesDataset } from '../types';
  * Every date sits inside the rolling window the published file is trimmed to.
  */
 export const SAMPLE_DATASET: PlacesDataset = {
-  updatedAt: '2026-08-01',
+  updatedAt: '2026-07-31',
   places: [
     {
       id: 'restaurant_000001',
@@ -107,10 +108,10 @@ export const SAMPLE_DATASET: PlacesDataset = {
       lng: 127.3052,
       naverUrl: 'https://map.naver.com/p/search/새터말칼국수',
       transactions: [
-        { date: '2026-08-01', amount: 15000 }, // window end — included
-        { date: '2026-07-02', amount: 14000 }, // day after the 1m start — included
-        { date: '2026-07-01', amount: 13000 }, // exactly the 1m start — excluded from 1m
-        { date: '2025-08-01', amount: 9000 }, // exactly the 1y start — excluded from 1y
+        { date: '2026-07-31', amount: 15000 }, // window end — included
+        { date: '2026-07-01', amount: 14000 }, // day after the 1m start — included
+        { date: '2026-06-30', amount: 13000 }, // exactly the 1m start — excluded from 1m
+        { date: '2025-07-31', amount: 9000 }, // exactly the 1y start — excluded from 1y
       ],
     },
   ],

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlaceRecord } from '../data/types';
 import type { FakeNaverApi } from './fake-naver-api';
@@ -6,9 +6,13 @@ import { createFakeNaverApi } from './fake-naver-api';
 import {
   MAP_ERROR_MESSAGE,
   MAP_HEADING,
+  dotLabel,
   markerLabel,
+  renderPageMap,
   renderPlaceLocationMap,
-  resetAuthFailureMemo,
+  resetAuthFailureState,
+  type PageMapHandle,
+  type RenderPageMapOptions,
 } from './place-map';
 
 const PLACE: PlaceRecord = SAMPLE_DATASET.places[0]!;
@@ -22,10 +26,11 @@ function container(): HTMLElement {
  * would otherwise leave a live closure over a detached DOM for every case that follows.
  */
 afterEach(() => {
-  delete (globalThis as { navermap_authFailure?: () => void }).navermap_authFailure;
-  // A rejected key is remembered for the life of the page, so one case's hook call would otherwise
-  // send every later case straight to the fallback.
-  resetAuthFailureMemo();
+  // Both renders install an auth-failure listener on the real global, so a case that mounts without
+  // releasing leaves a live closure over a detached DOM — and a listener entry — for the cases after
+  // it. This clears the entries too, and the rejected-key memo with them: that is remembered for the
+  // life of a real page, so one case's hook call would send every later case to the fallback.
+  resetAuthFailureState();
 });
 
 /** The property, not a call — the re-render case asserts it is absent rather than a no-op. */
@@ -102,9 +107,13 @@ describe('renderPlaceLocationMap', () => {
     expect(root.querySelectorAll('.place-map-fallback')).toHaveLength(1);
   });
 
-  it('drops the previous handler when a second place is rendered', async () => {
-    const { root: first } = await render(createFakeNaverApi());
+  it('drops a released render from the shared auth-failure hook', async () => {
+    const { root: first, release } = await render(createFakeNaverApi());
     const { root: second } = await render(createFakeNaverApi(), SAMPLE_DATASET.places[1]!);
+    // The release is what the dialog does before every repaint (`src/ui/detail-dialog.ts` →
+    // `dropMap`), and it is the only thing that takes a render off the hook now that the page map
+    // holds one for the life of the page.
+    release();
 
     authFailureHook()?.();
 
@@ -149,7 +158,7 @@ describe('renderPlaceLocationMap', () => {
 
     // Forget the rejection, so the next render takes the full mount path rather than the memo's
     // shortcut — what this case pins is that a throwing release leaves that path usable.
-    resetAuthFailureMemo();
+    resetAuthFailureState();
     const next = createFakeNaverApi();
     const { root: second } = await render(next, SAMPLE_DATASET.places[1]!);
     expect(next.maps).toHaveLength(1);
@@ -260,7 +269,8 @@ describe('renderPlaceLocationMap', () => {
     const { root: second } = await render(createFakeNaverApi(), SAMPLE_DATASET.places[1]!);
 
     older.settle(createFakeNaverApi());
-    await firstRender;
+    const releaseFirst = await firstRender;
+    releaseFirst();
     authFailureHook()?.();
 
     expect(second.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
@@ -274,5 +284,240 @@ describe('renderPlaceLocationMap', () => {
 
     // The caller never has to branch on whether the map came up.
     expect(() => release()).not.toThrow();
+  });
+});
+
+/**
+ * The page map: the first screen, not a dialog's one marker.
+ *
+ * It draws a *neutral dot* per filtered place and nothing else. No rank badge, no size, shade or hue
+ * from the visit count — `docs/design/map-first-layout.md` → Implementation Decision 1 rules the
+ * intensity scale out as surveillance framing, and the numbered pins that will sit beside these dots
+ * are their own ticket.
+ */
+describe('renderPageMap', () => {
+  /** `CAMPUS_ORIGIN`, handed in rather than imported: `src/map/` never reads `src/stats/`. */
+  const ORIGIN = { lat: 36.6084, lng: 127.3582 };
+
+  const [ALWAYS, CAFE] = SAMPLE_DATASET.places as [PlaceRecord, PlaceRecord, ...PlaceRecord[]];
+
+  async function page(
+    api: FakeNaverApi,
+    places: PlaceRecord[] = [ALWAYS, CAFE],
+    extra: Partial<RenderPageMapOptions> = {},
+  ): Promise<{ root: HTMLElement; map: PageMapHandle }> {
+    const root = container();
+    const map = await renderPageMap(root, places, {
+      loadApi: () => Promise.resolve(api),
+      origin: ORIGIN,
+      ...extra,
+    });
+    return { root, map };
+  }
+
+  it('draws one dot per filtered place, on that place\'s own coordinates', async () => {
+    const api = createFakeNaverApi();
+    const { root } = await page(api);
+
+    expect(root.querySelector('.page-map-canvas')).toBeInstanceOf(HTMLElement);
+    expect(api.markers).toHaveLength(2);
+    for (const place of [ALWAYS, CAFE]) {
+      const marker = api.markers.find((candidate) => candidate.title === dotLabel(place));
+      expect(marker?.options.position.lat(), place.name).toBe(place.lat);
+      expect(marker?.options.position.lng(), place.name).toBe(place.lng);
+      expect(marker?.attached[0], place.name).toBe(api.maps[0]);
+    }
+  });
+
+  it('leaves the control already in the region standing', async () => {
+    const api = createFakeNaverApi();
+    const root = container();
+    // What the shell puts there (`src/ui/shell.ts` → `mapRegion`).
+    const control = document.createElement('button');
+    control.className = 'map-recentre';
+    root.append(control);
+
+    await renderPageMap(root, [ALWAYS], {
+      loadApi: () => Promise.resolve(api),
+      origin: ORIGIN,
+    });
+
+    // The mount is the paint that gives the reader the map; taking their way back to the campus in
+    // the same one would leave a map nobody could re-centre.
+    expect(root.querySelector('.map-recentre')).toBe(control);
+    expect(root.querySelector('.page-map-canvas')).not.toBeNull();
+  });
+
+  it('names the place in the dot, so the dot is never its only carrier', async () => {
+    const api = createFakeNaverApi();
+    await page(api);
+
+    // Naver shows a marker's `title` as its own tooltip, so the dot's colour and size never carry
+    // the place's identity on their own.
+    expect(dotLabel(ALWAYS)).toBe(ALWAYS.name);
+    expect(api.markers.map((marker) => marker.title)).toEqual([ALWAYS.name, CAFE.name]);
+  });
+
+  it('gives every dot the same icon, whatever the visit count', async () => {
+    const api = createFakeNaverApi();
+    await page(api);
+
+    // The fixture really does span different counts, or this would pass on a map that varied.
+    const counts = [ALWAYS, CAFE].map((place) => place.transactions.length);
+    expect(new Set(counts).size).toBeGreaterThan(1);
+
+    // The whole option object, not one field: a shade smuggled in as a class name or a second
+    // content string is the shape this rule is really about.
+    const icons = new Set(api.markers.map((marker) => JSON.stringify(marker.options.icon)));
+    expect(icons.size).toBe(1);
+    expect(api.markers[0]?.options.icon?.content).toContain('page-map-dot');
+  });
+
+  it('opens on the campus origin and returns there on demand', async () => {
+    const api = createFakeNaverApi();
+    const { map } = await page(api);
+    const centre = () => api.maps[0]?.centers.at(-1);
+
+    expect(api.maps[0]?.options.center.lat()).toBe(ORIGIN.lat);
+    expect(centre()?.lat(), 'nothing has moved the map yet').toBe(ORIGIN.lat);
+
+    map.recenter();
+
+    // After a pan, so this cannot pass on a map that was never moved at all.
+    expect(centre()?.lat()).toBe(ORIGIN.lat);
+    expect(centre()?.lng()).toBe(ORIGIN.lng);
+    expect(api.maps[0]?.centers).toHaveLength(2);
+  });
+
+  it('takes the excluded dots off the map when the filtered set narrows', async () => {
+    const api = createFakeNaverApi();
+    const { map } = await page(api);
+
+    map.setPlaces([CAFE]);
+
+    const dropped = api.markers.find((marker) => marker.title === dotLabel(ALWAYS));
+    const kept = api.markers.find((marker) => marker.title === dotLabel(CAFE));
+    // A dot left standing is the failure this exists to prevent: the map would answer a question
+    // about a window and a filter the list has already moved on from.
+    expect(dropped?.attached.at(-1)).toBeNull();
+    expect(kept?.attached.at(-1)).toBe(api.maps[0]);
+    expect(api.maps[0]?.centers).toHaveLength(1);
+  });
+
+  it('keeps a surviving dot as the same marker rather than drawing a second one', async () => {
+    const api = createFakeNaverApi();
+    const { map } = await page(api, [ALWAYS, CAFE]);
+
+    map.setPlaces([CAFE, ALWAYS]);
+
+    // Id-keyed, so a reordering or a widening filter costs no marker and no flicker.
+    expect(api.markers).toHaveLength(2);
+    expect(api.markers.every((marker) => marker.attached.every((at) => at !== null))).toBe(true);
+  });
+
+  it('tells the page the map never arrived, and removes the canvas', async () => {
+    const root = container();
+    const unavailable = vi.fn();
+
+    await renderPageMap(root, [ALWAYS], {
+      loadApi: () => Promise.reject(new Error('script blocked')),
+      origin: ORIGIN,
+      onUnavailable: unavailable,
+    });
+
+    expect(unavailable).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('.page-map-canvas')).toBeNull();
+  });
+
+  it('tells the page once however often the key is rejected', async () => {
+    const unavailable = vi.fn();
+    await page(createFakeNaverApi(), [ALWAYS], { onUnavailable: unavailable });
+
+    authFailureHook()?.();
+    authFailureHook()?.();
+
+    // One switch to the full-width layout and one sentence at the top of it, whatever the API does.
+    expect(unavailable).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells a page map and an open dialog about the same rejected key', async () => {
+    const unavailable = vi.fn();
+    await page(createFakeNaverApi(), [ALWAYS], { onUnavailable: unavailable });
+    const { root: dialog } = await render(createFakeNaverApi(), CAFE);
+
+    authFailureHook()?.();
+
+    // The page map holds the hook for the life of the page, so a handler that only the newest
+    // render owns would leave the first screen showing a map the key had already taken away.
+    expect(unavailable).toHaveBeenCalledTimes(1);
+    expect(dialog.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
+  });
+
+  it('releases the map and stops listening when the page releases it', async () => {
+    const unavailable = vi.fn();
+    const api = createFakeNaverApi();
+    const { map } = await page(api, [ALWAYS], { onUnavailable: unavailable });
+
+    map.release();
+    authFailureHook()?.();
+
+    expect(api.maps[0]?.destroyCalls).toBe(1);
+    // A released render must not raise the page's fallback: the release belongs to the page, and
+    // the page is what decides what it shows now.
+    expect(unavailable).not.toHaveBeenCalled();
+  });
+
+  it('goes straight to the fallback once the key has been rejected', async () => {
+    const first = vi.fn();
+    const { map } = await page(createFakeNaverApi(), [ALWAYS], { onUnavailable: first });
+    authFailureHook()?.();
+    map.release();
+
+    let loads = 0;
+    const second = vi.fn();
+    const root = container();
+    await renderPageMap(root, [ALWAYS], {
+      loadApi: () => {
+        loads += 1;
+        return Promise.resolve(createFakeNaverApi());
+      },
+      origin: ORIGIN,
+      onUnavailable: second,
+    });
+
+    // The origin does not change within a page, so a second mount would only buy another ~1.1 s of
+    // a map that is about to be taken away again. Each render reports its own unavailability, so
+    // the second render's spy is a separate one.
+    expect(loads).toBe(0);
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('.page-map-canvas')).toBeNull();
+  });
+
+  it('does nothing on setPlaces or recenter after a release', async () => {
+    const api = createFakeNaverApi();
+    const { map } = await page(api, [ALWAYS, CAFE]);
+
+    map.release();
+
+    // The UI keeps its handle for the life of the page, so the calls that arrive after a release
+    // must be inert rather than throwing into an event handler.
+    expect(() => {
+      map.setPlaces([CAFE]);
+      map.recenter();
+      map.release();
+    }).not.toThrow();
+    expect(api.markers).toHaveLength(2);
+    expect(api.maps[0]?.centers).toHaveLength(1);
+  });
+
+  it('hands back a handle even when nothing mounted', async () => {
+    const map = await renderPageMap(container(), [ALWAYS], {
+      loadApi: () => Promise.reject(new Error('script blocked')),
+      origin: ORIGIN,
+    });
+
+    // The caller never has to branch on whether the map came up.
+    expect(() => map.release()).not.toThrow();
   });
 });

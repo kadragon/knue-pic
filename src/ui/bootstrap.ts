@@ -1,10 +1,12 @@
 import { loadPlacesDataset } from '../data/load';
-import type { Period, PlacesDataset } from '../data/types';
+import type { Period, PlaceRecord, PlacesDataset } from '../data/types';
 import { computeMonthlyHistogram } from '../stats/histogram';
 import { filterByKind } from '../stats/search';
 import { computeKindPlaceCounts, computeWindowSummary } from '../stats/window-summary';
 import { computePlaceStats } from '../stats/place-stats';
+import { CAMPUS_ORIGIN } from '../stats/distance';
 import { resolvePeriodWindow } from '../stats/period';
+import { renderPageMap, type PageMapHandle } from '../map/place-map';
 import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
 import { createDetailDialog, type DetailDialogOptions } from './detail-dialog';
@@ -16,21 +18,81 @@ import {
 } from './kind-filter';
 import { DEFAULT_PERIOD, renderPlaceList } from './place-list';
 import { renderPlaceSearch } from './search';
-import { renderShell, setShellUpdatedAt } from './shell';
+import {
+  renderShell,
+  setShellMapFirst,
+  setShellMapUnavailable,
+  setShellUpdatedAt,
+} from './shell';
 import { renderSummaryLine, summaryLabel } from './summary-line';
 
 /**
  * Wires the page frame to the dataset: shell first, then the load, then whichever state the load
  * ended in. A successful load renders search, the ranked list with its period selector and the
- * detail dialog into `#content`.
+ * detail dialog into `#content`, and — on a wide viewport — the page map beside them.
  *
- * `load` is injectable so this is testable without stubbing global `fetch`, and `dialog` carries
- * the same injection down to the map — jsdom cannot run the Naver script, so the fake API goes in
- * the same way.
+ * `load` is injectable so this is testable without stubbing global `fetch`, and `dialog`,
+ * `renderMap` and `matchMedia` carry the same reach further down: jsdom cannot run the Naver
+ * script and has no `matchMedia` at all, so both the map and the viewport that decides whether to
+ * ask for it are handed in.
  */
 export interface BootstrapOptions {
   load?: () => Promise<PlacesDataset>;
   dialog?: DetailDialogOptions;
+  /** Mounts the page map. Injectable for the same reason `dialog.renderMap` is. */
+  renderMap?: typeof renderPageMap;
+  /** `window.matchMedia` by default; injectable so a test can decide the viewport. */
+  matchMedia?: MatchMedia;
+}
+
+/** The viewport query the map-first layout turns on. `src/styles.css` holds the same breakpoint. */
+const MAP_FIRST_QUERY = '(min-width: 768px)';
+
+export type MatchMedia = (query: string) => MediaQueryList;
+
+/** The one question the layout asks of the window, and the answer changing. */
+interface Viewport {
+  wide(): boolean;
+  onChange(onChange: (wide: boolean) => void): void;
+}
+
+/**
+ * The window's answer, or `null` when there is no media query to ask.
+ *
+ * Feature-detected rather than assumed: jsdom implements no `matchMedia`, so an un-injected case
+ * gets today's full-width layout and no map — which is what a narrow phone gets anyway, rather than
+ * a crash on the page's first render.
+ */
+function resolveViewport(matchMedia: MatchMedia | undefined): Viewport | null {
+  const ask =
+    matchMedia ??
+    (typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : undefined);
+  if (ask === undefined) return null;
+
+  const list = ask(MAP_FIRST_QUERY);
+  return {
+    wide: () => list.matches,
+    onChange: (onChange) => {
+      // Read from the list rather than the event: a `change` event carries no value of its own, and
+      // every consumer here asks the same one question.
+      list.addEventListener('change', () => {
+        onChange(list.matches);
+      });
+    },
+  };
+}
+
+/**
+ * The places the page map draws: those with at least one in-window visit under the current filters.
+ *
+ * The predicate is the one `computeWindowSummary` counts and `rankWindow` filters on
+ * (`src/stats/top-places.ts`), so the dots, the summary's N곳 and the list's rows cannot come to
+ * name three different sets. It is recomputed here rather than taken from the ranked list because
+ * the list ranks itself inside `place-list.ts`, which this module does not own.
+ */
+function placesInWindow(dataset: PlacesDataset, period: Period): PlaceRecord[] {
+  const window = resolvePeriodWindow(period, dataset.updatedAt);
+  return dataset.places.filter((place) => computePlaceStats(place, window).visitCount > 0);
 }
 
 /**
@@ -44,7 +106,14 @@ export interface BootstrapOptions {
 const SEARCH_PERIOD: Period = '1y';
 
 export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {}): Promise<void> {
-  const { load = () => loadPlacesDataset(), dialog: dialogOptions = {} } = options;
+  const {
+    load = () => loadPlacesDataset(),
+    dialog: dialogOptions = {},
+    renderMap = renderPageMap,
+    matchMedia,
+  } = options;
+
+  const viewport = resolveViewport(matchMedia);
 
   // Rendered once. A retry re-renders `#content` alone: re-rendering the shell would destroy the
   // button the user just pressed and drop keyboard focus to the top of the document.
@@ -60,6 +129,50 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   let activeKind: KindSelection = null;
   /** The window the page opens on; `place-list.ts` states why it is 최근 3개월 and not another. */
   let activePeriod: Period = DEFAULT_PERIOD;
+
+  /**
+   * The page map, once mounted. Held here rather than in the shell because the set it draws belongs
+   * to the filters below, and a resize that mounts it long after the last render needs those
+   * filters as they stand.
+   */
+  let pageMap: PageMapHandle | null = null;
+  /** The set the map draws, kept current between mounts. Empty until a dataset has rendered. */
+  let dotPlaces: PlaceRecord[] = [];
+  /** Set once the map has failed, so a later widening does not ask for it again. */
+  let mapUnavailable = false;
+
+  viewport?.onChange((wide) => {
+    // A narrowing hides the region rather than releasing the map, so widening the window again
+    // finds the same dots — and a resize is never reported as a failure.
+    setShellMapFirst(root, wide);
+    if (wide) mountPageMap();
+  });
+
+  /**
+   * Mounts the page map, at most once per page.
+   *
+   * Fire-and-forget, and called only after the panel is painted: the map is the page's one
+   * third-party input and must never hold up the figures (`docs/design/map-first-layout.md` →
+   * Implementation Decision 5). The dots handed over afterwards are the *current* ones, so a filter
+   * change that lands while the script is still downloading cannot leave the map answering a
+   * window the list has left.
+   */
+  function mountPageMap(): void {
+    if (pageMap || mapUnavailable || (viewport?.wide() ?? false) === false) return;
+    const region = root.querySelector<HTMLElement>('.map-shell-map');
+    if (!region) return;
+
+    void renderMap(region, dotPlaces, {
+      origin: CAMPUS_ORIGIN,
+      onUnavailable: () => {
+        mapUnavailable = true;
+        setShellMapUnavailable(root);
+      },
+    }).then((handle) => {
+      pageMap = handle;
+      handle.setPlaces(dotPlaces);
+    });
+  }
 
   function onRetry(): void {
     retriedByUser = true;
@@ -169,6 +282,19 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
       const byKind = computeKindPlaceCounts(dataset, activePeriod);
       const all = Object.values(byKind).reduce((sum, count) => sum + count, 0);
       setKindCounts(kinds, { all, byKind });
+      refreshDots(narrowed);
+    }
+
+    /**
+     * The map's dot set, from the same narrowed dataset the summary just counted.
+     *
+     * Called on every filter change and on the first paint, which is also where the map is first
+     * mounted: `mountPageMap` mounts at most once, so on every later call this is only the update.
+     */
+    function refreshDots(narrowed: PlacesDataset): void {
+      dotPlaces = placesInWindow(narrowed, activePeriod);
+      pageMap?.setPlaces(dotPlaces);
+      mountPageMap();
     }
 
     function onActiveChange(period: Period): void {
@@ -205,7 +331,14 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   }
 
   function renderFrame(): HTMLElement {
-    renderShell(root);
+    renderShell(root, {
+      mapFirst: viewport?.wide() ?? false,
+      // The shell holds no map, so the press travels: before the script has loaded there is nothing
+      // to move, and the button is off screen at every width where the map is not mounted.
+      onRecentre: () => {
+        pageMap?.recenter();
+      },
+    });
 
     const slot = root.querySelector<HTMLElement>('#content');
     if (!slot) {

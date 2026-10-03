@@ -19,12 +19,15 @@ import { daysInMonth, formatIsoDate, parseIsoDate, type CalendarDate } from '../
  * That asymmetry is what lets consecutive windows tile without overlapping. `docs/architecture.md`
  * defines the prior period as the immediately preceding window of the same length, so if both ends
  * were inclusive the two windows would share their boundary day and the rank-delta comparison
- * would count that day's transactions twice. It also keeps a `1m` window one day shorter than the
- * same span with both ends included; the span itself is 28-31 days, set by the anchor rather than
- * fixed. It is the *preceding* month's length when the anchor's day fits in that month
- * (2026-03-15 starts at 2026-02-15, so 28), and the anchor's own day-of-month when
- * `subtractMonths` has to clamp (2026-03-31 starts at 2026-02-28, so 31). A month-end anchor is
- * not special on its own: 2026-04-30 needs no clamping and spans 31, not April's 30.
+ * would count that day's transactions twice.
+ *
+ * A window covers whole calendar months: `start` is the **last day** of the month `N` months
+ * before the anchor's, so the window opens on the first day of a month. The anchor is always a
+ * month end in a published file (`collector/validate.py` check 6), which makes `1m` exactly the
+ * anchor's own month — the same days the detail card's histogram draws as that month's bar. A
+ * day-stepped window disagreed with the bar: from 2026-09-30 it opened after 2026-08-30 and so
+ * counted Aug 31 under 최근 1개월. An anchor that is not a month end (a test fixture, a hand-built
+ * file) still works; its own month is simply counted month-to-date.
  */
 export interface PeriodWindow {
   /** Exclusive lower bound — the day the window starts *after*. */
@@ -36,14 +39,15 @@ export interface PeriodWindow {
 const MONTHS_BACK: Record<Period, number> = { '1m': 1, '3m': 3, '6m': 6, '1y': 12 };
 
 /**
- * Steps back whole calendar months, clamping the day to the target month's length so that
- * March 31 minus one month is February 28 (or 29) rather than rolling forward into March.
+ * The last day of the month `months` calendar months before `date`'s month — the exclusive lower
+ * bound of a window covering those whole months. The day of `date` plays no part, so no clamping
+ * is involved and two windows built from one anchor always agree on where a month starts.
  */
-function subtractMonths(date: CalendarDate, months: number): CalendarDate {
+function monthEndBefore(date: CalendarDate, months: number): CalendarDate {
   const shifted = date.year * 12 + (date.month - 1) - months;
   const year = Math.floor(shifted / 12);
   const month = (shifted % 12) + 1;
-  return { year, month, day: Math.min(date.day, daysInMonth(year, month)) };
+  return { year, month, day: daysInMonth(year, month) };
 }
 
 /**
@@ -52,13 +56,13 @@ function subtractMonths(date: CalendarDate, months: number): CalendarDate {
  * The period selector is not the only consumer of a month window: the detail card's histogram
  * spans `HISTOGRAM_MONTHS` of the retained months (`src/stats/histogram.ts`). Exposing the month
  * count directly
- * keeps all of them on the same clamping rule as `resolvePeriodWindow`, which delegates here — a
+ * keeps all of them on the same month boundaries as `resolvePeriodWindow`, which delegates here — a
  * second hand-rolled subtraction is exactly how a window ends up one day off from the one a
  * statistic is compared against.
  */
 export function resolveMonthsWindow(months: number, anchor: string): PeriodWindow {
   const end = parseIsoDate(anchor);
-  return { start: formatIsoDate(subtractMonths(end, months)), end: formatIsoDate(end) };
+  return { start: formatIsoDate(monthEndBefore(end, months)), end: formatIsoDate(end) };
 }
 
 export function resolvePeriodWindow(period: Period, anchor: string): PeriodWindow {
@@ -105,17 +109,13 @@ export const RETAINED_MONTHS = 15;
  * exclusive `start`: the two tile with neither a shared day nor a gap, which is what makes a rank
  * comparison between them honest.
  *
- * `start` is stepped back from the **anchor**, twice the period's length, rather than from the
- * current window's start. Both spellings look equivalent, but day clamping is not associative:
- * stepping 6 months twice from 2026-08-31 lands on 2025-08-28 (clamped to February on the way),
- * while stepping 12 months once lands on 2025-08-31. Only the second agrees with the retention
- * floor below, which is likewise one step from the anchor — and a three-day disagreement there is
- * enough to declare a fully retained window incomplete and silently drop every rank delta.
+ * `start` is the month end `2N` months before the anchor's month, so the prior window is likewise
+ * `N` whole months.
  */
 export function resolvePriorWindow(period: Period, anchor: string): PeriodWindow {
   // Delegated so the unknown-period guard lives in one place.
   const current = resolvePeriodWindow(period, anchor);
-  const start = subtractMonths(parseIsoDate(anchor), MONTHS_BACK[period] * 2);
+  const start = monthEndBefore(parseIsoDate(anchor), MONTHS_BACK[period] * 2);
   return { start: formatIsoDate(start), end: current.start };
 }
 
@@ -129,21 +129,17 @@ export function resolvePriorWindow(period: Period, anchor: string): PeriodWindow
  * against retained data and `1y` never can.
  */
 export function isPriorWindowComplete(period: Period, anchor: string): boolean {
-  return resolvePriorWindow(period, anchor).start >= retentionFloor(anchor);
+  return resolvePriorWindow(period, anchor).start >= retainedWindow(anchor).start;
 }
 
 /**
- * The oldest day the dataset is claimed to cover, anchored to a **month** rather than a day.
+ * The range the dataset is claimed to cover: the `RETAINED_MONTHS` whole months up to the anchor.
  *
  * The collector publishes whole calendar months (`collector/validate.py` → `ROLLING_WINDOW_MONTHS`,
- * whose floor is the first day of the month `ROLLING_WINDOW_MONTHS - 1` back), so the earliest day
- * the file can hold is that month's first. Stepping `RETAINED_MONTHS` whole months back from the
- * anchor instead lands up to a month earlier — 2025-05-25 against a file that starts 2025-06-01 —
- * and every day in that sliver is claimed but absent. It was slack while `RETAINED_MONTHS` sat
- * below the collector's window; now that the two agree it is an over-claim, so the floor is
- * computed the way its producer computes it.
+ * whose floor is the first day of the month `ROLLING_WINDOW_MONTHS - 1` back), and that is exactly
+ * the window `resolveMonthsWindow` builds for the same count — both bounds exclusive at the same
+ * month end, so comparing two `start`s compares the first day each one covers.
  */
-function retentionFloor(anchor: string): string {
-  const { year, month } = subtractMonths(parseIsoDate(anchor), RETAINED_MONTHS - 1);
-  return formatIsoDate({ year, month, day: 1 });
+function retainedWindow(anchor: string): PeriodWindow {
+  return resolveMonthsWindow(RETAINED_MONTHS, anchor);
 }

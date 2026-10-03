@@ -18,7 +18,7 @@ vi.mock('./histogram', async (importOriginal) => {
 
 /**
  * Expected orders below are computed by hand from `SAMPLE_DATASET` (`docs/eval-criteria.md` §1),
- * not copied from an implementation run. Anchor is 2026-08-01, windows half-open.
+ * not copied from an implementation run. Anchor is 2026-07-31, windows half-open whole months.
  */
 function idsOf(dataset: PlacesDataset, period: Parameters<typeof computeTopPlaces>[1]): string[] {
   return computeTopPlaces(dataset, period).entries.map((entry) => entry.place.id);
@@ -74,7 +74,7 @@ describe('computeTopPlaces ordering', () => {
 
   it('never lets amount outrank visit count', () => {
     const dataset: PlacesDataset = {
-      updatedAt: '2026-08-01',
+      updatedAt: '2026-07-31',
       places: [
         // One very expensive visit versus two cheap ones on later dates.
         place('restaurant_000001', [{ date: '2026-07-25', amount: 900000 }]),
@@ -102,7 +102,7 @@ describe('computeTopPlaces ordering', () => {
 
   it('orders a full tie by id so the list is reproducible', () => {
     const dataset: PlacesDataset = {
-      updatedAt: '2026-08-01',
+      updatedAt: '2026-07-31',
       places: [
         place('restaurant_000009', [{ date: '2026-07-10', amount: 10000 }]),
         place('restaurant_000002', [{ date: '2026-07-10', amount: 10000 }]),
@@ -115,14 +115,14 @@ describe('computeTopPlaces ordering', () => {
   it('caps the list at the configured limit while ranking everyone', () => {
     const placeCount = TOP_PLACES_LIMIT + 4;
     const dataset: PlacesDataset = {
-      updatedAt: '2026-08-01',
+      updatedAt: '2026-07-31',
       places: Array.from({ length: placeCount }, (_, index) =>
         // Descending visit counts: `placeCount` visits for the first place down to 1 for the last.
-        // Visits are spread across two months so a limit past 29 cannot build an invalid July date.
+        // Days wrap inside July, the whole 1m window, so a limit past 31 cannot build an invalid date.
         place(
           `restaurant_${String(index + 1).padStart(6, '0')}`,
           Array.from({ length: placeCount - index }, (__, visit) => ({
-            date: visit < 28 ? `2026-07-${String(visit + 2).padStart(2, '0')}` : `2026-08-${String(visit - 26).padStart(2, '0')}`,
+            date: `2026-07-${String((visit % 31) + 1).padStart(2, '0')}`,
             amount: 1000,
           })),
         ),
@@ -153,7 +153,7 @@ describe('computeTopPlaces rank delta', () => {
   });
 
   it('reports 0 for an unchanged rank and null for a place absent from the prior window', () => {
-    // Prior 1m window is 2026-06-01 → 2026-07-01; only 000006 has a visit in it (07-01), at rank 1,
+    // Prior 1m window is 2026-05-31 → 2026-06-30; only 000006 has a visit in it (06-30), at rank 1,
     // and it is rank 1 in the current window too.
     const result = computeTopPlaces(SAMPLE_DATASET, '1m');
     const byId = new Map(result.entries.map((entry) => [entry.place.id, entry]));
@@ -164,7 +164,7 @@ describe('computeTopPlaces rank delta', () => {
   });
 
   it('computes the 6m delta against the prior 6m window', () => {
-    // Prior 6m is 2025-08-01 → 2026-02-01: 000003 (2 visits) rank 1, 000001 (1 visit) rank 2.
+    // Prior 6m is 2025-07-31 → 2026-01-31: 000003 (2 visits) rank 1, 000001 (1 visit) rank 2.
     // 000001 is rank 2 in the current window as well.
     const byId = new Map(
       computeTopPlaces(SAMPLE_DATASET, '6m').entries.map((entry) => [entry.place.id, entry]),
@@ -176,10 +176,10 @@ describe('computeTopPlaces rank delta', () => {
 
   it('signs a delta negative when the place slipped down the ranking', () => {
     const dataset: PlacesDataset = {
-      updatedAt: '2026-08-01',
+      updatedAt: '2026-07-31',
       places: [
-        // Prior 1m (2026-06-01 → 2026-07-01): A 1 visit (rank 1), B none.
-        // Current 1m (2026-07-01 → 2026-08-01): B 2 visits (rank 1), A 1 visit (rank 2).
+        // Prior 1m (2026-05-31 → 2026-06-30): A 1 visit (rank 1), B none.
+        // Current 1m (2026-06-30 → 2026-07-31): B 2 visits (rank 1), A 1 visit (rank 2).
         place('restaurant_000001', [
           { date: '2026-06-15', amount: 1000 },
           { date: '2026-07-15', amount: 1000 },
@@ -202,7 +202,7 @@ describe('computeTopPlaces rank delta', () => {
 
   it('compares against the whole prior ranking, not only the visible cap', () => {
     const dataset: PlacesDataset = {
-      updatedAt: '2026-08-01',
+      updatedAt: '2026-07-31',
       places: [
         // 000001 sat at prior rank 11 behind busier places, then led the current window.
         place('restaurant_000001', [
@@ -246,7 +246,7 @@ describe('computeTopPlaces trend chart', () => {
     const result = computeTopPlaces(SAMPLE_DATASET, '1y');
 
     expect(result.entries.length).toBeGreaterThan(1);
-    expect(result.chartedSpan).toEqual({ first: '2025-09', last: '2026-08' });
+    expect(result.chartedSpan).toEqual({ first: '2025-08', last: '2026-07' });
     for (const entry of result.entries) {
       expect(histogramSpan(entry.histogram)).toEqual(result.chartedSpan);
     }

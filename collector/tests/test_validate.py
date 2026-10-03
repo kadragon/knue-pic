@@ -31,7 +31,7 @@ from collector.validate import (
 
 from datetime import date
 
-UPDATED_AT = "2026-08-01"
+UPDATED_AT = "2026-08-31"
 
 
 def place(**overrides: Any) -> dict[str, Any]:
@@ -212,9 +212,24 @@ def test_transaction_older_than_the_window_is_reported() -> None:
 
 def test_transaction_after_updated_at_is_reported() -> None:
     violations = check(
-        dataset(place(transactions=[{"date": "2026-08-02", "amount": 1000}])), approvals()
+        dataset(place(transactions=[{"date": "2026-09-01", "amount": 1000}])), approvals()
     )
     assert checks_reported(violations) == {6}
+
+
+@pytest.mark.parametrize("anchor", ["2026-10-03", "2026-08-30", "2024-02-28", "2026-09-01"])
+def test_an_updated_at_that_is_not_a_month_end_is_reported(anchor: str) -> None:
+    """Every browser window covers whole months up to ``updatedAt``'s month; a mid-month anchor
+    (``--updated-at`` typed out of habit) would publish the rest of that month as zero visits."""
+    violations = check(dataset(updated_at=anchor), approvals())
+    assert checks_reported(violations) == {6}
+    assert "month end" in details(violations)
+
+
+@pytest.mark.parametrize("anchor", ["2026-08-31", "2024-02-29", "2026-02-28", "2026-04-30"])
+def test_a_month_end_updated_at_passes(anchor: str) -> None:
+    on_anchor = place(transactions=[{"date": anchor, "amount": 1000}])
+    assert check(dataset(on_anchor, updated_at=anchor), approvals()) == []
 
 
 def test_window_edges_pass() -> None:
@@ -237,7 +252,7 @@ def test_window_edges_pass() -> None:
 def test_day_anchored_boundary_is_rejected() -> None:
     """The floor is a whole month, not ``updatedAt`` minus 15 months to the day.
 
-    For updatedAt 2026-08-01 a day-anchored floor would land on 2025-05-01 and admit the tail of a
+    For updatedAt 2026-08-31 a day-anchored floor would land on 2025-05-31 and admit the tail of a
     month the file otherwise stops short of. A half-collected month is worse than an absent one:
     every window that touches it reports a count nobody can reproduce from the disclosures.
     """

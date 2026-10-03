@@ -22,7 +22,7 @@ describe('RETAINED_MONTHS against the published dataset', () => {
       .sort();
 
     // Month arithmetic only — the anchor's day never moves the floor's month, and this mirrors
-    // `retentionFloor` in period.ts, which is month-anchored for the same reason.
+    // `retainedWindow` in period.ts, which is month-anchored for the same reason.
     const [year, month] = dataset.updatedAt.split('-').map(Number) as [number, number, number];
     const total = year * 12 + (month - 1) - (RETAINED_MONTHS - 1);
     const floorMonth = `${String(Math.floor(total / 12)).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;

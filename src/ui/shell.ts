@@ -1,3 +1,4 @@
+import { MAP_ERROR_MESSAGE } from '../map/place-map';
 import { displayDate } from './place-labels';
 
 /** Strings shown on every screen. PRD §21 requires both the source line and the disclaimer. */
@@ -16,14 +17,31 @@ export const BRAND = 'KNUE PICK';
  */
 export const HEADLINE = '요즘 동료들은 어디를 자주 갈까';
 
+/** The control that takes the map back to the campus after a reader pans away from it. */
+export const RECENTRE_LABEL = '학교로';
+
+/** Marks the root as showing the map-first layout; `src/styles.css` reads it at ≥ 768px. */
+const MAP_FIRST_CLASS = 'is-map-first';
+
 export interface ShellOptions {
   /** `updatedAt` from data/places.json, once the dataset is wired in. */
   updatedAt?: string;
+  /**
+   * Whether this viewport gets the map-first layout. The caller decides, because the same answer
+   * decides whether the map script is loaded at all — and the layout must never claim a map the
+   * page is not going to mount.
+   */
+  mapFirst?: boolean;
+  /**
+   * Pressed by `학교로`. The shell holds no map, so it hands the press on; without a callback no
+   * control is rendered, because a button that does nothing is a tab stop onto a dead end.
+   */
+  onRecentre?: () => void;
 }
 
 /**
- * Renders the persistent page frame: header, the provenance band, and a slot for the feature
- * views. Feature modules fill `#content`.
+ * Renders the persistent page frame: header, the provenance band, a slot for the feature views and
+ * the map region. Feature modules fill `#content`.
  *
  * The provenance sits *above* `#content` rather than after it. The ranked list runs to hundreds of
  * rows, so at the bottom of the document it is reached only by scrolling past all of them, and a
@@ -36,6 +54,10 @@ export interface ShellOptions {
  * landmark, and a `<section>` with no accessible name exposes none, which would cost a screen
  * reader user the one jump target that reaches the source line and the disclaimer. The landmark is
  * about what the content *is*, not where it sits in the flow.
+ *
+ * The map region comes last in source order and holds nothing but the `학교로` control and whatever
+ * the map mounts into it. Last so that a keyboard walk meets the page's own content before a
+ * control over a picture; the stylesheet places it, since below 768px it is not on screen at all.
  */
 export function renderShell(root: HTMLElement, options: ShellOptions = {}): void {
   const header = document.createElement('header');
@@ -66,9 +88,75 @@ export function renderShell(root: HTMLElement, options: ShellOptions = {}): void
   const content = document.createElement('main');
   content.id = 'content';
 
-  root.replaceChildren(header, provenance, content);
+  root.replaceChildren(header, provenance, content, mapRegion(options.onRecentre));
+
+  if (options.mapFirst === true) root.classList.add(MAP_FIRST_CLASS);
 
   if (options.updatedAt) setShellUpdatedAt(root, options.updatedAt);
+}
+
+/**
+ * The region the page map mounts into, with the control that recentres it.
+ *
+ * A `<section>` with no accessible name, deliberately: it is a picture and a button, not a document
+ * region, and naming it would put a landmark in the tab order that reaches nothing a reader came
+ * for. The button is inside it rather than over it so that a hidden region — the layout below 768px
+ * — takes its control out of the tab order with it.
+ */
+function mapRegion(onRecentre?: () => void): HTMLElement {
+  const region = document.createElement('div');
+  region.className = 'map-shell-map';
+
+  if (onRecentre) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'map-recentre';
+    button.textContent = RECENTRE_LABEL;
+    button.addEventListener('click', () => {
+      onRecentre();
+    });
+    region.append(button);
+  }
+
+  return region;
+}
+
+/**
+ * Flips the map-first layout on or off without rebuilding the frame.
+ *
+ * Separate from `renderShell` because the frame may not be rebuilt: `#content` is inside it, and
+ * replacing the frame detaches whatever inside it holds focus — the same reason
+ * `setShellUpdatedAt` writes in place instead of re-rendering.
+ */
+export function setShellMapFirst(root: HTMLElement, on: boolean): void {
+  root.classList.toggle(MAP_FIRST_CLASS, on);
+}
+
+/**
+ * The map is not coming: give the content the whole width back and say so once.
+ *
+ * One entry point for both failure routes — the script never loading and the key rejecting the
+ * origin — because they are the same state to the reader, and two sentences would be two answers.
+ * The region's own canvas is removed with the region, and the map is released by the caller that
+ * mounted it; what is left is today's page plus one line at the top of it.
+ */
+export function setShellMapUnavailable(root: HTMLElement): void {
+  const region = root.querySelector('.map-shell-map');
+  const content = root.querySelector('#content');
+  // The layout is not map-first, so no map was ever mounted: below the breakpoint the region is
+  // still in the DOM but the stylesheet keeps it off screen, and a reader there must not be told
+  // the map is missing when they never had one. Also the second failure of one mount — the first
+  // call took the class and the region with it.
+  if (!root.classList.contains(MAP_FIRST_CLASS) || !region || !content) return;
+
+  root.classList.remove(MAP_FIRST_CLASS);
+  region.remove();
+
+  const note = document.createElement('p');
+  note.className = 'shell-map-note';
+  note.setAttribute('role', 'status');
+  note.textContent = MAP_ERROR_MESSAGE;
+  content.prepend(note);
 }
 
 /**

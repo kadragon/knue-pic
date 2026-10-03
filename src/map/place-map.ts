@@ -1,17 +1,25 @@
 import type { PlaceRecord } from '../data/types';
 import { loadNaverMaps } from './loader';
-import type { HtmlIcon, NaverMap, NaverMapsApi } from './naver-api';
+import type { HtmlIcon, NaverMap, NaverMarker, NaverMapsApi } from './naver-api';
 
 /**
- * The location map for one selected place: a single marker on that place's coordinates, mounted
- * inside the detail dialog.
+ * Two maps, one module: the page map the site opens on, and the single-marker map the detail dialog
+ * carries.
  *
- * It used to be a page-level section plotting every located place with rank badges. That map
- * answered "what is around?" from a slot three screens away from the moment the reader actually
- * asks "where is *this* one?" — so the map moved into the dialog and lost everything that was
- * about ranking: no badges, no `TopPlacesResult`, no second ordering of anything.
+ * PR #17 removed the page-level map — every located place plotted at once with rank badges — because
+ * it sat three screens below the ranked list, away from the moment the reader asks "where is *this*
+ * one?", and the dialog's one marker answered that question where the question is asked. What it
+ * could not answer was "what is around here?", which is the question the first screen now asks: the
+ * map-first layout (`docs/design/map-first-layout.md`) is the map, the page, with the content in a
+ * panel beside it, so the distance between a name and a location is gone instead of the map.
  *
- * This module still derives no statistic of its own (`docs/architecture.md` → Layers), and every
+ * What came back is deliberately quieter than what went: a neutral dot per filtered place, no rank
+ * badge, no size, shade or hue from the visit count (Implementation Decision 1). The numbered pins
+ * synced with the list are their own ticket, and the marker set is id-keyed so that ticket adds
+ * labels to the dots rather than re-deriving the map.
+ *
+ * This module still derives no statistic of its own (`docs/architecture.md` → Layers): the campus
+ * origin and the filtered set arrive as arguments, and nothing here imports `src/stats/`. Every
  * user-facing string is exported so the banned-phrase test can assert over it.
  */
 
@@ -90,15 +98,44 @@ interface AuthFailureGlobal {
 }
 
 /**
- * `undefined` deletes the property rather than storing a no-op: the API reads this global to decide
- * whether anyone is listening, so an installed do-nothing function is not the same as no handler.
+ * Every render that is listening, not one.
+ *
+ * The page map holds the hook for as long as the page lives and the dialog's for as long as the card
+ * is open, so "the newest render owns the global" — which is all this had to be while a single
+ * dialog map was the only thing that ever listened — would let a dialog opened over a live page map
+ * mute the first screen: the key would be rejected, only the dialog would hear it, and the page would
+ * keep showing a map the API had already taken away. The dispatcher below fans one call out to
+ * everyone, and each render takes its own listener back down when it is released.
+ *
+ * A copy is taken before iterating: a listener that releases the page (which is what the page's own
+ * fallback does) mutates the set underneath the loop.
  */
-function setAuthFailureHandler(handler: (() => void) | undefined): void {
-  if (handler === undefined) {
-    delete (globalThis as AuthFailureGlobal).navermap_authFailure;
-    return;
-  }
-  (globalThis as AuthFailureGlobal).navermap_authFailure = handler;
+const authFailureListeners = new Set<() => void>();
+
+function dispatchAuthFailure(): void {
+  for (const listener of [...authFailureListeners]) listener();
+}
+
+/**
+ * Registers `listener` and returns the call that takes it back off.
+ *
+ * The global is installed only while something is listening and deleted when the last render lets
+ * go: the API reads the property to decide whether anyone is there, so an installed do-nothing
+ * function is not the same as no handler, and a page that had released everything must not look
+ * like it is still waiting on the key.
+ */
+function listenForAuthFailure(listener: () => void): () => void {
+  authFailureListeners.add(listener);
+  // Assigned on every registration rather than only on the first: the set is the record of who is
+  // listening, and anything that deletes the global behind this module's back — a test cleaning up
+  // after itself, a third party — would otherwise leave the next render listening on nothing.
+  (globalThis as AuthFailureGlobal).navermap_authFailure = dispatchAuthFailure;
+  return () => {
+    authFailureListeners.delete(listener);
+    if (authFailureListeners.size === 0) {
+      delete (globalThis as AuthFailureGlobal).navermap_authFailure;
+    }
+  };
 }
 
 /**
@@ -115,16 +152,18 @@ function setAuthFailureHandler(handler: (() => void) | undefined): void {
  */
 let authRejected = false;
 
-/** Test-only: forgets a rejected key so each case starts from a clean slate. */
-export function resetAuthFailureMemo(): void {
+/**
+ * Test-only: forgets a rejected key *and* drops the listeners earlier cases left behind.
+ *
+ * Two pieces of state, because "the hook is installed" was one thing and now is two: the rejected
+ * memo, and the set of renders currently listening. A case that mounts without releasing would
+ * otherwise leave a live entry, and the next case's assertion that nothing is installed would be
+ * reading that entry rather than its own render.
+ */
+export function resetAuthFailureState(): void {
   authRejected = false;
-}
-
-/** Only ours, never a handler some later render installed over it. */
-function clearAuthFailureHandler(handler: () => void): void {
-  if ((globalThis as AuthFailureGlobal).navermap_authFailure === handler) {
-    setAuthFailureHandler(undefined);
-  }
+  authFailureListeners.clear();
+  delete (globalThis as AuthFailureGlobal).navermap_authFailure;
 }
 
 /**
@@ -203,16 +242,15 @@ export async function renderPlaceLocationMap(
   // Registered *before* the script is awaited, and kept until release, so the hook is caught
   // whichever side of the mount the API calls it on. The real API was observed calling it after
   // the mount (`./loader.ts` module comment); the earlier side is held anyway, because nothing
-  // pins that ordering. Installing ours also replaces any handler a previous render left behind —
-  // one closing over a section this call just replaced.
-  setAuthFailureHandler(onAuthFailure);
+  // pins that ordering.
+  const stopListening = listenForAuthFailure(onAuthFailure);
 
   try {
     const api = await loadApi();
     // The key was rejected while the script was still arriving: the fallback is up, so mount
     // nothing behind it.
     if (!live) {
-      clearAuthFailureHandler(onAuthFailure);
+      stopListening();
       return () => {};
     }
     // Mounting is inside the try as well: a script that loaded can still throw from a constructor
@@ -232,15 +270,209 @@ export async function renderPlaceLocationMap(
       // `live` also gates the hook, so a rejection arriving after the dialog closed cannot append
       // a fallback into a section that is no longer on screen.
       live = false;
-      clearAuthFailureHandler(onAuthFailure);
+      stopListening();
       releaseMap(map);
     };
   } catch {
     // The reason is dropped on purpose — see MAP_ERROR_MESSAGE.
     fail();
-    clearAuthFailureHandler(onAuthFailure);
+    stopListening();
     // Nothing mounted, so there is nothing to release — but the caller still gets a function, so it
     // never has to branch on whether the map came up.
     return () => {};
+  }
+}
+
+/* ── The page map ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * What the dot says, and all it says: the place's own name.
+ *
+ * The page map's dots are the one place on the page where colour is not allowed to carry a claim
+ * (`docs/design/map-first-layout.md` → Implementation Decision 1), so nothing but the name may go
+ * into the marker. `markerLabel` above adds 위치 because that marker stands alone in a card whose
+ * heading already says which place is being discussed.
+ */
+export function dotLabel(place: PlaceRecord): string {
+  return place.name;
+}
+
+/**
+ * Small enough to read as a dot rather than a pin, which is the point: a badge or a bigger marker
+ * per place would put the ranking back on the map before the numbered-pins ticket decides how.
+ */
+const DOT_SIZE = 12;
+
+/**
+ * The frame the map opens on: the campus and roughly the width of 청주 around it.
+ *
+ * A fixed zoom rather than a fit to the dots, for one reason — `fitBounds` would drag `LatLngBounds`
+ * and `getBounds` into the hand-written vendor surface, and nothing here has watched the live bundle
+ * return either. `src/stats/distance.ts` cuts its bands at 2/5/15km and notes that most of the
+ * dataset falls between 1 and 10km, so a campus-centred frame shows the cluster a reader came for
+ * and `학교로` is there for the rest.
+ */
+const PAGE_ZOOM = 13;
+
+export interface PageMapHandle {
+  /**
+   * Replaces the dot set with the places that pass the current filters.
+   *
+   * Keyed by place id: a filter change adds and removes, it never redraws what survived, so
+   * widening a filter or reordering it costs no marker and no flicker.
+   */
+  setPlaces(places: PlaceRecord[]): void;
+  /** Returns the map to the origin it opened on. */
+  recenter(): void;
+  /** Releases the map and this render's auth-failure listener. Everything after it is inert. */
+  release(): void;
+}
+
+export interface RenderPageMapOptions {
+  /** Injectable so tests can supply a fake API; production loads the real script. */
+  loadApi?: () => Promise<NaverMapsApi>;
+  /**
+   * Where the map opens, and what `학교로` returns to — `CAMPUS_ORIGIN`, handed in by the caller.
+   *
+   * A parameter rather than an import: `src/map/` computes no statistic and reads nothing from
+   * `src/stats/` (`docs/architecture.md` → Layer Rules), so the coordinate crosses as data.
+   */
+  origin: { lat: number; lng: number };
+  /**
+   * Called once, on either failure route, so the page can give the panel the whole width back.
+   *
+   * The page map paints no fallback message of its own: what a reader sees when the map is gone is a
+   * layout, and the layout is the shell's (`src/ui/shell.ts` → `setShellMapUnavailable`).
+   */
+  onUnavailable?: () => void;
+}
+
+function dotIcon(api: NaverMapsApi): HtmlIcon {
+  return {
+    content: '<span class="page-map-dot"></span>',
+    size: new api.Size(DOT_SIZE, DOT_SIZE),
+    anchor: new api.Point(DOT_SIZE / 2, DOT_SIZE / 2),
+  };
+}
+
+/**
+ * A handle whose every method does nothing.
+ *
+ * Handed back when nothing mounted, so the caller never has to branch on whether the map came up —
+ * the same promise `renderPlaceLocationMap` makes.
+ */
+const INERT_PAGE_MAP: PageMapHandle = {
+  setPlaces: () => {},
+  recenter: () => {},
+  release: () => {},
+};
+
+/**
+ * Mounts the page map: an empty canvas immediately, the API's map and one dot per place once the
+ * script resolves.
+ *
+ * Always resolves, and never rejects. Both ways this can fail — the script never usable, and the
+ * key rejecting the origin — end in `onUnavailable` exactly once, whichever side of the mount they
+ * land on, because the page has one fallback state and one sentence for it. The list in the panel
+ * has already painted by the time this runs: the panel never waits on a third-party script, which
+ * is the whole reason the map is fire-and-forget from the UI.
+ */
+export async function renderPageMap(
+  container: HTMLElement,
+  places: PlaceRecord[],
+  options: RenderPageMapOptions,
+): Promise<PageMapHandle> {
+  const { loadApi = () => loadNaverMaps(), origin, onUnavailable } = options;
+
+  const canvas = document.createElement('div');
+  canvas.className = 'page-map-canvas';
+  // Appended, never a wholesale replacement: the region is the shell's, and it already holds the
+  // `학교로` control — `replaceChildren` here would take the reader's way back to the campus away
+  // in the same paint that gives them the map.
+  container.querySelector('.page-map-canvas')?.remove();
+  container.append(canvas);
+
+  // `live` is the single gate both the failure path and the release share, which is what makes
+  // "exactly once" true without counting calls: a second failure, or a call that arrives after the
+  // page released the map, finds it false and does nothing.
+  let live = true;
+  const fail = (): void => {
+    if (!live) return;
+    live = false;
+    canvas.remove();
+    onUnavailable?.();
+  };
+
+  if (authRejected) {
+    fail();
+    return INERT_PAGE_MAP;
+  }
+
+  const onAuthFailure = (): void => {
+    authRejected = true;
+    fail();
+  };
+  const stopListening = listenForAuthFailure(onAuthFailure);
+
+  try {
+    const api = await loadApi();
+    // The key was rejected while the script was still arriving: the page has already fallen back,
+    // so mount nothing behind it.
+    if (!live) {
+      stopListening();
+      return INERT_PAGE_MAP;
+    }
+
+    const map: NaverMap = new api.Map(canvas, {
+      center: new api.LatLng(origin.lat, origin.lng),
+      zoom: PAGE_ZOOM,
+    });
+    const markers = new Map<string, NaverMarker>();
+
+    const draw = (next: PlaceRecord[]): void => {
+      if (!live) return;
+      const wanted = new Set(next.map((place) => place.id));
+      for (const [id, marker] of markers) {
+        if (wanted.has(id)) continue;
+        // `marker.setMap(null)` is the documented removal, and it is the only half of the vendor
+        // surface the page map needed besides `setCenter` (see `./naver-api.ts`).
+        marker.setMap(null);
+        markers.delete(id);
+      }
+      for (const place of next) {
+        if (markers.has(place.id)) continue;
+        markers.set(
+          place.id,
+          new api.Marker({
+            position: new api.LatLng(place.lat, place.lng),
+            map,
+            title: dotLabel(place),
+            icon: dotIcon(api),
+          }),
+        );
+      }
+    };
+
+    draw(places);
+
+    return {
+      setPlaces: draw,
+      recenter: () => {
+        if (!live) return;
+        map.setCenter(new api.LatLng(origin.lat, origin.lng));
+      },
+      release: () => {
+        live = false;
+        stopListening();
+        for (const marker of markers.values()) marker.setMap(null);
+        markers.clear();
+        releaseMap(map);
+      },
+    };
+  } catch {
+    // The reason is dropped on purpose — see MAP_ERROR_MESSAGE.
+    fail();
+    stopListening();
+    return INERT_PAGE_MAP;
   }
 }

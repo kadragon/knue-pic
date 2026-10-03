@@ -1178,6 +1178,87 @@ button.top-place-body,
   background: var(--accent-strong);
 }
 
+/* ── Map-first layout ──────────────────────────────────────────────────────────────────────── */
+
+/*
+ * The map is the page at ≥ 768px and `#content` is a panel beside it; below that the region is off
+ * screen and the page is the single column it has always been (the bottom sheet is its own ticket).
+ *
+ * The breakpoint is stated in two places on purpose: here, and as `MAP_FIRST_QUERY` in
+ * `src/ui/bootstrap.ts`, which decides whether to load the Naver script at all. They have to move
+ * together — a layout that showed a panel where no map is mounted is a column with a hole in it.
+ *
+ * The region is `fixed` and behind everything (`z-index: -1`) rather than in flow, which is what
+ * makes it full-bleed: the masthead and the panel paint above it without either needing a z-index
+ * of its own.
+ */
+.map-shell-map {
+  display: none;
+}
+
+.map-recentre {
+  position: absolute;
+  /* Bottom-right, not top-right: the region paints behind the masthead (`z-index: -1`), and
+     everything inside it is in that same stacking context — so a control placed along the top edge
+     is simply hidden under the header. Raised off the corner by one step because Naver's own logo
+     and scale strip sit in it (observed on the real map, 2026-10-03). */
+  bottom: var(--space-8);
+  right: var(--space-4);
+  /* Above the canvas the API builds. It comes back as `position: relative`, so it is a positioned
+     sibling of this button and would paint over it on DOM order alone. */
+  z-index: 1;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-full);
+  background: var(--canvas);
+  color: var(--body);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.map-recentre:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+/*
+ * The panel: today's column, held to the ~360px the list rows are measured against and pushed to
+ * the left edge. It carries its own background so the rows stay readable over the map, and no
+ * shadow — `--shadow-overlay` is the dialog's, and this surface is not raised, it is a column the
+ * map is behind.
+ */
+.is-map-first #content {
+  max-width: 360px;
+  margin: 0;
+  background: var(--paper);
+}
+
+/*
+ * What a reader sees when the map will not come — both failure routes land here, so the page has
+ * one degraded state rather than two. `role="status"` is set in `src/ui/shell.ts`: the map arrives
+ * asynchronously, so its absence would otherwise be announced to nobody.
+ */
+.shell-map-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  .map-shell-map {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    display: block;
+  }
+}
+
 /* ── Map ───────────────────────────────────────────────────────────────────────────────────── */
 
 /* Fixed height because the Naver API sizes itself to its container: a height-less div renders a map
@@ -1217,6 +1298,31 @@ button.top-place-body,
   /* Over Naver's photographic tiles the 2px white border alone does not separate the pin; this
      shadow is sized for that backdrop and nothing on the page itself. */
   box-shadow: rgba(0, 0, 0, 0.25) 0 1px 3px;
+}
+
+/* The page map's canvas fills its fixed region edge to edge: no border and no radius, because the
+   map is the page rather than a card inside it. Height is not declared — the region is the height,
+   and a `vh` cap here would leave a strip of background under it. */
+.page-map-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * One dot, and every place gets the same one.
+ *
+ * No size, shade or hue from the visit count — `docs/design/map-first-layout.md` → Implementation
+ * Decision 1 rules that out as surveillance framing, and the numbering that will sit beside these
+ * dots is its own ticket. The white ring and the drop shadow are the same two the dialog's pin uses,
+ * for the same reason: Naver's tiles are photographic, and a 12px dot has to survive them.
+ */
+.page-map-dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--canvas), rgba(0, 0, 0, 0.25) 0 1px 3px;
 }
 
 /* ── Focus ─────────────────────────────────────────────────────────────────────────────────── */

@@ -101,25 +101,25 @@ describe('computePlaceStats', () => {
   });
 
   it('counts the window end day but not the window start day (새터말칼국수)', () => {
-    // 2026-08-01 15,000 (window end) · 2026-07-02 14,000 (day after the 1m start) ·
-    // 2026-07-01 13,000 (the 1m start itself) · 2025-08-01 9,000 (the 1y start itself)
+    // 2026-07-31 15,000 (window end) · 2026-07-01 14,000 (day after the 1m start) ·
+    // 2026-06-30 13,000 (the 1m start itself) · 2025-07-31 9,000 (the 1y start itself)
     expect(statsFor('restaurant_000006', '1m')).toEqual({
-      visitCount: 2, // 2026-07-01 excluded as the start day
+      visitCount: 2, // 2026-06-30 excluded as the start day
       totalAmount: 29000,
       averageAmount: 14500,
-      mostRecentVisit: '2026-08-01',
+      mostRecentVisit: '2026-07-31',
     });
     expect(statsFor('restaurant_000006', '6m')).toEqual({
-      visitCount: 3, // 2026-07-01 is well inside the 6m window
+      visitCount: 3, // 2026-06-30 is well inside the 6m window
       totalAmount: 42000,
       averageAmount: 14000,
-      mostRecentVisit: '2026-08-01',
+      mostRecentVisit: '2026-07-31',
     });
     expect(statsFor('restaurant_000006', '1y')).toEqual({
-      visitCount: 3, // 2025-08-01 excluded as the 1y start day
+      visitCount: 3, // 2025-07-31 excluded as the 1y start day
       totalAmount: 42000,
       averageAmount: 14000,
-      mostRecentVisit: '2026-08-01',
+      mostRecentVisit: '2026-07-31',
     });
   });
 

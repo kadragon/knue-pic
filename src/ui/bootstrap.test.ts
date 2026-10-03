@@ -1,9 +1,16 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { Period } from '../data/types';
+import type { FakeMarker, FakeNaverApi } from '../map/fake-naver-api';
 import { createFakeNaverApi } from '../map/fake-naver-api';
-import { MAP_ERROR_MESSAGE, renderPlaceLocationMap } from '../map/place-map';
-import { bootstrap } from './bootstrap';
+import {
+  MAP_ERROR_MESSAGE,
+  renderPageMap,
+  renderPlaceLocationMap,
+  resetAuthFailureState,
+} from '../map/place-map';
+import { CAMPUS_ORIGIN } from '../stats/distance';
+import { bootstrap, type BootstrapOptions, type MatchMedia } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
 import { DEFAULT_PERIOD, PERIOD_TABS, listHeading, periodLabel } from './place-list';
@@ -60,6 +67,15 @@ function typeQuery(root: HTMLElement, text: string): void {
 
 /** Lets the dialog's fire-and-forget map render settle before the assertions run. */
 const flush = (): Promise<void> => Promise.resolve().then(() => {});
+
+/**
+ * A rejected key is remembered for the life of a real page, which is right in the browser and wrong
+ * between cases: the case that fires the auth-failure hook would otherwise send every later one
+ * straight to the fallback.
+ */
+afterEach(() => {
+  resetAuthFailureState();
+});
 
 describe('bootstrap', () => {
   it('shows the loading message while the dataset is in flight', async () => {
@@ -320,7 +336,7 @@ describe('bootstrap summary line and 업종 counts', () => {
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
     const line = root.querySelector('.summary-line');
-    expect(line?.textContent).toBe('2026년 8월 1일 기준 · 5곳 · 11회');
+    expect(line?.textContent).toBe('2026년 7월 31일 기준 · 5곳 · 11회');
     expect(line?.textContent).toBe(
       summaryLabel(SAMPLE_DATASET.updatedAt, { placeCount: 5, visitCount: 11 }),
     );
@@ -339,7 +355,7 @@ describe('bootstrap summary line and 업종 counts', () => {
 
     periodTab(root, periodLabel('1y'))?.click();
 
-    expect(summaryText(root)).toBe('2026년 8월 1일 기준 · 6곳 · 14회');
+    expect(summaryText(root)).toBe('2026년 7월 31일 기준 · 6곳 · 14회');
     expect(chipCounts(root)).toEqual(['6곳', '4곳', '1곳', '0곳', '1곳']);
     expect(kindOption(root, KIND_LABELS.restaurant)).toBe(chip);
   });
@@ -349,14 +365,14 @@ describe('bootstrap summary line and 업종 counts', () => {
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
     kindOption(root, KIND_LABELS.cafe)?.click();
-    expect(summaryText(root)).toBe('2026년 8월 1일 기준 · 1곳 · 1회');
+    expect(summaryText(root)).toBe('2026년 7월 31일 기준 · 1곳 · 1회');
     expect(chipCounts(root)).toEqual(['5곳', '4곳', '1곳', '0곳', '0곳']);
 
     periodTab(root, periodLabel('1m'))?.click();
-    expect(summaryText(root)).toBe('2026년 8월 1일 기준 · 1곳 · 1회');
+    expect(summaryText(root)).toBe('2026년 7월 31일 기준 · 1곳 · 1회');
 
     kindOption(root, ALL_KINDS_LABEL)?.click();
-    expect(summaryText(root)).toBe('2026년 8월 1일 기준 · 5곳 · 9회');
+    expect(summaryText(root)).toBe('2026년 7월 31일 기준 · 5곳 · 9회');
   });
 });
 
@@ -525,5 +541,233 @@ describe('bootstrap map wiring', () => {
     await flush();
 
     expect(root.querySelector('.detail-slot')?.textContent).toContain('청람카페');
+  });
+});
+
+/**
+ * The page map: the first screen, and the layout it came with
+ * (`docs/design/map-first-layout.md`). jsdom has no `matchMedia`, so every case here states the
+ * viewport it wants rather than relying on a layout engine that does not exist.
+ */
+describe('bootstrap page map', () => {
+  /**
+   * A `matchMedia` whose answer can be changed mid-test, which is the only way to reach the resize
+   * path — a window is not something jsdom can do to itself.
+   */
+  function viewport(initial: boolean): { matchMedia: MatchMedia; set: (wide: boolean) => void } {
+    let wide = initial;
+    const listeners = new Set<() => void>();
+    const list = {
+      get matches() {
+        return wide;
+      },
+      addEventListener: (_type: string, listener: () => void) => {
+        listeners.add(listener);
+      },
+      removeEventListener: (_type: string, listener: () => void) => {
+        listeners.delete(listener);
+      },
+    } as unknown as MediaQueryList;
+
+    return {
+      matchMedia: () => list,
+      set: (next: boolean) => {
+        wide = next;
+        for (const listener of [...listeners]) listener();
+      },
+    };
+  }
+
+  /** The dots still standing on the map — the fake records every marker ever made. */
+  function liveDots(api: FakeNaverApi): FakeMarker[] {
+    return api.markers.filter((marker) => marker.attached.at(-1) !== null);
+  }
+
+  function mapOptions(api: FakeNaverApi): Partial<BootstrapOptions> {
+    return { renderMap: (container, places, options) => renderPageMap(container, places, {
+      ...options,
+      loadApi: () => Promise.resolve(api),
+    }) };
+  }
+
+  it('paints the list before it mounts the map', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+    let rowsWhenAsked = 0;
+    let settle!: (api: FakeNaverApi) => void;
+    const pending = new Promise<FakeNaverApi>((resolve) => {
+      settle = resolve;
+    });
+
+    const loading = bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: viewport(true).matchMedia,
+      renderMap: (container, places, options) => {
+        rowsWhenAsked = root.querySelectorAll('.top-place').length;
+        return renderPageMap(container, places, {
+          ...options,
+          loadApi: () => pending,
+        });
+      },
+    });
+    await loading;
+
+    // The panel does not wait on a third-party script: the reader has the ranked list before the
+    // map has even asked for its bundle, and nothing is drawn until it answers.
+    expect(rowsWhenAsked).toBeGreaterThan(0);
+    expect(api.maps).toHaveLength(0);
+    expect(root.querySelector('.page-map-canvas')).not.toBeNull();
+
+    settle(api);
+    await flush();
+
+    expect(liveDots(api).length).toBeGreaterThan(0);
+  });
+
+  it('draws one dot per place that passes both filters, and takes the rest away', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: viewport(true).matchMedia,
+      ...mapOptions(api),
+    });
+    await flush();
+
+    // 3m is the default window: 황새울분식 has nothing in it, so it is a dot-less place rather than
+    // a place ranked last.
+    const summary = root.querySelector('.summary-line')?.textContent ?? '';
+    expect(liveDots(api)).toHaveLength(5);
+    expect(summary).toContain('5곳');
+    expect(liveDots(api).map((dot) => dot.title)).not.toContain('황새울분식');
+
+    periodTab(root, periodLabel('1y'))?.click();
+    expect(liveDots(api)).toHaveLength(6);
+    expect(root.querySelector('.summary-line')?.textContent ?? '').toContain('6곳');
+
+    kindOption(root, KIND_LABELS.cafe)?.click();
+    expect(liveDots(api)).toHaveLength(1);
+    expect(liveDots(api)[0]?.title).toBe('청람카페');
+    expect(root.querySelector('.summary-line')?.textContent ?? '').toContain('1곳');
+  });
+
+  it('keeps the map on the campus origin and returns there on demand', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: viewport(true).matchMedia,
+      ...mapOptions(api),
+    });
+    await flush();
+
+    expect(api.maps[0]?.options.center.lat()).toBe(CAMPUS_ORIGIN.lat);
+
+    root.querySelector<HTMLButtonElement>('.map-recentre')?.click();
+
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAMPUS_ORIGIN.lat);
+    expect(api.maps[0]?.centers.at(-1)?.lng()).toBe(CAMPUS_ORIGIN.lng);
+  });
+
+  it('gives the page back its full width when the map script never arrives', async () => {
+    const root = document.createElement('div');
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: viewport(true).matchMedia,
+      renderMap: (container, places, options) =>
+        renderPageMap(container, places, { ...options, loadApi: () => Promise.reject(new Error()) }),
+    });
+    await flush();
+
+    expect(root.querySelector('.shell-map-note')?.textContent).toBe(MAP_ERROR_MESSAGE);
+    expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
+    expect(root.querySelector('.map-shell-map')).toBeNull();
+    expect(root.classList.contains('is-map-first')).toBe(false);
+    // Everything the panel does still works — this is the one third-party input on the page.
+    expect(root.querySelectorAll('.place-list-body .top-place').length).toBeGreaterThan(0);
+    expect(root.querySelector('.search-slot')).not.toBeNull();
+    expect(root.querySelector('.detail-slot')).not.toBeNull();
+  });
+
+  it('falls back the same way when the key rejects the origin after the map mounted', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: viewport(true).matchMedia,
+      ...mapOptions(api),
+    });
+    await flush();
+
+    (globalThis as { navermap_authFailure?: () => void }).navermap_authFailure?.();
+
+    expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
+    expect(root.querySelector('.map-shell-map')).toBeNull();
+    expect(root.querySelectorAll('.place-list-body .top-place').length).toBeGreaterThan(0);
+  });
+
+  it('never loads the map script on a narrow viewport', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: viewport(false).matchMedia,
+      ...mapOptions(api),
+    });
+    await flush();
+
+    // Below the breakpoint the page is today's layout until the mobile sheet lands, and the Naver
+    // script is not worth a phone's load budget for a map nobody can see.
+    expect(api.maps).toHaveLength(0);
+    expect(root.querySelector('.page-map-canvas')).toBeNull();
+    expect(root.classList.contains('is-map-first')).toBe(false);
+    expect(root.querySelectorAll('.place-list-body .top-place').length).toBeGreaterThan(0);
+  });
+
+  it('mounts the map when a narrow window is widened, drawing the filters as they stand', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+    const view = viewport(false);
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: view.matchMedia,
+      ...mapOptions(api),
+    });
+    kindOption(root, KIND_LABELS.cafe)?.click();
+
+    view.set(true);
+    await flush();
+
+    // A phone turned sideways is a desktop-width layout, and the map that goes with it has to show
+    // the window and kind the reader is already looking at.
+    expect(root.classList.contains('is-map-first')).toBe(true);
+    expect(liveDots(api)).toHaveLength(1);
+    expect(liveDots(api)[0]?.title).toBe('청람카페');
+  });
+
+  it('leaves a mounted map alone when a wide window narrows, rather than calling it a failure', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+    const view = viewport(true);
+    await bootstrap(root, {
+      load: () => Promise.resolve(SAMPLE_DATASET),
+      matchMedia: view.matchMedia,
+      ...mapOptions(api),
+    });
+    await flush();
+
+    view.set(false);
+
+    // The layout goes back to today's column and the map stays mounted behind it, so widening the
+    // window again finds the same map and the same dots. A resize is not a map failure.
+    expect(root.classList.contains('is-map-first')).toBe(false);
+    expect(root.querySelector('.shell-map-note')).toBeNull();
+    expect(root.querySelector('.map-shell-map')).not.toBeNull();
+    expect(liveDots(api)).toHaveLength(5);
+
+    view.set(true);
+    await flush();
+    expect(liveDots(api)).toHaveLength(5);
+    expect(api.maps).toHaveLength(1);
   });
 });

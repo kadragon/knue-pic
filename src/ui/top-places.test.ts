@@ -33,7 +33,7 @@ function render(result: TopPlacesResult): HTMLElement {
   return container;
 }
 
-const EMPTY_DATASET: PlacesDataset = { updatedAt: '2026-08-01', places: [] };
+const EMPTY_DATASET: PlacesDataset = { updatedAt: '2026-07-31', places: [] };
 
 describe('renderTopPlaces', () => {
   it('pins where the metadata line may break and where it may not', () => {
@@ -147,7 +147,7 @@ describe('renderTopPlaces', () => {
   it('pages the list instead of capping it, and says what is held back', () => {
     const placeCount = LIST_PAGE_SIZE * 2 + 3;
     const dataset: PlacesDataset = {
-      updatedAt: '2026-08-01',
+      updatedAt: '2026-07-31',
       places: Array.from({ length: placeCount }, (_, index) => ({
         id: `restaurant_${String(index + 1).padStart(6, '0')}`,
         name: `가게 ${index + 1}`,
@@ -407,7 +407,7 @@ describe('rank delta rendering', () => {
 
   it('marks the movement direction for styling as well as text', () => {
     const dataset: PlacesDataset = {
-      updatedAt: '2026-08-01',
+      updatedAt: '2026-07-31',
       places: [
         // 000001 leads the prior window, 000002 overtakes it in the current one.
         {
