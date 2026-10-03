@@ -51,6 +51,63 @@
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
 
+## Map-first 2 — summary line and 업종 chip counts (2026-10-03)
+
+- [ ] [feat] Add `{updatedAt} 기준 · N곳 · N회` above the filters and an in-window place count on
+  each 업종 chip, both computed in `src/stats/` as pure functions (N곳 = places with ≥1 in-window
+  transaction under the current filters; N회 = in-window transaction count). Lands in today's
+  layout, so it ships independently of the map. Accept: stats unit tests hand-computable from a
+  fixture; banned-phrase test covers the new strings; 360px holds (source:
+  `docs/design/map-first-layout.md` → Implementation Decisions 6–7) — `src/stats/`,
+  `src/ui/kind-filter.ts`, `src/ui/shell.ts`
+
+## Map-first 3 — page map shell with neutral dots and the fallback layout (2026-10-03)
+
+- [ ] [feat] Desktop (≥ 768px): full-bleed Naver map with the existing content in a ~360px left
+  panel; every place passing the period and 업종 filters is a small neutral dot (no size/shade/hue
+  from visit count); a `학교로` control recentres on `CAMPUS_ORIGIN`. Either failure route
+  (load rejection, `navermap_authFailure`) switches to today's full-width layout with
+  `지도를 불러오지 못했습니다.` once. Below 768px the page stays today's layout until ticket 6. The
+  detail dialog is untouched. Accept: fake-API tests for dot set = filtered set, no
+  count-derived marker option, both failure routes → full-width state; list paints before the map
+  mounts; real-map check per `docs/runbook.md` → Verify the real map (source: `docs/design/map-first-layout.md` →
+  Solution, Implementation Decisions 1, 3, 5, 8) — `src/map/place-map.ts`, `src/ui/shell.ts`,
+  `src/ui/bootstrap.ts`, `src/styles.css`
+
+## Map-first 4 — numbered pins synced with the visible rows (2026-10-03)
+
+- [ ] [feat] Rows currently visible in the list become pins printing the row's rank label; row
+  hover/focus and selection highlight the matching pin and vice versa; `더 보기` extends the pin
+  set. `src/map/` receives `{ place, label? }` from the UI and still imports nothing from
+  `src/stats/`. Amend `docs/architecture.md` → Layer Rules and rewrite the
+  `src/map/place-map.ts` header to record why the page map returned (PR #17 removed it for sitting
+  three screens away). Accept: fake-API tests for pin labels = visible rows' labels, highlight
+  sync both ways, no count-derived marker option (source: `docs/design/map-first-layout.md` →
+  Implementation Decisions 1–2) — `src/map/place-map.ts`, `src/ui/place-list.ts`,
+  `src/ui/top-places.ts`, `docs/architecture.md` *(blocked by: 3-page-map-shell)*
+
+## Map-first 5 — detail inside the panel with `#place=<id>` (2026-10-03)
+
+- [ ] [feat] Selecting a place (row, pin, dot, search result) replaces the list inside the panel
+  with the detail card and a `← 목록` control, pans the map to it, and writes `#place=<id>`;
+  loading with that hash opens it, an unknown id falls back to the list silently, and the back
+  button returns to the list. Remove the modal dialog and its single-marker map; the card's
+  sections move unchanged. Accept: hash round-trip and unknown-id tests; dot click → detail; focus
+  moves to the card and back to the originating row; `device-state.test.ts` unchanged (source:
+  `docs/design/map-first-layout.md` → Implementation Decision 4) — `src/ui/detail-dialog.ts`,
+  `src/ui/place-detail.ts`, `src/ui/bootstrap.ts`, `src/map/place-map.ts`
+  *(blocked by: 4-ranked-pins)*
+
+## Map-first 6 — mobile bottom sheet (2026-10-03)
+
+- [ ] [feat] Below 768px: full-screen map with the panel as a bottom sheet snapping to peek / half
+  / full (default half) with a grab handle; the panel's list → search source order and the
+  map-failure fallback (full-screen list) carry over. Accept: works at 360px with the map loaded
+  and with the Naver script blocked; snap states reachable by keyboard as well as drag; all four
+  `docs/eval-criteria.md` criteria graded for the finished layout (source:
+  `docs/design/map-first-layout.md` → Solution, Implementation Decision 9) — `src/ui/shell.ts`,
+  `src/styles.css` *(blocked by: 5-panel-detail-hash)*
+
 ## Someday
 
 - [x] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget

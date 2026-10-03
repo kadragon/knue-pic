@@ -9,6 +9,10 @@ export default defineConfig({
   // deployed site — the default `public/` would leave it out. Repo path stays `data/places.json`
   // (every doc and the collector assume it); the browser URL becomes `${BASE_URL}places.json`.
   publicDir: 'data',
+  // The Naver browser key accepts http://localhost:5173 and rejected :5179 and :4173 with a 401
+  // (observed 2026-10-03). Vite's default is to slide to the next free port, which serves a page
+  // whose map silently falls back — so hold 5173 or fail. `docs/runbook.md` → Naver API Keys.
+  server: { port: 5173, strictPort: true },
   test: {
     environment: 'jsdom',
     // Load-bearing for two guards, not a rendering nicety: Vitest stubs CSS modules to an empty

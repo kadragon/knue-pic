@@ -34,6 +34,19 @@ npm run dev
 
 Note the Pages subpath: `npm run preview` serves at `/knue-pic/`, not `/`.
 
+### Verify the real map
+
+The only local origin the key accepts is `http://localhost:5173` (see Naver API Keys), so visual
+acceptance of any map change runs on `npm run dev` — not on `npm run preview` (`:4173`, rejected).
+`vite.config.ts` pins port 5173 with `strictPort`: if the port is taken, `npm run dev` exits instead
+of sliding to a port the key rejects. Check that the map mounted without relying on a screenshot:
+
+- open a place's detail at `http://localhost:5173/knue-pic/`;
+- `http://oapi.map.naver.com/v3/auth` answered `200` (a rejected origin gets `401`);
+- `document.querySelector('.place-map-canvas').children.length > 0` and `window.naver.maps` is
+  defined (the auth-failure hook nulls the global);
+- no `.place-map-fallback` element is present.
+
 ## Build & Test
 
 | Command | Purpose |
@@ -97,7 +110,9 @@ The collector's server/search credentials are never Vite variables and never liv
 ## Naver API Keys
 
 - **Browser Client ID** — the only key in the web app. Restrict its allowed Web Service URL to
-  `https://kadragon.github.io` (and `http://localhost:*` for development).
+  `https://kadragon.github.io` and `http://localhost:5173` for development. Observed 2026-10-03:
+  `:5173` authenticates; `:5179` and `vite preview`'s `:4173` get `401` from `/v3/auth` and the map
+  falls back — the list is per port, not a `localhost:*` wildcard.
 - **Server / search secret** — used by the collector for geocoding. Lives in the operator's local
   environment only. It must never appear in `src/`, in a committed file, or in an Actions secret
   used by the web build.
@@ -107,7 +122,8 @@ The collector's server/search credentials are never Vite variables and never liv
 ### Map fails to load, list still renders
 
 **Symptom:** "지도를 불러오지 못했습니다." with the ranked place list still rendering.
-**Cause:** Client ID missing, or the current origin is not in the key's allowed URLs.
+**Cause:** Client ID missing, or the current origin is not in the key's allowed URLs — locally,
+any port other than `5173`.
 **Fix:** Check `VITE_NAVER_MAP_CLIENT_ID`, then the key's Web Service URL list. This degradation is
 intended behaviour (PRD §38) — the fix is the key, never removing the fallback.
 
