@@ -115,9 +115,10 @@ The collector's server/search credentials are never Vite variables and never liv
 - **Browser Client ID** — the only key in the web app. Restrict its allowed Web Service URL to
   `https://kadragon.github.io` and `http://localhost:5173` for development. Observed 2026-10-03:
   `:5173` authenticates; `:5179` and `:4173` (`vite preview`'s default, now pinned away from) get `401` from `/v3/auth` and the map
-  falls back — the list is per port, not a `localhost:*` wildcard. The fallback comes from
-  `window.navermap_authFailure`, called after the map has mounted (`src/map/loader.ts` module
-  comment); the loader itself resolves.
+  falls back — the list is per port, not a `localhost:*` wildcard. `npm run preview`, pinned to
+  `:5173` since, authenticated the same way (2026-10-03, Chromium: `/v3/auth` `200`, map mounted,
+  no fallback). The fallback comes from `window.navermap_authFailure`, called after the map has
+  mounted (`src/map/loader.ts` module comment); the loader itself resolves.
 - **Server / search secret** — used by the collector for geocoding. Lives in the operator's local
   environment only. It must never appear in `src/`, in a committed file, or in an Actions secret
   used by the web build.

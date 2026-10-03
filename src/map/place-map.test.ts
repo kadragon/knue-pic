@@ -132,7 +132,7 @@ describe('renderPlaceLocationMap', () => {
     expect(api.maps[0]?.destroyCalls).toBe(1);
   });
 
-  it('survives a destroy that throws after the key was rejected, so the next place still renders its fallback', async () => {
+  it('survives a destroy that throws after the key was rejected, so the next place still renders', async () => {
     // Observed on a rejected origin: once the hook has fired, the real `map.destroy()` throws
     // `TypeError: Cannot read properties of null (reading 'isArray')`.
     const api = createFakeNaverApi();
@@ -147,8 +147,13 @@ describe('renderPlaceLocationMap', () => {
     expect(() => release()).not.toThrow();
     expect(authFailureHook()).toBeUndefined();
 
+    // Forget the rejection, so the next render takes the full mount path rather than the memo's
+    // shortcut — what this case pins is that a throwing release leaves that path usable.
+    resetAuthFailureMemo();
     const next = createFakeNaverApi();
     const { root: second } = await render(next, SAMPLE_DATASET.places[1]!);
+    expect(next.maps).toHaveLength(1);
+    authFailureHook()?.();
     expect(second.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
   });
 

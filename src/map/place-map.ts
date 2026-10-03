@@ -104,11 +104,14 @@ function setAuthFailureHandler(handler: (() => void) | undefined): void {
 /**
  * Set once the API has called the auth-failure hook, and never cleared by the page.
  *
- * A rejected origin is a property of the page, not of one render: every later render would load
- * the same script, ask `/v3/auth` again, mount a map and lose it ~1.1 s later (observed 2026-10-03,
- * `localhost:5179`, Chromium — `./loader.ts` module comment). Remembering it sends those renders
- * straight to the fallback. A *load* failure is deliberately not remembered: a blocked or timed-out
- * script can come back, and the loader already drops its tag so a later call can retry.
+ * The one cause this repo has observed for the hook is a rejected origin (2026-10-03,
+ * `localhost:5179`, Chromium — `./loader.ts` module comment), which is a property of the page, not
+ * of one render: every later render would ask `/v3/auth` again, mount a map and lose it ~1.1 s
+ * later. Remembering it sends those renders straight to the fallback. Whether the API also calls
+ * the hook on a transient `/v3/auth` failure (network, 5xx) is unverified; if it does, the map
+ * stays off until the page is reloaded. A *load* failure is deliberately not remembered: a blocked
+ * or timed-out script can come back, and the loader already drops its tag so a later call can
+ * retry.
  */
 let authRejected = false;
 

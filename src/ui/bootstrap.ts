@@ -165,10 +165,10 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
         summary,
         summaryLabel(dataset.updatedAt, computeWindowSummary(narrowed, activePeriod)),
       );
-      setKindCounts(kinds, {
-        all: computeWindowSummary(dataset, activePeriod).placeCount,
-        byKind: computeKindPlaceCounts(dataset, activePeriod),
-      });
+      // 전체 is the sum of the kinds: every place carries exactly one kind.
+      const byKind = computeKindPlaceCounts(dataset, activePeriod);
+      const all = Object.values(byKind).reduce((sum, count) => sum + count, 0);
+      setKindCounts(kinds, { all, byKind });
     }
 
     function onActiveChange(period: Period): void {
