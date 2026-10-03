@@ -2,24 +2,6 @@
 
 ## Review Backlog
 
-### Detail card monthly chart (follow-up, 2026-09-16)
-
-- [ ] [debt] The newest month in every chart and the back half of 최근 1개월 are a month no
-  disclosure has reached yet, and draw the same as a month with no visits. Verified 2026-10-03 on
-  the committed `data/places.json`: `updatedAt` is `2026-09-16`, the newest transaction is
-  `2026-08-31`, and all 525 places carry 0 September transactions — a coverage gap, not a partial
-  month per place. `updatedAt` is the build date (`collector/build_places.py` defaults it to
-  `date.today()`), and month M is disclosed only after it ends, so every mid-month build repeats
-  this. Anchors affected: `chartedMonths` (last bar), `resolvePeriodWindow` (every window's end),
-  and the Map-first summary line's `{updatedAt} 기준`. Options, none chosen: (a) the collector
-  publishes the coverage end (last disclosed month's last day) as the anchor, alongside or instead
-  of the build date — schema/semantics change, re-derive every window; (b) the browser anchors
-  charts and windows at the newest transaction month — no schema change, but an all-quiet real
-  month becomes indistinguishable from an undisclosed one; (c) mark the anchor month as
-  not-yet-disclosed in the chart only — leaves 최근 1개월 half empty. Needs a spec before code
-  (source: PR #63 design analysis, verified by this batch) — `collector/build_places.py`,
-  `src/stats/period.ts`, `src/stats/histogram.ts`, `src/ui/place-detail.ts`
-
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
 - [x] [debt] Three limits QA reproduced on PR #23 and the contract sanctioned, none of them

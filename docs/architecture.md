@@ -103,6 +103,14 @@ review_candidates.csv # manual location approval queue (committed)
                 "transactions": [ { "date": "2026-07-18", "amount": 230000 } ] } ] }
 ```
 
+`updatedAt` is the **coverage end** — the last day of the newest month directory under
+`collector/out/` — not the build date (`collector/build_places.py` → `coverage_end`;
+`--updated-at` overrides it). A month is disclosed only after it ends, so a build-date anchor made
+the newest chart bar and the back half of every period window a month no data could have reached,
+drawn the same as a month with no visits. Every browser window (`src/stats/period.ts`), the
+histogram's last bar (`src/stats/histogram.ts`), and the summary line's `{updatedAt} 기준` hang
+off this one value.
+
 Invariants the validator enforces before any deploy (PRD §32): unique `id`; `lat`/`lng` present and
 in range; `amount >= 0`; ISO `date`; dates within the rolling window; non-empty `name` and
 `address`; no place whose review status is anything other than `approved`.

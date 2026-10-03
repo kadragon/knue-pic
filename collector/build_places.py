@@ -35,7 +35,7 @@ import os
 import sys
 import urllib.parse
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -322,6 +322,32 @@ def month_dirs(out_dir: Path) -> list[Path]:
     return found
 
 
+def coverage_end(months: list[Path]) -> date:
+    """The last day of the newest collected month — the default ``updatedAt``.
+
+    Not the build date. A month is disclosed only after it ends, so a build run on any day of month
+    M+1 has no data for M+1 yet; anchoring there would make the newest bar of every chart, and the
+    back half of every period window, a month nothing could have reached, drawn the same as a month
+    with no visits. The collected months are what the file actually covers, so they set the anchor,
+    which also keeps a build that runs before the latest month is collected honest about it.
+
+    The directory names are read as months rather than sorted as strings, and a name that is not
+    ``YYYY-MM`` stops the build: guessing past it would set the anchor every window hangs off.
+    """
+    newest: date | None = None
+    for month in months:
+        parsed = parse_iso_date(f"{month.name}-01")
+        if parsed is None:
+            raise DatasetUnusable(
+                f"{month} is not named YYYY-MM, so the anchor month cannot be derived from it; "
+                "rename it or pass --updated-at")
+        newest = parsed if newest is None or parsed > newest else newest
+    if newest is None:
+        raise DatasetUnusable("no collected month to anchor on — run the collection skill first")
+    following = date(newest.year + newest.month // 12, newest.month % 12 + 1, 1)
+    return following - timedelta(days=1)
+
+
 def raw_name_index(normalized: Any, path: Path) -> dict[str, str]:
     """``raw venue name`` -> ``canonicalName``, for one month.
 
@@ -538,19 +564,20 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT,
                         help="dataset to write (default: data/places.json)")
     parser.add_argument("--updated-at", type=date.fromisoformat, default=None,
-                        help="ISO date anchoring the rolling window (default: today)")
+                        help="ISO date anchoring the rolling window "
+                             "(default: last day of the newest collected month)")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    updated_at = args.updated_at or date.today()
-    window_start = window_floor(updated_at)
 
     # The writes are inside the `try` with everything else: an unwritable target or a full disk is
     # a run that could not proceed, and exit 2 is what says so. Escaping as a traceback would look
     # like a crash to the operator and to any script reading the exit code.
     try:
+        updated_at = args.updated_at or coverage_end(month_dirs(args.out_dir))
+        window_start = window_floor(updated_at)
         aliases = load_aliases(args.aliases)
         approved = load_approved(args.candidates, aliases)
         transactions, months, unusable = collect_transactions(

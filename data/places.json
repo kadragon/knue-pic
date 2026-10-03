@@ -1,10 +1,11 @@
 {
-  "updatedAt": "2026-09-16",
+  "updatedAt": "2026-08-31",
   "places": [
     {
       "id": "restaurant_000003",
       "name": "1004풍천장어",
       "category": "한식",
+      "subcategory": "장어,먹장어요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 가로수로1164번길 38",
       "lat": 36.6255708,
@@ -21,12 +22,37 @@
       "id": "restaurant_000007",
       "name": "36.5공감",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 390",
       "lat": 36.6177543,
       "lng": 127.3561614,
       "naverUrl": "https://map.naver.com/p/search/36.5%EA%B3%B5%EA%B0%90",
       "transactions": [
+        {
+          "date": "2025-06-04",
+          "amount": 105500
+        },
+        {
+          "date": "2025-06-17",
+          "amount": 200000
+        },
+        {
+          "date": "2025-06-20",
+          "amount": 39000
+        },
+        {
+          "date": "2025-06-24",
+          "amount": 33500
+        },
+        {
+          "date": "2025-06-26",
+          "amount": 60000
+        },
+        {
+          "date": "2025-06-26",
+          "amount": 120000
+        },
         {
           "date": "2025-07-02",
           "amount": 188000
@@ -221,6 +247,7 @@
       "id": "restaurant_000008",
       "name": "56North",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 상당구 무농정로3번길 56 1층",
       "lat": 36.6080584,
@@ -237,6 +264,7 @@
       "id": "restaurant_000009",
       "name": "MANDARIN",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "대전광역시 대덕구 덕암북로72번길 20",
       "lat": 36.4434267,
@@ -253,6 +281,7 @@
       "id": "restaurant_000010",
       "name": "bhc",
       "category": "음식점",
+      "subcategory": "치킨,닭강정",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 비하로42번길 2 1층",
       "lat": 36.6308461,
@@ -274,9 +303,27 @@
       ]
     },
     {
+      "id": "restaurant_000012",
+      "name": "가경찜닭아구찜",
+      "category": "한식",
+      "subcategory": "찜닭",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 풍년로120번길 3",
+      "lat": 36.623557,
+      "lng": 127.4352,
+      "naverUrl": "https://map.naver.com/p/search/%EA%B0%80%EA%B2%BD%EC%B0%9C%EB%8B%AD%EC%95%84%EA%B5%AC%EC%B0%9C",
+      "transactions": [
+        {
+          "date": "2025-06-11",
+          "amount": 83000
+        }
+      ]
+    },
+    {
       "id": "restaurant_000013",
       "name": "가마솥추어탕",
       "category": "한식",
+      "subcategory": "추어탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 청주역로 350-6",
       "lat": 36.645373,
@@ -293,6 +340,7 @@
       "id": "restaurant_000014",
       "name": "가화한정식",
       "category": "한식",
+      "subcategory": "한정식",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 내덕로 27 가화한정식",
       "lat": 36.657024,
@@ -309,6 +357,7 @@
       "id": "restaurant_000015",
       "name": "갈비만 세종점",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 세종로 1219 세종중앙타워 2층",
       "lat": 36.5116349,
@@ -329,6 +378,7 @@
       "id": "restaurant_000016",
       "name": "갈비명가연웅가",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 성봉로220번길 154 1층",
       "lat": 36.6205183,
@@ -345,6 +395,7 @@
       "id": "restaurant_000017",
       "name": "강남대구탕",
       "category": "한식",
+      "subcategory": "매운탕,해물탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 비하로 64",
       "lat": 36.6326374,
@@ -373,6 +424,7 @@
       "id": "restaurant_000018",
       "name": "강내루",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 저산태성로 271",
       "lat": 36.5793424,
@@ -393,12 +445,29 @@
       "id": "restaurant_000021",
       "name": "강서추어탕",
       "category": "한식",
+      "subcategory": "추어탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 가포산로 188 1층",
       "lat": 36.6153907,
       "lng": 127.4203147,
       "naverUrl": "https://map.naver.com/p/search/%EA%B0%95%EC%84%9C%EC%B6%94%EC%96%B4%ED%83%95",
       "transactions": [
+        {
+          "date": "2025-06-04",
+          "amount": 294000
+        },
+        {
+          "date": "2025-06-11",
+          "amount": 120000
+        },
+        {
+          "date": "2025-06-20",
+          "amount": 120000
+        },
+        {
+          "date": "2025-06-20",
+          "amount": 200000
+        },
         {
           "date": "2026-01-12",
           "amount": 84000
@@ -417,6 +486,7 @@
       "id": "restaurant_000023",
       "name": "고기싸롱",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명8로 169 2층 206~208호",
       "lat": 36.618449,
@@ -433,12 +503,17 @@
       "id": "restaurant_000025",
       "name": "고메스퀘어 오송점",
       "category": "음식점",
+      "subcategory": "일식,초밥뷔페",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 166 1층",
       "lat": 36.6323721,
       "lng": 127.3301088,
       "naverUrl": "https://map.naver.com/p/search/%EA%B3%A0%EB%A9%94%EC%8A%A4%ED%80%98%EC%96%B4%20%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-19",
+          "amount": 362600
+        },
         {
           "date": "2025-07-08",
           "amount": 508300
@@ -761,6 +836,7 @@
       "id": "restaurant_000026",
       "name": "고봉민김밥",
       "category": "음식점",
+      "subcategory": "분식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 186",
       "lat": 36.6310547,
@@ -777,6 +853,7 @@
       "id": "restaurant_000027",
       "name": "곱이곱다",
       "category": "한식",
+      "subcategory": "곱창,막창,양",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 179 곱이곱다 오송점",
       "lat": 36.6227158,
@@ -793,6 +870,7 @@
       "id": "restaurant_000030",
       "name": "공차",
       "category": "카페,디저트",
+      "subcategory": "차",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 가경로 10 101호",
       "lat": 36.6170359,
@@ -813,6 +891,7 @@
       "id": "restaurant_000031",
       "name": "과천식당",
       "category": "한식",
+      "subcategory": "사철,영양탕",
       "kind": "restaurant",
       "address": "세종특별자치시 조치원읍 행복11길 22",
       "lat": 36.6052702,
@@ -829,6 +908,7 @@
       "id": "restaurant_000032",
       "name": "관저명태촌",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 조치원읍 조치원4길 137 1층",
       "lat": 36.5953845,
@@ -845,6 +925,7 @@
       "id": "restaurant_000033",
       "name": "교동면옥",
       "category": "한식",
+      "subcategory": "냉면",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 남이면 대림로 380 교동면옥 청주죽림점",
       "lat": 36.6045692,
@@ -873,6 +954,7 @@
       "id": "restaurant_000035",
       "name": "국제육가",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 남이면 대림서로 102 1층",
       "lat": 36.5974464,
@@ -901,6 +983,7 @@
       "id": "restaurant_000036",
       "name": "군산오징어",
       "category": "해물,생선요리",
+      "subcategory": "오징어요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강서로 110 2층",
       "lat": 36.6244859,
@@ -917,6 +1000,7 @@
       "id": "restaurant_000037",
       "name": "굴천지초계국수",
       "category": "한식",
+      "subcategory": "굴요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 원흥로80번길 23-4 1층",
       "lat": 36.6124664,
@@ -933,6 +1017,7 @@
       "id": "restaurant_000038",
       "name": "궁동)롯데리아",
       "category": "양식",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "대전광역시 유성구 신성남로 45",
       "lat": 36.386571,
@@ -949,6 +1034,7 @@
       "id": "restaurant_000039",
       "name": "궁현가",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 궁현연꽃2길 10-19 궁현가",
       "lat": 36.5790422,
@@ -1057,6 +1143,7 @@
       "id": "restaurant_000040",
       "name": "귀빈식당",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "세종특별자치시 나성로 125-10 3층 304호",
       "lat": 36.4901894,
@@ -1073,6 +1160,7 @@
       "id": "restaurant_000041",
       "name": "금빛정찬",
       "category": "한식",
+      "subcategory": "한정식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 남이면 양촌3길 14 금빛정찬",
       "lat": 36.590804,
@@ -1089,6 +1177,7 @@
       "id": "restaurant_000042",
       "name": "금성회관청주오송점",
       "category": "한식",
+      "subcategory": "돼지고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 181 101호",
       "lat": 36.622833,
@@ -1109,12 +1198,21 @@
       "id": "restaurant_000044",
       "name": "기운쎈장어",
       "category": "한식",
+      "subcategory": "장어,먹장어요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 391-50 1층",
       "lat": 36.617456,
       "lng": 127.3539821,
       "naverUrl": "https://map.naver.com/p/search/%EA%B8%B0%EC%9A%B4%EC%8E%88%EC%9E%A5%EC%96%B4",
       "transactions": [
+        {
+          "date": "2025-06-04",
+          "amount": 325000
+        },
+        {
+          "date": "2025-06-25",
+          "amount": 288600
+        },
         {
           "date": "2025-07-13",
           "amount": 346000
@@ -1329,6 +1427,7 @@
       "id": "restaurant_000045",
       "name": "긴자 청주점",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 1순환로 886",
       "lat": 36.6168397,
@@ -1345,6 +1444,7 @@
       "id": "restaurant_000046",
       "name": "김가네더덕밥",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 대림로421번길 24",
       "lat": 36.6078171,
@@ -1369,12 +1469,17 @@
       "id": "restaurant_000047",
       "name": "김가네한정식",
       "category": "한식",
+      "subcategory": "한정식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 연제길 147",
       "lat": 36.6283695,
       "lng": 127.3133878,
       "naverUrl": "https://map.naver.com/p/search/%EA%B9%80%EA%B0%80%EB%84%A4%ED%95%9C%EC%A0%95%EC%8B%9D",
       "transactions": [
+        {
+          "date": "2025-06-25",
+          "amount": 180000
+        },
         {
           "date": "2025-07-01",
           "amount": 780000
@@ -1433,6 +1538,7 @@
       "id": "restaurant_000048",
       "name": "김밥나라",
       "category": "음식점",
+      "subcategory": "분식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 옥산면 청주역로 661-2",
       "lat": 36.6657348,
@@ -1461,6 +1567,7 @@
       "id": "restaurant_000049",
       "name": "김밥촌",
       "category": "분식",
+      "subcategory": "김밥",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 452 1층",
       "lat": 36.6225622,
@@ -1481,12 +1588,17 @@
       "id": "restaurant_000050",
       "name": "까망염소",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 고락로40번길 19",
       "lat": 36.6429826,
       "lng": 127.4010072,
       "naverUrl": "https://map.naver.com/p/search/%EA%B9%8C%EB%A7%9D%EC%97%BC%EC%86%8C",
       "transactions": [
+        {
+          "date": "2025-06-05",
+          "amount": 123650
+        },
         {
           "date": "2025-08-13",
           "amount": 147000
@@ -1569,6 +1681,7 @@
       "id": "restaurant_000053",
       "name": "깐치호깐풍기치킨",
       "category": "음식점",
+      "subcategory": "치킨,닭강정",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월탄3길 9 깐치호깐풍기치킨",
       "lat": 36.6071466,
@@ -1589,6 +1702,7 @@
       "id": "restaurant_000054",
       "name": "꽃대패1967",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명13로 12 106호",
       "lat": 36.6214451,
@@ -1605,6 +1719,7 @@
       "id": "restaurant_000055",
       "name": "꿀삼겹",
       "category": "한식",
+      "subcategory": "돼지고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 경산로 6 1층",
       "lat": 36.6230683,
@@ -1621,12 +1736,17 @@
       "id": "restaurant_000056",
       "name": "나루",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 55-14 101호",
       "lat": 36.6229647,
       "lng": 127.3199934,
       "naverUrl": "https://map.naver.com/p/search/%EB%82%98%EB%A3%A8",
       "transactions": [
+        {
+          "date": "2025-06-16",
+          "amount": 200000
+        },
         {
           "date": "2025-07-07",
           "amount": 31000
@@ -1709,6 +1829,7 @@
       "id": "restaurant_000059",
       "name": "나박실식당",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 풍년로119번길 20",
       "lat": 36.6230819,
@@ -1725,12 +1846,17 @@
       "id": "restaurant_000060",
       "name": "남원추어탕",
       "category": "한식",
+      "subcategory": "추어탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월탄3길 9",
       "lat": 36.6071087,
       "lng": 127.3541234,
       "naverUrl": "https://map.naver.com/p/search/%EB%82%A8%EC%9B%90%EC%B6%94%EC%96%B4%ED%83%95",
       "transactions": [
+        {
+          "date": "2025-06-12",
+          "amount": 240000
+        },
         {
           "date": "2025-07-28",
           "amount": 120000
@@ -1789,6 +1915,7 @@
       "id": "restaurant_000061",
       "name": "남한강",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 151",
       "lat": 36.6247022,
@@ -1837,6 +1964,7 @@
       "id": "restaurant_000063",
       "name": "넉넉피자오송점",
       "category": "음식점",
+      "subcategory": "피자",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수1길 24-11 (트윈하우스 102호) 넉넉피자",
       "lat": 36.6235624,
@@ -1857,12 +1985,17 @@
       "id": "restaurant_000066",
       "name": "노워리스",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 연제길 13 1층",
       "lat": 36.6252838,
       "lng": 127.3252294,
       "naverUrl": "https://map.naver.com/p/search/%EB%85%B8%EC%9B%8C%EB%A6%AC%EC%8A%A4",
       "transactions": [
+        {
+          "date": "2025-06-10",
+          "amount": 34800
+        },
         {
           "date": "2025-09-02",
           "amount": 32300
@@ -1905,12 +2038,21 @@
       "id": "restaurant_000068",
       "name": "뉴욕버거 한국교원대학교점",
       "category": "양식",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월탄리",
       "lat": 36.6103875,
       "lng": 127.3585334,
       "naverUrl": "https://map.naver.com/p/search/%EB%89%B4%EC%9A%95%EB%B2%84%EA%B1%B0%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%80%ED%95%99%EA%B5%90%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-11",
+          "amount": 208800
+        },
+        {
+          "date": "2025-06-11",
+          "amount": 217500
+        },
         {
           "date": "2025-10-17",
           "amount": 132300
@@ -1949,6 +2091,7 @@
       "id": "restaurant_000069",
       "name": "늘찬굴림만두",
       "category": "한식",
+      "subcategory": "칼국수,만두",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 가덕면 단재로 1410 늘찬굴림만두전골",
       "lat": 36.5766629,
@@ -1965,6 +2108,7 @@
       "id": "restaurant_000070",
       "name": "다낭",
       "category": "음식점",
+      "subcategory": "베트남음식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 65-22",
       "lat": 36.631227,
@@ -2001,6 +2145,7 @@
       "id": "restaurant_000071",
       "name": "다원쿠키떡",
       "category": "제조업",
+      "subcategory": "떡류제조",
       "kind": "other",
       "address": "충청북도 청주시 상당구 영운천로 161 다원쿠키떡",
       "lat": 36.6232536,
@@ -2045,6 +2190,7 @@
       "id": "restaurant_000072",
       "name": "다이닝룸513",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 흥덕구 내수동로42번길 65 1층",
       "lat": 36.6302743,
@@ -2069,6 +2215,7 @@
       "id": "restaurant_000073",
       "name": "다이닝완숙",
       "category": "음식점",
+      "subcategory": "태국음식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 49-12 1층",
       "lat": 36.6226973,
@@ -2085,6 +2232,7 @@
       "id": "restaurant_000074",
       "name": "다해공방",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "대전광역시 서구 가장로 43-1",
       "lat": 36.3379213,
@@ -2101,6 +2249,7 @@
       "id": "restaurant_000075",
       "name": "단풍나무",
       "category": "음식점",
+      "subcategory": "이탈리아음식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 대림로 410",
       "lat": 36.6072541,
@@ -2121,6 +2270,7 @@
       "id": "restaurant_000076",
       "name": "달달하쥬",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 65-18",
       "lat": 36.6312337,
@@ -2137,6 +2287,7 @@
       "id": "restaurant_000077",
       "name": "달리는커피",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명12로 48 1층 일부호",
       "lat": 36.6215971,
@@ -2153,6 +2304,7 @@
       "id": "restaurant_000078",
       "name": "주식회사 달보드레",
       "category": "쇼핑,유통",
+      "subcategory": "전통식품",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 31-10 1층",
       "lat": 36.6215229,
@@ -2325,6 +2477,7 @@
       "id": "restaurant_000082",
       "name": "대구막창",
       "category": "육류,고기요리",
+      "subcategory": "곱창,막창,양",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 26 1층 106호",
       "lat": 36.6202461,
@@ -2341,6 +2494,7 @@
       "id": "restaurant_000083",
       "name": "대도영지한우",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 직지대로 180 1층 1층",
       "lat": 36.6465,
@@ -2357,6 +2511,7 @@
       "id": "restaurant_000084",
       "name": "대복떡집",
       "category": "전통식품",
+      "subcategory": "떡,한과",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 1순환로 589 1층 대복떡집",
       "lat": 36.6406481,
@@ -2377,6 +2532,7 @@
       "id": "restaurant_000085",
       "name": "대지식당",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 충청대로 151 .1층 101호",
       "lat": 36.6697179,
@@ -2393,6 +2549,7 @@
       "id": "restaurant_000086",
       "name": "더국희",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명8로 205 1층",
       "lat": 36.6207907,
@@ -2409,6 +2566,7 @@
       "id": "restaurant_000088",
       "name": "더덕솥뚜껑삼겹살 오송점",
       "category": "한식",
+      "subcategory": "돼지고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수길 13-9",
       "lat": 36.6242037,
@@ -2481,6 +2639,7 @@
       "id": "restaurant_000090",
       "name": "더보크",
       "category": "음식점",
+      "subcategory": "뷔페",
       "kind": "restaurant",
       "address": "세종특별자치시 한누리대로 273 2층 203호, 204호",
       "lat": 36.4884841,
@@ -2497,6 +2656,7 @@
       "id": "restaurant_000091",
       "name": "더크래프트",
       "category": "음식점",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수길 20-1 더크래프트1층",
       "lat": 36.6237701,
@@ -2517,6 +2677,7 @@
       "id": "restaurant_000092",
       "name": "더테라스",
       "category": "음식점",
+      "subcategory": "뷔페",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 원흥로 17 2층",
       "lat": 36.6076058,
@@ -2533,6 +2694,7 @@
       "id": "restaurant_000093",
       "name": "도란도란",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 534",
       "lat": 36.6235495,
@@ -2549,6 +2711,7 @@
       "id": "restaurant_000095",
       "name": "도미노피자 오송점",
       "category": "음식점",
+      "subcategory": "피자",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 208-9 102, 103호",
       "lat": 36.6302619,
@@ -2581,6 +2744,7 @@
       "id": "restaurant_000096",
       "name": "도시락청주본점",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 장구봉로101번길 70-2",
       "lat": 36.6271479,
@@ -2597,6 +2761,7 @@
       "id": "restaurant_000097",
       "name": "도시락 키친",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 시청대로 167 세종드림빌딩 113호",
       "lat": 36.4813751,
@@ -2613,6 +2778,7 @@
       "id": "restaurant_000098",
       "name": "돌다리에 하냥",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 134",
       "lat": 36.6262522,
@@ -2629,6 +2795,7 @@
       "id": "restaurant_000099",
       "name": "돌산",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로110번길 33 1층 102호",
       "lat": 36.6401829,
@@ -2645,6 +2812,7 @@
       "id": "restaurant_000100",
       "name": "동근이숯불두마리치킨",
       "category": "음식점",
+      "subcategory": "치킨,닭강정",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월탄3길 26-4",
       "lat": 36.6082381,
@@ -2737,12 +2905,17 @@
       "id": "restaurant_000102",
       "name": "동대문곱창막창",
       "category": "한식",
+      "subcategory": "곱창,막창,양",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 262",
       "lat": 36.6076758,
       "lng": 127.3531197,
       "naverUrl": "https://map.naver.com/p/search/%EB%8F%99%EB%8C%80%EB%AC%B8%EA%B3%B1%EC%B0%BD%EB%A7%89%EC%B0%BD",
       "transactions": [
+        {
+          "date": "2025-06-07",
+          "amount": 105000
+        },
         {
           "date": "2025-09-04",
           "amount": 150000
@@ -2797,6 +2970,7 @@
       "id": "restaurant_000103",
       "name": "동백과자점",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 상당구 상당로115번길 30 동백과자점",
       "lat": 36.6385964,
@@ -2813,6 +2987,7 @@
       "id": "restaurant_000104",
       "name": "동인커피 세종점",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "세종특별자치시 가름로 232 B동 108, 109, 110호",
       "lat": 36.4956004,
@@ -2829,6 +3004,7 @@
       "id": "restaurant_000108",
       "name": "두꺼비집",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로31번길 29",
       "lat": 36.633408,
@@ -2845,6 +3021,7 @@
       "id": "restaurant_000109",
       "name": "두릅소한우",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 산미로 146 1층 두릅소한우",
       "lat": 36.6088866,
@@ -2861,6 +3038,7 @@
       "id": "restaurant_000110",
       "name": "둥지마을왕족발",
       "category": "한식",
+      "subcategory": "족발,보쌈",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 내수동로 34",
       "lat": 36.6326301,
@@ -2877,6 +3055,7 @@
       "id": "restaurant_000111",
       "name": "등심연구소(세종)",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "세종특별자치시 달빛로 228 1층",
       "lat": 36.5190797,
@@ -2893,6 +3072,7 @@
       "id": "restaurant_000112",
       "name": "디라이프스타일키친광화문점",
       "category": "음식점",
+      "subcategory": "양식",
       "kind": "restaurant",
       "address": "서울특별시 중구 세종대로 136 서울파이낸스센터 지하1층 101호",
       "lat": 37.5684246,
@@ -2909,12 +3089,21 @@
       "id": "restaurant_000116",
       "name": "디저트39 한국교원대점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 386 디저트39 한국교원대점",
       "lat": 36.6173791,
       "lng": 127.3559085,
       "naverUrl": "https://map.naver.com/p/search/%EB%94%94%EC%A0%80%ED%8A%B839%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%80%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-05",
+          "amount": 29600
+        },
+        {
+          "date": "2025-06-12",
+          "amount": 19700
+        },
         {
           "date": "2025-07-28",
           "amount": 54700
@@ -3049,6 +3238,7 @@
       "id": "restaurant_000118",
       "name": "떡마마 개신점",
       "category": "전통식품",
+      "subcategory": "떡,한과",
       "kind": "other",
       "address": "충청북도 청주시 서원구 복대로 13 1층 101호",
       "lat": 36.6184248,
@@ -3065,12 +3255,17 @@
       "id": "restaurant_000120",
       "name": "떡마마 청주오송점",
       "category": "전통식품",
+      "subcategory": "떡,한과",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-4 1층 101호",
       "lat": 36.6305627,
       "lng": 127.3297356,
       "naverUrl": "https://map.naver.com/p/search/%EB%96%A1%EB%A7%88%EB%A7%88%20%EC%B2%AD%EC%A3%BC%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-17",
+          "amount": 180000
+        },
         {
           "date": "2025-11-11",
           "amount": 103000
@@ -3105,6 +3300,7 @@
       "id": "restaurant_000121",
       "name": "떡을 탐하다",
       "category": "카페,디저트",
+      "subcategory": "떡카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 월곡길 26",
       "lat": 36.6221127,
@@ -3129,6 +3325,7 @@
       "id": "restaurant_000123",
       "name": "뚜레쥬르 오송센트럴시티",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 118 상가 3동 104호 뚜레쥬르",
       "lat": 36.618469,
@@ -3169,12 +3366,17 @@
       "id": "restaurant_000125",
       "name": "뚜레쥬르 오송파라곤점",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 164",
       "lat": 36.6215449,
       "lng": 127.3175428,
       "naverUrl": "https://map.naver.com/p/search/%EB%9A%9C%EB%A0%88%EC%A5%AC%EB%A5%B4%20%EC%98%A4%EC%86%A1%ED%8C%8C%EB%9D%BC%EA%B3%A4%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-20",
+          "amount": 50850
+        },
         {
           "date": "2025-11-11",
           "amount": 167600
@@ -3189,6 +3391,7 @@
       "id": "restaurant_000126",
       "name": "뚜레쥬르 청주강서",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 서현중로 35 이노치과",
       "lat": 36.6217485,
@@ -3205,6 +3408,7 @@
       "id": "restaurant_000127",
       "name": "런디스타운",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 청원구 직지대로848번길 47 1층 카페 런디스타운",
       "lat": 36.6473429,
@@ -3221,6 +3425,7 @@
       "id": "restaurant_000128",
       "name": "레니본테이블",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 흥덕구 월명로220번길 105-5 1층",
       "lat": 36.6545413,
@@ -3245,6 +3450,7 @@
       "id": "restaurant_000129",
       "name": "로버스그릴",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 480-2",
       "lat": 36.6219828,
@@ -3261,6 +3467,7 @@
       "id": "restaurant_000130",
       "name": "로빈카페",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 183 1층 로빈카페",
       "lat": 36.6226172,
@@ -3277,6 +3484,7 @@
       "id": "restaurant_000131",
       "name": "로프티커피",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "세종특별자치시 도움8로 81 A111호",
       "lat": 36.504563,
@@ -3293,6 +3501,7 @@
       "id": "restaurant_000132",
       "name": "롯데리아",
       "category": "양식",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명11로 48",
       "lat": 36.6191492,
@@ -3309,6 +3518,7 @@
       "id": "restaurant_000133",
       "name": "롯데리아 청주강내점",
       "category": "양식",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 451 1층",
       "lat": 36.622807,
@@ -3329,12 +3539,17 @@
       "id": "restaurant_000134",
       "name": "롯데마트",
       "category": "양식",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 서현로 60 143호",
       "lat": 36.6175121,
       "lng": 127.4286308,
       "naverUrl": "https://map.naver.com/p/search/%EB%A1%AF%EB%8D%B0%EB%A7%88%ED%8A%B8",
       "transactions": [
+        {
+          "date": "2025-06-23",
+          "amount": 148060
+        },
         {
           "date": "2025-08-18",
           "amount": 219800
@@ -3369,6 +3584,7 @@
       "id": "restaurant_000135",
       "name": "롯데마트 청주점",
       "category": "분식",
+      "subcategory": "떡볶이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로1219번길 30",
       "lat": 36.6272979,
@@ -3393,12 +3609,21 @@
       "id": "restaurant_000136",
       "name": "리버뷰",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 월탄2길 65-15 1층",
       "lat": 36.6115749,
       "lng": 127.3499407,
       "naverUrl": "https://map.naver.com/p/search/%EB%A6%AC%EB%B2%84%EB%B7%B0",
       "transactions": [
+        {
+          "date": "2025-06-10",
+          "amount": 197500
+        },
+        {
+          "date": "2025-06-26",
+          "amount": 150000
+        },
         {
           "date": "2025-07-10",
           "amount": 144500
@@ -3497,6 +3722,7 @@
       "id": "restaurant_000137",
       "name": "리트리빈",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 청정로 14",
       "lat": 36.6130072,
@@ -3517,6 +3743,7 @@
       "id": "restaurant_000138",
       "name": "마네키네코",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "대전광역시 서구 둔산남로 97",
       "lat": 36.3494227,
@@ -3533,6 +3760,7 @@
       "id": "restaurant_000139",
       "name": "마네테이블",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "대전광역시 유성구 복용남로 25 1층",
       "lat": 36.3425091,
@@ -3553,6 +3781,7 @@
       "id": "restaurant_000140",
       "name": "마라탕양꼬치",
       "category": "중식",
+      "subcategory": "양꼬치",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로15번길 9 1층",
       "lat": 36.6323423,
@@ -3573,6 +3802,7 @@
       "id": "restaurant_000141",
       "name": "마라탕양꼬치 오송점",
       "category": "중식",
+      "subcategory": "양꼬치",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 267-8 1층 101호",
       "lat": 36.6232294,
@@ -3613,6 +3843,7 @@
       "id": "restaurant_000142",
       "name": "마레",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 다락탑연길 238 1층 마레",
       "lat": 36.6138004,
@@ -3629,12 +3860,17 @@
       "id": "restaurant_000143",
       "name": "마루횟집",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "세종특별자치시 국세청로 45 상가동 A121호",
       "lat": 36.4891592,
       "lng": 127.2611317,
       "naverUrl": "https://map.naver.com/p/search/%EB%A7%88%EB%A3%A8%ED%9A%9F%EC%A7%91",
       "transactions": [
+        {
+          "date": "2025-06-10",
+          "amount": 100000
+        },
         {
           "date": "2026-01-09",
           "amount": 200000
@@ -3661,12 +3897,25 @@
       "id": "restaurant_000144",
       "name": "만두가",
       "category": "한식",
+      "subcategory": "칼국수,만두",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 480-7",
       "lat": 36.6227351,
       "lng": 127.3537723,
       "naverUrl": "https://map.naver.com/p/search/%EB%A7%8C%EB%91%90%EA%B0%80",
       "transactions": [
+        {
+          "date": "2025-06-09",
+          "amount": 105000
+        },
+        {
+          "date": "2025-06-09",
+          "amount": 105000
+        },
+        {
+          "date": "2025-06-10",
+          "amount": 126000
+        },
         {
           "date": "2025-09-24",
           "amount": 158000
@@ -3725,12 +3974,21 @@
       "id": "restaurant_000145",
       "name": "만리장성",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 386 1층",
       "lat": 36.6172677,
       "lng": 127.3559406,
       "naverUrl": "https://map.naver.com/p/search/%EB%A7%8C%EB%A6%AC%EC%9E%A5%EC%84%B1",
       "transactions": [
+        {
+          "date": "2025-06-02",
+          "amount": 61000
+        },
+        {
+          "date": "2025-06-24",
+          "amount": 158000
+        },
         {
           "date": "2025-07-18",
           "amount": 190000
@@ -4001,6 +4259,7 @@
       "id": "restaurant_000146",
       "name": "만만재",
       "category": "한식",
+      "subcategory": "칼국수,만두",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 339 1층 101호",
       "lat": 36.6179523,
@@ -4017,6 +4276,7 @@
       "id": "restaurant_000147",
       "name": "말랑떡공방",
       "category": "전통식품",
+      "subcategory": "떡,한과",
       "kind": "other",
       "address": "충청북도 청주시 상당구 수영로 210-1 1층 말랑떡공방",
       "lat": 36.623442,
@@ -4045,12 +4305,17 @@
       "id": "restaurant_000148",
       "name": "맘스터치",
       "category": "양식",
+      "subcategory": "맘스터치",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 196 1층",
       "lat": 36.6307776,
       "lng": 127.3308638,
       "naverUrl": "https://map.naver.com/p/search/%EB%A7%98%EC%8A%A4%ED%84%B0%EC%B9%98",
       "transactions": [
+        {
+          "date": "2025-06-10",
+          "amount": 154000
+        },
         {
           "date": "2025-11-18",
           "amount": 67400
@@ -4101,6 +4366,7 @@
       "id": "restaurant_000149",
       "name": "맘스터치 청주 강내점",
       "category": "양식",
+      "subcategory": "맘스터치",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 550 1층",
       "lat": 36.6235784,
@@ -4177,6 +4443,7 @@
       "id": "restaurant_000150",
       "name": "맛있는영자씨네",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수길 15",
       "lat": 36.6236808,
@@ -4197,6 +4464,7 @@
       "id": "restaurant_000151",
       "name": "㈜맛있는 이야기",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 서현중로28번길 7 카페이야기",
       "lat": 36.6211843,
@@ -4213,6 +4481,7 @@
       "id": "restaurant_000152",
       "name": "맛찬들왕소금구이",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로 100",
       "lat": 36.6400661,
@@ -4229,6 +4498,7 @@
       "id": "restaurant_000153",
       "name": "맥아당",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 사운로 88 맥아당 앤 직지빵",
       "lat": 36.636957,
@@ -4253,6 +4523,7 @@
       "id": "restaurant_000155",
       "name": "먹벙감자탕",
       "category": "한식",
+      "subcategory": "감자탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 435",
       "lat": 36.6212597,
@@ -4269,6 +4540,7 @@
       "id": "restaurant_000156",
       "name": "먹성집",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 50-2 . 101호",
       "lat": 36.6217498,
@@ -4285,6 +4557,7 @@
       "id": "restaurant_000157",
       "name": "메가MGC커피 청주역점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 직지대로 6-1",
       "lat": 36.6461617,
@@ -4301,12 +4574,21 @@
       "id": "restaurant_000158",
       "name": "메이49-10",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 월탄3길 26-2",
       "lat": 36.6082255,
       "lng": 127.3554029,
       "naverUrl": "https://map.naver.com/p/search/%EB%A9%94%EC%9D%B449-10",
       "transactions": [
+        {
+          "date": "2025-06-10",
+          "amount": 65900
+        },
+        {
+          "date": "2025-06-16",
+          "amount": 163200
+        },
         {
           "date": "2025-07-02",
           "amount": 114000
@@ -4481,6 +4763,7 @@
       "id": "restaurant_000159",
       "name": "멜로마카롱스세종남리점",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "세종특별자치시 조치원읍 산책2길 45 2층",
       "lat": 36.5950392,
@@ -4497,6 +4780,7 @@
       "id": "restaurant_000160",
       "name": "명동교자",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 도움8로 81 세종1번가 A동 2층",
       "lat": 36.5044759,
@@ -4513,6 +4797,7 @@
       "id": "restaurant_000162",
       "name": "명성보리밥쌈밥",
       "category": "한식",
+      "subcategory": "쌈밥",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 501 명성보리밥쌈밥",
       "lat": 36.623807,
@@ -4537,6 +4822,7 @@
       "id": "restaurant_000163",
       "name": "명성횟집",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "세종특별자치시 한누리대로 1958 114호, 115호",
       "lat": 36.4897901,
@@ -4553,6 +4839,7 @@
       "id": "restaurant_000166",
       "name": "명장갈비 오송점",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송가락로 259",
       "lat": 36.6295246,
@@ -4605,6 +4892,7 @@
       "id": "restaurant_000167",
       "name": "명장복집",
       "category": "해물,생선요리",
+      "subcategory": "복어요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 죽천로 97-8 명장복국 복대점",
       "lat": 36.6379642,
@@ -4689,6 +4977,7 @@
       "id": "restaurant_000169",
       "name": "모찌대왕",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 풍년로 16-17 104,105호",
       "lat": 36.6159937,
@@ -4705,6 +4994,7 @@
       "id": "restaurant_000170",
       "name": "목구멍세종점",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 보듬3로 8-37 109호, 110호, 111호",
       "lat": 36.5158135,
@@ -4721,6 +5011,7 @@
       "id": "restaurant_000171",
       "name": "미소수제돈까스",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 441 미소수제돈까스",
       "lat": 36.6217346,
@@ -4741,6 +5032,7 @@
       "id": "restaurant_000172",
       "name": "민속떡방앗간",
       "category": "제조업",
+      "subcategory": "떡류제조",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 457 1층",
       "lat": 36.6231496,
@@ -4757,6 +5049,7 @@
       "id": "restaurant_000173",
       "name": "민속촌소머리국밥",
       "category": "한식",
+      "subcategory": "국밥",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 미호천길 5",
       "lat": 36.6034099,
@@ -4793,6 +5086,7 @@
       "id": "restaurant_000174",
       "name": "밀스젤라또 오송점",
       "category": "카페,디저트",
+      "subcategory": "아이스크림",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 152 102, 103호",
       "lat": 36.6209085,
@@ -4809,6 +5103,7 @@
       "id": "restaurant_000175",
       "name": "바닐라가든",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "세종특별자치시 조치원읍 내창1길 35 1층 102호 바닐라가든",
       "lat": 36.6083165,
@@ -4825,6 +5120,7 @@
       "id": "restaurant_000176",
       "name": "바다식당",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "대전광역시 서구 갈마중로16번길 7 1층 103호",
       "lat": 36.347537,
@@ -4841,6 +5137,7 @@
       "id": "restaurant_000177",
       "name": "바다 회 수산",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명8로 178 근린생활시설2동 104호(농부마트건너편)",
       "lat": 36.6181916,
@@ -4857,6 +5154,7 @@
       "id": "restaurant_000178",
       "name": "박박사부대찌개",
       "category": "한식",
+      "subcategory": "찌개,전골",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 탑연1길 3 1층 박박사부대찌개",
       "lat": 36.6216926,
@@ -4885,6 +5183,7 @@
       "id": "restaurant_000179",
       "name": "반지하 세종나성점",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 나성북로 9 1층 110, 111호",
       "lat": 36.4895404,
@@ -4898,9 +5197,31 @@
       ]
     },
     {
+      "id": "restaurant_000180",
+      "name": "반지하 청주본점",
+      "category": "한식",
+      "subcategory": "육류,고기요리",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 가로수로1154번길 13 반지하 (1층-본관, 2층-별관)",
+      "lat": 36.6261862,
+      "lng": 127.4250738,
+      "naverUrl": "https://map.naver.com/p/search/%EB%B0%98%EC%A7%80%ED%95%98%20%EC%B2%AD%EC%A3%BC%EB%B3%B8%EC%A0%90",
+      "transactions": [
+        {
+          "date": "2025-06-09",
+          "amount": 158000
+        },
+        {
+          "date": "2025-06-19",
+          "amount": 158000
+        }
+      ]
+    },
+    {
       "id": "restaurant_000181",
       "name": "밥먹고가",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월탄3길 26-2 2층",
       "lat": 36.608225,
@@ -4953,6 +5274,7 @@
       "id": "restaurant_000182",
       "name": "밥상차려주는집",
       "category": "한식",
+      "subcategory": "한정식",
       "kind": "restaurant",
       "address": "세종특별자치시 가름로 232 세종비지니스빌딩 a동 215호",
       "lat": 36.4956939,
@@ -4969,6 +5291,7 @@
       "id": "restaurant_000183",
       "name": "방원 양갈비 양꼬치",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "세종특별자치시 보듬3로 8-29 해피라움6 2층 206,207",
       "lat": 36.5151617,
@@ -4985,6 +5308,7 @@
       "id": "restaurant_000184",
       "name": "백송짜글짜글",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 옥산면 옥산시내1길 63",
       "lat": 36.6643198,
@@ -5001,6 +5325,7 @@
       "id": "restaurant_000186",
       "name": "버거킹 청주오송점",
       "category": "양식",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 178",
       "lat": 36.6313707,
@@ -5021,6 +5346,7 @@
       "id": "restaurant_000187",
       "name": "버터버터",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 35-7 버터버터",
       "lat": 36.6213751,
@@ -5057,6 +5383,7 @@
       "id": "restaurant_000188",
       "name": "베스킨라빈스 청주강내점",
       "category": "카페,디저트",
+      "subcategory": "아이스크림",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 532 1층",
       "lat": 36.623503,
@@ -5073,6 +5400,7 @@
       "id": "restaurant_000189",
       "name": "벤티포스티",
       "category": "음식점",
+      "subcategory": "양식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 경산로50번길 6 1층",
       "lat": 36.6243359,
@@ -5089,6 +5417,7 @@
       "id": "restaurant_000190",
       "name": "별꼴버섯",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 청주역로 350-2",
       "lat": 36.64526,
@@ -5105,6 +5434,7 @@
       "id": "restaurant_000191",
       "name": "별이빛나고있소",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 덕암로114번길 57 1층",
       "lat": 36.6497534,
@@ -5121,6 +5451,7 @@
       "id": "restaurant_000192",
       "name": "보테가",
       "category": "음식점",
+      "subcategory": "스테이크,립",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 가로수로1164번길 41-20 2층",
       "lat": 36.625414,
@@ -5137,6 +5468,7 @@
       "id": "restaurant_000194",
       "name": "복호두청주터미널",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강서로 111 강서베리굿 2차 1층 105호",
       "lat": 36.6249919,
@@ -5161,6 +5493,7 @@
       "id": "restaurant_000195",
       "name": "본가왕뼈감자탕",
       "category": "한식",
+      "subcategory": "감자탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 65-22",
       "lat": 36.6312513,
@@ -5177,6 +5510,7 @@
       "id": "restaurant_000196",
       "name": "본궁석갈비",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 가포산로 197 1층 본궁석갈비",
       "lat": 36.61548,
@@ -5193,6 +5527,7 @@
       "id": "restaurant_000197",
       "name": "본뉘",
       "category": "음식점",
+      "subcategory": "아시아음식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 31 101, 102호",
       "lat": 36.6350119,
@@ -5213,12 +5548,25 @@
       "id": "restaurant_000199",
       "name": "본도시락 오송점",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 186 113호",
       "lat": 36.6311892,
       "lng": 127.3296024,
       "naverUrl": "https://map.naver.com/p/search/%EB%B3%B8%EB%8F%84%EC%8B%9C%EB%9D%BD%20%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-18",
+          "amount": 129000
+        },
+        {
+          "date": "2025-06-26",
+          "amount": 150900
+        },
+        {
+          "date": "2025-06-30",
+          "amount": 320600
+        },
         {
           "date": "2025-07-07",
           "amount": 79800
@@ -5541,6 +5889,7 @@
       "id": "restaurant_000201",
       "name": "본죽&비빔밥",
       "category": "음식점",
+      "subcategory": "죽",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 146 1층 105호",
       "lat": 36.620392,
@@ -5561,6 +5910,7 @@
       "id": "restaurant_000202",
       "name": "봉구스밥버거",
       "category": "음식점",
+      "subcategory": "분식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-16",
       "lat": 36.6309862,
@@ -5577,6 +5927,7 @@
       "id": "restaurant_000203",
       "name": "봉산고기",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 18 104, 105호 봉산고기 청주오송본점",
       "lat": 36.6191504,
@@ -5597,12 +5948,17 @@
       "id": "restaurant_000204",
       "name": "봉산리1197",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 55-9 1층 101호 봉산리1197 카페",
       "lat": 36.622622,
       "lng": 127.3200074,
       "naverUrl": "https://map.naver.com/p/search/%EB%B4%89%EC%82%B0%EB%A6%AC1197",
       "transactions": [
+        {
+          "date": "2025-06-16",
+          "amount": 45000
+        },
         {
           "date": "2026-01-30",
           "amount": 40100
@@ -5613,6 +5969,7 @@
       "id": "restaurant_000205",
       "name": "봉산브릿지",
       "category": "음식점",
+      "subcategory": "양식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산1길 16-5 1층",
       "lat": 36.6193495,
@@ -5641,6 +5998,7 @@
       "id": "restaurant_000206",
       "name": "봉서골",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 연서면 봉암길 119-9 봉서골",
       "lat": 36.5602898,
@@ -5665,6 +6023,7 @@
       "id": "restaurant_000207",
       "name": "부리부리브리또 서원대점",
       "category": "음식점",
+      "subcategory": "멕시코,남미음식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 서원남로58번길 11 . 지하1층",
       "lat": 36.6228793,
@@ -5681,6 +6040,7 @@
       "id": "restaurant_000208",
       "name": "부자손짜장",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 궁뜰로 113",
       "lat": 36.5951059,
@@ -5697,6 +6057,7 @@
       "id": "restaurant_000209",
       "name": "북경양꼬치",
       "category": "중식",
+      "subcategory": "양꼬치",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송가락로 255-8 104호",
       "lat": 36.6294063,
@@ -5713,6 +6074,7 @@
       "id": "restaurant_000210",
       "name": "북창동순두부",
       "category": "한식",
+      "subcategory": "두부요리",
       "kind": "restaurant",
       "address": "세종특별자치시 나성북1로 51 803동 1층 132호, 133호, 134호",
       "lat": 36.4918779,
@@ -5737,12 +6099,17 @@
       "id": "restaurant_000211",
       "name": "브라더한정식도시락",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 흥덕구 오송읍 연제만수길 54 102호",
       "lat": 36.624284,
       "lng": 127.3292328,
       "naverUrl": "https://map.naver.com/p/search/%EB%B8%8C%EB%9D%BC%EB%8D%94%ED%95%9C%EC%A0%95%EC%8B%9D%EB%8F%84%EC%8B%9C%EB%9D%BD",
       "transactions": [
+        {
+          "date": "2025-06-20",
+          "amount": 47000
+        },
         {
           "date": "2025-11-24",
           "amount": 322000
@@ -5785,6 +6152,7 @@
       "id": "restaurant_000214",
       "name": "브레드마마 도담점",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "세종특별자치시 갈매로 562 1층 브레드마마 도담본점",
       "lat": 36.513223,
@@ -5805,12 +6173,17 @@
       "id": "restaurant_000216",
       "name": "브리드커피 한국교원대2호점",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 250 국제연수원 1층",
       "lat": 36.6134687,
       "lng": 127.3564676,
       "naverUrl": "https://map.naver.com/p/search/%EB%B8%8C%EB%A6%AC%EB%93%9C%EC%BB%A4%ED%94%BC%20%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%802%ED%98%B8%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-16",
+          "amount": 2225000
+        },
         {
           "date": "2025-07-07",
           "amount": 1965000
@@ -5845,6 +6218,7 @@
       "id": "restaurant_000217",
       "name": "브리드커피 한국교원대점",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 250 학생회관 1층",
       "lat": 36.6083878,
@@ -6181,6 +6555,7 @@
       "id": "restaurant_000219",
       "name": "비프다이닝온도",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 가름로 143 AK프라자 A관 207호 비프다이닝온도",
       "lat": 36.499085,
@@ -6201,6 +6576,7 @@
       "id": "restaurant_000220",
       "name": "빕스 청주커넥트현대점",
       "category": "음식점",
+      "subcategory": "패밀리레스토랑",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로 1225 4층 빕스",
       "lat": 36.6269924,
@@ -6221,6 +6597,7 @@
       "id": "restaurant_000221",
       "name": "빨간기린",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 청원구 율량로48번길 11-1 1층",
       "lat": 36.6728558,
@@ -6245,6 +6622,7 @@
       "id": "restaurant_000222",
       "name": "사리원",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송가락로 368",
       "lat": 36.6362333,
@@ -6261,6 +6639,7 @@
       "id": "restaurant_000223",
       "name": "사월에보리밥(세종시청점)",
       "category": "한식",
+      "subcategory": "보리밥",
       "kind": "restaurant",
       "address": "세종특별자치시 시청대로 137 강남프라자2층204호",
       "lat": 36.4799952,
@@ -6277,6 +6656,7 @@
       "id": "restaurant_000224",
       "name": "산장가든",
       "category": "한식",
+      "subcategory": "백숙,삼계탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 현도면 달계노산로 326-28 노산장방죽가든 대청댐점",
       "lat": 36.4616831,
@@ -6309,12 +6689,33 @@
       "id": "restaurant_000225",
       "name": "산하춘",
       "category": "한식",
+      "subcategory": "한정식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월탄1길 15-11",
       "lat": 36.6110972,
       "lng": 127.3523268,
       "naverUrl": "https://map.naver.com/p/search/%EC%82%B0%ED%95%98%EC%B6%98",
       "transactions": [
+        {
+          "date": "2025-06-05",
+          "amount": 70000
+        },
+        {
+          "date": "2025-06-10",
+          "amount": 420000
+        },
+        {
+          "date": "2025-06-12",
+          "amount": 88000
+        },
+        {
+          "date": "2025-06-24",
+          "amount": 390000
+        },
+        {
+          "date": "2025-06-27",
+          "amount": 400000
+        },
         {
           "date": "2025-07-01",
           "amount": 286000
@@ -6465,12 +6866,21 @@
       "id": "restaurant_000226",
       "name": "삼거리카페",
       "category": "음식점",
+      "subcategory": "치킨,닭강정",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 남일면 단재로 739 삼거리치킨 카페",
       "lat": 36.5656764,
       "lng": 127.5100228,
       "naverUrl": "https://map.naver.com/p/search/%EC%82%BC%EA%B1%B0%EB%A6%AC%EC%B9%B4%ED%8E%98",
       "transactions": [
+        {
+          "date": "2025-06-02",
+          "amount": 29610
+        },
+        {
+          "date": "2025-06-18",
+          "amount": 64800
+        },
         {
           "date": "2025-07-02",
           "amount": 29520
@@ -6525,6 +6935,7 @@
       "id": "restaurant_000227",
       "name": "삼미원",
       "category": "쇼핑,유통",
+      "subcategory": "소고기",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 백봉로 178",
       "lat": 36.6492253,
@@ -6541,6 +6952,7 @@
       "id": "restaurant_000228",
       "name": "삼익세라믹구이",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 내수동로 38-2",
       "lat": 36.6325882,
@@ -6557,6 +6969,7 @@
       "id": "restaurant_000229",
       "name": "삼정원",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 용평로94번길 24",
       "lat": 36.6037449,
@@ -6581,6 +6994,7 @@
       "id": "restaurant_000231",
       "name": "삼학도회수산",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 비하로 30",
       "lat": 36.6297969,
@@ -6617,6 +7031,7 @@
       "id": "restaurant_000232",
       "name": "삿뽀로",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로 1250",
       "lat": 36.624557,
@@ -6649,6 +7064,7 @@
       "id": "restaurant_000235",
       "name": "상구네돼지구이",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 184 101호",
       "lat": 36.622705,
@@ -6665,6 +7081,7 @@
       "id": "restaurant_000236",
       "name": "상당집",
       "category": "한식",
+      "subcategory": "두부요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 성내로118번길 1",
       "lat": 36.6634571,
@@ -6681,6 +7098,7 @@
       "id": "restaurant_000237",
       "name": "상춘고택",
       "category": "한식",
+      "subcategory": "한정식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 옥산면 소로2길 19 상춘고택 전용 주차장 소로리520번지",
       "lat": 36.6869548,
@@ -6705,6 +7123,7 @@
       "id": "restaurant_000238",
       "name": "샌그리닝",
       "category": "양식",
+      "subcategory": "샌드위치",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 사북로85번길 17 1층",
       "lat": 36.6449609,
@@ -6721,6 +7140,7 @@
       "id": "restaurant_000239",
       "name": "샌드위크",
       "category": "양식",
+      "subcategory": "샌드위치",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 사직대로89번길 26-1 1층",
       "lat": 36.6361,
@@ -6745,6 +7165,7 @@
       "id": "restaurant_000240",
       "name": "샌디치와",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 151 파라곤1차 정문 상가 (203동 5,6,라인 앞)",
       "lat": 36.6205287,
@@ -6785,6 +7206,7 @@
       "id": "restaurant_000241",
       "name": "샐러드카페초록",
       "category": "양식",
+      "subcategory": "샌드위치",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 사직대로 278 1층 샐러드카페 초록",
       "lat": 36.6356992,
@@ -6821,6 +7243,7 @@
       "id": "restaurant_000244",
       "name": "샤브연리지",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 142 2층 201, 202, 203호",
       "lat": 36.6201833,
@@ -6837,6 +7260,7 @@
       "id": "restaurant_000245",
       "name": "샤브올데이",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로 1063 2층",
       "lat": 36.640083,
@@ -6853,12 +7277,17 @@
       "id": "restaurant_000248",
       "name": "서브웨이 청주오송",
       "category": "음식점",
+      "subcategory": "샌드위치",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 165 1층 101호",
       "lat": 36.6323873,
       "lng": 127.3277001,
       "naverUrl": "https://map.naver.com/p/search/%EC%84%9C%EB%B8%8C%EC%9B%A8%EC%9D%B4%20%EC%B2%AD%EC%A3%BC%EC%98%A4%EC%86%A1",
       "transactions": [
+        {
+          "date": "2025-06-01",
+          "amount": 174300
+        },
         {
           "date": "2025-09-23",
           "amount": 105000
@@ -6897,6 +7326,7 @@
       "id": "restaurant_000249",
       "name": "서원골",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 267",
       "lat": 36.6079237,
@@ -7009,6 +7439,7 @@
       "id": "restaurant_000250",
       "name": "서해",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 복대로 120",
       "lat": 36.6272821,
@@ -7025,6 +7456,7 @@
       "id": "restaurant_000251",
       "name": "선물같은오늘",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 2순환로1050번길 12",
       "lat": 36.6411607,
@@ -7041,6 +7473,7 @@
       "id": "restaurant_000252",
       "name": "세이푸드",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "대전광역시 중구 사정공원로 70",
       "lat": 36.2888607,
@@ -7057,6 +7490,7 @@
       "id": "restaurant_000253",
       "name": "세종긴자",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "세종특별자치시 다솜로 50 중흥S클래스 센텀뷰상가 B동",
       "lat": 36.4947086,
@@ -7073,6 +7507,7 @@
       "id": "restaurant_000254",
       "name": "세종명가쌀빵",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "세종특별자치시 다솜1로 184 근린생활시설 106호",
       "lat": 36.5137707,
@@ -7089,6 +7524,7 @@
       "id": "restaurant_000255",
       "name": "세종삼복낙지",
       "category": "한식",
+      "subcategory": "낙지요리",
       "kind": "restaurant",
       "address": "세종특별자치시 한누리대로 165 세종메디피아 102호",
       "lat": 36.4798919,
@@ -7109,6 +7545,7 @@
       "id": "restaurant_000256",
       "name": "셀렉커피랩",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명13로 12 102호, 103호",
       "lat": 36.621301,
@@ -7125,6 +7562,7 @@
       "id": "restaurant_000257",
       "name": "소로리",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 서현남로 16 B105호 소로리솥밥 가경직영점",
       "lat": 36.6155406,
@@ -7141,6 +7579,7 @@
       "id": "restaurant_000258",
       "name": "소소븐 화덕피자",
       "category": "음식점",
+      "subcategory": "피자",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-16 1층 소소븐화덕피자",
       "lat": 36.6309493,
@@ -7157,6 +7596,7 @@
       "id": "restaurant_000259",
       "name": "소예담",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 매봉로76번길 38 지도",
       "lat": 36.6168508,
@@ -7205,6 +7645,7 @@
       "id": "restaurant_000261",
       "name": "송담추어탕",
       "category": "한식",
+      "subcategory": "추어탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 풍년로150번길 42",
       "lat": 36.6265665,
@@ -7221,6 +7662,7 @@
       "id": "restaurant_000262",
       "name": "송은정보리밥본점",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 조치원읍 세종로 2427 1층",
       "lat": 36.6039736,
@@ -7241,6 +7683,7 @@
       "id": "restaurant_000263",
       "name": "송이네집",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "대전광역시 대덕구 한밭대로989번길 12",
       "lat": 36.3584959,
@@ -7257,6 +7700,7 @@
       "id": "restaurant_000264",
       "name": "송하민어구이",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 조치원읍 운주산로 72 송하민어구이",
       "lat": 36.6357933,
@@ -7285,6 +7729,7 @@
       "id": "restaurant_000265",
       "name": "솥마을",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 노을3로 14 첫마을1단지 상가동 1층 111호",
       "lat": 36.4831397,
@@ -7301,6 +7746,7 @@
       "id": "restaurant_000266",
       "name": "쇼쿠도",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "세종특별자치시 보듬3로 92 해피라움2차 132호 카츠와이찌",
       "lat": 36.5120168,
@@ -7317,6 +7763,7 @@
       "id": "restaurant_000267",
       "name": "수기제과",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 337 102호",
       "lat": 36.6178502,
@@ -7333,6 +7780,7 @@
       "id": "restaurant_000268",
       "name": "수라간",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 흥덕구 운천로9번길 17 1층",
       "lat": 36.6515603,
@@ -7349,6 +7797,7 @@
       "id": "restaurant_000269",
       "name": "수원떡집",
       "category": "전통식품",
+      "subcategory": "떡,한과",
       "kind": "other",
       "address": "충청북도 청주시 서원구 원마루로8번길 7-5 1층",
       "lat": 36.6091749,
@@ -7365,6 +7814,7 @@
       "id": "restaurant_000271",
       "name": "수이재1928",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강서로71번길 4 1층 한옥기와집",
       "lat": 36.6227765,
@@ -7393,6 +7843,7 @@
       "id": "restaurant_000272",
       "name": "수제햄 고래부대찌개",
       "category": "한식",
+      "subcategory": "찌개,전골",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 옥산면 청주역로 668-1 1층",
       "lat": 36.666243,
@@ -7409,6 +7860,7 @@
       "id": "restaurant_000273",
       "name": "수통골장수오리",
       "category": "한식",
+      "subcategory": "오리요리",
       "kind": "restaurant",
       "address": "대전광역시 유성구 수통골로 89",
       "lat": 36.3461653,
@@ -7425,12 +7877,21 @@
       "id": "restaurant_000274",
       "name": "수피아의 작은부엌",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 증안로34번길 27-4 1층",
       "lat": 36.6354872,
       "lng": 127.4279988,
       "naverUrl": "https://map.naver.com/p/search/%EC%88%98%ED%94%BC%EC%95%84%EC%9D%98%20%EC%9E%91%EC%9D%80%EB%B6%80%EC%97%8C",
       "transactions": [
+        {
+          "date": "2025-06-11",
+          "amount": 2736000
+        },
+        {
+          "date": "2025-06-23",
+          "amount": 2748000
+        },
         {
           "date": "2025-07-03",
           "amount": 2370000
@@ -7509,6 +7970,7 @@
       "id": "restaurant_000275",
       "name": "수피자",
       "category": "음식점",
+      "subcategory": "피자",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 448-42",
       "lat": 36.623283,
@@ -7533,12 +7995,17 @@
       "id": "restaurant_000276",
       "name": "순남시래기",
       "category": "한식",
+      "subcategory": "백반,가정식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 사직대로 160",
       "lat": 36.6347678,
       "lng": 127.4652914,
       "naverUrl": "https://map.naver.com/p/search/%EC%88%9C%EB%82%A8%EC%8B%9C%EB%9E%98%EA%B8%B0",
       "transactions": [
+        {
+          "date": "2025-06-05",
+          "amount": 65000
+        },
         {
           "date": "2025-07-09",
           "amount": 65000
@@ -7557,6 +8024,7 @@
       "id": "restaurant_000277",
       "name": "순살치킨",
       "category": "분식",
+      "subcategory": "떡볶이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 증안로22번길 33 1층 신광국물떡볶이",
       "lat": 36.6350591,
@@ -7573,6 +8041,7 @@
       "id": "restaurant_000278",
       "name": "슈퍼막회",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명12로 52 1층 101호",
       "lat": 36.6218479,
@@ -7589,12 +8058,29 @@
       "id": "restaurant_000279",
       "name": "스시88",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 161 103호",
       "lat": 36.6324555,
       "lng": 127.3275474,
       "naverUrl": "https://map.naver.com/p/search/%EC%8A%A4%EC%8B%9C88",
       "transactions": [
+        {
+          "date": "2025-06-11",
+          "amount": 90000
+        },
+        {
+          "date": "2025-06-11",
+          "amount": 90000
+        },
+        {
+          "date": "2025-06-13",
+          "amount": 105000
+        },
+        {
+          "date": "2025-06-13",
+          "amount": 105000
+        },
         {
           "date": "2025-07-28",
           "amount": 80500
@@ -7749,6 +8235,7 @@
       "id": "restaurant_000281",
       "name": "스시명월",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 두꺼비로20번길 41 1층 스시명월",
       "lat": 36.610379,
@@ -7765,12 +8252,25 @@
       "id": "restaurant_000282",
       "name": "스타벅스",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 222",
       "lat": 36.6298699,
       "lng": 127.3332929,
       "naverUrl": "https://map.naver.com/p/search/%EC%8A%A4%ED%83%80%EB%B2%85%EC%8A%A4",
       "transactions": [
+        {
+          "date": "2025-06-04",
+          "amount": 32400
+        },
+        {
+          "date": "2025-06-05",
+          "amount": 30500
+        },
+        {
+          "date": "2025-06-16",
+          "amount": 50600
+        },
         {
           "date": "2025-07-09",
           "amount": 30500
@@ -7853,6 +8353,7 @@
       "id": "restaurant_000283",
       "name": "스타벅스오송바이오산업단지점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 159 오송생명로 159",
       "lat": 36.6326194,
@@ -7881,6 +8382,7 @@
       "id": "restaurant_000284",
       "name": "스타벅스 오송파라곤점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 136 오송생명7로 136 103호,104호",
       "lat": 36.6198235,
@@ -7897,6 +8399,7 @@
       "id": "restaurant_000285",
       "name": "스타벅스 청주강서점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강서로 121 (강서동)",
       "lat": 36.6253659,
@@ -7913,6 +8416,7 @@
       "id": "restaurant_000288",
       "name": "스타벅스 코리아",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "대전광역시 서구 둔산중로134번길 13 토요코인호텔 1층 (둔산동)",
       "lat": 36.3590591,
@@ -7937,6 +8441,7 @@
       "id": "restaurant_000289",
       "name": "시골애오송점",
       "category": "한식",
+      "subcategory": "낙지요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수길 37-15 1층 시골애",
       "lat": 36.626083,
@@ -7953,6 +8458,7 @@
       "id": "restaurant_000290",
       "name": "시월애케이크",
       "category": "카페,디저트",
+      "subcategory": "케이크전문",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 성화로 88 1층",
       "lat": 36.6132523,
@@ -7981,6 +8487,7 @@
       "id": "restaurant_000292",
       "name": "신선매운탕",
       "category": "한식",
+      "subcategory": "매운탕,해물탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 문의면 대청호반로 822 신선매운탕",
       "lat": 36.5155953,
@@ -7997,6 +8504,7 @@
       "id": "restaurant_000293",
       "name": "신의주찹쌀순대",
       "category": "한식",
+      "subcategory": "순대,순댓국",
       "kind": "restaurant",
       "address": "충청남도 공주시 매산동길 21-10",
       "lat": 36.4706315,
@@ -8013,12 +8521,33 @@
       "id": "restaurant_000295",
       "name": "신토불이교원대점",
       "category": "한식",
+      "subcategory": "오리요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 399 신토불이 교원대점",
       "lat": 36.6188431,
       "lng": 127.3564631,
       "naverUrl": "https://map.naver.com/p/search/%EC%8B%A0%ED%86%A0%EB%B6%88%EC%9D%B4%EA%B5%90%EC%9B%90%EB%8C%80%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-02",
+          "amount": 276000
+        },
+        {
+          "date": "2025-06-06",
+          "amount": 380000
+        },
+        {
+          "date": "2025-06-09",
+          "amount": 262000
+        },
+        {
+          "date": "2025-06-18",
+          "amount": 120000
+        },
+        {
+          "date": "2025-06-26",
+          "amount": 170000
+        },
         {
           "date": "2025-07-01",
           "amount": 112000
@@ -8581,6 +9110,7 @@
       "id": "restaurant_000296",
       "name": "주식회사 싶빵공장",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 풍산로 15 1층 1A-001-105호",
       "lat": 36.6262789,
@@ -8597,6 +9127,7 @@
       "id": "restaurant_000298",
       "name": "썬셋510",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 391-50 1층",
       "lat": 36.6175854,
@@ -8641,6 +9172,7 @@
       "id": "restaurant_000299",
       "name": "아다지아레",
       "category": "음식점",
+      "subcategory": "이탈리아음식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산3길 10-1 101호",
       "lat": 36.6229305,
@@ -8673,6 +9205,7 @@
       "id": "restaurant_000300",
       "name": "아도르",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 월탄2길 65-24 아도르 카페",
       "lat": 36.6111858,
@@ -8717,6 +9250,7 @@
       "id": "restaurant_000301",
       "name": "아람보쌈족발",
       "category": "한식",
+      "subcategory": "족발,보쌈",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 탑연1길 7-12 아람보쌈족발",
       "lat": 36.6224557,
@@ -8745,6 +9279,7 @@
       "id": "restaurant_000303",
       "name": "아람옻닭",
       "category": "한식",
+      "subcategory": "백숙,삼계탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송4길 15 1층",
       "lat": 36.6126112,
@@ -8829,6 +9364,7 @@
       "id": "restaurant_000304",
       "name": "아웃백 청주점",
       "category": "음식점",
+      "subcategory": "패밀리레스토랑",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 대농로 43 지웰시티몰 2층",
       "lat": 36.643064,
@@ -8865,6 +9401,7 @@
       "id": "restaurant_000305",
       "name": "아워해피플레이스",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 직지대로753번길 46 1층",
       "lat": 36.64619,
@@ -8897,6 +9434,7 @@
       "id": "restaurant_000307",
       "name": "아침면가",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "대전광역시 유성구 현충원로 291 1층 101호",
       "lat": 36.360801,
@@ -8913,6 +9451,7 @@
       "id": "restaurant_000308",
       "name": "애슐리",
       "category": "음식점",
+      "subcategory": "패밀리레스토랑",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로 1233 지하1층 델리BY애슐리 청주NC점",
       "lat": 36.6258892,
@@ -8929,6 +9468,7 @@
       "id": "restaurant_000309",
       "name": "애슐리퀸즈 NC청주점",
       "category": "음식점",
+      "subcategory": "패밀리레스토랑",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로 1233 NC청주점 7층 애슐리",
       "lat": 36.6260387,
@@ -8945,6 +9485,7 @@
       "id": "restaurant_000310",
       "name": "애여니의행복한쿠키",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 충대로14번길 1 애여니의행복한쿠키",
       "lat": 36.6340923,
@@ -8961,6 +9502,7 @@
       "id": "restaurant_000311",
       "name": "야채향",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 상당로 314 청주첨단문화산업단지",
       "lat": 36.6556659,
@@ -8977,6 +9519,7 @@
       "id": "restaurant_000312",
       "name": "엄마손한식뷔페",
       "category": "음식점",
+      "subcategory": "한식뷔페",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로 37 2층 엄마손한식부페",
       "lat": 36.634556,
@@ -8993,6 +9536,7 @@
       "id": "restaurant_000313",
       "name": "에브리앙",
       "category": "음식점",
+      "subcategory": "브런치",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 황탄리길 236 1층 에브리앙 브런치 카페",
       "lat": 36.605433,
@@ -9097,6 +9641,7 @@
       "id": "restaurant_000314",
       "name": "에이커",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 용평로113번길 47 1~3층",
       "lat": 36.6046282,
@@ -9113,6 +9658,7 @@
       "id": "restaurant_000315",
       "name": "에잇스타",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 만수길 4 1층",
       "lat": 36.6227842,
@@ -9141,6 +9687,7 @@
       "id": "restaurant_000316",
       "name": "에클로그",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 상당구 남일면 효덕길 26-84",
       "lat": 36.5825973,
@@ -9157,6 +9704,7 @@
       "id": "restaurant_000317",
       "name": "엘도라도",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 166 4층",
       "lat": 36.6323646,
@@ -9241,12 +9789,21 @@
       "id": "restaurant_000318",
       "name": "여기오송",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송1길 12 1층",
       "lat": 36.6096645,
       "lng": 127.3269361,
       "naverUrl": "https://map.naver.com/p/search/%EC%97%AC%EA%B8%B0%EC%98%A4%EC%86%A1",
       "transactions": [
+        {
+          "date": "2025-06-24",
+          "amount": 59800
+        },
+        {
+          "date": "2025-06-27",
+          "amount": 68700
+        },
         {
           "date": "2025-07-01",
           "amount": 37900
@@ -9309,6 +9866,7 @@
       "id": "restaurant_000319",
       "name": "여주가마솥",
       "category": "한식",
+      "subcategory": "곰탕,설렁탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 원마루로14번길 13",
       "lat": 36.609692,
@@ -9325,12 +9883,21 @@
       "id": "restaurant_000320",
       "name": "연화낙지",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 연제길 12",
       "lat": 36.6254649,
       "lng": 127.3251002,
       "naverUrl": "https://map.naver.com/p/search/%EC%97%B0%ED%99%94%EB%82%99%EC%A7%80",
       "transactions": [
+        {
+          "date": "2025-06-10",
+          "amount": 117000
+        },
+        {
+          "date": "2025-06-11",
+          "amount": 290000
+        },
         {
           "date": "2025-07-31",
           "amount": 128000
@@ -9397,6 +9964,7 @@
       "id": "restaurant_000321",
       "name": "연화한우",
       "category": "육류,고기요리",
+      "subcategory": "정육식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송2길 4 연화한우",
       "lat": 36.6111014,
@@ -9413,6 +9981,7 @@
       "id": "restaurant_000322",
       "name": "㈜예담",
       "category": "음식점",
+      "subcategory": "한식뷔페",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 황탄리길 220 1층 102호",
       "lat": 36.6039721,
@@ -9429,6 +9998,7 @@
       "id": "restaurant_000323",
       "name": "예원참치",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "세종특별자치시 나성북1로 12",
       "lat": 36.491114,
@@ -9449,6 +10019,7 @@
       "id": "restaurant_000325",
       "name": "옛날 솥뚜껑 생 삼겹살",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 260",
       "lat": 36.607344,
@@ -9473,6 +10044,7 @@
       "id": "restaurant_000326",
       "name": "오늘웃소",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 보듬3로 8-23 까사누보 1층 111, 112호",
       "lat": 36.514375,
@@ -9489,6 +10061,7 @@
       "id": "restaurant_000327",
       "name": "오늘의커피",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 서부로 346 1층",
       "lat": 36.5865589,
@@ -9509,6 +10082,7 @@
       "id": "restaurant_000328",
       "name": "오드룬",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "대전광역시 유성구 온천동로 51 1층 OUD LUNE 오드 룬",
       "lat": 36.3558309,
@@ -9533,6 +10107,7 @@
       "id": "restaurant_000329",
       "name": "오복누룽지삼계탕",
       "category": "한식",
+      "subcategory": "백숙,삼계탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 상월곡길 61",
       "lat": 36.6186107,
@@ -9597,12 +10172,17 @@
       "id": "restaurant_000332",
       "name": "오봉집오송점",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명12로 46 1층",
       "lat": 36.6215094,
       "lng": 127.3191009,
       "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EB%B4%89%EC%A7%91%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-04",
+          "amount": 252000
+        },
         {
           "date": "2025-07-15",
           "amount": 290000
@@ -9617,6 +10197,7 @@
       "id": "restaurant_000333",
       "name": "오사이초밥",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 24-12 101호",
       "lat": 36.6195916,
@@ -9641,6 +10222,7 @@
       "id": "restaurant_000337",
       "name": "오송조개구이",
       "category": "한식",
+      "subcategory": "조개요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명13로 25 1층",
       "lat": 36.6220352,
@@ -9657,6 +10239,7 @@
       "id": "restaurant_000339",
       "name": "오송한우명가",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송가락로 255-12",
       "lat": 36.6296085,
@@ -9705,6 +10288,7 @@
       "id": "restaurant_000340",
       "name": "오후네시",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "세종특별자치시 호려울로 29 114호 커피나후 (공영주차장앞)",
       "lat": 36.4777689,
@@ -9777,6 +10361,7 @@
       "id": "restaurant_000342",
       "name": "옥된장 세종어진점",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 한누리대로 499 105호, 105-1호, 106호",
       "lat": 36.5082069,
@@ -9793,6 +10378,7 @@
       "id": "restaurant_000343",
       "name": "옥산춘천닭갈비막국수",
       "category": "한식",
+      "subcategory": "닭갈비",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산1길 20-2 1층 101호",
       "lat": 36.6196796,
@@ -9809,6 +10395,7 @@
       "id": "restaurant_000344",
       "name": "온스키친",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 도움8로 91 3층",
       "lat": 36.5041942,
@@ -9825,6 +10412,7 @@
       "id": "restaurant_000345",
       "name": "온어스",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 서현서로 5",
       "lat": 36.6184366,
@@ -9841,6 +10429,7 @@
       "id": "restaurant_000347",
       "name": "온정+(플러스)",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 흥덕구 오송읍 연제만수길 22 1층 102호",
       "lat": 36.6259074,
@@ -9889,6 +10478,7 @@
       "id": "restaurant_000349",
       "name": "옹기묵방",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 보듬3로 8-29 1층 102-2호,103호",
       "lat": 36.5151503,
@@ -9909,6 +10499,7 @@
       "id": "restaurant_000350",
       "name": "와우담",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 155 1층, 2층",
       "lat": 36.6243969,
@@ -9929,6 +10520,7 @@
       "id": "restaurant_000351",
       "name": "와플대학",
       "category": "카페,디저트",
+      "subcategory": "와플",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 183-3",
       "lat": 36.6304225,
@@ -9949,6 +10541,7 @@
       "id": "restaurant_000352",
       "name": "완도횟집",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 오창읍 과학산업5로 108-5 1층",
       "lat": 36.7082158,
@@ -9965,6 +10558,7 @@
       "id": "restaurant_000353",
       "name": "완행열차",
       "category": "술집",
+      "subcategory": "맥주,호프",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 262",
       "lat": 36.6077194,
@@ -9981,6 +10575,7 @@
       "id": "restaurant_000354",
       "name": "왓더버거",
       "category": "음식점",
+      "subcategory": "양식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 176 1층",
       "lat": 36.6223408,
@@ -10013,6 +10608,7 @@
       "id": "restaurant_000355",
       "name": "왕천파닭",
       "category": "음식점",
+      "subcategory": "치킨,닭강정",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 396-10",
       "lat": 36.6175373,
@@ -10093,6 +10689,7 @@
       "id": "restaurant_000357",
       "name": "욘더",
       "category": "음식점",
+      "subcategory": "프랑스음식",
       "kind": "restaurant",
       "address": "대전광역시 유성구 대학로 233 1층",
       "lat": 36.3626579,
@@ -10109,12 +10706,17 @@
       "id": "restaurant_000358",
       "name": "우림칼국수",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 쌍청2길 5",
       "lat": 36.6403295,
       "lng": 127.3465033,
       "naverUrl": "https://map.naver.com/p/search/%EC%9A%B0%EB%A6%BC%EC%B9%BC%EA%B5%AD%EC%88%98",
       "transactions": [
+        {
+          "date": "2025-06-28",
+          "amount": 297000
+        },
         {
           "date": "2026-01-09",
           "amount": 105000
@@ -10133,6 +10735,7 @@
       "id": "restaurant_000360",
       "name": "우별당오송점",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산1길 25-10 1층 101호",
       "lat": 36.620651,
@@ -10165,12 +10768,17 @@
       "id": "restaurant_000361",
       "name": "우보설렁탕",
       "category": "한식",
+      "subcategory": "곰탕,설렁탕",
       "kind": "restaurant",
       "address": "세종특별자치시 조치원읍 문화로 24 우보설렁탕 본점",
       "lat": 36.6037755,
       "lng": 127.3010768,
       "naverUrl": "https://map.naver.com/p/search/%EC%9A%B0%EB%B3%B4%EC%84%A4%EB%A0%81%ED%83%95",
       "transactions": [
+        {
+          "date": "2025-06-19",
+          "amount": 122000
+        },
         {
           "date": "2025-07-22",
           "amount": 120000
@@ -10201,6 +10809,7 @@
       "id": "restaurant_000363",
       "name": "우즈(OOWZZ)",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 다락탑연길 232 상가",
       "lat": 36.6130672,
@@ -10221,6 +10830,7 @@
       "id": "restaurant_000364",
       "name": "운탄",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 집현동로 77 주1동 1층 124, 125호",
       "lat": 36.4907649,
@@ -10237,6 +10847,7 @@
       "id": "restaurant_000365",
       "name": "유람",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "세종특별자치시 조치원읍 신안새동네길 25 유람 커피로스터스 세종점",
       "lat": 36.6141897,
@@ -10253,6 +10864,7 @@
       "id": "restaurant_000366",
       "name": "유로코피자강내오송점",
       "category": "양식",
+      "subcategory": "피자",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월곡길 21 1층 101호 유로코피자&프릭스버거",
       "lat": 36.6223034,
@@ -10273,6 +10885,7 @@
       "id": "restaurant_000367",
       "name": "유미네 횟집",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 연제길 3-21 이오타운1층",
       "lat": 36.6245946,
@@ -10297,6 +10910,7 @@
       "id": "restaurant_000368",
       "name": "유성푸르지오 파리바게트",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "대전광역시 유성구 관평2로 56 도모플라자 1층",
       "lat": 36.4220796,
@@ -10313,6 +10927,7 @@
       "id": "restaurant_000369",
       "name": "유씨네본가누룽지삼계탕",
       "category": "한식",
+      "subcategory": "백숙,삼계탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 직지대로 95 1층",
       "lat": 36.6468069,
@@ -10337,6 +10952,7 @@
       "id": "restaurant_000370",
       "name": "윤짬뽕",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "대전광역시 서구 계룡로553번안길 23 1층",
       "lat": 36.3460386,
@@ -10353,6 +10969,7 @@
       "id": "restaurant_000371",
       "name": "읍천리",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 168 1층 103호",
       "lat": 36.6217441,
@@ -10369,6 +10986,7 @@
       "id": "restaurant_000372",
       "name": "이관복명장냉면",
       "category": "한식",
+      "subcategory": "냉면",
       "kind": "restaurant",
       "address": "대전광역시 유성구 온천동로65번길 51 이관복명장냉면",
       "lat": 36.3571792,
@@ -10389,6 +11007,7 @@
       "id": "restaurant_000373",
       "name": "이디야",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 183-3 1층 이디야커피",
       "lat": 36.6302744,
@@ -10409,6 +11028,7 @@
       "id": "restaurant_000375",
       "name": "이디야커피 청주강내점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 71 1층 1호",
       "lat": 36.6232023,
@@ -10521,6 +11141,7 @@
       "id": "restaurant_000376",
       "name": "이밥세종",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 정부2청사로 10 에스엠타워 2층 204호",
       "lat": 36.482751,
@@ -10537,6 +11158,7 @@
       "id": "restaurant_000377",
       "name": "이브",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 118 5동 1층 104호",
       "lat": 36.6190251,
@@ -10573,6 +11195,7 @@
       "id": "restaurant_000378",
       "name": "이온커피",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 천석로 2 1층 이온커피",
       "lat": 36.6356386,
@@ -10597,6 +11220,7 @@
       "id": "restaurant_000379",
       "name": "이유케이크",
       "category": "카페,디저트",
+      "subcategory": "케이크전문",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 1순환로674번길 18 3층 노랑문",
       "lat": 36.6331506,
@@ -10613,6 +11237,7 @@
       "id": "restaurant_000380",
       "name": "이자카야탕",
       "category": "술집",
+      "subcategory": "이자카야",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 45-3 1층 이자카야 탕 오송본점",
       "lat": 36.62187,
@@ -10657,6 +11282,7 @@
       "id": "restaurant_000381",
       "name": "이정우의 낭만제육치킨오븐",
       "category": "분식",
+      "subcategory": "종합분식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 4 이정우의 낭만호프 제육 치킨 오븐구이",
       "lat": 36.6214436,
@@ -10685,6 +11311,7 @@
       "id": "restaurant_000382",
       "name": "이차돌 청주지웰점",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 대농로 33",
       "lat": 36.6422496,
@@ -10701,6 +11328,7 @@
       "id": "restaurant_000383",
       "name": "인천어시장",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수1길 15",
       "lat": 36.6239105,
@@ -10753,6 +11381,7 @@
       "id": "restaurant_000384",
       "name": "일등석갈비",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "대전광역시 서구 둔산대로117번길 17",
       "lat": 36.365774,
@@ -10769,6 +11398,7 @@
       "id": "restaurant_000385",
       "name": "입안에 바다",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 연제길 15",
       "lat": 36.6251303,
@@ -10785,12 +11415,33 @@
       "id": "restaurant_000387",
       "name": "잇플레이스720",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 560 1층 잇플레이스720",
       "lat": 36.6239141,
       "lng": 127.3620866,
       "naverUrl": "https://map.naver.com/p/search/%EC%9E%87%ED%94%8C%EB%A0%88%EC%9D%B4%EC%8A%A4720",
       "transactions": [
+        {
+          "date": "2025-06-02",
+          "amount": 100000
+        },
+        {
+          "date": "2025-06-12",
+          "amount": 143800
+        },
+        {
+          "date": "2025-06-18",
+          "amount": 91400
+        },
+        {
+          "date": "2025-06-18",
+          "amount": 177600
+        },
+        {
+          "date": "2025-06-27",
+          "amount": 284200
+        },
         {
           "date": "2025-08-04",
           "amount": 173600
@@ -11101,6 +11752,7 @@
       "id": "restaurant_000388",
       "name": "자성화맛집코다리네",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 서부로1168번길 31-23",
       "lat": 36.6087054,
@@ -11117,6 +11769,7 @@
       "id": "restaurant_000390",
       "name": "장가보쌈족발",
       "category": "한식",
+      "subcategory": "족발,보쌈",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 169",
       "lat": 36.6321676,
@@ -11137,6 +11790,7 @@
       "id": "restaurant_000391",
       "name": "장어마을",
       "category": "한식",
+      "subcategory": "장어,먹장어요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 영운천로145번길 3 1층",
       "lat": 36.6222213,
@@ -11153,6 +11807,7 @@
       "id": "restaurant_000392",
       "name": "저림숙성그릴",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 보듬3로 8-27 새한빌딩 2층",
       "lat": 36.5147541,
@@ -11169,6 +11824,7 @@
       "id": "restaurant_000393",
       "name": "전라도식당",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청남도 공주시 반포면 가마봉길 7 1, 2층",
       "lat": 36.4008341,
@@ -11185,6 +11841,7 @@
       "id": "restaurant_000394",
       "name": "전주복집",
       "category": "해물,생선요리",
+      "subcategory": "복어요리",
       "kind": "restaurant",
       "address": "대전광역시 유성구 온천로101번길 10 경재빌딩 2층",
       "lat": 36.3548584,
@@ -11221,6 +11878,7 @@
       "id": "restaurant_000395",
       "name": "전주집",
       "category": "한식",
+      "subcategory": "국밥",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강서로 85",
       "lat": 36.6237201,
@@ -11237,6 +11895,7 @@
       "id": "restaurant_000396",
       "name": "점선에스프레소바",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 가로수로1164번길 41-48 경성하늘샵 1층 점선 에스프레소바",
       "lat": 36.6256891,
@@ -11253,6 +11912,7 @@
       "id": "restaurant_000397",
       "name": "정원",
       "category": "한식",
+      "subcategory": "아귀찜,해물찜",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 복대로175번길 9-1 1층",
       "lat": 36.632112,
@@ -11269,6 +11929,7 @@
       "id": "restaurant_000398",
       "name": "제주도새기찌개",
       "category": "한식",
+      "subcategory": "찌개,전골",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 432",
       "lat": 36.6208938,
@@ -11289,6 +11950,7 @@
       "id": "restaurant_000400",
       "name": "조가네갑오징어",
       "category": "해물,생선요리",
+      "subcategory": "오징어요리",
       "kind": "restaurant",
       "address": "세종특별자치시 아름서1길 13-9 205호",
       "lat": 36.5116758,
@@ -11317,12 +11979,17 @@
       "id": "restaurant_000403",
       "name": "주문진물회",
       "category": "한식",
+      "subcategory": "생선구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수길 20",
       "lat": 36.6238898,
       "lng": 127.3273156,
       "naverUrl": "https://map.naver.com/p/search/%EC%A3%BC%EB%AC%B8%EC%A7%84%EB%AC%BC%ED%9A%8C",
       "transactions": [
+        {
+          "date": "2025-06-25",
+          "amount": 144000
+        },
         {
           "date": "2025-11-04",
           "amount": 156000
@@ -11353,6 +12020,7 @@
       "id": "restaurant_000406",
       "name": "지원이네",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 풍년로180번길 15 1층 지원이네삼겹살",
       "lat": 36.6285494,
@@ -11369,6 +12037,7 @@
       "id": "restaurant_000407",
       "name": "차이 797",
       "category": "음식점",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 직지대로 308 현대백화점 6층",
       "lat": 36.6448284,
@@ -11385,6 +12054,7 @@
       "id": "restaurant_000408",
       "name": "참토스트오송점",
       "category": "음식점",
+      "subcategory": "분식",
       "kind": "restaurant",
       "address": "세종특별자치시 조치원읍 도원로 16 자이아파트 상가 301동 105호",
       "lat": 36.5901176,
@@ -11401,6 +12071,7 @@
       "id": "restaurant_000409",
       "name": "창억떡집",
       "category": "전통식품",
+      "subcategory": "떡,한과",
       "kind": "other",
       "address": "충청남도 공주시 번영1로 156 1층",
       "lat": 36.4742515,
@@ -11417,6 +12088,7 @@
       "id": "restaurant_000410",
       "name": "청결떡방앗간",
       "category": "전통식품",
+      "subcategory": "떡,한과",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 복대로209번길 26 청결떡방앗간",
       "lat": 36.635373,
@@ -11433,6 +12105,7 @@
       "id": "restaurant_000411",
       "name": "청년피자 오송강내점",
       "category": "음식점",
+      "subcategory": "양식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수1길 24-13 1층 일부호",
       "lat": 36.6235093,
@@ -11449,6 +12122,7 @@
       "id": "restaurant_000412",
       "name": "청도회수산",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 율봉로56번길 11 청도회수산",
       "lat": 36.6640731,
@@ -11465,6 +12139,7 @@
       "id": "restaurant_000413",
       "name": "청연",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 178 H호텔 3층",
       "lat": 36.631383,
@@ -11537,12 +12212,17 @@
       "id": "restaurant_000414",
       "name": "청와삼대",
       "category": "한식",
+      "subcategory": "족발,보쌈",
       "kind": "restaurant",
       "address": "세종특별자치시 금남면 금남구즉로 194",
       "lat": 36.477415,
       "lng": 127.2985061,
       "naverUrl": "https://map.naver.com/p/search/%EC%B2%AD%EC%99%80%EC%82%BC%EB%8C%80",
       "transactions": [
+        {
+          "date": "2025-06-05",
+          "amount": 66000
+        },
         {
           "date": "2025-09-09",
           "amount": 1425000
@@ -11553,12 +12233,29 @@
       "id": "restaurant_000416",
       "name": "청주강내 파리바게트",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 534 1층",
       "lat": 36.6235472,
       "lng": 127.3594046,
       "naverUrl": "https://map.naver.com/p/search/%EC%B2%AD%EC%A3%BC%EA%B0%95%EB%82%B4%20%ED%8C%8C%EB%A6%AC%EB%B0%94%EA%B2%8C%ED%8A%B8",
       "transactions": [
+        {
+          "date": "2025-06-10",
+          "amount": 68000
+        },
+        {
+          "date": "2025-06-11",
+          "amount": 89000
+        },
+        {
+          "date": "2025-06-11",
+          "amount": 176000
+        },
+        {
+          "date": "2025-06-23",
+          "amount": 2235000
+        },
         {
           "date": "2025-07-09",
           "amount": 89200
@@ -11729,12 +12426,17 @@
       "id": "restaurant_000417",
       "name": "청주경복궁",
       "category": "음식점",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로 1250 3층",
       "lat": 36.624609,
       "lng": 127.430767,
       "naverUrl": "https://map.naver.com/p/search/%EC%B2%AD%EC%A3%BC%EA%B2%BD%EB%B3%B5%EA%B6%81",
       "transactions": [
+        {
+          "date": "2025-06-12",
+          "amount": 202000
+        },
         {
           "date": "2025-07-10",
           "amount": 300000
@@ -11761,6 +12463,7 @@
       "id": "restaurant_000418",
       "name": "청주국제공항플레이보6",
       "category": "음식점",
+      "subcategory": "푸드코트",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 내수읍 오창대로 980 , 청주국제공항 2층",
       "lat": 36.7220988,
@@ -11781,6 +12484,7 @@
       "id": "restaurant_000419",
       "name": "㈜청주군산활어",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 덕암로30번길 38 군산활어도매시장",
       "lat": 36.6513231,
@@ -11797,6 +12501,7 @@
       "id": "restaurant_000420",
       "name": "청주담한상",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로109번길 44 1층",
       "lat": 36.6409936,
@@ -11813,6 +12518,7 @@
       "id": "restaurant_000421",
       "name": "청주숯불갈비",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 422",
       "lat": 36.6200904,
@@ -11845,6 +12551,7 @@
       "id": "restaurant_000422",
       "name": "청주우설화",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 1순환로 886",
       "lat": 36.6167718,
@@ -11861,6 +12568,7 @@
       "id": "restaurant_000424",
       "name": "청주한우",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로 1020 3동 2층",
       "lat": 36.6439294,
@@ -11881,6 +12589,7 @@
       "id": "restaurant_000425",
       "name": "청주황미방앗간",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 1순환로1480번길 11-12 황미방앗간",
       "lat": 36.6245412,
@@ -11897,6 +12606,7 @@
       "id": "restaurant_000426",
       "name": "청해랑",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 청남로1936번길 132 2층",
       "lat": 36.6056151,
@@ -11913,6 +12623,7 @@
       "id": "restaurant_000427",
       "name": "초미락",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명12로 22 1층 102호",
       "lat": 36.6198044,
@@ -11933,6 +12644,7 @@
       "id": "restaurant_000428",
       "name": "촌골흑염소",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 오창읍 오창시내1길 10 1층",
       "lat": 36.738511,
@@ -11949,12 +12661,17 @@
       "id": "restaurant_000429",
       "name": "축제한정식",
       "category": "한식",
+      "subcategory": "한정식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 정중연제로 118-4",
       "lat": 36.6132666,
       "lng": 127.30268,
       "naverUrl": "https://map.naver.com/p/search/%EC%B6%95%EC%A0%9C%ED%95%9C%EC%A0%95%EC%8B%9D",
       "transactions": [
+        {
+          "date": "2025-06-17",
+          "amount": 180000
+        },
         {
           "date": "2025-11-12",
           "amount": 100000
@@ -11965,6 +12682,7 @@
       "id": "restaurant_000430",
       "name": "춘리마라탕",
       "category": "중식",
+      "subcategory": "마라탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 서현중로36번길 4",
       "lat": 36.6216415,
@@ -11981,6 +12699,7 @@
       "id": "restaurant_000431",
       "name": "춘하추동",
       "category": "한식",
+      "subcategory": "찌개,전골",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 419",
       "lat": 36.6198987,
@@ -12021,6 +12740,7 @@
       "id": "restaurant_000432",
       "name": "춘향고을남원추어탕",
       "category": "한식",
+      "subcategory": "추어탕",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 사인2길 9 1층 남원추어탕",
       "lat": 36.6286558,
@@ -12065,12 +12785,29 @@
       "id": "restaurant_000433",
       "name": "충돈",
       "category": "한식",
+      "subcategory": "돼지고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 443 1층",
       "lat": 36.6219016,
       "lng": 127.3578954,
       "naverUrl": "https://map.naver.com/p/search/%EC%B6%A9%EB%8F%88",
       "transactions": [
+        {
+          "date": "2025-06-02",
+          "amount": 60000
+        },
+        {
+          "date": "2025-06-10",
+          "amount": 90000
+        },
+        {
+          "date": "2025-06-18",
+          "amount": 160000
+        },
+        {
+          "date": "2025-06-30",
+          "amount": 380000
+        },
         {
           "date": "2025-07-02",
           "amount": 216000
@@ -12213,12 +12950,33 @@
       "id": "restaurant_000436",
       "name": "충청한우대가",
       "category": "육류,고기요리",
+      "subcategory": "정육식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 48 1층",
       "lat": 36.6205042,
       "lng": 127.363958,
       "naverUrl": "https://map.naver.com/p/search/%EC%B6%A9%EC%B2%AD%ED%95%9C%EC%9A%B0%EB%8C%80%EA%B0%80",
       "transactions": [
+        {
+          "date": "2025-06-04",
+          "amount": 480000
+        },
+        {
+          "date": "2025-06-11",
+          "amount": 108000
+        },
+        {
+          "date": "2025-06-13",
+          "amount": 165000
+        },
+        {
+          "date": "2025-06-25",
+          "amount": 325000
+        },
+        {
+          "date": "2025-06-27",
+          "amount": 336000
+        },
         {
           "date": "2025-07-04",
           "amount": 267000
@@ -12445,6 +13203,7 @@
       "id": "restaurant_000437",
       "name": "치킨마루",
       "category": "음식점",
+      "subcategory": "치킨,닭강정",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 351 102호",
       "lat": 36.6188169,
@@ -12461,12 +13220,17 @@
       "id": "restaurant_000438",
       "name": "카페 540",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 연제1길 24-35 112호, 113호, 114호",
       "lat": 36.6264649,
       "lng": 127.3225712,
       "naverUrl": "https://map.naver.com/p/search/%EC%B9%B4%ED%8E%98%20540",
       "transactions": [
+        {
+          "date": "2025-06-08",
+          "amount": 69600
+        },
         {
           "date": "2025-07-31",
           "amount": 19000
@@ -12521,12 +13285,17 @@
       "id": "restaurant_000439",
       "name": "카페공감",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 월탄리",
       "lat": 36.6088258,
       "lng": 127.3586562,
       "naverUrl": "https://map.naver.com/p/search/%EC%B9%B4%ED%8E%98%EA%B3%B5%EA%B0%90",
       "transactions": [
+        {
+          "date": "2025-06-04",
+          "amount": 35000
+        },
         {
           "date": "2025-12-03",
           "amount": 42000
@@ -12549,12 +13318,21 @@
       "id": "restaurant_000440",
       "name": "카페공감3",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 250",
       "lat": 36.6109883,
       "lng": 127.3588709,
       "naverUrl": "https://map.naver.com/p/search/%EC%B9%B4%ED%8E%98%EA%B3%B5%EA%B0%903",
       "transactions": [
+        {
+          "date": "2025-06-02",
+          "amount": 100000
+        },
+        {
+          "date": "2025-06-04",
+          "amount": 77100
+        },
         {
           "date": "2025-07-02",
           "amount": 26500
@@ -12849,6 +13627,7 @@
       "id": "restaurant_000441",
       "name": "카페그니",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송가락로 351 카페그니",
       "lat": 36.6360276,
@@ -12873,6 +13652,7 @@
       "id": "restaurant_000442",
       "name": "까페까망",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 고락로40번길 25",
       "lat": 36.6430688,
@@ -12913,6 +13693,7 @@
       "id": "restaurant_000443",
       "name": "카페 네모",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 만수길 17 1층 네모",
       "lat": 36.6238981,
@@ -12941,6 +13722,7 @@
       "id": "restaurant_000444",
       "name": "카페드림충청대학교",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 월곡길 38 충청대학교 D동",
       "lat": 36.6202565,
@@ -12957,6 +13739,7 @@
       "id": "restaurant_000445",
       "name": "카페루메",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 남이면 대림로 377 4층 카페루메",
       "lat": 36.6041526,
@@ -12973,6 +13756,7 @@
       "id": "restaurant_000446",
       "name": "까페시실리",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 480",
       "lat": 36.622409,
@@ -13045,6 +13829,7 @@
       "id": "restaurant_000447",
       "name": "카페에바나나",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산3길 26-12 1층",
       "lat": 36.6232197,
@@ -13077,6 +13862,7 @@
       "id": "restaurant_000449",
       "name": "카페정다운 샌드위치",
       "category": "양식",
+      "subcategory": "샌드위치",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 사직대로 107 1층 카페정다운 샌드위치",
       "lat": 36.6350702,
@@ -13101,6 +13887,7 @@
       "id": "restaurant_000450",
       "name": "카페 행보",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "세종특별자치시 시청대로 127 강남프라자 1층 111호(행보)",
       "lat": 36.4796928,
@@ -13117,6 +13904,7 @@
       "id": "restaurant_000451",
       "name": "커밀커피",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 454-1 1층",
       "lat": 36.6228662,
@@ -13133,6 +13921,7 @@
       "id": "restaurant_000452",
       "name": "커즌베이크",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 송화로108번길 41 103호",
       "lat": 36.6631984,
@@ -13149,6 +13938,7 @@
       "id": "restaurant_000455",
       "name": "컬처푸드",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 오창읍 과학산업3로 105",
       "lat": 36.7001045,
@@ -13165,6 +13955,7 @@
       "id": "restaurant_000456",
       "name": "컬쳐푸드",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명2로 187 구내",
       "lat": 36.6385903,
@@ -13181,6 +13972,7 @@
       "id": "restaurant_000457",
       "name": "컵오브커피오송연제리점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 연제길 3",
       "lat": 36.6258583,
@@ -13197,6 +13989,7 @@
       "id": "restaurant_000458",
       "name": "코다리밥상",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 구룡산로 118",
       "lat": 36.6144063,
@@ -13213,6 +14006,7 @@
       "id": "restaurant_000459",
       "name": "코이",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 118 근린생활시설 5동 1층 103호",
       "lat": 36.6190092,
@@ -13229,6 +14023,7 @@
       "id": "restaurant_000461",
       "name": "코코호도오송점",
       "category": "카페,디저트",
+      "subcategory": "호두과자",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 19-6 101호",
       "lat": 36.6204241,
@@ -13253,6 +14048,7 @@
       "id": "restaurant_000463",
       "name": "퀴즈노스충북대점",
       "category": "음식점",
+      "subcategory": "샌드위치",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 충대로 1",
       "lat": 36.6277556,
@@ -13269,6 +14065,7 @@
       "id": "restaurant_000464",
       "name": "타볼리타",
       "category": "음식점",
+      "subcategory": "이탈리아음식",
       "kind": "restaurant",
       "address": "대전광역시 유성구 엑스포로97번길 40 골프존사옥 2층",
       "lat": 36.3761776,
@@ -13285,6 +14082,7 @@
       "id": "restaurant_000465",
       "name": "타임스테이(TIMESTAY)",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 서부로1168번길 31-35",
       "lat": 36.6086927,
@@ -13301,6 +14099,7 @@
       "id": "restaurant_000466",
       "name": "탐라화포집",
       "category": "한식",
+      "subcategory": "돼지고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 133 1층 탐라화포집",
       "lat": 36.6261444,
@@ -13321,12 +14120,17 @@
       "id": "restaurant_000467",
       "name": "탑브릭스",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 창신로22번길 7 삼우건설 1층",
       "lat": 36.6328346,
       "lng": 127.4649741,
       "naverUrl": "https://map.naver.com/p/search/%ED%83%91%EB%B8%8C%EB%A6%AD%EC%8A%A4",
       "transactions": [
+        {
+          "date": "2025-06-04",
+          "amount": 67500
+        },
         {
           "date": "2025-07-02",
           "amount": 78000
@@ -13341,12 +14145,17 @@
       "id": "restaurant_000468",
       "name": "탑연골",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 탑연길 3-6",
       "lat": 36.6210979,
       "lng": 127.3600487,
       "naverUrl": "https://map.naver.com/p/search/%ED%83%91%EC%97%B0%EA%B3%A8",
       "transactions": [
+        {
+          "date": "2025-06-20",
+          "amount": 200000
+        },
         {
           "date": "2025-09-02",
           "amount": 701000
@@ -13389,6 +14198,7 @@
       "id": "restaurant_000469",
       "name": "태평한우",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "대전광역시 유성구 반석동로40번길 16 2층 태평한우",
       "lat": 36.3910093,
@@ -13409,6 +14219,7 @@
       "id": "restaurant_000470",
       "name": "택이네조개전골",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 중고개로141번길 13-18 1층 택이네조개전골",
       "lat": 36.6156509,
@@ -13425,6 +14236,7 @@
       "id": "restaurant_000471",
       "name": "테라로사",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 대농로 47-1 지웰시티몰2차 1층 테라로사",
       "lat": 36.6433397,
@@ -13445,6 +14257,7 @@
       "id": "restaurant_000472",
       "name": "토속김치찌개",
       "category": "한식",
+      "subcategory": "찌개,전골",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수길 27-1 토속김치찌개",
       "lat": 36.6244459,
@@ -13477,6 +14290,7 @@
       "id": "restaurant_000473",
       "name": "토속순대국밥",
       "category": "한식",
+      "subcategory": "국밥",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명13로 3 1,2층",
       "lat": 36.6205923,
@@ -13493,6 +14307,7 @@
       "id": "restaurant_000474",
       "name": "토프레소 청원 오송점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 65-33 새마을금고 BD 103호",
       "lat": 36.6308202,
@@ -13509,6 +14324,7 @@
       "id": "restaurant_000475",
       "name": "토프레소 청주비하점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 비하로 27",
       "lat": 36.6297173,
@@ -13525,6 +14341,7 @@
       "id": "restaurant_000476",
       "name": "투썸플레이스",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 서현로 90 투썸플레이스 가경파크점",
       "lat": 36.61878,
@@ -13569,6 +14386,7 @@
       "id": "restaurant_000477",
       "name": "투썸플레이스 대전유성온천점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "대전광역시 유성구 온천로 84 1층",
       "lat": 36.3544889,
@@ -13613,6 +14431,7 @@
       "id": "restaurant_000479",
       "name": "티플라운지&원스파운드",
       "category": "카페,디저트",
+      "subcategory": "차",
       "kind": "cafe",
       "address": "충청북도 청주시 청원구 오창읍 양청2길 28 1층",
       "lat": 36.7194979,
@@ -13677,6 +14496,7 @@
       "id": "restaurant_000480",
       "name": "파니노키친",
       "category": "양식",
+      "subcategory": "샌드위치",
       "kind": "restaurant",
       "address": "대전광역시 서구 계룡로319번길 10 1층 101호",
       "lat": 36.3551294,
@@ -13693,12 +14513,17 @@
       "id": "restaurant_000481",
       "name": "파동 쭈꾸미",
       "category": "한식",
+      "subcategory": "주꾸미요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 435 1층 (강내면사무소 입구)",
       "lat": 36.6211509,
       "lng": 127.3582062,
       "naverUrl": "https://map.naver.com/p/search/%ED%8C%8C%EB%8F%99%20%EC%AD%88%EA%BE%B8%EB%AF%B8",
       "transactions": [
+        {
+          "date": "2025-06-20",
+          "amount": 241000
+        },
         {
           "date": "2025-08-22",
           "amount": 492500
@@ -13713,6 +14538,7 @@
       "id": "restaurant_000482",
       "name": "파리바게뜨",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 대농로 43 신영지웰시티 101, 102호",
       "lat": 36.6437885,
@@ -13785,6 +14611,7 @@
       "id": "restaurant_000483",
       "name": "파리바게뜨 오송파라곤점",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 146 1동 101, 102호",
       "lat": 36.6204509,
@@ -13805,6 +14632,7 @@
       "id": "restaurant_000484",
       "name": "파리바게뜨 청원오송점",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 186 파리바게뜨",
       "lat": 36.6310695,
@@ -13821,6 +14649,7 @@
       "id": "restaurant_000488",
       "name": "(주)파리크라상",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "대전광역시 서구 둔산로 26 1층 102호",
       "lat": 36.3517338,
@@ -13841,6 +14670,7 @@
       "id": "restaurant_000490",
       "name": "파파존스 오송조치원점",
       "category": "음식점",
+      "subcategory": "피자",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명12로 31 1층 일부호",
       "lat": 36.6204549,
@@ -13877,6 +14707,7 @@
       "id": "restaurant_000491",
       "name": "퍼즈",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 267-4 101호",
       "lat": 36.6235527,
@@ -13893,12 +14724,17 @@
       "id": "restaurant_000492",
       "name": "편편집청주오송점",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명3로 65-15 1층 104, 105-1, 105-2, 105-3, 106, 107호",
       "lat": 36.6317045,
       "lng": 127.3281634,
       "naverUrl": "https://map.naver.com/p/search/%ED%8E%B8%ED%8E%B8%EC%A7%91%EC%B2%AD%EC%A3%BC%EC%98%A4%EC%86%A1%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-19",
+          "amount": 300000
+        },
         {
           "date": "2026-01-07",
           "amount": 197100
@@ -13917,12 +14753,17 @@
       "id": "restaurant_000493",
       "name": "평리작은커피",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "세종특별자치시 조치원읍 문화로 16-1 1층",
       "lat": 36.6030038,
       "lng": 127.3010767,
       "naverUrl": "https://map.naver.com/p/search/%ED%8F%89%EB%A6%AC%EC%9E%91%EC%9D%80%EC%BB%A4%ED%94%BC",
       "transactions": [
+        {
+          "date": "2025-06-19",
+          "amount": 25000
+        },
         {
           "date": "2025-08-07",
           "amount": 19500
@@ -13949,6 +14790,7 @@
       "id": "restaurant_000494",
       "name": "평화로운집",
       "category": "술집",
+      "subcategory": "요리주점",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 서현동로 23 109호, 110호",
       "lat": 36.6239535,
@@ -13965,12 +14807,21 @@
       "id": "restaurant_000495",
       "name": "주식회사포이드캐롯",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 가포산로 39-18",
       "lat": 36.6200556,
       "lng": 127.4061624,
       "naverUrl": "https://map.naver.com/p/search/%EC%A3%BC%EC%8B%9D%ED%9A%8C%EC%82%AC%ED%8F%AC%EC%9D%B4%EB%93%9C%EC%BA%90%EB%A1%AF",
       "transactions": [
+        {
+          "date": "2025-06-10",
+          "amount": 67700
+        },
+        {
+          "date": "2025-06-13",
+          "amount": 76700
+        },
         {
           "date": "2025-09-23",
           "amount": 952000
@@ -14037,12 +14888,17 @@
       "id": "restaurant_000496",
       "name": "포크바이맨스그릴",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 166 2층",
       "lat": 36.6318975,
       "lng": 127.3274685,
       "naverUrl": "https://map.naver.com/p/search/%ED%8F%AC%ED%81%AC%EB%B0%94%EC%9D%B4%EB%A7%A8%EC%8A%A4%EA%B7%B8%EB%A6%B4",
       "transactions": [
+        {
+          "date": "2025-06-01",
+          "amount": 450000
+        },
         {
           "date": "2025-07-15",
           "amount": 320000
@@ -14073,6 +14929,7 @@
       "id": "restaurant_000497",
       "name": "포트캔커피 청주오송점",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명8로 175 1층 111호",
       "lat": 36.6190211,
@@ -14089,6 +14946,7 @@
       "id": "restaurant_000498",
       "name": "폴스마마",
       "category": "양식",
+      "subcategory": "샌드위치",
       "kind": "restaurant",
       "address": "세종특별자치시 갈매로 351 에비뉴힐 B동 2층 2112호",
       "lat": 36.4950288,
@@ -14113,6 +14971,7 @@
       "id": "restaurant_000499",
       "name": "푸드박스 오송점",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 흥덕구 오송읍 만수1길 11",
       "lat": 36.6236843,
@@ -14129,12 +14988,17 @@
       "id": "restaurant_000500",
       "name": "푸른산호초",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 377 101호",
       "lat": 36.6207885,
       "lng": 127.3236726,
       "naverUrl": "https://map.naver.com/p/search/%ED%91%B8%EB%A5%B8%EC%82%B0%ED%98%B8%EC%B4%88",
       "transactions": [
+        {
+          "date": "2025-06-11",
+          "amount": 149700
+        },
         {
           "date": "2025-07-16",
           "amount": 137700
@@ -14189,6 +15053,7 @@
       "id": "restaurant_000501",
       "name": "푸른솔떡공방",
       "category": "제조업",
+      "subcategory": "떡류제조",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 347 101호,푸른솔떡공방",
       "lat": 36.6185836,
@@ -14209,6 +15074,7 @@
       "id": "restaurant_000502",
       "name": "풍년칼국수",
       "category": "한식",
+      "subcategory": "칼국수,만두",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 556 탑연리158-14",
       "lat": 36.6238991,
@@ -14233,6 +15099,7 @@
       "id": "restaurant_000503",
       "name": "풍천일등장어",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명8로 231",
       "lat": 36.6222042,
@@ -14249,6 +15116,7 @@
       "id": "restaurant_000504",
       "name": "프랭크버거",
       "category": "음식점",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명8로 169 스타플릭스2차 103호",
       "lat": 36.618455,
@@ -14269,6 +15137,7 @@
       "id": "restaurant_000505",
       "name": "프레드피자",
       "category": "음식점",
+      "subcategory": "양식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 옥산면 가락길 32 1층 103호",
       "lat": 36.669492,
@@ -14285,6 +15154,7 @@
       "id": "restaurant_000506",
       "name": "프룻탱",
       "category": "카페,디저트",
+      "subcategory": "과일,주스전문점",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 봉명로142번길 43 1층, 프룻탱",
       "lat": 36.6372989,
@@ -14301,6 +15171,7 @@
       "id": "restaurant_000507",
       "name": "피자나라",
       "category": "음식점",
+      "subcategory": "피자",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명7로 190 1층 피자나라치킨공주",
       "lat": 36.6230705,
@@ -14317,6 +15188,7 @@
       "id": "restaurant_000508",
       "name": "피자마루",
       "category": "음식점",
+      "subcategory": "피자",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-6 106호",
       "lat": 36.6308541,
@@ -14337,6 +15209,7 @@
       "id": "restaurant_000509",
       "name": "하노이별 세종",
       "category": "음식점",
+      "subcategory": "베트남음식",
       "kind": "restaurant",
       "address": "세종특별자치시 한누리대로 411 KT&G 세종타워A 304호",
       "lat": 36.5011313,
@@ -14353,6 +15226,7 @@
       "id": "restaurant_000510",
       "name": "하노이별 오송점",
       "category": "음식점",
+      "subcategory": "베트남음식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 185 1층 102호",
       "lat": 36.6316309,
@@ -14377,6 +15251,7 @@
       "id": "restaurant_000511",
       "name": "하이퐁",
       "category": "음식점",
+      "subcategory": "베트남음식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명11로 36 201호,202호",
       "lat": 36.6182609,
@@ -14393,6 +15268,7 @@
       "id": "restaurant_000512",
       "name": "하하빵집",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 탑연월곡길 75-3 1동 101호",
       "lat": 36.6234749,
@@ -14409,6 +15285,7 @@
       "id": "restaurant_000513",
       "name": "한라산",
       "category": "한식",
+      "subcategory": "돼지고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강서로 83-1 2층",
       "lat": 36.623546,
@@ -14425,6 +15302,7 @@
       "id": "restaurant_000514",
       "name": "한마음정육식당세종보람점",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 시청대로 219 201호~205호",
       "lat": 36.4840179,
@@ -14465,6 +15343,7 @@
       "id": "restaurant_000515",
       "name": "한상",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 가포산로 200 주건축물 제1동 1층",
       "lat": 36.6148386,
@@ -14501,12 +15380,17 @@
       "id": "restaurant_000518",
       "name": "한상모아 도시락 청주본점",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 서원구 사직대로 107",
       "lat": 36.6350807,
       "lng": 127.4592912,
       "naverUrl": "https://map.naver.com/p/search/%ED%95%9C%EC%83%81%EB%AA%A8%EC%95%84%20%EB%8F%84%EC%8B%9C%EB%9D%BD%20%EC%B2%AD%EC%A3%BC%EB%B3%B8%EC%A0%90",
       "transactions": [
+        {
+          "date": "2025-06-30",
+          "amount": 100000
+        },
         {
           "date": "2025-07-23",
           "amount": 595000
@@ -14661,6 +15545,7 @@
       "id": "restaurant_000519",
       "name": "한성양꼬치",
       "category": "중식",
+      "subcategory": "양꼬치",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로 91 103호",
       "lat": 36.6394807,
@@ -14677,6 +15562,7 @@
       "id": "restaurant_000520",
       "name": "한솥도시락",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 196 101호",
       "lat": 36.6307842,
@@ -14697,6 +15583,7 @@
       "id": "restaurant_000522",
       "name": "한양고깃집청주강서점",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 서현남로 28 1층 104호",
       "lat": 36.6148307,
@@ -14713,6 +15600,7 @@
       "id": "restaurant_000523",
       "name": "할리스오송역사점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송가락로 123 오송역 2층 코레일라운지",
       "lat": 36.6204747,
@@ -14729,6 +15617,7 @@
       "id": "restaurant_000524",
       "name": "항아리왕소금구이",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 54 1층",
       "lat": 36.6220264,
@@ -14745,12 +15634,17 @@
       "id": "restaurant_000525",
       "name": "해물상회",
       "category": "한식",
+      "subcategory": "생선회",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산1길 16-4 1층 102호, 103호",
       "lat": 36.6192673,
       "lng": 127.3215539,
       "naverUrl": "https://map.naver.com/p/search/%ED%95%B4%EB%AC%BC%EC%83%81%ED%9A%8C",
       "transactions": [
+        {
+          "date": "2025-06-04",
+          "amount": 228000
+        },
         {
           "date": "2025-12-18",
           "amount": 109000
@@ -14769,6 +15663,7 @@
       "id": "restaurant_000526",
       "name": "허슬",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 탑연1길 7-12 102호",
       "lat": 36.6223898,
@@ -14793,6 +15688,7 @@
       "id": "restaurant_000527",
       "name": "호호식당",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 27-8 1층",
       "lat": 36.6210351,
@@ -14809,6 +15705,7 @@
       "id": "restaurant_000529",
       "name": "홍장군김치삼겹살",
       "category": "한식",
+      "subcategory": "돼지고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월탄3길 9 홍장군김치삼겹살",
       "lat": 36.6071852,
@@ -14857,6 +15754,7 @@
       "id": "restaurant_000530",
       "name": "화로양갈비",
       "category": "음식점",
+      "subcategory": "양갈비",
       "kind": "restaurant",
       "address": "세종특별자치시 보듬3로 8-15 1층 106호",
       "lat": 36.513803,
@@ -14877,6 +15775,7 @@
       "id": "restaurant_000532",
       "name": "황금국수숯소갈비살(세종점)",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 달빛로 135 상가동 1층 101호",
       "lat": 36.5109509,
@@ -14897,6 +15796,7 @@
       "id": "restaurant_000533",
       "name": "황금코다리 석곡점",
       "category": "한식",
+      "subcategory": "해물,생선요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 서부로 1093-8 1층 황금코다리 청주석곡점",
       "lat": 36.6104305,
@@ -14913,6 +15813,7 @@
       "id": "restaurant_000534",
       "name": "황금코다리 청주역점",
       "category": "한식",
+      "subcategory": "해물,생선요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 직지대로49번길 29 1층 황금코다리 청주역점",
       "lat": 36.6471208,
@@ -14929,6 +15830,7 @@
       "id": "restaurant_000535",
       "name": "회관카페",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "세종특별자치시 갈매로 358",
       "lat": 36.4942068,
@@ -14945,6 +15847,7 @@
       "id": "restaurant_000536",
       "name": "후마니타스",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 주봉로15번길 25",
       "lat": 36.6285274,
@@ -14969,6 +15872,7 @@
       "id": "restaurant_000537",
       "name": "훌랄라참숯치킨",
       "category": "음식점",
+      "subcategory": "치킨,닭강정",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 262 상가동 107호",
       "lat": 36.607655,
@@ -14985,12 +15889,21 @@
       "id": "restaurant_000538",
       "name": "휴식공간",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월곡길 20-19",
       "lat": 36.6222368,
       "lng": 127.3680046,
       "naverUrl": "https://map.naver.com/p/search/%ED%9C%B4%EC%8B%9D%EA%B3%B5%EA%B0%84",
       "transactions": [
+        {
+          "date": "2025-06-10",
+          "amount": 52000
+        },
+        {
+          "date": "2025-06-26",
+          "amount": 55000
+        },
         {
           "date": "2025-07-16",
           "amount": 104000
@@ -15185,6 +16098,7 @@
       "id": "restaurant_000539",
       "name": "힐링톡",
       "category": "음식점",
+      "subcategory": "한식뷔페",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 두꺼비로60번길 11-15 1층",
       "lat": 36.6105941,
@@ -15305,6 +16219,7 @@
       "id": "restaurant_000540",
       "name": "100커피로스팅공장",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 남이면 남석로 488",
       "lat": 36.59827,
@@ -15321,6 +16236,7 @@
       "id": "restaurant_000541",
       "name": "25공방카페",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 복대로146번길 25-2",
       "lat": 36.6296842,
@@ -15337,6 +16253,7 @@
       "id": "restaurant_000542",
       "name": "BHC",
       "category": "음식점",
+      "subcategory": "치킨,닭강정",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 율량로 198 듀엘타워 1층, 102호",
       "lat": 36.6648689,
@@ -15353,6 +16270,7 @@
       "id": "restaurant_000543",
       "name": "강서농축산물판매장",
       "category": "육류,고기요리",
+      "subcategory": "정육식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 가로수로 1157-1",
       "lat": 36.6273391,
@@ -15366,9 +16284,44 @@
       ]
     },
     {
+      "id": "restaurant_000544",
+      "name": "강참치",
+      "category": "한식",
+      "subcategory": "생선회",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 백봉로 196 2층 강참치",
+      "lat": 36.6491862,
+      "lng": 127.4572735,
+      "naverUrl": "https://map.naver.com/p/search/%EA%B0%95%EC%B0%B8%EC%B9%98",
+      "transactions": [
+        {
+          "date": "2025-06-22",
+          "amount": 283000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000545",
+      "name": "고복정",
+      "category": "한식",
+      "subcategory": "해물,생선요리",
+      "kind": "restaurant",
+      "address": "세종특별자치시 연서면 도신고복로 999",
+      "lat": 36.6073957,
+      "lng": 127.2522264,
+      "naverUrl": "https://map.naver.com/p/search/%EA%B3%A0%EB%B3%B5%EC%A0%95",
+      "transactions": [
+        {
+          "date": "2025-06-27",
+          "amount": 158000
+        }
+      ]
+    },
+    {
       "id": "restaurant_000546",
       "name": "공차 청주강서점",
       "category": "카페,디저트",
+      "subcategory": "차",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강서로 118",
       "lat": 36.6248889,
@@ -15382,9 +16335,61 @@
       ]
     },
     {
+      "id": "restaurant_000547",
+      "name": "권가제면소(오송점)",
+      "category": "음식점",
+      "subcategory": "일식",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 오송읍 오송생명14로 363 1층",
+      "lat": 36.6196434,
+      "lng": 127.3231862,
+      "naverUrl": "https://map.naver.com/p/search/%EA%B6%8C%EA%B0%80%EC%A0%9C%EB%A9%B4%EC%86%8C%28%EC%98%A4%EC%86%A1%EC%A0%90%29",
+      "transactions": [
+        {
+          "date": "2025-06-05",
+          "amount": 21000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000548",
+      "name": "남도생갈비",
+      "category": "한식",
+      "subcategory": "육류,고기요리",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 서원구 산미로 122",
+      "lat": 36.6074284,
+      "lng": 127.4740256,
+      "naverUrl": "https://map.naver.com/p/search/%EB%82%A8%EB%8F%84%EC%83%9D%EA%B0%88%EB%B9%84",
+      "transactions": [
+        {
+          "date": "2025-06-28",
+          "amount": 200000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000549",
+      "name": "놀부전집",
+      "category": "음식점",
+      "subcategory": "한식",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 23-3 1층 101호",
+      "lat": 36.6204333,
+      "lng": 127.3176174,
+      "naverUrl": "https://map.naver.com/p/search/%EB%86%80%EB%B6%80%EC%A0%84%EC%A7%91",
+      "transactions": [
+        {
+          "date": "2025-06-20",
+          "amount": 154000
+        }
+      ]
+    },
+    {
       "id": "restaurant_000550",
       "name": "대현칼국수",
       "category": "한식",
+      "subcategory": "칼국수,만두",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강촌로 296 대현칼국수",
       "lat": 36.6451392,
@@ -15401,6 +16406,7 @@
       "id": "restaurant_000551",
       "name": "도담",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 서경로16번길 12 1층",
       "lat": 36.6169241,
@@ -15421,6 +16427,7 @@
       "id": "restaurant_000552",
       "name": "도란",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 396-16",
       "lat": 36.6168776,
@@ -15441,6 +16448,7 @@
       "id": "restaurant_000553",
       "name": "동백카츠 오송점",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 183-7 1층 102호",
       "lat": 36.6301812,
@@ -15457,6 +16465,7 @@
       "id": "restaurant_000554",
       "name": "디앨리스",
       "category": "음식점",
+      "subcategory": "양식",
       "kind": "restaurant",
       "address": "세종특별자치시 어울누리로 67 상가동 46층 4601호",
       "lat": 36.4885615,
@@ -15470,15 +16479,54 @@
       ]
     },
     {
+      "id": "restaurant_000555",
+      "name": "디저트꾸움",
+      "category": "음식점",
+      "subcategory": "카페,디저트",
+      "kind": "cafe",
+      "address": "충청북도 청주시 흥덕구 2순환로 1270 라인빌딩 1층 매일꾸움",
+      "lat": 36.6229353,
+      "lng": 127.4318416,
+      "naverUrl": "https://map.naver.com/p/search/%EB%94%94%EC%A0%80%ED%8A%B8%EA%BE%B8%EC%9B%80",
+      "transactions": [
+        {
+          "date": "2025-06-26",
+          "amount": 2575000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000556",
+      "name": "떡미당",
+      "category": "전통식품",
+      "subcategory": "떡,한과",
+      "kind": "other",
+      "address": "충청북도 청주시 흥덕구 직지대로240번길 58 1층",
+      "lat": 36.6440124,
+      "lng": 127.4209969,
+      "naverUrl": "https://map.naver.com/p/search/%EB%96%A1%EB%AF%B8%EB%8B%B9",
+      "transactions": [
+        {
+          "date": "2025-06-17",
+          "amount": 2011500
+        }
+      ]
+    },
+    {
       "id": "restaurant_000557",
       "name": "띠울석갈비",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 오창읍 중심상업2로 38 1동",
       "lat": 36.7135431,
       "lng": 127.4322403,
       "naverUrl": "https://map.naver.com/p/search/%EB%9D%A0%EC%9A%B8%EC%84%9D%EA%B0%88%EB%B9%84",
       "transactions": [
+        {
+          "date": "2025-06-30",
+          "amount": 114000
+        },
         {
           "date": "2025-07-01",
           "amount": 3938000
@@ -15489,6 +16537,7 @@
       "id": "restaurant_000558",
       "name": "라토커피",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 상당구 성안로74번길 94-12 라토커피",
       "lat": 36.6300708,
@@ -15505,6 +16554,7 @@
       "id": "restaurant_000559",
       "name": "마루",
       "category": "한식",
+      "subcategory": "소고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 중고개로141번길 22-5 1층 마루",
       "lat": 36.6169286,
@@ -15525,6 +16575,7 @@
       "id": "restaurant_000560",
       "name": "맛뜰리에",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 서촌로 1",
       "lat": 36.6460301,
@@ -15541,6 +16592,7 @@
       "id": "restaurant_000561",
       "name": "맥도날드",
       "category": "양식",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 서부로 1403 1,2층",
       "lat": 36.6196275,
@@ -15557,6 +16609,7 @@
       "id": "restaurant_000562",
       "name": "무교동본가낙지",
       "category": "한식",
+      "subcategory": "낙지요리",
       "kind": "restaurant",
       "address": "세종특별자치시 어진동 3-113",
       "lat": 36.5046553,
@@ -15573,6 +16626,7 @@
       "id": "restaurant_000563",
       "name": "미쁘다",
       "category": "전통식품",
+      "subcategory": "떡,한과",
       "kind": "other",
       "address": "충청북도 청주시 청원구 오창읍 2산단4로 55 상가동 1층 106호 미쁘다",
       "lat": 36.737675,
@@ -15589,6 +16643,7 @@
       "id": "restaurant_000564",
       "name": "미스터브리즈",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-6",
       "lat": 36.6308761,
@@ -15605,6 +16660,7 @@
       "id": "restaurant_000565",
       "name": "밀과보리",
       "category": "한식",
+      "subcategory": "칼국수,만두",
       "kind": "restaurant",
       "address": "대전광역시 동구 홍도로9번길 20",
       "lat": 36.3468725,
@@ -15618,9 +16674,44 @@
       ]
     },
     {
+      "id": "restaurant_000566",
+      "name": "백세장수촌오송점",
+      "category": "한식",
+      "subcategory": "백숙,삼계탕",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 오송읍 봉산3길 10-7 1층",
+      "lat": 36.6226512,
+      "lng": 127.3174098,
+      "naverUrl": "https://map.naver.com/p/search/%EB%B0%B1%EC%84%B8%EC%9E%A5%EC%88%98%EC%B4%8C%EC%98%A4%EC%86%A1%EC%A0%90",
+      "transactions": [
+        {
+          "date": "2025-06-27",
+          "amount": 304000
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000567",
+      "name": "벽돌곱창 봉명점",
+      "category": "한식",
+      "subcategory": "곱창,막창,양",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 백봉로223번길 7 2동 1층",
+      "lat": 36.6498429,
+      "lng": 127.4600651,
+      "naverUrl": "https://map.naver.com/p/search/%EB%B2%BD%EB%8F%8C%EA%B3%B1%EC%B0%BD%20%EB%B4%89%EB%AA%85%EC%A0%90",
+      "transactions": [
+        {
+          "date": "2025-06-13",
+          "amount": 89500
+        }
+      ]
+    },
+    {
       "id": "restaurant_000568",
       "name": "보배반점 공주신관점",
       "category": "음식점",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "충청남도 공주시 흑수골길 36 1층",
       "lat": 36.47303,
@@ -15637,6 +16728,7 @@
       "id": "restaurant_000569",
       "name": "복남이네꽁당보리밥",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 가포산로 191 1층 102호(강서동)",
       "lat": 36.616197,
@@ -15650,9 +16742,27 @@
       ]
     },
     {
+      "id": "restaurant_000570",
+      "name": "복집",
+      "category": "해물,생선요리",
+      "subcategory": "복어요리",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 서원구 남이면 대림로 377 1층 101호",
+      "lat": 36.6040757,
+      "lng": 127.4403058,
+      "naverUrl": "https://map.naver.com/p/search/%EB%B3%B5%EC%A7%91",
+      "transactions": [
+        {
+          "date": "2025-06-17",
+          "amount": 122000
+        }
+      ]
+    },
+    {
       "id": "restaurant_000571",
       "name": "복호두 조치원점",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "세종특별자치시 조치원읍 새내11길 5 1층",
       "lat": 36.6021321,
@@ -15669,6 +16779,7 @@
       "id": "restaurant_000572",
       "name": "빈스텔라",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "세종특별자치시 연동면 태산로 155 1동 1층, 2층, 3층",
       "lat": 36.5215957,
@@ -15685,6 +16796,7 @@
       "id": "restaurant_000573",
       "name": "샌드위치카페",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 직지대로 729 1층 102호",
       "lat": 36.6432978,
@@ -15705,6 +16817,7 @@
       "id": "restaurant_000574",
       "name": "서울덮밥",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "대전광역시 유성구 엑스포로 1 신세계백화점 5층",
       "lat": 36.3751636,
@@ -15721,6 +16834,7 @@
       "id": "restaurant_000575",
       "name": "소문난소문",
       "category": "분식",
+      "subcategory": "만두",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 상당로1번길 36 1층",
       "lat": 36.6283255,
@@ -15737,6 +16851,7 @@
       "id": "restaurant_000576",
       "name": "숙이네밥상",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 216 오렌지상가",
       "lat": 36.630033,
@@ -15753,6 +16868,7 @@
       "id": "restaurant_000577",
       "name": "스시키타이",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로109번길 15 라온빌딩 4층 스시키타이",
       "lat": 36.640911,
@@ -15769,6 +16885,7 @@
       "id": "restaurant_000578",
       "name": "스타벅스 청주복대지웰점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 대농로 52 (복대동)",
       "lat": 36.6416546,
@@ -15785,6 +16902,7 @@
       "id": "restaurant_000579",
       "name": "스타벅스 청주지웰시티점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 대농로 43 (복대동) 신영지웰시티 1차 상업시설",
       "lat": 36.6436572,
@@ -15801,6 +16919,7 @@
       "id": "restaurant_000580",
       "name": "스토리웨이",
       "category": "카페,디저트",
+      "subcategory": "호두과자",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산리 369-1",
       "lat": 36.620159,
@@ -15825,6 +16944,7 @@
       "id": "restaurant_000581",
       "name": "주식회사 아치오",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 서부로1168번길 23",
       "lat": 36.6093181,
@@ -15845,6 +16965,7 @@
       "id": "restaurant_000582",
       "name": "엄마손두부",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 나성로 125-10 조이타워2층 205호 206호",
       "lat": 36.4902041,
@@ -15861,6 +16982,7 @@
       "id": "restaurant_000583",
       "name": "예향",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로109번길 27",
       "lat": 36.64096,
@@ -15881,6 +17003,7 @@
       "id": "restaurant_000584",
       "name": "오가네막창",
       "category": "한식",
+      "subcategory": "곱창,막창,양",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 267-7",
       "lat": 36.6234373,
@@ -15897,12 +17020,17 @@
       "id": "restaurant_000585",
       "name": "오봉집",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 진재로 105 1층",
       "lat": 36.6405961,
       "lng": 127.430304,
       "naverUrl": "https://map.naver.com/p/search/%EC%98%A4%EB%B4%89%EC%A7%91",
       "transactions": [
+        {
+          "date": "2025-06-20",
+          "amount": 69000
+        },
         {
           "date": "2025-07-03",
           "amount": 57000
@@ -15913,6 +17041,7 @@
       "id": "restaurant_000586",
       "name": "오송송파스타",
       "category": "이탈리아음식",
+      "subcategory": "스파게티,파스타전문",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산2길 46-2 1층 오송송 파스타",
       "lat": 36.6215309,
@@ -15929,6 +17058,7 @@
       "id": "restaurant_000587",
       "name": "오씨칼국수",
       "category": "한식",
+      "subcategory": "칼국수,만두",
       "kind": "restaurant",
       "address": "세종특별자치시 한누리대로 207 이너스빌 108호",
       "lat": 36.4831131,
@@ -15945,6 +17075,7 @@
       "id": "restaurant_000588",
       "name": "오장동흥남집",
       "category": "한식",
+      "subcategory": "냉면",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 남일면 단재로 721 오장동흥남집청주점",
       "lat": 36.5674058,
@@ -15961,6 +17092,7 @@
       "id": "restaurant_000589",
       "name": "우미노미",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 사직대로 354-2 1층",
       "lat": 36.6364218,
@@ -15977,6 +17109,7 @@
       "id": "restaurant_000590",
       "name": "우작교",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 대농로 39 LK트리플렉스 B동 201호",
       "lat": 36.6422267,
@@ -15990,9 +17123,27 @@
       ]
     },
     {
+      "id": "restaurant_000591",
+      "name": "울엄마양평해장국",
+      "category": "한식",
+      "subcategory": "해장국",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 풍년로150번길 42 1층 울엄마양평해장국",
+      "lat": 36.6266337,
+      "lng": 127.4357468,
+      "naverUrl": "https://map.naver.com/p/search/%EC%9A%B8%EC%97%84%EB%A7%88%EC%96%91%ED%8F%89%ED%95%B4%EC%9E%A5%EA%B5%AD",
+      "transactions": [
+        {
+          "date": "2025-06-20",
+          "amount": 70000
+        }
+      ]
+    },
+    {
       "id": "restaurant_000592",
       "name": "읍천리382 오창점",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 청원구 오창읍 과학산업2로 379",
       "lat": 36.7160395,
@@ -16013,6 +17164,7 @@
       "id": "restaurant_000593",
       "name": "이강내",
       "category": "카페,디저트",
+      "subcategory": "찐빵",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 600 이강내쌀찐빵",
       "lat": 36.6243304,
@@ -16029,6 +17181,7 @@
       "id": "restaurant_000594",
       "name": "이범석류 스시야",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "세종특별자치시 도움1로 7 베스트웨스턴호텔3층 306호-310호",
       "lat": 36.5002693,
@@ -16042,9 +17195,27 @@
       ]
     },
     {
+      "id": "restaurant_000595",
+      "name": "일본",
+      "category": "음식점",
+      "subcategory": "일식",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 서원구 1순환로1107번길 21 1층 104호",
+      "lat": 36.6075205,
+      "lng": 127.4894114,
+      "naverUrl": "https://map.naver.com/p/search/%EC%9D%BC%EB%B3%B8",
+      "transactions": [
+        {
+          "date": "2025-06-19",
+          "amount": 100311
+        }
+      ]
+    },
+    {
       "id": "restaurant_000596",
       "name": "임성근국가공인진갈비",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 서현로 90",
       "lat": 36.6187619,
@@ -16061,6 +17232,7 @@
       "id": "restaurant_000597",
       "name": "줄서는반점강내본점",
       "category": "중식",
+      "subcategory": "중식당",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 월곡길 17-1 진심 짬뽕 잘 하는 청주 첫번째 중국집",
       "lat": 36.6227028,
@@ -16077,6 +17249,7 @@
       "id": "restaurant_000598",
       "name": "착한낙지",
       "category": "한식",
+      "subcategory": "낙지요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 예체로67번길 62",
       "lat": 36.6324125,
@@ -16093,6 +17266,7 @@
       "id": "restaurant_000599",
       "name": "촌놈족발",
       "category": "한식",
+      "subcategory": "족발,보쌈",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 만수길 14-2",
       "lat": 36.6232672,
@@ -16106,9 +17280,27 @@
       ]
     },
     {
+      "id": "restaurant_000600",
+      "name": "춘천집",
+      "category": "한식",
+      "subcategory": "닭갈비",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 상당구 상당로91번길 29 2층",
+      "lat": 36.636218,
+      "lng": 127.4886226,
+      "naverUrl": "https://map.naver.com/p/search/%EC%B6%98%EC%B2%9C%EC%A7%91",
+      "transactions": [
+        {
+          "date": "2025-06-26",
+          "amount": 70000
+        }
+      ]
+    },
+    {
       "id": "restaurant_000601",
       "name": "커피빈 코리아",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "대전광역시 서구 둔산로 136",
       "lat": 36.351118,
@@ -16125,6 +17317,7 @@
       "id": "restaurant_000602",
       "name": "테라로사 세종점",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "세종특별자치시 가름로 143 KT&G세종타워 B동, 1층",
       "lat": 36.4990018,
@@ -16141,6 +17334,7 @@
       "id": "restaurant_000603",
       "name": "파스쿠찌",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 모충로 5 (개신동) 파스쿠찌",
       "lat": 36.6250426,
@@ -16157,6 +17351,7 @@
       "id": "restaurant_000604",
       "name": "피브완",
       "category": "카페,디저트",
+      "subcategory": "베이커리",
       "kind": "cafe",
       "address": "대전광역시 유성구 엑스포로123번길 34 102동 125호",
       "lat": 36.3759149,
@@ -16173,6 +17368,7 @@
       "id": "restaurant_000605",
       "name": "하나비스시",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 서원구 1순환로1137번길 83",
       "lat": 36.6100372,
@@ -16186,9 +17382,69 @@
       ]
     },
     {
+      "id": "restaurant_000606",
+      "name": "한끼",
+      "category": "한식",
+      "subcategory": "육류,고기요리",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 흥덕구 오송읍 오송생명5로 184-14 1층 104호 한끼",
+      "lat": 36.6308356,
+      "lng": 127.3285919,
+      "naverUrl": "https://map.naver.com/p/search/%ED%95%9C%EB%81%BC",
+      "transactions": [
+        {
+          "date": "2025-06-11",
+          "amount": 290500
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000607",
+      "name": "행포케 오송점",
+      "category": "도시락,컵밥",
+      "subcategory": "다이어트,샐러드",
+      "kind": "lunchbox",
+      "address": "충청북도 청주시 흥덕구 오송읍 오송생명로 186 1층 112호",
+      "lat": 36.6311463,
+      "lng": 127.3296356,
+      "naverUrl": "https://map.naver.com/p/search/%ED%96%89%ED%8F%AC%EC%BC%80%20%EC%98%A4%EC%86%A1%EC%A0%90",
+      "transactions": [
+        {
+          "date": "2025-06-09",
+          "amount": 204540
+        },
+        {
+          "date": "2025-06-10",
+          "amount": 205200
+        },
+        {
+          "date": "2025-06-16",
+          "amount": 165070
+        }
+      ]
+    },
+    {
+      "id": "restaurant_000608",
+      "name": "흙에서",
+      "category": "음식점",
+      "subcategory": "한식",
+      "kind": "restaurant",
+      "address": "충청북도 청주시 서원구 산미로 116 흙에서",
+      "lat": 36.6071538,
+      "lng": 127.4735814,
+      "naverUrl": "https://map.naver.com/p/search/%ED%9D%99%EC%97%90%EC%84%9C",
+      "transactions": [
+        {
+          "date": "2025-06-12",
+          "amount": 100000
+        }
+      ]
+    },
+    {
       "id": "restaurant_000609",
       "name": "경복궁&갓포제주",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로 1020 3동 2층",
       "lat": 36.6439294,
@@ -16205,6 +17461,7 @@
       "id": "restaurant_000610",
       "name": "김정훈샤브칼국수",
       "category": "한식",
+      "subcategory": "칼국수,만두",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 미호천길 994",
       "lat": 36.6338432,
@@ -16225,6 +17482,7 @@
       "id": "restaurant_000611",
       "name": "꽃새미로",
       "category": "카페,디저트",
+      "subcategory": "케이크전문",
       "kind": "cafe",
       "address": "충청북도 청주시 상당구 수영로245번길 4-8 정원빌딩 201호",
       "lat": 36.6269858,
@@ -16241,6 +17499,7 @@
       "id": "restaurant_000612",
       "name": "더(The)국희",
       "category": "카페,디저트",
+      "subcategory": "카페",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명8로 205 1층",
       "lat": 36.6207907,
@@ -16257,6 +17516,7 @@
       "id": "restaurant_000613",
       "name": "도담오리하우스",
       "category": "한식",
+      "subcategory": "오리요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 명암로 32 5층",
       "lat": 36.6385262,
@@ -16273,6 +17533,7 @@
       "id": "restaurant_000614",
       "name": "롯데리아 청주강내",
       "category": "양식",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 태성탑연로 451 1층",
       "lat": 36.622807,
@@ -16289,6 +17550,7 @@
       "id": "restaurant_000615",
       "name": "마음설기",
       "category": "제조업",
+      "subcategory": "떡류제조",
       "kind": "other",
       "address": "충청북도 청주시 흥덕구 오송읍 연제만수길 47 1층 102호",
       "lat": 36.6246961,
@@ -16305,6 +17567,7 @@
       "id": "restaurant_000616",
       "name": "마중가는길",
       "category": "한식",
+      "subcategory": "한정식",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 문의면 대청호반로 845-5 마중가는길",
       "lat": 36.5179839,
@@ -16321,6 +17584,7 @@
       "id": "restaurant_000617",
       "name": "소복소복",
       "category": "음식점",
+      "subcategory": "일식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 신전로 20-3 1층",
       "lat": 36.6190457,
@@ -16341,6 +17605,7 @@
       "id": "restaurant_000618",
       "name": "숲",
       "category": "음식점",
+      "subcategory": "베트남음식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 백봉로 220 1층",
       "lat": 36.6491266,
@@ -16357,6 +17622,7 @@
       "id": "restaurant_000619",
       "name": "스테이인터뷰 르 투어 카페",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 상당구 명암로 83-3 스테이인터뷰르투어",
       "lat": 36.6434153,
@@ -16373,6 +17639,7 @@
       "id": "restaurant_000620",
       "name": "시리과자점",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 서원구 신화로 41 1층 101호",
       "lat": 36.6182824,
@@ -16389,6 +17656,7 @@
       "id": "restaurant_000621",
       "name": "애슐리퀸즈 원더아리아청주점",
       "category": "음식점",
+      "subcategory": "패밀리레스토랑",
       "kind": "restaurant",
       "address": "충청북도 청주시 청원구 상당로 314",
       "lat": 36.6565749,
@@ -16405,6 +17673,7 @@
       "id": "restaurant_000622",
       "name": "육회한점",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 산울7로 11 근생D동 D-109호",
       "lat": 36.5299201,
@@ -16421,6 +17690,7 @@
       "id": "restaurant_000623",
       "name": "피자나라치킨공주",
       "category": "음식점",
+      "subcategory": "피자",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 풍산로109번길 16",
       "lat": 36.629919,
@@ -16437,6 +17707,7 @@
       "id": "restaurant_000624",
       "name": "봉땅",
       "category": "음식점",
+      "subcategory": "양식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 봉산3길 16-10 1층",
       "lat": 36.6227302,
@@ -16461,6 +17732,7 @@
       "id": "restaurant_000625",
       "name": "가이오국수청주점",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 가로수로 524 1층",
       "lat": 36.6233928,
@@ -16477,6 +17749,7 @@
       "id": "restaurant_000626",
       "name": "경복궁청주점",
       "category": "음식점",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 2순환로 1250 3층",
       "lat": 36.624609,
@@ -16493,6 +17766,7 @@
       "id": "restaurant_000627",
       "name": "구이",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 중고개로141번길 13-18 1층 112, 113호",
       "lat": 36.6158986,
@@ -16509,6 +17783,7 @@
       "id": "restaurant_000628",
       "name": "꿀돼지식당",
       "category": "한식",
+      "subcategory": "돼지고기구이",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 강내면 탑연1길 13 국도푸르미르 106호",
       "lat": 36.622762,
@@ -16525,6 +17800,7 @@
       "id": "restaurant_000629",
       "name": "던킨도너츠 청주오송",
       "category": "카페,디저트",
+      "subcategory": "도넛",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명11로 46 오송스타플릭스 1층 109호",
       "lat": 36.6186895,
@@ -16541,6 +17817,7 @@
       "id": "restaurant_000630",
       "name": "롯데리아 대전도안점",
       "category": "양식",
+      "subcategory": "햄버거",
       "kind": "restaurant",
       "address": "대전광역시 유성구 월드컵대로300번길 16-16 미라클빌딩1층",
       "lat": 36.3481918,
@@ -16557,6 +17834,7 @@
       "id": "restaurant_000631",
       "name": "보돌미역청주오송점",
       "category": "한식",
+      "subcategory": "백반,가정식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명11로 46 스타플릭스1차 2층 230호",
       "lat": 36.6186895,
@@ -16573,6 +17851,7 @@
       "id": "restaurant_000632",
       "name": "봉명동내커피",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명8로 219 1층 봉명동내커피",
       "lat": 36.621525,
@@ -16597,6 +17876,7 @@
       "id": "restaurant_000633",
       "name": "빠빠드",
       "category": "음식점",
+      "subcategory": "양식",
       "kind": "restaurant",
       "address": "충청북도 청주시 흥덕구 경산로36번길 3 1층",
       "lat": 36.6241625,
@@ -16613,6 +17893,7 @@
       "id": "restaurant_000634",
       "name": "세종송도갈비",
       "category": "한식",
+      "subcategory": "육류,고기요리",
       "kind": "restaurant",
       "address": "세종특별자치시 다솜로 50 중흥S클래스센텀뷰상가 A동",
       "lat": 36.4952836,
@@ -16629,6 +17910,7 @@
       "id": "restaurant_000635",
       "name": "수구레국밥",
       "category": "한식",
+      "subcategory": "국밥",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 산성로9번길 12 수구레국밥",
       "lat": 36.6253132,
@@ -16645,6 +17927,7 @@
       "id": "restaurant_000636",
       "name": "스르르",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "세종특별자치시 소담4로 7 2동 1층 98호",
       "lat": 36.487087,
@@ -16661,6 +17944,7 @@
       "id": "restaurant_000637",
       "name": "오잇오잇",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 청원구 율량로 171 102호 오잇오잇",
       "lat": 36.6672625,
@@ -16681,6 +17965,7 @@
       "id": "restaurant_000638",
       "name": "우정통닭",
       "category": "음식점",
+      "subcategory": "치킨,닭강정",
       "kind": "restaurant",
       "address": "대전광역시 동구 계족로 170 유진타올",
       "lat": 36.3290389,
@@ -16701,6 +17986,7 @@
       "id": "restaurant_000639",
       "name": "우지커피청주오송점",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 흥덕구 오송읍 오송생명11로 46 1층 118호",
       "lat": 36.6186895,
@@ -16717,6 +18003,7 @@
       "id": "restaurant_000640",
       "name": "이아카페",
       "category": "카페,디저트",
+      "subcategory": "테이크아웃커피",
       "kind": "cafe",
       "address": "세종특별자치시 연서면 도신고복로 1131-7",
       "lat": 36.6003094,
@@ -16733,6 +18020,7 @@
       "id": "restaurant_000641",
       "name": "장원갑칼국수 세종점",
       "category": "음식점",
+      "subcategory": "한식",
       "kind": "restaurant",
       "address": "세종특별자치시 조치원읍 허만석1로 32 2층",
       "lat": 36.5857556,
@@ -16749,6 +18037,7 @@
       "id": "restaurant_000642",
       "name": "중앙탑면막국수",
       "category": "한식",
+      "subcategory": "막국수",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 상당로58번길 17",
       "lat": 36.6336798,
@@ -16765,6 +18054,7 @@
       "id": "restaurant_000643",
       "name": "케이터링수제도시락파티지니",
       "category": "음식점",
+      "subcategory": "도시락,컵밥",
       "kind": "lunchbox",
       "address": "충청북도 청주시 서원구 대림로421번가길 53-4 파티지니",
       "lat": 36.6085239,
@@ -16781,6 +18071,7 @@
       "id": "restaurant_000644",
       "name": "팔레트카페",
       "category": "음식점",
+      "subcategory": "카페,디저트",
       "kind": "cafe",
       "address": "충청북도 청주시 상당구 대성로180번길 4 1층",
       "lat": 36.6412319,
@@ -16809,6 +18100,7 @@
       "id": "restaurant_000645",
       "name": "프롬더희",
       "category": "양식",
+      "subcategory": "샌드위치",
       "kind": "restaurant",
       "address": "세종특별자치시 집현중앙7로 6 (지식산업센터) A동 1층 122호",
       "lat": 36.4985237,
@@ -16825,6 +18117,7 @@
       "id": "restaurant_000646",
       "name": "행포케강서점",
       "category": "도시락,컵밥",
+      "subcategory": "다이어트,샐러드",
       "kind": "lunchbox",
       "address": "충청북도 청주시 흥덕구 2순환로 1228 이랜드타운힐스 1층 110호",
       "lat": 36.6263065,
@@ -16841,6 +18134,7 @@
       "id": "restaurant_000647",
       "name": "황금코다리",
       "category": "한식",
+      "subcategory": "해물,생선요리",
       "kind": "restaurant",
       "address": "충청북도 청주시 상당구 남일면 신송효촌길 123 1층 황금코다리 청주효촌점",
       "lat": 36.5860191,
