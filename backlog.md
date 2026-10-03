@@ -57,16 +57,6 @@
   built-in clusterer (the commonly cited `MarkerClustering.js` is example code to vendor), so this is
   a follow-up ticket, not a rider on the next one — `src/map/place-map.ts`
 
-## Map-first 4 — numbered pins synced with the visible rows (2026-10-03)
-
-- [ ] [feat] Rows currently visible in the list become pins printing the row's rank label; row
-  hover/focus and selection highlight the matching pin and vice versa; `더 보기` extends the pin
-  set. `src/map/` receives `{ place, label? }` from the UI and still imports nothing from
-  `src/stats/`. Accept: fake-API tests for pin labels = visible rows' labels, highlight
-  sync both ways, no count-derived marker option (source: `docs/design/map-first-layout.md` →
-  Implementation Decisions 1–2) — `src/map/place-map.ts`, `src/ui/place-list.ts`,
-  `src/ui/top-places.ts`, `docs/architecture.md`
-
 ## Map-first 5 — detail inside the panel with `#place=<id>` (2026-10-03)
 
 - [ ] [feat] Selecting a place (row, pin, dot, search result) replaces the list inside the panel
@@ -78,7 +68,6 @@
   moves to the card and back to the originating row; `device-state.test.ts` unchanged (source:
   `docs/design/map-first-layout.md` → Implementation Decision 4) — `src/ui/detail-dialog.ts`,
   `src/ui/place-detail.ts`, `src/ui/bootstrap.ts`, `src/map/place-map.ts`
-  *(blocked by: 4-numbered-pins)*
 
 ## Map-first 6 — mobile bottom sheet (2026-10-03)
 

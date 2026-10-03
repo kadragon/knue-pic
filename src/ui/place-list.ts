@@ -1,7 +1,7 @@
 import type { Period, PlacesDataset } from '../data/types';
 import { computeTopPlaces } from '../stats/top-places';
 import { PERIOD_LABELS, PERIOD_ORDER } from './period-labels';
-import { renderTopPlaces } from './top-places';
+import { renderTopPlaces, type VisibleRankedPlace } from './top-places';
 
 /**
  * One ranked list, and the period selector that decides which window it measures.
@@ -89,6 +89,16 @@ function renderTabs(active: Period, onSelect: (period: Period) => void): HTMLEle
 export interface PlaceListOptions {
   active?: Period;
   onActiveChange?: (period: Period) => void;
+  /**
+   * Passed straight to `renderTopPlaces`: the rows on screen, whole, every time the list pages in.
+   *
+   * Carried rather than recomputed here, because only the list knows which rows it has actually
+   * drawn — a module that re-derived the visible set from the ranking would answer "the first ten"
+   * whatever the reader had scrolled to.
+   */
+  onVisibleChange?: (visible: VisibleRankedPlace[]) => void;
+  /** The row the reader is on, or `null`. Also passed straight through. */
+  onHighlight?: (placeId: string | null) => void;
 }
 
 /**
@@ -104,7 +114,12 @@ export function renderPlaceList(
   onSelect: (placeId: string, basis: Period) => void,
   options: PlaceListOptions = {},
 ): void {
-  const { active = DEFAULT_PERIOD, onActiveChange } = options;
+  const {
+    active = DEFAULT_PERIOD,
+    onActiveChange,
+    onVisibleChange,
+    onHighlight,
+  } = options;
   const section = document.createElement('section');
   section.className = 'place-list';
 
@@ -119,6 +134,7 @@ export function renderPlaceList(
         onSelect(placeId, period);
       },
       listHeading(period),
+      { onVisibleChange, onHighlight },
     );
   }
 

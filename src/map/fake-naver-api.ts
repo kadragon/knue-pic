@@ -2,6 +2,7 @@ import type {
   HtmlIcon,
   LatLng,
   MapOptions,
+  MarkerEventName,
   MarkerOptions,
   NaverMap,
   NaverMapsApi,
@@ -28,6 +29,17 @@ export interface FakeMarker extends NaverMarker {
   readonly attached: (NaverMap | null)[];
   icon: HtmlIcon | undefined;
   title: string | undefined;
+  /** The marker's current stacking order — from the option, then from every `setZIndex`. */
+  zIndex: number | undefined;
+  /**
+   * Fires an event the way the API would.
+   *
+   * `emit('mouseover')` on a marker nothing listened to is a no-op, so a case cannot pass by
+   * reaching a listener that was never registered. The payload is absent because the app's two
+   * listeners take none — narrowing the fake to what the vendor types actually carry is what keeps
+   * the surface honest.
+   */
+  emit(eventName: MarkerEventName): void;
 }
 
 export interface FakeMap extends NaverMap {
@@ -47,6 +59,21 @@ export interface FakeNaverApi extends NaverMapsApi {
 export function createFakeNaverApi(): FakeNaverApi {
   const maps: FakeMap[] = [];
   const markers: FakeMarker[] = [];
+  /** The listeners `Event.addListener` registered, oldest first — one bucket per target. */
+  const listeners = new Map<NaverMarker, Map<MarkerEventName, (() => void)[]>>();
+
+  const Event = {
+    addListener(target: NaverMarker, eventName: MarkerEventName, listener: () => void): unknown {
+      const forTarget = listeners.get(target) ?? new Map<MarkerEventName, (() => void)[]>();
+      listeners.set(target, forTarget);
+      const forEvent = forTarget.get(eventName) ?? [];
+      forTarget.set(eventName, forEvent);
+      forEvent.push(listener);
+      // The real API hands back a `MapEventListener` with its own `disconnect`; nothing here holds
+      // it — the page map releases its markers instead — so a token is all the shape promises.
+      return {};
+    },
+  };
 
   class FakeLatLng implements LatLng {
     constructor(
@@ -99,9 +126,11 @@ export function createFakeNaverApi(): FakeNaverApi {
     Marker: class implements FakeMarker {
       icon: HtmlIcon | undefined;
       title: string | undefined;
+      zIndex: number | undefined;
       readonly attached: (NaverMap | null)[];
       constructor(readonly options: MarkerOptions) {
         this.icon = options.icon;
+        this.zIndex = options.zIndex;
         this.title = options.title;
         this.attached = [options.map];
         markers.push(this);
@@ -109,7 +138,19 @@ export function createFakeNaverApi(): FakeNaverApi {
       setMap(map: NaverMap | null): void {
         this.attached.push(map);
       }
+      setIcon(icon: HtmlIcon): void {
+        // Recorded rather than ignored: a highlight that never reached the marker's icon is a pin
+        // that does not look like the row the reader is on, and nothing else in the fake would see it.
+        this.icon = icon;
+      }
+      setZIndex(zIndex: number): void {
+        this.zIndex = zIndex;
+      }
+      emit(eventName: MarkerEventName): void {
+        for (const listener of listeners.get(this)?.get(eventName) ?? []) listener();
+      }
     },
+    Event,
   };
 
   return api;

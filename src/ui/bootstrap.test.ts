@@ -651,6 +651,101 @@ describe('bootstrap page map', () => {
     expect(root.querySelector('.summary-line')?.textContent ?? '').toContain('1곳');
   });
 
+  describe('numbered pins', () => {
+    /** The marker standing for a place, by the name it goes by in the list. */
+    function markerFor(api: FakeNaverApi, placeName: string): FakeMarker | undefined {
+      return api.markers.find((marker) => marker.title === placeName);
+    }
+
+    function firstRow(root: HTMLElement): HTMLLIElement {
+      return root.querySelector<HTMLLIElement>('li.top-place')!;
+    }
+
+    it('prints each visible row\'s own rank on its pin, and leaves the rest as dots', async () => {
+      const root = document.createElement('div');
+      const api = createFakeNaverApi();
+      await bootstrap(root, {
+        load: () => Promise.resolve(SAMPLE_DATASET),
+        matchMedia: viewport(true).matchMedia,
+        ...mapOptions(api),
+      });
+      await flush();
+
+      const rank = firstRow(root).querySelector('.top-place-rank')?.textContent;
+      const name = firstRow(root).querySelector('.top-place-name')?.textContent ?? '';
+
+      // The number is the row's own badge text — the map draws what the reader is reading, and this
+      // module ranks nothing itself.
+      expect(rank).toBe('1');
+      expect(markerFor(api, name)?.icon?.content).toContain('page-map-pin');
+      expect(markerFor(api, name)?.icon?.content).toContain('>1<');
+
+      // Every row on screen is a pin, and no marker is left saying a number no row prints: with this
+      // fixture all five in-window places fit on one page, so the "place with no row stays a dot"
+      // half has nothing to show here — `src/map/place-map.test.ts` drives it with an unlabelled
+      // entry directly.
+      const rows = [...root.querySelectorAll('li.top-place')];
+      expect(rows.length).toBeGreaterThan(1);
+      expect(liveDots(api)).toHaveLength(rows.length);
+    });
+
+    it('lights the pin for the row the reader hovered, and takes it off again', async () => {
+      const root = document.createElement('div');
+      const api = createFakeNaverApi();
+      await bootstrap(root, {
+        load: () => Promise.resolve(SAMPLE_DATASET),
+        matchMedia: viewport(true).matchMedia,
+        ...mapOptions(api),
+      });
+      await flush();
+      const name = firstRow(root).querySelector('.top-place-name')?.textContent ?? '';
+
+      firstRow(root).dispatchEvent(new MouseEvent('mouseenter'));
+      expect(markerFor(api, name)?.icon?.content).toContain('is-active');
+
+      firstRow(root).dispatchEvent(new MouseEvent('mouseleave'));
+      expect(markerFor(api, name)?.icon?.content).not.toContain('is-active');
+    });
+
+    it('lights the row for the pin the reader touched, and clears it when they leave', async () => {
+      const root = document.createElement('div');
+      const api = createFakeNaverApi();
+      await bootstrap(root, {
+        load: () => Promise.resolve(SAMPLE_DATASET),
+        matchMedia: viewport(true).matchMedia,
+        ...mapOptions(api),
+      });
+      await flush();
+      const placeId = firstRow(root).getAttribute('data-place-id');
+
+      markerFor(api, firstRow(root).querySelector('.top-place-name')?.textContent ?? '')?.emit(
+        'mouseover',
+      );
+      expect(root.querySelectorAll('li.top-place[data-active]')).toHaveLength(1);
+      expect(firstRow(root).getAttribute('data-active')).toBe('true');
+
+      markerFor(api, firstRow(root).querySelector('.top-place-name')?.textContent ?? '')?.emit('mouseout');
+      expect(root.querySelectorAll('li.top-place[data-active]')).toHaveLength(0);
+      expect(placeId).toBeTruthy();
+    });
+
+    it('never throws from a row highlight on the narrow page, which has no map', async () => {
+      const root = document.createElement('div');
+      const api = createFakeNaverApi();
+      await bootstrap(root, {
+        load: () => Promise.resolve(SAMPLE_DATASET),
+        matchMedia: viewport(false).matchMedia,
+        ...mapOptions(api),
+      });
+      await flush();
+
+      // The list is built either way and the map only exists at ≥768px; a handler reaching into an
+      // absent handle would break the page on a phone for a highlight nobody can see there.
+      expect(() => firstRow(root).dispatchEvent(new MouseEvent('mouseenter'))).not.toThrow();
+      expect(api.maps).toHaveLength(0);
+    });
+  });
+
   it('keeps the map on the campus origin and returns there on demand', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();

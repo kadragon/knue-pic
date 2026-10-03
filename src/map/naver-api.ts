@@ -7,11 +7,18 @@
  * visible and keeps `no-explicit-any` satisfied.
  *
  * Shapes follow the official reference: `new naver.maps.Map(el, options)` and
- * `new naver.maps.Marker(options)`, plus the two mutation calls the page map makes —
- * `map.setCenter` and `marker.setMap(null)`, both read off that reference on 2026-10-03 rather
- * than inferred. The bounds and event surface still went with the page-level map in PR #17 and
- * has not come back: a hand-written vendor type with no caller drifts from the real API unnoticed,
- * so what is unused is deleted rather than kept "in case".
+ * `new naver.maps.Marker(options)`, plus the mutation calls the page map makes —
+ * `map.setCenter`, `marker.setMap(null)` and `marker.setIcon(icon)` — and `naver.maps.Event.addListener`,
+ * all read off that reference on 2026-10-03 rather than inferred
+ * (`https://navermaps.github.io/maps.js.en/docs/naver.maps.Marker.html` for `setIcon`,
+ * `https://navermaps.github.io/maps.js.en/docs/naver.maps.Event.html` for `addListener`;
+ * `naver.maps.Event.addListener(map, 'click', …)` appears in the Markers tutorial itself).
+ *
+ * The bounds surface still went with the page-level map in PR #17 and has not come back: a
+ * hand-written vendor type with no caller drifts from the real API unnoticed, so what is unused is
+ * deleted rather than kept "in case". `setIcon` and `Event` came back with the numbered pins — the
+ * first two are what makes a pin's own highlight possible, `Event` the only way the map learns a
+ * reader touched one. `zIndex` and `setZIndex` followed, so a pin stands above the dots around it.
  *
  * Structural interfaces, not classes: the tests inject a fake that satisfies this shape, which is
  * the only way a jsdom test can exercise marker rendering at all.
@@ -39,11 +46,27 @@ export interface HtmlIcon {
   anchor?: Point;
 }
 
+/**
+ * The marker events the page map listens for.
+ *
+ * A closed union rather than `string`, and the two names are the whole of what the page map asks
+ * for: a pin that highlights its row needs to say "a reader arrived" and "a reader left", and every
+ * other event name in the API's list would be a claim this repo has not read.
+ */
+export type MarkerEventName = 'mouseover' | 'mouseout';
+
 export interface MarkerOptions {
   position: LatLng;
   map: NaverMap;
   title?: string;
   icon?: HtmlIcon;
+  /**
+   * The marker's stacking order among the other markers. Every marker defaults to the same level,
+   * so a dense cluster draws in creation order and a dot can bury a numbered pin. Read off the live
+   * v3 bundle at `localhost:5173`, 2026-10-03: `new naver.maps.Marker({ zIndex: 200 }).getZIndex()`
+   * returned `200`, and the default returned `null`.
+   */
+  zIndex?: number;
 }
 
 export interface NaverMarker {
@@ -57,6 +80,36 @@ export interface NaverMarker {
    * type is the narrower one the app uses rather than the whole vendor surface.
    */
   setMap(map: NaverMap | null): void;
+
+  /**
+   * Swaps the marker's icon in place.
+   *
+   * How a pin is highlighted: the numbered pin and its active variant are two `HtmlIcon`s, and
+   * redrawing the marker would drop it off the map and back on again. Read off the official
+   * reference's overlapping-markers example (`markers[i].setIcon(icon)`,
+   * https://navermaps.github.io/maps.js.en/docs/tutorial-2-Marker.html, read 2026-10-03).
+   */
+  setIcon(icon: HtmlIcon): void;
+
+  /**
+   * Restacks the marker in place — what a dot promoted to a pin, and a pin lit or unlit, needs
+   * alongside its new icon. Present on `naver.maps.Marker.prototype` in the live v3 bundle
+   * (observed 2026-10-03, with the `zIndex` option above).
+   */
+  setZIndex(zIndex: number): void;
+}
+
+/**
+ * `naver.maps.Event` — the only statics this app calls.
+ *
+ * Named after the vendor's own static object rather than as a bare function, so the call site reads
+ * as the reference does: `api.Event.addListener(marker, 'mouseover', …)`. The reference types
+ * `target` as a bare `object`; it is narrowed to `NaverMarker` because the only target the page map
+ * ever hands it is a marker, and a wider type here would be a claim about callers that do not exist.
+ */
+export interface NaverEventApi {
+  /** Returns a `MapEventListener` the app does not hold — it releases nothing on its own. */
+  addListener(target: NaverMarker, eventName: MarkerEventName, listener: () => void): unknown;
 }
 
 export interface MapOptions {
@@ -90,4 +143,5 @@ export interface NaverMapsApi {
   Size: new (width: number, height: number) => Size;
   Map: new (element: HTMLElement, options: MapOptions) => NaverMap;
   Marker: new (options: MarkerOptions) => NaverMarker;
+  Event: NaverEventApi;
 }
