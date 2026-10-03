@@ -33,8 +33,8 @@ from collector.build_places import (
 from collector.validate import naver_url_or_none, window_floor
 from collector.validate import main as validate_main
 
-UPDATED_AT = date(2026, 8, 1)
-WINDOW_START = window_floor(UPDATED_AT)  # 2025-09-01
+UPDATED_AT = date(2026, 7, 31)  # the fixture's newest month ends here, so the flag may name it
+WINDOW_START = window_floor(UPDATED_AT)  # 2025-05-01
 
 CSV_COLUMNS = [
     "status", "canonical_name", "display_name", "raw_names", "months", "visits",
@@ -146,7 +146,7 @@ def test_clean_build_publishes_the_approved_place(fixture: Fixture) -> None:
     assert places[0]["kind"] == "restaurant"  # derived from the whole path
     assert places[0]["address"] == "충청북도 청주시 흥덕구 고락로40번길 19"  # road address wins
     assert places[0]["transactions"] == [{"date": "2026-07-13", "amount": 230000}]
-    assert fixture.dataset()["updatedAt"] == "2026-08-01"
+    assert fixture.dataset()["updatedAt"] == "2026-07-31"
 
 
 @pytest.mark.parametrize("status", ["pending", "rejected", "", "APPROVED", "approve"])
@@ -308,9 +308,9 @@ def test_next_index_reads_the_highest_number_not_the_entry_count() -> None:
 def test_window_boundary_keeps_the_floor_date_and_drops_the_day_before(fixture: Fixture) -> None:
     """The rolling window is the span the 1y view renders; a day earlier is invisible there."""
     kept = WINDOW_START.isoformat()
-    dropped = date(WINDOW_START.year, WINDOW_START.month - 1, 31).isoformat()
-    write_month(fixture.out_dir, "2025-09", [normalized()],
-                [transaction(when=kept), transaction(when=dropped)])
+    dropped = date(WINDOW_START.year, WINDOW_START.month - 1, 30).isoformat()
+    write_month(fixture.out_dir, kept[:7], [normalized()], [transaction(when=kept)])
+    write_month(fixture.out_dir, dropped[:7], [normalized()], [transaction(when=dropped)])
     assert fixture.run() == EXIT_OK
     dates = [item["date"] for place in fixture.places() for item in place["transactions"]]
     assert kept in dates
@@ -323,6 +323,53 @@ def test_transactions_after_the_anchor_are_dropped(fixture: Fixture) -> None:
     assert fixture.run() == EXIT_OK
     dates = [item["date"] for place in fixture.places() for item in place["transactions"]]
     assert "2026-08-02" not in dates
+
+
+@pytest.mark.parametrize("when", ["2026-08-01", "2026-06-30"])
+def test_a_transaction_outside_its_directory_month_is_dropped_and_reported(
+        fixture: Fixture, capsys: Any, when: str) -> None:
+    """A straggler inside ``2026-07/`` is an extraction defect, not a trim: counted, never silent.
+
+    The explicit anchor puts both dates inside the window, so only the directory rule drops them.
+    """
+    write_month(fixture.out_dir, "2026-08", [normalized()], [transaction(when="2026-08-10")])
+    (fixture.out_dir / "2026-07" / "raw_transactions.json").write_text(json.dumps(
+        {"month": "2026-07", "transactions": [transaction(), transaction(when=when)]},
+        ensure_ascii=False), encoding="utf-8")
+    assert fixture.run(updated_at=date(2026, 8, 31)) == EXIT_OK
+    dates = [item["date"] for place in fixture.places() for item in place["transactions"]]
+    assert when not in dates
+    assert "2026-07-13" in dates
+    assert "dropped 1 transaction(s)" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("payload_month", ["2026-08", "2026-7", None])
+def test_a_payload_month_that_disagrees_with_its_directory_stops_the_build(
+        fixture: Fixture, payload_month: str | None) -> None:
+    payload: dict[str, Any] = {"transactions": [transaction()]}
+    if payload_month is not None:
+        payload["month"] = payload_month
+    (fixture.out_dir / "2026-07" / "raw_transactions.json").write_text(
+        json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    assert fixture.run() == EXIT_UNUSABLE
+    assert not fixture.output.exists()
+
+
+@pytest.mark.parametrize("updated_at", [date(2026, 7, 20), date(2026, 7, 1), date(2026, 6, 29)])
+def test_an_anchor_that_is_not_a_month_end_stops_the_build(
+        fixture: Fixture, capsys: Any, updated_at: date) -> None:
+    """Windows cover whole months, so a mid-month anchor publishes the rest of its month as zero."""
+    assert fixture.run(updated_at=updated_at) == EXIT_UNUSABLE
+    assert "month end" in capsys.readouterr().err
+    assert not fixture.output.exists()
+
+
+def test_an_anchor_past_the_newest_collected_month_stops_the_build(
+        fixture: Fixture, capsys: Any) -> None:
+    """``--updated-at`` naming an uncollected month would chart it as a month with no visits."""
+    assert fixture.run(updated_at=date(2026, 8, 31)) == EXIT_UNUSABLE
+    assert "2026-07-31" in capsys.readouterr().err
+    assert not fixture.output.exists()
 
 
 @pytest.mark.parametrize(("newest", "expected"), [
@@ -345,8 +392,9 @@ def test_the_default_anchor_is_the_last_day_of_the_newest_collected_month(
 
 
 def test_an_explicit_anchor_overrides_the_derived_one(fixture: Fixture) -> None:
-    assert fixture.run(updated_at=date(2026, 7, 20)) == EXIT_OK
-    assert fixture.dataset()["updatedAt"] == "2026-07-20"
+    write_month(fixture.out_dir, "2026-08", [normalized()], [transaction(when="2026-08-10")])
+    assert fixture.run(updated_at=date(2026, 7, 31)) == EXIT_OK
+    assert fixture.dataset()["updatedAt"] == "2026-07-31"
 
 
 @pytest.mark.parametrize("name", ["2026-13", "2026-7", "latest"])
@@ -363,8 +411,9 @@ def test_a_place_with_no_surviving_transaction_is_not_published(tmp_path: Path) 
     """One place drops out; another still publishes, so the run is a real dataset."""
     built = Fixture(tmp_path)
     write_csv(built.candidates, [row(), row(canonical_name="만리장성", display_name="만리장성")])
-    write_month(built.out_dir, "2024-01", [normalized(), normalized("만리장성")],
-                [transaction(when="2024-01-05"), transaction("만리장성", "2026-07-02")])
+    write_month(built.out_dir, "2024-01", [normalized()], [transaction(when="2024-01-05")])
+    write_month(built.out_dir, "2026-07", [normalized("만리장성")],
+                [transaction("만리장성", "2026-07-02")])
     assert built.run() == EXIT_OK
     assert [place["name"] for place in built.places()] == ["만리장성"]
 

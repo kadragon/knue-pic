@@ -7,8 +7,10 @@
  * visible and keeps `no-explicit-any` satisfied.
  *
  * Shapes follow the official reference: `new naver.maps.Map(el, options)` and
- * `new naver.maps.Marker(options)`. The marker-mutation, bounds and event surface went with the
- * page-level map — a hand-written vendor type with no caller drifts from the real API unnoticed,
+ * `new naver.maps.Marker(options)`, plus the two mutation calls the page map makes —
+ * `map.setCenter` and `marker.setMap(null)`, both read off that reference on 2026-10-03 rather
+ * than inferred. The bounds and event surface still went with the page-level map in PR #17 and
+ * has not come back: a hand-written vendor type with no caller drifts from the real API unnoticed,
  * so what is unused is deleted rather than kept "in case".
  *
  * Structural interfaces, not classes: the tests inject a fake that satisfies this shape, which is
@@ -44,8 +46,18 @@ export interface MarkerOptions {
   icon?: HtmlIcon;
 }
 
-/** Constructed and left alone: one marker per map, never re-badged. */
-export type NaverMarker = object;
+export interface NaverMarker {
+  /**
+   * Takes the marker off whatever map it is on when handed `null` — the documented removal, and
+   * the only way the page map drops the dots a filter change excluded (official reference,
+   * https://navermaps.github.io/maps.js.en/docs/tutorial-2-Marker.html, read 2026-10-03:
+   * `hideMarker` calls `marker.setMap(null)`).
+   *
+   * The same call with no argument returns the current map. Nothing here reads it back, so the
+   * type is the narrower one the app uses rather than the whole vendor surface.
+   */
+  setMap(map: NaverMap | null): void;
+}
 
 export interface MapOptions {
   center: LatLng;
@@ -60,6 +72,15 @@ export interface NaverMap {
    * object actually carries it.
    */
   destroy?(): void;
+
+  /**
+   * Moves the map's centre. Required rather than optional because it is not an inference: the
+   * official reference shows `map.setCenter(jeju)` as the way to move a map
+   * (https://navermaps.github.io/maps.js.en/docs/tutorial-Map.html, read 2026-10-03), and it is
+   * what `학교로` presses. `destroy` above is optional for the opposite reason — nothing here has
+   * watched the live bundle throw or return one.
+   */
+  setCenter(position: LatLng): void;
 }
 
 /** Constructors are exposed as values so a fake can supply plain functions. */

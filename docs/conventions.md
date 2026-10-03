@@ -142,6 +142,16 @@ dance per file.
   Comparison across time lives inside the row instead of across columns — the rank-movement glyph,
   and a monthly trend chart of `HISTOGRAM_MONTHS` bars whose series is spelled out in its
   `aria-label`.
+- At ≥ 768px the map *is* the page: a full-bleed Naver map with `#content` as a ~360px panel on
+  the left, and one neutral dot per place that passes the period and 업종 filters. Two rules hold it
+  honest, and both are tests rather than opinions — no marker size, shade or hue may vary with the
+  visit count (`src/map/place-map.test.ts` → `renderPageMap` compares the whole icon option across
+  places with different counts), and the dot set is the same set the summary's `N곳` counts
+  (`src/ui/bootstrap.test.ts` → `bootstrap page map`), because both read one predicate. Below 768px
+  the page is the single column it has always been and the Naver script is never loaded; either map
+  failure — the script or a rejected key — gives the panel the whole width back and says
+  `지도를 불러오지 못했습니다.` once. The detail dialog is untouched by all of this: it keeps its
+  own single-marker map until detail moves into the panel.
 - The place detail is a modal dialog, not a section: it opens over the list the reader is in,
   traps Tab, closes on Escape or scrim click, and returns focus to the control that opened it.
   It was the last section on the page until a UI review found that selecting anything threw the

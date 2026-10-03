@@ -355,6 +355,25 @@ def coverage_end(out_dir: Path, months: list[Path]) -> date:
     return date(year, month, calendar.monthrange(year, month)[1])
 
 
+def check_anchor(updated_at: date, newest_end: date) -> None:
+    """Refuse an ``--updated-at`` the browser would misread.
+
+    Every browser window covers whole calendar months up to the anchor's month
+    (``src/stats/period.ts``), so a mid-month anchor -- ``--updated-at`` typed as today's date out
+    of habit -- publishes the rest of that month as a month with no visits. An anchor past the
+    newest collected month does the same for whole months nothing could have reached. The gate
+    checks the month-end half too (check 6); only the build can see ``collector/out/``.
+    """
+    if updated_at.day != calendar.monthrange(updated_at.year, updated_at.month)[1]:
+        raise DatasetUnusable(
+            f"--updated-at {updated_at} is not a month end; windows cover whole months, so name "
+            "the last day of the newest collected month or omit the flag")
+    if updated_at > newest_end:
+        raise DatasetUnusable(
+            f"--updated-at {updated_at} is past the newest collected month, which ends "
+            f"{newest_end}; the months after it would publish as months with no visits")
+
+
 def raw_name_index(normalized: Any, path: Path) -> dict[str, str]:
     """``raw venue name`` -> ``canonicalName``, for one month.
 
@@ -399,8 +418,8 @@ def collect_transactions(
     not attribute -- is a venue this pass simply does not find, which is the correct result for all
     four, and is not counted as unusable.
 
-    A row belonging to an approved place that is dropped anyway -- an unparseable date, a
-    negative or non-numeric amount -- *is* counted and reported. Visits are the product's whole
+    A row belonging to an approved place that is dropped anyway -- an unparseable date, a date
+    outside its directory's month, a negative or non-numeric amount -- *is* counted and reported. Visits are the product's whole
     ranking signal, so an extraction regression that quietly halves a place's count would move it
     down the list with nothing saying so. Being outside the window is not a defect and is not
     counted; that is the trim doing its job.
@@ -417,6 +436,12 @@ def collect_transactions(
         rows = payload.get("transactions") if isinstance(payload, dict) else None
         if not isinstance(rows, list):
             raise DatasetUnusable(f"{month / 'raw_transactions.json'} has no 'transactions' list")
+        # The directory name is what anchors `updatedAt` and what the per-row month test below
+        # reads, so a payload claiming another month means the two were mixed up on disk.
+        if payload.get("month") != month.name:
+            raise DatasetUnusable(
+                f"{month / 'raw_transactions.json'} says month {payload.get('month')!r}, but its "
+                f"directory is {month.name}; move it to the directory of the month it holds")
 
         for row in rows:
             if not isinstance(row, dict):
@@ -437,6 +462,12 @@ def collect_transactions(
             # decides what a date is.
             parsed = parse_iso_date(when)
             if parsed is None:
+                unusable += 1
+                continue
+            # The collection skill keeps only the target month's rows, so a straggler here is an
+            # extraction defect. Left to the window trim, one dated after the newest directory
+            # would fall past the derived anchor and vanish uncounted.
+            if f"{parsed:%Y-%m}" != month.name:
                 unusable += 1
                 continue
             if parsed < window_start or parsed > window_end:
@@ -581,7 +612,9 @@ def main(argv: list[str] | None = None) -> int:
     # a run that could not proceed, and exit 2 is what says so. Escaping as a traceback would look
     # like a crash to the operator and to any script reading the exit code.
     try:
-        updated_at = args.updated_at or coverage_end(args.out_dir, month_dirs(args.out_dir))
+        newest_end = coverage_end(args.out_dir, month_dirs(args.out_dir))
+        updated_at = args.updated_at or newest_end
+        check_anchor(updated_at, newest_end)
         window_start = window_floor(updated_at)
         aliases = load_aliases(args.aliases)
         approved = load_approved(args.candidates, aliases)

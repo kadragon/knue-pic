@@ -22,6 +22,7 @@ from __future__ import annotations
 # use a newer stdlib name. That is why the helpers below return parsed values instead of booleans:
 # `typing.TypeIs`, which would give a type checker the same narrowing, is 3.13+.
 import argparse
+import calendar
 import csv
 import json
 import math
@@ -400,6 +401,13 @@ def validate(
         )
     else:
         window_start = window_floor(window_end)
+        # Every browser window covers whole months up to the anchor's (`src/stats/period.ts`), so
+        # a mid-month anchor publishes the rest of its month as zero visits. Reported, not fatal to
+        # the other checks: the window floor is a month and does not depend on the day.
+        if window_end.day != calendar.monthrange(window_end.year, window_end.month)[1]:
+            violations.append(Violation(
+                6, f"updatedAt {updated_at} is not a month end; it must be the last day of the "
+                   "newest collected month"))
 
     places = dataset.get("places")
     if not isinstance(places, list):

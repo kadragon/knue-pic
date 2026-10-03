@@ -42,7 +42,7 @@ src/                  # web app; browser-only code
                       #   the shortened address the list displays and search matches
                       #   (short-address.ts)
   map/                # loader.ts (script injection), naver-api.ts (hand-written API types),
-                      #   place-map.ts (one marker for the selected place + §38 fallback)
+                      #   place-map.ts (the page map's dots, the dialog's one marker, §38 fallback)
   ui/                 # views, Korean strings
 data/places.json      # published dataset (generated — see below); also Vite's publicDir
 collector/            # Python; never imported by src/
@@ -71,20 +71,28 @@ review_candidates.csv # manual location approval queue (committed)
   label said so on screen until the operator shortened it to `거리 N.Nkm`, so the qualifier now
   lives in the code rather than on screen.
 - `src/map/` reads a place record and nothing else; `src/stats/` must never import from `src/map/`
-  or `src/ui/`. The map shows the place the detail dialog is about — it carries no ranking, so it
-  has no reason to read stats output at all.
+  or `src/ui/`. It draws two maps and neither carries a ranking: the page map marks every place that
+  passes the period and 업종 filters with the same neutral dot, and the dialog's map marks the one
+  place the card is about. So there is nothing here for a statistic to answer, and
+  `CAMPUS_ORIGIN` and the filtered set cross from `src/ui/` as arguments rather than as imports.
 - The map script is the app's only third-party runtime input, and it is optional: `loadNaverMaps`
   rejects (never throws) when the client ID is unset or the script is blocked, offline or unusable,
-  and `renderPlaceLocationMap` turns that — and any throw from the API while mounting — into the
-  PRD §38 fallback message. The dialog mounts the map fire-and-forget after painting the figures,
-  so the statistics never wait on it or fail with it. An origin missing from the key's allowed-URL
+  and both renders turn that — and any throw from the API while mounting — into the
+  PRD §38 fallback message. The page mounts its map fire-and-forget at ≥ 768px, after the panel has
+  painted, and the dialog mounts its own after painting the figures, so the statistics never wait on
+  a map or fail with it. An origin missing from the key's allowed-URL
   list takes a second route: the v3 script serves its full bundle regardless, so the load succeeds,
   a map mounts, and the API signals the rejection through a `window.navermap_authFailure` global.
-  `renderPlaceLocationMap` registers that hook before awaiting the script and keeps it until the
-  map is released, so it catches the rejection on either side of the mount — the real API was
-  observed calling it after the mount (`src/map/loader.ts` module comment) — and both routes end
+  Both renders register that hook before awaiting the script and drop it when the map is released,
+  so each catches the rejection on either side of the mount — the real API was
+  observed calling it after the mount (`src/map/loader.ts` module comment). The global is one
+  dispatching function shared by whoever is listening, not a single handler overwritten per render:
+  the page map holds it for the life of the page, and a dialog opened over it would otherwise mute
+  the first screen. Both routes end
   in the same single fallback, which is
-  why the two degraded states are indistinguishable on screen. Once the hook has fired, the
+  why the two degraded states are indistinguishable on screen — on the page map that is
+  `src/ui/shell.ts` → `setShellMapUnavailable`, which gives the content column the whole width back
+  and says the sentence once. Once the hook has fired, the
   rejection is remembered for the life of the page: later renders show the fallback without
   loading the script or installing the hook again. A load failure is not remembered.
 - `src/data/` is the only module that knows the `places.json` wire format. Everything else uses its
@@ -104,8 +112,11 @@ review_candidates.csv # manual location approval queue (committed)
 ```
 
 `updatedAt` is the **coverage end** — the last day of the newest month directory under
-`collector/out/` — not the build date (`collector/build_places.py` → `coverage_end`;
-`--updated-at` overrides it). A month is disclosed only after it ends, so a build-date anchor made
+`collector/out/` — not the build date (`collector/build_places.py` → `coverage_end`).
+`--updated-at` moves it, and the build **refuses** an anchor that is not the last day of a month or
+that runs past the newest collected month (`check_anchor`): the browser's windows are whole calendar
+months, so a mid-month anchor would cut a month in half, and one past the data would reship the
+undisclosed-month gap this value exists to close. A month is disclosed only after it ends, so a build-date anchor made
 the newest chart bar and the back half of every period window a month no data could have reached,
 drawn the same as a month with no visits. Every browser window (`src/stats/period.ts`), the
 histogram's last bar (`src/stats/histogram.ts`), and the summary line's `{updatedAt} 기준` hang
@@ -154,7 +165,7 @@ Two of the nine need a concrete value the invariant list does not carry:
   accepted date is the first day of the month `ROLLING_WINDOW_MONTHS - 1` — 14 — before
   `updatedAt`'s own month. It is wider than the span `src/stats/histogram.ts` renders — twelve
   months — and
-  `src/stats/period.ts` -> `retentionFloor` derives the browser's floor with the same formula so
+  `src/stats/period.ts` -> `retainedWindow` derives the browser's floor with the same formula so
   the two cannot disagree. A day-anchored floor would cut the oldest month in half, and the
   histogram bars would sum to fewer visits than the count printed beside them, with nothing
   reporting the gap.
@@ -288,7 +299,9 @@ saying so.
 1. **Transaction = visit.** One disclosed payment is one visit (PRD §22). Multiple payments in a
    single sitting are not merged.
 2. **Period recomputation.** Every window is derived from `transactions` client-side, at render
-   time. There are no precomputed per-period fields in the JSON. The page shows one window at a
+   time. There are no precomputed per-period fields in the JSON. Each window covers whole calendar
+   months — `N` months up to and including `updatedAt`'s month — so 최근 1개월 is exactly the month
+   the newest histogram bar draws. The page shows one window at a
    time — 1m / 3m / 6m / 1y, chosen with the period selector — so `src/ui/place-list.ts` runs one
    aggregation on load and one more per switch, and a place selected from the list is shown the
    selected window's figures. Each aggregation ranks the *whole* window; the view pages through it

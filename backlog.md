@@ -2,21 +2,6 @@
 
 ## Review Backlog
 
-### PR #71 — anchor updatedAt on the newest collected month (2026-10-03)
-
-- [ ] [debt] With `updatedAt` now always a month end, `resolveMonthsWindow` still steps back by
-  day with clamping, so a 2026-09-30 anchor makes 최근 1개월 `(2026-08-30, 2026-09-30]` — it counts
-  Aug 31, which the September histogram bar does not, and the prior window shifts with it; a
-  February anchor reaches into Jan 29-31. Consider whole-calendar-month windows (source:
-  code-review) — `src/stats/period.ts:46`
-- [ ] [debt] A transaction dated after its directory's month (a straggler `2026-09-01` inside
-  `2026-08/`) now falls past the derived anchor and is dropped without being counted as unusable;
-  the payload's own `month` field is never checked against the directory name (source:
-  code-review) — `collector/build_places.py` → `collect_transactions`
-- [ ] [constraint] Nothing enforces that `updatedAt` is a month end or no later than the newest
-  collected month: `--updated-at 2026-10-03` out of habit passes the gate and reships the
-  undisclosed-month gap (source: code-review) — `collector/validate.py:395`
-
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
 - [x] [debt] Three limits QA reproduced on PR #23 and the contract sanctioned, none of them
@@ -58,30 +43,29 @@
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
 
-## Map-first 3 — page map shell with neutral dots and the fallback layout (2026-10-03)
+## Review Backlog — found reviewing PR #72 (map-first shell, 2026-10-03)
 
-- [ ] [feat] Desktop (≥ 768px): full-bleed Naver map with the existing content in a ~360px left
-  panel; every place passing the period and 업종 filters is a small neutral dot (no size/shade/hue
-  from visit count); a `학교로` control recentres on `CAMPUS_ORIGIN`. Either failure route
-  (load rejection, `navermap_authFailure`) switches to today's full-width layout with
-  `지도를 불러오지 못했습니다.` once. Below 768px the page stays today's layout until ticket 6. The
-  detail dialog is untouched. Accept: fake-API tests for dot set = filtered set, no
-  count-derived marker option, both failure routes → full-width state; list paints before the map
-  mounts; real-map check per `docs/runbook.md` → Verify the real map (source: `docs/design/map-first-layout.md` →
-  Solution, Implementation Decisions 1, 3, 5, 8) — `src/map/place-map.ts`, `src/ui/shell.ts`,
-  `src/ui/bootstrap.ts`, `src/styles.css`
+- [ ] [debt] The page map opens on a fixed campus-centred frame (`PAGE_ZOOM` 13) rather than on the
+  dots: the median place is 5.4km out and the p90 is 14.9km, but 125 of the 543 sit beyond 10km and
+  the tail reaches 110km (대전, 세종), so a good share of the filtered set is drawn off-screen at every
+  default zoom and the summary's `N곳` counts more places than a reader can see. Fit the frame to the
+  dot set (`map.fitBounds`, verified on the official reference) and re-fit on a filter change, or
+  state the framing where the reader can find it — `src/map/place-map.ts`
+- [ ] [feat] Overlap is now observed on the real map, which is the condition
+  `docs/design/map-first-layout.md` → Implementation Decision 3 set for revisiting clustering: the
+  campus cluster stacks many dots on nearly the same block at zoom 13. Naver Maps v3 core has no
+  built-in clusterer (the commonly cited `MarkerClustering.js` is example code to vendor), so this is
+  a follow-up ticket, not a rider on the next one — `src/map/place-map.ts`
 
 ## Map-first 4 — numbered pins synced with the visible rows (2026-10-03)
 
 - [ ] [feat] Rows currently visible in the list become pins printing the row's rank label; row
   hover/focus and selection highlight the matching pin and vice versa; `더 보기` extends the pin
   set. `src/map/` receives `{ place, label? }` from the UI and still imports nothing from
-  `src/stats/`. Amend `docs/architecture.md` → Layer Rules and rewrite the
-  `src/map/place-map.ts` header to record why the page map returned (PR #17 removed it for sitting
-  three screens away). Accept: fake-API tests for pin labels = visible rows' labels, highlight
+  `src/stats/`. Accept: fake-API tests for pin labels = visible rows' labels, highlight
   sync both ways, no count-derived marker option (source: `docs/design/map-first-layout.md` →
   Implementation Decisions 1–2) — `src/map/place-map.ts`, `src/ui/place-list.ts`,
-  `src/ui/top-places.ts`, `docs/architecture.md` *(blocked by: 3-page-map-shell)*
+  `src/ui/top-places.ts`, `docs/architecture.md`
 
 ## Map-first 5 — detail inside the panel with `#place=<id>` (2026-10-03)
 

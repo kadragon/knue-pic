@@ -50,6 +50,22 @@ the map mounted without relying on a screenshot:
   `window.naver?.maps != null` (a rejected origin leaves the global without it);
 - no `.place-map-fallback` element is present.
 
+The page map needs its own pass, and a **window at least 768px wide**: below that the layout is the
+single column and the script is never loaded, so an empty `.map-shell-map` there is correct rather
+than broken. At that width, on the same page and after the same 2 s:
+
+- `document.querySelectorAll('.page-map-dot').length` matches the `{N}곳` in the summary line — the
+  dots are the places that pass both filters, and the two are computed from one predicate;
+- `document.querySelector('.page-map-canvas')` exists and no `.shell-map-note` is present;
+- pressing `학교로` re-centres on `CAMPUS_ORIGIN` (`src/stats/distance.ts`) — the map's centre after
+  the press is `36.6084, 127.3582`;
+- switching 기간 or 업종 changes the dot count, and narrowing never leaves a dot behind: the count
+  only ever goes down by the places that left the window, never by a redraw.
+
+To check the degraded layout, block the Naver script (or use an origin the key rejects) at ≥ 768px:
+`.map-shell-map` disappears, exactly one `.shell-map-note` reading `지도를 불러오지 못했습니다.` is
+above the summary line, and the list, the search and the detail dialog all still work.
+
 ## Build & Test
 
 | Command | Purpose |
@@ -128,11 +144,23 @@ The collector's server/search credentials are never Vite variables and never liv
 
 ### Map fails to load, list still renders
 
-**Symptom:** "지도를 불러오지 못했습니다." with the ranked place list still rendering.
+**Symptom:** "지도를 불러오지 못했습니다." with the ranked place list still rendering. On the page
+map this is the *whole* layout: at ≥ 768px the content column takes the full width back, because
+the map was the page and there is nothing to float beside.
 **Cause:** Client ID missing, or the current origin is not in the key's allowed URLs — locally,
 any port other than `5173`.
 **Fix:** Check `VITE_NAVER_MAP_CLIENT_ID`, then the key's Web Service URL list. This degradation is
 intended behaviour (PRD §38) — the fix is the key, never removing the fallback.
+
+### Build refuses `--updated-at`
+
+**Symptom:** `python -m collector.build_places` exits non-zero naming `--updated-at`.
+**Cause:** the anchor is not the last day of a month, or it runs past the newest collected month.
+Both are refused on purpose (`check_anchor`): the browser's period windows are whole calendar months,
+so a mid-month anchor cuts one in half, and an anchor past the data reships the undisclosed-month
+gap the anchor exists to close.
+**Fix:** drop the flag and let the build derive the newest month end, or pass the month end itself —
+`--updated-at 2026-08-31`, never the date the run happens to be on.
 
 ### Validator rejects `places.json`
 
