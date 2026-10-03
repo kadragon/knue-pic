@@ -279,6 +279,30 @@ describe('createDetailDialog map lifecycle', () => {
     document.body.replaceChildren();
   });
 
+  it('finishes opening when the renderer throws before returning a promise', async () => {
+    const { container, opener } = mount();
+    const dialog = createDetailDialog(container, {
+      renderMap: () => {
+        throw new TypeError('renderer broke');
+      },
+    });
+    const addListener = vi.spyOn(document, 'addEventListener');
+
+    opener.focus();
+    // A throw that escaped `paint` would leave the card rendered into a root that never unhides,
+    // with no key handler to close it.
+    expect(() => dialog.open(detailFor(0))).not.toThrow();
+    expect(dialog.isOpen()).toBe(true);
+    expect(container.textContent).toContain(SAMPLE_DATASET.places[0]!.name);
+    expect(addListener).toHaveBeenCalledWith('keydown', expect.any(Function), true);
+    addListener.mockRestore();
+
+    await Promise.resolve();
+    dialog.close();
+    expect(document.activeElement).toBe(opener);
+    document.body.replaceChildren();
+  });
+
   it('swaps to the next place when the open card release throws', async () => {
     const { container } = mount();
     let calls = 0;

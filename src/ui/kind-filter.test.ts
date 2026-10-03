@@ -5,12 +5,18 @@ import {
   KIND_FILTER_LABEL,
   KIND_LABELS,
   KIND_OPTIONS,
+  kindCountLabel,
   markActiveKind,
   renderKindFilter,
+  setKindCounts,
 } from './kind-filter';
 
 function options(root: HTMLElement): HTMLButtonElement[] {
   return [...root.querySelectorAll<HTMLButtonElement>('.kind-filter-option')];
+}
+
+function name(button: HTMLButtonElement): string | null | undefined {
+  return button.querySelector('.kind-filter-name')?.textContent;
 }
 
 function pressed(root: HTMLElement): HTMLButtonElement | undefined {
@@ -23,7 +29,7 @@ describe('renderKindFilter', () => {
 
     renderKindFilter(root, null, () => {});
 
-    expect(options(root).map((button) => button.textContent)).toEqual([
+    expect(options(root).map(name)).toEqual([
       ALL_KINDS_LABEL,
       ...PLACE_KINDS.map((kind) => KIND_LABELS[kind]),
     ]);
@@ -46,7 +52,7 @@ describe('renderKindFilter', () => {
 
     renderKindFilter(root, null, onSelect);
     options(root)
-      .find((button) => button.textContent === KIND_LABELS.cafe)
+      .find((button) => name(button) === KIND_LABELS.cafe)
       ?.click();
 
     expect(onSelect).toHaveBeenCalledWith('cafe');
@@ -58,7 +64,7 @@ describe('renderKindFilter', () => {
 
     renderKindFilter(root, 'cafe', onSelect);
     options(root)
-      .find((button) => button.textContent === ALL_KINDS_LABEL)
+      .find((button) => name(button) === ALL_KINDS_LABEL)
       ?.click();
 
     expect(onSelect).toHaveBeenCalledWith(null);
@@ -83,5 +89,39 @@ describe('renderKindFilter', () => {
 
     // The same node, not a replacement: a rebuilt button would take the reader's focus with it.
     expect(pressed(root)).toBe(cafe);
+  });
+});
+
+describe('setKindCounts', () => {
+  it('prints each chip its own count, with the name and the count spoken apart', () => {
+    const root = document.createElement('div');
+    renderKindFilter(root, null, () => {});
+
+    setKindCounts(root, { all: 9, byKind: { restaurant: 5, cafe: 3, lunchbox: 0, other: 1 } });
+
+    expect(options(root).map((button) => button.textContent)).toEqual([
+      `${ALL_KINDS_LABEL} 9곳`,
+      `${KIND_LABELS.restaurant} 5곳`,
+      `${KIND_LABELS.cafe} 3곳`,
+      `${KIND_LABELS.lunchbox} 0곳`,
+      `${KIND_LABELS.other} 1곳`,
+    ]);
+    expect(kindCountLabel(9)).toBe('9곳');
+  });
+
+  it('rewrites the counts in place, so the pressed chip keeps focus', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    renderKindFilter(root, null, () => {});
+    const cafe = options(root).find((button) => button.dataset['kind'] === 'cafe')!;
+    cafe.focus();
+
+    setKindCounts(root, { all: 2, byKind: { restaurant: 1, cafe: 1, lunchbox: 0, other: 0 } });
+    setKindCounts(root, { all: 7, byKind: { restaurant: 4, cafe: 2, lunchbox: 1, other: 0 } });
+
+    expect(options(root).find((button) => button.dataset['kind'] === 'cafe')).toBe(cafe);
+    expect(document.activeElement).toBe(cafe);
+    expect(cafe.textContent).toBe(`${KIND_LABELS.cafe} 2곳`);
+    document.body.replaceChildren();
   });
 });

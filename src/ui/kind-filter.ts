@@ -61,6 +61,32 @@ export function markActiveKind(container: HTMLElement, active: KindSelection): v
   }
 }
 
+/** A chip's count: in-window places of that kind, under the selected period. */
+export function kindCountLabel(count: number): string {
+  return `${count}곳`;
+}
+
+/** `all` is the 전체 chip; it equals the sum of `byKind` when both come from one window. */
+export interface KindCounts {
+  all: number;
+  byKind: Record<PlaceKind, number>;
+}
+
+/**
+ * Rewrites each chip's count in place, for the same reason `markActiveKind` flips state in place:
+ * the period tabs and the chips both change the counts, and a rebuild would drop the focus the
+ * reader is holding on whichever control they just pressed.
+ */
+export function setKindCounts(container: HTMLElement, counts: KindCounts): void {
+  for (const button of container.querySelectorAll<HTMLButtonElement>('.kind-filter-option')) {
+    const value = button.dataset['kind'];
+    const count: number | undefined =
+      value === ALL_KINDS_VALUE ? counts.all : counts.byKind[value as PlaceKind];
+    const slot = button.querySelector('.kind-filter-count');
+    if (slot && count !== undefined) slot.textContent = kindCountLabel(count);
+  }
+}
+
 export function renderKindFilter(
   container: HTMLElement,
   active: KindSelection,
@@ -82,7 +108,15 @@ export function renderKindFilter(
     button.type = 'button';
     button.className = 'kind-filter-option';
     button.dataset['kind'] = kindValue(kind);
-    button.textContent = kindOptionLabel(kind);
+    // Name and count as separate spans with a text space between, so the accessible name reads
+    // `식당 12곳` rather than running the two together. The count stays empty until
+    // `setKindCounts` fills it.
+    const name = document.createElement('span');
+    name.className = 'kind-filter-name';
+    name.textContent = kindOptionLabel(kind);
+    const count = document.createElement('span');
+    count.className = 'kind-filter-count';
+    button.append(name, ' ', count);
     button.setAttribute('aria-pressed', String(kind === active));
     button.addEventListener('click', () => {
       onSelect(kind);

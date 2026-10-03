@@ -3,7 +3,13 @@ import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import type { PlaceRecord } from '../data/types';
 import type { FakeNaverApi } from './fake-naver-api';
 import { createFakeNaverApi } from './fake-naver-api';
-import { MAP_ERROR_MESSAGE, MAP_HEADING, markerLabel, renderPlaceLocationMap } from './place-map';
+import {
+  MAP_ERROR_MESSAGE,
+  MAP_HEADING,
+  markerLabel,
+  renderPlaceLocationMap,
+  resetAuthFailureMemo,
+} from './place-map';
 
 const PLACE: PlaceRecord = SAMPLE_DATASET.places[0]!;
 
@@ -17,6 +23,9 @@ function container(): HTMLElement {
  */
 afterEach(() => {
   delete (globalThis as { navermap_authFailure?: () => void }).navermap_authFailure;
+  // A rejected key is remembered for the life of the page, so one case's hook call would otherwise
+  // send every later case straight to the fallback.
+  resetAuthFailureMemo();
 });
 
 /** The property, not a call — the re-render case asserts it is absent rather than a no-op. */
@@ -123,7 +132,7 @@ describe('renderPlaceLocationMap', () => {
     expect(api.maps[0]?.destroyCalls).toBe(1);
   });
 
-  it('survives a destroy that throws after the key was rejected, so the next place still renders', async () => {
+  it('survives a destroy that throws after the key was rejected, so the next place still renders its fallback', async () => {
     // Observed on a rejected origin: once the hook has fired, the real `map.destroy()` throws
     // `TypeError: Cannot read properties of null (reading 'isArray')`.
     const api = createFakeNaverApi();
@@ -140,9 +149,43 @@ describe('renderPlaceLocationMap', () => {
 
     const next = createFakeNaverApi();
     const { root: second } = await render(next, SAMPLE_DATASET.places[1]!);
-    expect(next.maps).toHaveLength(1);
-    authFailureHook()?.();
     expect(second.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
+  });
+
+  it('goes straight to the fallback once the key has been rejected', async () => {
+    const { release } = await render(createFakeNaverApi());
+    authFailureHook()?.();
+    release();
+
+    // The origin does not change within a page, so asking `/v3/auth` again only buys the reader
+    // another ~1.1 s of a map that will be taken away (`./loader.ts` module comment).
+    let loads = 0;
+    const root = container();
+    const next = await renderPlaceLocationMap(root, SAMPLE_DATASET.places[1]!, {
+      loadApi: () => {
+        loads += 1;
+        return Promise.resolve(createFakeNaverApi());
+      },
+    });
+
+    expect(loads).toBe(0);
+    expect(root.querySelector('h4')?.textContent).toBe(MAP_HEADING);
+    expect(root.querySelectorAll('.place-map-fallback')).toHaveLength(1);
+    expect(root.querySelector('.place-map-fallback')?.getAttribute('role')).toBe('status');
+    expect(root.querySelector('.place-map-canvas')).toBeNull();
+    expect(authFailureHook()).toBeUndefined();
+    expect(() => next()).not.toThrow();
+  });
+
+  it('keeps loading after a script failure, which a later attempt can recover from', async () => {
+    await renderPlaceLocationMap(container(), PLACE, {
+      loadApi: () => Promise.reject(new Error('script blocked')),
+    });
+
+    const api = createFakeNaverApi();
+    await render(api);
+
+    expect(api.maps).toHaveLength(1);
   });
 
   it('takes its auth-failure hook down with the map', async () => {

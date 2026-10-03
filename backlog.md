@@ -2,17 +2,23 @@
 
 ## Review Backlog
 
-### PR #69 — detail dialog survives a throwing map release (2026-10-03)
-
-- [ ] [debt] A synchronous throw from an injected `renderMap` escapes `paint()` before the trailing `.catch` attaches, so `open()` throws after rendering the body but before unhiding the root and adding the keydown listener; the comment above the mount claims the catch covers a renderer that breaks the promise, but it only covers async rejection. Defer the call into the promise chain and cover a sync-throwing renderer in `src/ui/detail-dialog.test.ts` (source: code-review) — `src/ui/detail-dialog.ts:223`
-
-### PR #67 — loader re-injection after auth failure (2026-10-03)
-
-- [ ] [debt] On a rejected origin every detail render calls `/v3/auth` again and waits ~1.1 s for `navermap_authFailure` before the fallback, since nothing remembers the hook already fired; once it has, later renders could go straight to the fallback. Observed 2026-10-03 on `:5179`, Chromium, 3 sequential renders: one `maps.js` request in total (the bundle is not re-downloaded), `/v3/auth` once per render, each render mounted then got the hook (source: code-review, rescoped by PR #68 observation) — `src/map/loader.ts:63`, `src/map/place-map.ts`
-
 ### Detail card monthly chart (follow-up, 2026-09-16)
 
-- [ ] [debt] The top-ranked place's 2026-09 column reads `0` while `updatedAt` is 2026-09-16. Unknown whether September is a partial month the collector has not reached or a month with no disclosure yet; either way the column draws the same as a month with no visits. Read `data/places.json` for September transactions before deciding whether the chart needs an in-progress marker (source: PR #63 design analysis, unverified) — `src/ui/place-detail.ts`, `src/stats/histogram.ts`
+- [ ] [debt] The newest month in every chart and the back half of 최근 1개월 are a month no
+  disclosure has reached yet, and draw the same as a month with no visits. Verified 2026-10-03 on
+  the committed `data/places.json`: `updatedAt` is `2026-09-16`, the newest transaction is
+  `2026-08-31`, and all 525 places carry 0 September transactions — a coverage gap, not a partial
+  month per place. `updatedAt` is the build date (`collector/build_places.py` defaults it to
+  `date.today()`), and month M is disclosed only after it ends, so every mid-month build repeats
+  this. Anchors affected: `chartedMonths` (last bar), `resolvePeriodWindow` (every window's end),
+  and the Map-first summary line's `{updatedAt} 기준`. Options, none chosen: (a) the collector
+  publishes the coverage end (last disclosed month's last day) as the anchor, alongside or instead
+  of the build date — schema/semantics change, re-derive every window; (b) the browser anchors
+  charts and windows at the newest transaction month — no schema change, but an all-quiet real
+  month becomes indistinguishable from an undisclosed one; (c) mark the anchor month as
+  not-yet-disclosed in the chart only — leaves 최근 1개월 half empty. Needs a spec before code
+  (source: PR #63 design analysis, verified by this batch) — `collector/build_places.py`,
+  `src/stats/period.ts`, `src/stats/histogram.ts`, `src/ui/place-detail.ts`
 
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
@@ -54,22 +60,6 @@
   `docs/architecture.md` → Build. No re-collect was needed for the schema; the committed dataset
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
-
-### PR #65 — pin the dev server to the Naver-accepted port (2026-10-03)
-
-- [ ] [harness] `vite preview` stays on `:4173`, which the key rejects, so a production bundle cannot be
-  checked against the real map locally. Pin `preview: { port: 5173, strictPort: true }` and verify the
-  map mounts there, or record the limit as accepted (source: code-review) — `vite.config.ts:15`
-
-## Map-first 2 — summary line and 업종 chip counts (2026-10-03)
-
-- [ ] [feat] Add `{updatedAt} 기준 · N곳 · N회` above the filters and an in-window place count on
-  each 업종 chip, both computed in `src/stats/` as pure functions (N곳 = places with ≥1 in-window
-  transaction under the current filters; N회 = in-window transaction count). Lands in today's
-  layout, so it ships independently of the map. Accept: stats unit tests hand-computable from a
-  fixture; banned-phrase test covers the new strings; 360px holds (source:
-  `docs/design/map-first-layout.md` → Implementation Decisions 6–7) — `src/stats/`,
-  `src/ui/kind-filter.ts`, `src/ui/shell.ts`
 
 ## Map-first 3 — page map shell with neutral dots and the fallback layout (2026-10-03)
 

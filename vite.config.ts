@@ -12,7 +12,10 @@ export default defineConfig({
   // The Naver browser key accepts http://localhost:5173 and rejected :5179 and :4173 with a 401
   // (observed 2026-10-03). Vite's default is to slide to the next free port, which serves a page
   // whose map silently falls back — so hold 5173 or fail. `docs/runbook.md` → Naver API Keys.
+  // `preview` gets the same pin: its default :4173 is rejected too, which left no local origin to
+  // check a production bundle against the real map. The two servers cannot run at once.
   server: { port: 5173, strictPort: true },
+  preview: { port: 5173, strictPort: true },
   test: {
     environment: 'jsdom',
     // Load-bearing for two guards, not a rendering nicety: Vitest stubs CSS modules to an empty

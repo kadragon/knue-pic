@@ -206,8 +206,9 @@ export function createDetailDialog(
    * The map is mounted after the figures rather than awaited before them: it is the one view that
    * depends on a third-party script, and the dialog must show the numbers whether or not that
    * script ever arrives (`docs/eval-criteria.md` → Graceful Degradation). `renderPlaceLocationMap`
-   * resolves even on failure — it renders the documented fallback instead — so the `catch` is only
-   * for an injected renderer that does not keep that promise.
+   * resolves even on failure — it renders the documented fallback instead — so the `try` and the
+   * `catch` are only for an injected renderer that does not keep that promise: the `try` for one
+   * that throws before returning anything, the `catch` for one that rejects.
    */
   function paint(detail: PlaceDetail): void {
     dropMap();
@@ -220,7 +221,16 @@ export function createDetailDialog(
     // before it lands. A release is stored only while it is still the current paint's; every other
     // one is spent on arrival rather than stored and forgotten.
     const mountId = ++paintId;
-    void Promise.resolve(renderMap(slot, detail.place))
+    // Called synchronously rather than from inside a `.then`: the real renderer draws its heading
+    // and canvas before its first `await`, and deferring the call would leave the slot empty for a
+    // tick. A synchronous throw would otherwise escape `open()` before the root is unhidden.
+    let mounting: Promise<void | ReleasePlaceLocationMap>;
+    try {
+      mounting = Promise.resolve(renderMap(slot, detail.place));
+    } catch (error) {
+      mounting = Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
+    void mounting
       .then((release) => {
         if (typeof release !== 'function') return;
         if (isOpen() && mountId === paintId) {

@@ -12,6 +12,7 @@ import { displayDate } from './place-labels';
 import { KIND_LABELS, ALL_KINDS_LABEL } from './kind-filter';
 import { NO_RESULTS_MESSAGE, resultCountLabel } from './search';
 import { DISCLAIMER, SOURCE_LINE } from './shell';
+import { summaryLabel } from './summary-line';
 
 function retryButton(root: HTMLElement): HTMLButtonElement | null {
   return root.querySelector<HTMLButtonElement>('.data-state-retry');
@@ -41,7 +42,7 @@ function firstRow(root: HTMLElement, period: Period): HTMLButtonElement | null {
 
 function kindOption(root: HTMLElement, label: string): HTMLButtonElement | undefined {
   return [...root.querySelectorAll<HTMLButtonElement>('.kind-filter-option')].find(
-    (button) => button.textContent === label,
+    (button) => button.querySelector('.kind-filter-name')?.textContent === label,
   );
 }
 
@@ -295,6 +296,67 @@ describe('bootstrap ranked list', () => {
     // Rebuilding the selector on every change would drop focus to the document body.
     expect(document.activeElement).toBe(button);
     root.remove();
+  });
+});
+
+/*
+ * Hand-counted from the fixture (`updatedAt` 2026-08-01). 3m, the default: 000001 3 visits, 000002
+ * 1, 000004 2, 000005 2, 000006 3 → 5곳 11회; restaurant 4, cafe 1, lunchbox 0, other 0. 1y adds
+ * 000001's 2025-11-03 and 000003's two visits → 6곳 14회, and other 1.
+ */
+describe('bootstrap summary line and 업종 counts', () => {
+  function summaryText(root: HTMLElement): string | null | undefined {
+    return root.querySelector('.summary-line')?.textContent;
+  }
+
+  function chipCounts(root: HTMLElement): (string | null | undefined)[] {
+    return [...root.querySelectorAll('.kind-filter-option')].map(
+      (button) => button.querySelector('.kind-filter-count')?.textContent,
+    );
+  }
+
+  it('sits above the filters and counts the default window', async () => {
+    const root = document.createElement('div');
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+
+    const line = root.querySelector('.summary-line');
+    expect(line?.textContent).toBe('2026년 8월 1일 기준 · 5곳 · 11회');
+    expect(line?.textContent).toBe(
+      summaryLabel(SAMPLE_DATASET.updatedAt, { placeCount: 5, visitCount: 11 }),
+    );
+    const filters = root.querySelector('.kind-filter');
+    expect(
+      line && filters && line.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // 전체, then the dataset's kind order: restaurant, cafe, lunchbox, other.
+    expect(chipCounts(root)).toEqual(['5곳', '4곳', '1곳', '0곳', '0곳']);
+  });
+
+  it('recounts both when the period changes, without rebuilding the chips', async () => {
+    const root = document.createElement('div');
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    const chip = kindOption(root, KIND_LABELS.restaurant);
+
+    periodTab(root, periodLabel('1y'))?.click();
+
+    expect(summaryText(root)).toBe('2026년 8월 1일 기준 · 6곳 · 14회');
+    expect(chipCounts(root)).toEqual(['6곳', '4곳', '1곳', '0곳', '1곳']);
+    expect(kindOption(root, KIND_LABELS.restaurant)).toBe(chip);
+  });
+
+  it('narrows the summary to the picked 업종 but keeps every chip counting its own kind', async () => {
+    const root = document.createElement('div');
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+
+    kindOption(root, KIND_LABELS.cafe)?.click();
+    expect(summaryText(root)).toBe('2026년 8월 1일 기준 · 1곳 · 1회');
+    expect(chipCounts(root)).toEqual(['5곳', '4곳', '1곳', '0곳', '0곳']);
+
+    periodTab(root, periodLabel('1m'))?.click();
+    expect(summaryText(root)).toBe('2026년 8월 1일 기준 · 1곳 · 1회');
+
+    kindOption(root, ALL_KINDS_LABEL)?.click();
+    expect(summaryText(root)).toBe('2026년 8월 1일 기준 · 5곳 · 9회');
   });
 });
 
