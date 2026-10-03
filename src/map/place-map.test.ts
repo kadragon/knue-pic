@@ -133,10 +133,10 @@ describe('renderPlaceLocationMap', () => {
   });
 
   /**
-   * The other ordering. Whether the real API calls the hook before or after the map mounts is
-   * unverified (`backlog.md`), so the render must hold either way — these cases drive the hook
-   * while the script is still arriving, which the fake can do and a real browser has not been
-   * shown to.
+   * The other ordering. The real API was observed calling the hook only after the map mounts
+   * (`./loader.ts` module comment), but no vendor doc pins that, so the render must hold either
+   * way — these cases drive the hook while the script is still arriving, which the fake can do and
+   * a real browser has not been shown to.
    */
   function pendingApi(): { load: () => Promise<FakeNaverApi>; settle: (api: FakeNaverApi | null) => void } {
     let settle: (api: FakeNaverApi | null) => void = () => {};

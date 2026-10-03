@@ -62,7 +62,8 @@ describe('loadNaverMaps', () => {
   });
 
   it('rejects when the script loads but leaves no API behind', async () => {
-    // What a rejected key actually does: a 200 response that never defines `naver.maps`.
+    // A script that runs but defines nothing — not what a rejected key does: that bundle defines
+    // `naver.maps` and nulls it only later, through the auth-failure hook (`./loader.ts`).
     const pending = loadNaverMaps({ clientId: 'key', readApi: () => undefined });
     injectedScript()?.dispatchEvent(new Event('load'));
 

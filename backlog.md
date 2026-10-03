@@ -6,10 +6,6 @@
 
 - [ ] [debt] The top-ranked place's 2026-09 column reads `0` while `updatedAt` is 2026-09-16. Unknown whether September is a partial month the collector has not reached or a month with no disclosure yet; either way the column draws the same as a month with no visits. Read `data/places.json` for September transactions before deciding whether the chart needs an in-progress marker (source: PR #63 design analysis, unverified) — `src/ui/place-detail.ts`, `src/stats/histogram.ts`
 
-### Map auth-failure hook (follow-up, 2026-08-19)
-
-- [ ] [debt] No vendor doc or captured trace establishes when the v3 API calls `navermap_authFailure` relative to map construction, or that it calls it at all on a rejected origin. The render no longer depends on the ordering — the hook is registered before the script is awaited and routed through one idempotent failure path, tested for both orderings against the fake API — but that is repo-side robustness, not evidence. Still needed: load the site on an origin the key rejects, in a real browser, and record whether the hook fires and whether the fallback replaces the map (source: contest round on PR #7, unverifiable-from-repo) — `src/map/place-map.ts`. Partly observed 2026-10-03 (PR #65): on `npx vite --port 5179` (a rejected origin) `/v3/auth` answered 401, `window.naver.maps` was gone, and the detail showed the fallback text. Still open: whether `navermap_authFailure` itself was called, and when — the loader's "loaded without an API" rejection would produce the same screen. A rejected origin is now reproducible locally, so this is no longer deferred.
-
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
 - [x] [debt] Three limits QA reproduced on PR #23 and the contract sanctioned, none of them
