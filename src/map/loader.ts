@@ -16,7 +16,7 @@ import type { NaverMapsApi } from './naver-api';
  * `renderPlaceLocationMap` in `./place-map.ts` owns it, listening from before this promise settles
  * until the map is released. Observed 2026-10-03 on a rejected origin (`localhost:5179`, Chromium,
  * 3 of 3 runs): this promise resolved, the map mounted, `/v3/auth` answered 401, and about 1.1 s
- * later the API nulled `naver.maps` and called the hook — after the mount, never before it.
+ * later the API nulled `naver.maps` and called the hook — after the mount in every observed run.
  */
 
 /** `docs/conventions.md` → Naming. Vite inlines it; it is a browser key, public by design. */

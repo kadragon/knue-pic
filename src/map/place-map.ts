@@ -177,7 +177,8 @@ export async function renderPlaceLocationMap(
       return () => {};
     }
     // Mounting is inside the try as well: a script that loaded can still throw from a constructor
-    // (a rejected key, an API version that moved). Leaving that outside would reject the promise
+    // (an API version that moved). A rejected key does not throw here — it mounts, then fails
+    // through the auth-failure hook (`./loader.ts` module comment). Leaving that outside would reject the promise
     // and leave an empty canvas where the fallback message belongs.
     const position = new api.LatLng(place.lat, place.lng);
     const map: NaverMap = new api.Map(canvas, { center: position, zoom: PLACE_ZOOM });

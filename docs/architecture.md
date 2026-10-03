@@ -82,8 +82,8 @@ review_candidates.csv # manual location approval queue (committed)
   a map mounts, and the API signals the rejection through a `window.navermap_authFailure` global.
   `renderPlaceLocationMap` registers that hook before awaiting the script and keeps it until the
   map is released, so it catches the rejection on either side of the mount — the real API was
-  observed (2026-10-03, rejected `localhost:5179`) calling it about 1.1 s after the 401 from
-  `/v3/auth`, after the mount — and both routes end in the same single fallback, which is
+  observed calling it after the mount (`src/map/loader.ts` module comment) — and both routes end
+  in the same single fallback, which is
   why the two degraded states are indistinguishable on screen.
 - `src/data/` is the only module that knows the `places.json` wire format. Everything else uses its
   exported types.

@@ -2,6 +2,10 @@
 
 ## Review Backlog
 
+### PR #66 — navermap_authFailure observation (2026-10-03)
+
+- [ ] [debt] After a rejected origin's hook nulls `naver.maps`, `loadNaverMaps` still returns the cached resolved `pending` (reset only on failure), so a second detail render mounts from the stale API object; whether the fallback appears then depends on the API calling `navermap_authFailure` again, which the 2026-10-03 observation (first render only) does not show. Observe a second render on `:5179`, then either drop `pending` when `readApi()` comes back empty or add a test that nulls the fake global after the hook and renders again (source: code-review) — `src/map/loader.ts:63`, `src/map/place-map.test.ts`
+
 ### Detail card monthly chart (follow-up, 2026-09-16)
 
 - [ ] [debt] The top-ranked place's 2026-09 column reads `0` while `updatedAt` is 2026-09-16. Unknown whether September is a partial month the collector has not reached or a month with no disclosure yet; either way the column draws the same as a month with no visits. Read `data/places.json` for September transactions before deciding whether the chart needs an in-progress marker (source: PR #63 design analysis, unverified) — `src/ui/place-detail.ts`, `src/stats/histogram.ts`
