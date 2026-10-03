@@ -79,7 +79,7 @@ describe('bootstrap', () => {
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
 
-    expect(root.textContent).toContain(`최근 데이터 업데이트: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
+    expect(root.textContent).toContain(`데이터 기준일: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
     expect(root.textContent).not.toContain(LOADING_MESSAGE);
     expect(root.querySelectorAll('.period-tab')).toHaveLength(PERIOD_TABS.length);
     expect(root.querySelectorAll('.place-list-body .top-places')).toHaveLength(1);
@@ -132,7 +132,7 @@ describe('bootstrap', () => {
     await vi.waitFor(() => expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE));
 
     expect(load).toHaveBeenCalledTimes(2);
-    expect(root.textContent).toContain(`최근 데이터 업데이트: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
+    expect(root.textContent).toContain(`데이터 기준일: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
   });
 });
 
@@ -193,7 +193,7 @@ describe('bootstrap accessibility', () => {
     expect(root.querySelector('.shell-header')).toBe(header);
     // The provenance line is written into the existing band exactly once.
     expect(root.querySelectorAll('.shell-updated')).toHaveLength(1);
-    expect(root.textContent).toContain(`최근 데이터 업데이트: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
+    expect(root.textContent).toContain(`데이터 기준일: ${displayDate(SAMPLE_DATASET.updatedAt)}`);
   });
 
   it('returns focus to the retry control when a retry fails again', async () => {

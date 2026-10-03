@@ -83,7 +83,7 @@ export function setShellUpdatedAt(root: HTMLElement, updatedAt: string): void {
   const provenance = root.querySelector<HTMLElement>('.shell-provenance');
   if (!provenance) return;
 
-  const text = `최근 데이터 업데이트: ${displayDate(updatedAt)}`;
+  const text = `데이터 기준일: ${displayDate(updatedAt)}`;
   const existing = provenance.querySelector<HTMLParagraphElement>('.shell-updated');
   if (existing) {
     existing.textContent = text;

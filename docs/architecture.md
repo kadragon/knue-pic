@@ -96,7 +96,7 @@ review_candidates.csv # manual location approval queue (committed)
 `data/places.json` is the entire API of this product. Shape per PRD §29:
 
 ```json
-{ "updatedAt": "2026-08-01",
+{ "updatedAt": "2026-08-31",
   "places": [ { "id": "restaurant_000134", "name": "...", "category": "한식",
                 "subcategory": "육류,고기요리", "kind": "restaurant",
                 "address": "...", "lat": 36.6, "lng": 127.3, "naverUrl": "...",

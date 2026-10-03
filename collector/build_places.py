@@ -29,13 +29,14 @@ from __future__ import annotations
 # `docs/runbook.md` -> Prerequisites declares Python 3.11+ for the collector; nothing here may use
 # a newer stdlib name.
 import argparse
+import calendar
 import csv
 import json
 import os
 import sys
 import urllib.parse
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -313,16 +314,30 @@ def month_dirs(out_dir: Path) -> list[Path]:
     A month directory missing one of the two files is skipped rather than fatal: an interrupted
     collection leaves a partial directory behind, and the months that did complete are still
     publishable. The summary reports how many months were read so a silent skip is visible.
+
+    A directory that does hold both files must be named ``YYYY-MM``. The name is what anchors
+    ``updatedAt`` (``coverage_end``), so it is checked here, where every build reads it, rather than
+    only on the path that derives the anchor: the same ``collector/out/`` must not pass or fail
+    depending on whether ``--updated-at`` was given.
     """
     if not out_dir.is_dir():
         return []
     found = [child for child in sorted(out_dir.iterdir())
              if (child / "normalized_places.json").is_file()
              and (child / "raw_transactions.json").is_file()]
+    for month in found:
+        if parse_iso_date(f"{month.name}-01") is None:
+            raise DatasetUnusable(f"{month} holds month data but is not named YYYY-MM; rename it")
     return found
 
 
-def coverage_end(months: list[Path]) -> date:
+def no_month_data(out_dir: Path) -> DatasetUnusable:
+    return DatasetUnusable(
+        f"{out_dir} holds no month directory with both normalized_places.json and "
+        "raw_transactions.json — nothing to build from. Run the collection skill first")
+
+
+def coverage_end(out_dir: Path, months: list[Path]) -> date:
     """The last day of the newest collected month — the default ``updatedAt``.
 
     Not the build date. A month is disclosed only after it ends, so a build run on any day of month
@@ -331,21 +346,13 @@ def coverage_end(months: list[Path]) -> date:
     with no visits. The collected months are what the file actually covers, so they set the anchor,
     which also keeps a build that runs before the latest month is collected honest about it.
 
-    The directory names are read as months rather than sorted as strings, and a name that is not
-    ``YYYY-MM`` stops the build: guessing past it would set the anchor every window hangs off.
+    ``month_dirs`` has already refused any directory not named ``YYYY-MM``, so its sorted order is
+    chronological and the last entry is the newest month.
     """
-    newest: date | None = None
-    for month in months:
-        parsed = parse_iso_date(f"{month.name}-01")
-        if parsed is None:
-            raise DatasetUnusable(
-                f"{month} is not named YYYY-MM, so the anchor month cannot be derived from it; "
-                "rename it or pass --updated-at")
-        newest = parsed if newest is None or parsed > newest else newest
-    if newest is None:
-        raise DatasetUnusable("no collected month to anchor on — run the collection skill first")
-    following = date(newest.year + newest.month // 12, newest.month % 12 + 1, 1)
-    return following - timedelta(days=1)
+    if not months:
+        raise no_month_data(out_dir)
+    year, month = (int(part) for part in months[-1].name.split("-"))
+    return date(year, month, calendar.monthrange(year, month)[1])
 
 
 def raw_name_index(normalized: Any, path: Path) -> dict[str, str]:
@@ -402,9 +409,7 @@ def collect_transactions(
     unusable = 0
     months = month_dirs(out_dir)
     if not months:
-        raise DatasetUnusable(
-            f"{out_dir} holds no month directory with both normalized_places.json and "
-            "raw_transactions.json — nothing to build from. Run the collection skill first")
+        raise no_month_data(out_dir)
     for month in months:
         index = raw_name_index(read_json(month / "normalized_places.json"),
                                month / "normalized_places.json")
@@ -576,7 +581,7 @@ def main(argv: list[str] | None = None) -> int:
     # a run that could not proceed, and exit 2 is what says so. Escaping as a traceback would look
     # like a crash to the operator and to any script reading the exit code.
     try:
-        updated_at = args.updated_at or coverage_end(month_dirs(args.out_dir))
+        updated_at = args.updated_at or coverage_end(args.out_dir, month_dirs(args.out_dir))
         window_start = window_floor(updated_at)
         aliases = load_aliases(args.aliases)
         approved = load_approved(args.candidates, aliases)

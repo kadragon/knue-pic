@@ -2,6 +2,21 @@
 
 ## Review Backlog
 
+### PR #71 — anchor updatedAt on the newest collected month (2026-10-03)
+
+- [ ] [debt] With `updatedAt` now always a month end, `resolveMonthsWindow` still steps back by
+  day with clamping, so a 2026-09-30 anchor makes 최근 1개월 `(2026-08-30, 2026-09-30]` — it counts
+  Aug 31, which the September histogram bar does not, and the prior window shifts with it; a
+  February anchor reaches into Jan 29-31. Consider whole-calendar-month windows (source:
+  code-review) — `src/stats/period.ts:46`
+- [ ] [debt] A transaction dated after its directory's month (a straggler `2026-09-01` inside
+  `2026-08/`) now falls past the derived anchor and is dropped without being counted as unusable;
+  the payload's own `month` field is never checked against the directory name (source:
+  code-review) — `collector/build_places.py` → `collect_transactions`
+- [ ] [constraint] Nothing enforces that `updatedAt` is a month end or no later than the newest
+  collected month: `--updated-at 2026-10-03` out of habit passes the gate and reships the
+  undisclosed-month gap (source: code-review) — `collector/validate.py:395`
+
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
 - [x] [debt] Three limits QA reproduced on PR #23 and the contract sanctioned, none of them

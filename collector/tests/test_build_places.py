@@ -337,6 +337,8 @@ def test_the_default_anchor_is_the_last_day_of_the_newest_collected_month(
     the same as a month with no visits."""
     built = Fixture(tmp_path)
     write_csv(built.candidates, [row()])
+    # An older month beside it, so taking the first or the oldest directory fails too.
+    write_month(built.out_dir, "2023-11", [normalized()], [transaction(when="2023-11-02")])
     write_month(built.out_dir, newest, [normalized()], [transaction(when=f"{newest}-01")])
     assert built.run(updated_at=None) == EXIT_OK
     assert built.dataset()["updatedAt"] == expected
@@ -348,10 +350,12 @@ def test_an_explicit_anchor_overrides_the_derived_one(fixture: Fixture) -> None:
 
 
 @pytest.mark.parametrize("name", ["2026-13", "2026-7", "latest"])
-def test_a_month_directory_that_names_no_month_stops_a_default_build(
-        fixture: Fixture, name: str) -> None:
+@pytest.mark.parametrize("updated_at", [None, UPDATED_AT])
+def test_a_month_directory_that_names_no_month_stops_the_build(
+        fixture: Fixture, name: str, updated_at: date | None) -> None:
+    """With or without ``--updated-at``: the same inputs must not pass on one path only."""
     write_month(fixture.out_dir, name, [normalized()], [transaction()])
-    assert fixture.run(updated_at=None) == EXIT_UNUSABLE
+    assert fixture.run(updated_at=updated_at) == EXIT_UNUSABLE
     assert not fixture.output.exists()
 
 
