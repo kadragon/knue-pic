@@ -2,15 +2,22 @@ import { loadPlacesDataset } from '../data/load';
 import type { Period, PlacesDataset } from '../data/types';
 import { computeMonthlyHistogram } from '../stats/histogram';
 import { filterByKind } from '../stats/search';
+import { computeKindPlaceCounts, computeWindowSummary } from '../stats/window-summary';
 import { computePlaceStats } from '../stats/place-stats';
 import { resolvePeriodWindow } from '../stats/period';
 import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
 import { createDetailDialog, type DetailDialogOptions } from './detail-dialog';
-import { renderKindFilter, markActiveKind, type KindSelection } from './kind-filter';
+import {
+  renderKindFilter,
+  markActiveKind,
+  setKindCounts,
+  type KindSelection,
+} from './kind-filter';
 import { DEFAULT_PERIOD, renderPlaceList } from './place-list';
 import { renderPlaceSearch } from './search';
 import { renderShell, setShellUpdatedAt } from './shell';
+import { renderSummaryLine, summaryLabel } from './summary-line';
 
 /**
  * Wires the page frame to the dataset: shell first, then the load, then whichever state the load
@@ -94,6 +101,8 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     // and `setShellUpdatedAt` writes it in place.
     setShellUpdatedAt(root, dataset.updatedAt);
 
+    const summary = document.createElement('div');
+    summary.className = 'summary-slot';
     const kinds = document.createElement('div');
     kinds.className = 'kind-filter-slot';
     const search = document.createElement('div');
@@ -105,7 +114,12 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     // The list before the search: the ranked list is the answer the page exists for, and search is
     // the lookup for a reader who already has a name — `docs/conventions.md` → Accessibility &
     // Responsive.
-    content.replaceChildren(kinds, list, search, detail);
+    // The summary above the filters, grouped with them: it states what they currently select, so
+    // it reads as their caption rather than as a section of its own.
+    const filters = document.createElement('div');
+    filters.className = 'filter-head';
+    filters.append(summary, kinds);
+    content.replaceChildren(filters, list, search, detail);
 
     const dialog = createDetailDialog(detail, dialogOptions);
 
@@ -141,16 +155,33 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     // while the control still showed it as pressed.
     const initial = filterByKind(dataset, activeKind);
 
+    /**
+     * The summary counts under both filters; the chips count under the period alone, since each
+     * chip states what pressing it would show. Both are rewritten in place, never rebuilt.
+     */
+    function refreshCounts(): void {
+      const narrowed = filterByKind(dataset, activeKind);
+      renderSummaryLine(
+        summary,
+        summaryLabel(dataset.updatedAt, computeWindowSummary(narrowed, activePeriod)),
+      );
+      // 전체 is the sum of the kinds: every place carries exactly one kind.
+      const byKind = computeKindPlaceCounts(dataset, activePeriod);
+      const all = Object.values(byKind).reduce((sum, count) => sum + count, 0);
+      setKindCounts(kinds, { all, byKind });
+    }
+
+    function onActiveChange(period: Period): void {
+      activePeriod = period;
+      refreshCounts();
+    }
+
     const searchView = renderPlaceSearch(search, initial, (placeId) => {
       selectPlace(placeId, SEARCH_PERIOD);
     });
-    renderPlaceList(list, initial, selectPlace, {
-      active: activePeriod,
-      onActiveChange: (period) => {
-        activePeriod = period;
-      },
-    });
+    renderPlaceList(list, initial, selectPlace, { active: activePeriod, onActiveChange });
     renderKindFilter(kinds, activeKind, selectKind);
+    refreshCounts();
 
     /**
      * One narrowed dataset feeds both views, so the list and the search can never disagree about
@@ -168,12 +199,8 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
       const narrowed = filterByKind(dataset, kind);
       searchView.setDataset(narrowed);
-      renderPlaceList(list, narrowed, selectPlace, {
-        active: activePeriod,
-        onActiveChange: (period) => {
-          activePeriod = period;
-        },
-      });
+      renderPlaceList(list, narrowed, selectPlace, { active: activePeriod, onActiveChange });
+      refreshCounts();
     }
   }
 

@@ -101,6 +101,25 @@ function setAuthFailureHandler(handler: (() => void) | undefined): void {
   (globalThis as AuthFailureGlobal).navermap_authFailure = handler;
 }
 
+/**
+ * Set once the API has called the auth-failure hook, and never cleared by the page.
+ *
+ * The one cause this repo has observed for the hook is a rejected origin (2026-10-03,
+ * `localhost:5179`, Chromium — `./loader.ts` module comment), which is a property of the page, not
+ * of one render: every later render would ask `/v3/auth` again, mount a map and lose it ~1.1 s
+ * later. Remembering it sends those renders straight to the fallback. Whether the API also calls
+ * the hook on a transient `/v3/auth` failure (network, 5xx) is unverified; if it does, the map
+ * stays off until the page is reloaded. A *load* failure is deliberately not remembered: a blocked
+ * or timed-out script can come back, and the loader already drops its tag so a later call can
+ * retry.
+ */
+let authRejected = false;
+
+/** Test-only: forgets a rejected key so each case starts from a clean slate. */
+export function resetAuthFailureMemo(): void {
+  authRejected = false;
+}
+
 /** Only ours, never a handler some later render installed over it. */
 function clearAuthFailureHandler(handler: () => void): void {
   if ((globalThis as AuthFailureGlobal).navermap_authFailure === handler) {
@@ -171,19 +190,29 @@ export async function renderPlaceLocationMap(
     section.append(message(MAP_ERROR_MESSAGE, 'place-map-fallback'));
   };
 
+  if (authRejected) {
+    fail();
+    return () => {};
+  }
+
+  const onAuthFailure = (): void => {
+    authRejected = true;
+    fail();
+  };
+
   // Registered *before* the script is awaited, and kept until release, so the hook is caught
   // whichever side of the mount the API calls it on. The real API was observed calling it after
   // the mount (`./loader.ts` module comment); the earlier side is held anyway, because nothing
   // pins that ordering. Installing ours also replaces any handler a previous render left behind —
   // one closing over a section this call just replaced.
-  setAuthFailureHandler(fail);
+  setAuthFailureHandler(onAuthFailure);
 
   try {
     const api = await loadApi();
     // The key was rejected while the script was still arriving: the fallback is up, so mount
     // nothing behind it.
     if (!live) {
-      clearAuthFailureHandler(fail);
+      clearAuthFailureHandler(onAuthFailure);
       return () => {};
     }
     // Mounting is inside the try as well: a script that loaded can still throw from a constructor
@@ -203,13 +232,13 @@ export async function renderPlaceLocationMap(
       // `live` also gates the hook, so a rejection arriving after the dialog closed cannot append
       // a fallback into a section that is no longer on screen.
       live = false;
-      clearAuthFailureHandler(fail);
+      clearAuthFailureHandler(onAuthFailure);
       releaseMap(map);
     };
   } catch {
     // The reason is dropped on purpose — see MAP_ERROR_MESSAGE.
     fail();
-    clearAuthFailureHandler(fail);
+    clearAuthFailureHandler(onAuthFailure);
     // Nothing mounted, so there is nothing to release — but the caller still gets a function, so it
     // never has to branch on whether the map came up.
     return () => {};

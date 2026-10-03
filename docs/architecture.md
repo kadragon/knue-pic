@@ -84,7 +84,9 @@ review_candidates.csv # manual location approval queue (committed)
   map is released, so it catches the rejection on either side of the mount — the real API was
   observed calling it after the mount (`src/map/loader.ts` module comment) — and both routes end
   in the same single fallback, which is
-  why the two degraded states are indistinguishable on screen.
+  why the two degraded states are indistinguishable on screen. Once the hook has fired, the
+  rejection is remembered for the life of the page: later renders show the fallback without
+  loading the script or installing the hook again. A load failure is not remembered.
 - `src/data/` is the only module that knows the `places.json` wire format. Everything else uses its
   exported types.
 - `collector/` is never imported by `src/`, and `src/` is never imported by `collector/`.

@@ -249,6 +249,20 @@ a[role='button'] {
   min-width: 44px;
 }
 
+/* The summary line and the 업종 chips it captions, held closer than `#content`'s section gap. */
+.filter-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.summary-line {
+  margin: 0;
+  color: var(--body);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
 /*
  * The page-wide 업종 control: a row of small chips, wrapping rather than scrolling so all five
  * stay reachable at 360px (PRD §36). The label rides on the same row as the chips.
@@ -344,6 +358,11 @@ a[role='button'] {
   border-color: var(--kind-other-fg);
   background: var(--kind-other-fg);
   color: var(--on-accent);
+}
+
+/* The count inherits the chip's colour, so it clears the same contrast pair as the name. */
+.kind-filter-count {
+  font-variant-numeric: tabular-nums;
 }
 
 /*

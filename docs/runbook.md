@@ -37,9 +37,10 @@ Note the Pages subpath: `npm run preview` serves at `/knue-pic/`, not `/`.
 ### Verify the real map
 
 The only local origin the key accepts is `http://localhost:5173` (see Naver API Keys), so visual
-acceptance of any map change runs on `npm run dev` — not on `npm run preview` (`:4173`, rejected).
-`vite.config.ts` pins port 5173 with `strictPort`: if the port is taken, `npm run dev` exits instead
-of sliding to a port the key rejects. Check that the map mounted without relying on a screenshot:
+acceptance of any map change runs on `npm run dev`, or on `npm run preview` to check the production
+bundle. `vite.config.ts` pins both to port 5173 with `strictPort`: if the port is taken — by the
+other of the two, too — the command exits instead of sliding to a port the key rejects. Check that
+the map mounted without relying on a screenshot:
 
 - open a place's detail at `http://localhost:5173/knue-pic/` and wait at least 2 s — a rejected
   origin mounts the map first and replaces it with the fallback about 1.1 s after the `401`
@@ -113,10 +114,11 @@ The collector's server/search credentials are never Vite variables and never liv
 
 - **Browser Client ID** — the only key in the web app. Restrict its allowed Web Service URL to
   `https://kadragon.github.io` and `http://localhost:5173` for development. Observed 2026-10-03:
-  `:5173` authenticates; `:5179` and `vite preview`'s `:4173` get `401` from `/v3/auth` and the map
-  falls back — the list is per port, not a `localhost:*` wildcard. The fallback comes from
-  `window.navermap_authFailure`, called after the map has mounted (`src/map/loader.ts` module
-  comment); the loader itself resolves.
+  `:5173` authenticates; `:5179` and `:4173` (`vite preview`'s default, now pinned away from) get `401` from `/v3/auth` and the map
+  falls back — the list is per port, not a `localhost:*` wildcard. `npm run preview`, pinned to
+  `:5173` since, authenticated the same way (2026-10-03, Chromium: `/v3/auth` `200`, map mounted,
+  no fallback). The fallback comes from `window.navermap_authFailure`, called after the map has
+  mounted (`src/map/loader.ts` module comment); the loader itself resolves.
 - **Server / search secret** — used by the collector for geocoding. Lives in the operator's local
   environment only. It must never appear in `src/`, in a committed file, or in an Actions secret
   used by the web build.
