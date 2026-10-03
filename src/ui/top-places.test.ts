@@ -669,6 +669,40 @@ describe('renderTopPlaces → page map', () => {
     expect(onHighlight).not.toHaveBeenCalledWith(null);
   });
 
+  it('keeps a selected row lit when the detail dialog takes the focus off it', () => {
+    const { container, onHighlight } = withCallbacks();
+    const second = container.querySelectorAll('li.top-place')[1]!;
+    const id = second.getAttribute('data-place-id');
+
+    second.querySelector('.top-place-body')!.dispatchEvent(new MouseEvent('click'));
+    // What `createDetailDialog` does the instant the row is pressed (`src/ui/detail-dialog.ts` →
+    // `panel.focus()`): the focus leaves the row, and an unconditional `focusout` would un-light the
+    // pin in the same paint that opens the card — the opposite of what selecting it meant.
+    second.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
+    // Re-asserting the selection beats staying silent: it leaves the map in the right state even if
+    // the highlight had already moved somewhere else while the dialog was open.
+    expect(onHighlight.mock.calls.flat()).not.toContain(null);
+    expect(onHighlight.mock.calls.at(-1)).toEqual([id]);
+  });
+
+  it('still follows the pointer away from a selected row', () => {
+    const { container, onHighlight } = withCallbacks();
+    const [first, second] = container.querySelectorAll('li.top-place');
+    second!.querySelector('.top-place-body')!.dispatchEvent(new MouseEvent('click'));
+    onHighlight.mockClear();
+
+    // Selection pins the highlight against focus moving away; it does not freeze it against the
+    // reader deliberately pointing at a different row.
+    first!.dispatchEvent(new MouseEvent('mouseenter'));
+    first!.dispatchEvent(new MouseEvent('mouseleave'));
+
+    expect(onHighlight.mock.calls).toEqual([
+      [first!.getAttribute('data-place-id')],
+      [second!.getAttribute('data-place-id')],
+    ]);
+  });
+
   it('reports nothing when the list is not wired to a map at all', () => {
     const container = document.createElement('div');
     renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'));

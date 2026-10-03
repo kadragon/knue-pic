@@ -536,6 +536,29 @@ export async function renderPageMap(
     const iconFor = (entry: PlacedMarker): HtmlIcon =>
       entry.label === null ? dotIcon(api) : pinIcon(api, entry.label, entry.active);
 
+    /**
+     * The two listeners every page marker gets, attached once at creation and guarded on the
+     * marker's *current* state rather than removed later.
+     *
+     * Two things make the guard load-bearing, and the first is why the registration is unconditional.
+     * A marker is built the moment its place passes the filters and may sit there as a dot for many
+     * pages before a `더 보기` brings in its row, so attaching only to new pins left every paged-in
+     * pin mute. And a pin demoted back to a dot by a window change keeps its listeners — a stale
+     * `mouseout` firing `onPinHover(null)` would clear the highlight of whichever row the reader had
+     * actually moved onto. The vendor surface has no per-marker listener removal this module needs
+     * (`naver.maps.Event.clearInstanceListeners` exists and is deliberately not in `./naver-api.ts`:
+     * a marker carries nothing but these two, and the guard reaches the same behaviour without a new
+     * claim about the API).
+     */
+    const listenForPinHover = (entry: PlacedMarker, placeId: string): void => {
+      api.Event.addListener(entry.marker, 'mouseover', () => {
+        if (live && entry.label !== null) onPinHover?.(placeId);
+      });
+      api.Event.addListener(entry.marker, 'mouseout', () => {
+        if (live && entry.label !== null) onPinHover?.(null);
+      });
+    };
+
     const draw = (next: PageMapPlace[]): void => {
       if (!live) return;
       const wanted = new Set(next.map(({ place }) => place.id));
@@ -547,20 +570,24 @@ export async function renderPageMap(
         markers.delete(id);
       }
       for (const { place, label } of next) {
+        // `null`, not `''`: "no row on screen" and "a row that printed nothing" are different
+        // states, and an empty pin would be a pin asserting nothing.
+        const nextLabel = label ?? null;
         const existing = markers.get(place.id);
         if (existing) {
-          // The same place under a new label — the reader switched window and its rank moved. The
-          // marker is kept, so the pin the reader was reading does not blink out and back.
-          const nextLabel = label ?? null;
+          // The same place under a new label — the reader switched window and its rank moved, or a
+          // `더 보기` brought its row in. The marker is kept, so the pin the reader was reading does
+          // not blink out and back.
           if (nextLabel === existing.label) continue;
           existing.label = nextLabel;
+          // Demotion clears the light. `highlight` skips unlabelled markers, so a marker demoted
+          // while lit would keep the flag for good and `더 보기` would bring its row back as a pin
+          // lit for a row the reader is not on.
+          if (nextLabel === null) existing.active = false;
           existing.marker.setIcon(iconFor(existing));
           continue;
         }
 
-        // `null`, not `''`: "no row on screen" and "a row that printed nothing" are different
-        // states, and an empty pin would be a pin asserting nothing.
-        const nextLabel = label ?? null;
         const marker = new api.Marker({
           position: new api.LatLng(place.lat, place.lng),
           map,
@@ -569,17 +596,7 @@ export async function renderPageMap(
         });
         const placed: PlacedMarker = { marker, label: nextLabel, active: false };
         markers.set(place.id, placed);
-
-        // Only on a pin. A dot reports nothing, because there is no row behind it and clearing the
-        // highlight would light up the wrong place's absence.
-        if (placed.label !== null) {
-          api.Event.addListener(placed.marker, 'mouseover', () => {
-            if (live) onPinHover?.(place.id);
-          });
-          api.Event.addListener(placed.marker, 'mouseout', () => {
-            if (live) onPinHover?.(null);
-          });
-        }
+        listenForPinHover(placed, place.id);
       }
     };
 

@@ -713,6 +713,37 @@ describe('page map highlight sync', () => {
     expect(pinFor(api, ALWAYS)?.icon?.content).toBe(pinLabelMarkup('1', true));
   });
 
+  it('drops the highlight when the row leaves the visible set, so it cannot come back lit', async () => {
+    const api = createFakeNaverApi();
+    const map = await withPins(api);
+    map.highlight(ALWAYS.id);
+
+    // `highlight(null)` skips dots, so a marker demoted while lit would keep a stale `active` —
+    // and `더 보기` bringing its row back would then paint a pin lit for a row nobody is on.
+    map.setPlaces([{ place: ALWAYS }, { place: CAFE }]);
+    expect(pinFor(api, ALWAYS)?.icon?.content).toContain('page-map-dot');
+
+    map.setPlaces([{ place: ALWAYS, label: '1' }, { place: CAFE }]);
+    expect(pinFor(api, ALWAYS)?.icon?.content).toBe(pinLabelMarkup('1', false));
+  });
+
+  it('stops reporting once a pin is demoted to a dot', async () => {
+    const api = createFakeNaverApi();
+    const onPinHover = vi.fn();
+    const map = await withPins(api, { onPinHover });
+    const demoted = pinFor(api, ALWAYS)!;
+
+    // A window change takes the row away while the place stays in the filtered set.
+    map.setPlaces([{ place: ALWAYS }, { place: CAFE }]);
+    demoted.emit('mouseover');
+    demoted.emit('mouseout');
+
+    // The listeners stay attached — the vendor surface has no per-marker remove this module needs —
+    // so the guard has to read the marker's *current* state. A demoted marker reporting `null` on
+    // the way out would clear the row the reader had actually moved onto.
+    expect(onPinHover).not.toHaveBeenCalled();
+  });
+
   it('tells the page which pin the reader touched, so it can highlight that row', async () => {
     const api = createFakeNaverApi();
     const onPinHover = vi.fn();
@@ -737,6 +768,32 @@ describe('page map highlight sync', () => {
     pinFor(api, CAFE)?.emit('mouseover');
 
     expect(onPinHover).not.toHaveBeenCalled();
+  });
+
+  it('gives a dot listeners when `더 보기` promotes it to a pin', async () => {
+    const api = createFakeNaverApi();
+    const onPinHover = vi.fn();
+    const map = await withPins(api, { onPinHover });
+
+    // The paging path the ticket names: this marker was built as a dot and is *reused* as a pin, so
+    // attaching the listeners only where a marker is created would leave every paged-in pin mute.
+    map.setPlaces([{ place: ALWAYS, label: '1' }, { place: CAFE, label: '11' }]);
+    pinFor(api, CAFE)?.emit('mouseover');
+
+    expect(onPinHover).toHaveBeenCalledWith(CAFE.id);
+  });
+
+  it('attaches the listeners once, so a re-ranking pin does not report twice', async () => {
+    const api = createFakeNaverApi();
+    const onPinHover = vi.fn();
+    const map = await withPins(api, { onPinHover });
+
+    // A window switch re-labels a pin that already had listeners; adding a second pair would make
+    // one hover report the place twice.
+    map.setPlaces([{ place: ALWAYS, label: '4' }, { place: CAFE }]);
+    pinFor(api, ALWAYS)?.emit('mouseover');
+
+    expect(onPinHover).toHaveBeenCalledTimes(1);
   });
 
   it('does nothing on highlight after a release', async () => {

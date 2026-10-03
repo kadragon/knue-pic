@@ -149,10 +149,12 @@ dance per file.
   visit count (`src/map/place-map.test.ts` → `renderPageMap` compares the whole icon option across
   places with different counts, for pins as well as dots); a pin's number is the rank string its own
   row printed, handed in as `{ place, label? }` and never computed in `src/map/`
-  (`page map pin labels`); and the marker set is the same set the summary's `N곳` counts
-  (`src/ui/bootstrap.test.ts` → `bootstrap page map`), because both read one predicate. Hover or
-  focus on a row lights its pin, and a pin the reader touches lights its row — one channel each way,
-  `onHighlight` in and `setTopPlaceHighlight` out. Below 768px
+  (`place map pin labels`); and the marker set is the same set the summary's `N곳` counts
+  (`src/ui/bootstrap.test.ts` → `bootstrap page map`), because both read one predicate. One channel
+  each way: a row's hover, focus and selection light its pin through `onHighlight`, and a pin the
+  reader touches lights its row through `setTopPlaceHighlight`. Selection outranks the pointer — the
+  detail dialog takes focus the instant a row is pressed, so leaving a row reports the selection
+  rather than `null` (`src/ui/top-places.test.ts` → *page map*). Below 768px
   the page is the single column it has always been and the Naver script is never loaded; either map
   failure — the script or a rejected key — gives the panel the whole width back and says
   `지도를 불러오지 못했습니다.` once. The detail dialog is untouched by all of this: it keeps its

@@ -166,6 +166,8 @@ function renderEntry(
   entry: RankedPlace,
   onSelect?: (placeId: string) => void,
   onHighlight?: (placeId: string | null) => void,
+  leave?: () => void,
+  onSelected?: () => void,
 ): HTMLLIElement {
   const item = document.createElement('li');
   item.className = 'top-place';
@@ -185,9 +187,9 @@ function renderEntry(
   if (body instanceof HTMLButtonElement && onSelect) {
     body.type = 'button';
     body.addEventListener('click', () => {
-      // Selecting is a highlight too, and a deliberate one: the pointer that made it has not left
-      // the row, so nothing here reports `null` afterwards. Map-first 5 gives the selection its own
-      // state; until then this is what keeps the pin lit while the detail is open.
+      // Selecting is a highlight the reader made on purpose, and it outlives the pointer: `onSelected`
+      // records it and `leave` returns to it. Map-first 5 gives the selection a state of its own.
+      onSelected?.();
       onHighlight?.(entry.place.id);
       onSelect(entry.place.id);
     });
@@ -200,9 +202,11 @@ function renderEntry(
   if (onHighlight) {
     const placeId = entry.place.id;
     item.addEventListener('mouseenter', () => onHighlight(placeId));
-    item.addEventListener('mouseleave', () => onHighlight(null));
     item.addEventListener('focusin', () => onHighlight(placeId));
-    item.addEventListener('focusout', () => onHighlight(null));
+    // The two ways *off* a row go through `leave` rather than reporting `null` outright, because
+    // leaving is not one thing: it may mean "nothing any more" or "the selection, still standing".
+    item.addEventListener('mouseleave', () => leave?.());
+    item.addEventListener('focusout', () => leave?.());
   }
 
   // `<span>`, not `<p>`: when `onSelect` is supplied the body is a `<button>`, whose content model
@@ -407,6 +411,32 @@ export function renderTopPlaces(
   let observer: IntersectionObserver | null = null;
 
   /**
+   * The row the reader selected, or `null`.
+   *
+   * Separate from whatever is highlighted, because selection and attention are different facts and
+   * only one of them is transient. `createDetailDialog` moves focus into the panel the instant a row
+   * is pressed, so an unconditional `focusout` cleared the highlight in the same paint that opened
+   * the card — the exact opposite of what selecting the row meant, and the pin went dark while the
+   * reader was looking at its place.
+   */
+  let selectedPlaceId: string | null = null;
+
+  /**
+   * How a row is left, which is not one thing.
+   *
+   * With nothing selected this is "nothing is on the reader's row any more"; with a selection it is
+   * "back to the selection", because that place is still the one they are looking at. Only *arriving*
+   * at a row reports its own id, so pointing at a different row still moves the highlight there.
+   */
+  function leaveRow(): void {
+    onHighlight?.(selectedPlaceId);
+  }
+
+  function selectRow(entry: RankedPlace): void {
+    selectedPlaceId = entry.place.id;
+  }
+
+  /**
    * Moves focus off the button before it is removed.
    *
    * Activating 더 보기 on the last page destroys the element that has focus, and a detached
@@ -431,7 +461,19 @@ export function renderTopPlaces(
   function appendPage(): void {
     const firstIndexOfPage = rendered;
     const next = result.entries.slice(rendered, rendered + pageSize);
-    list.append(...next.map((entry) => renderEntry(entry, onSelect, onHighlight)));
+    list.append(
+      ...next.map((entry) =>
+        renderEntry(
+          entry,
+          onSelect,
+          onHighlight,
+          leaveRow,
+          // The selection belongs to this row, so the closure is built here where the entry is in
+          // scope rather than passing the id down and re-deriving it.
+          () => selectRow(entry),
+        ),
+      ),
+    );
     rendered += next.length;
 
     // The whole visible set, after the page has landed: `더 보기` growing the pin set is this call.
