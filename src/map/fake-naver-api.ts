@@ -29,6 +29,8 @@ export interface FakeMarker extends NaverMarker {
   readonly attached: (NaverMap | null)[];
   icon: HtmlIcon | undefined;
   title: string | undefined;
+  /** The marker's current stacking order — from the option, then from every `setZIndex`. */
+  zIndex: number | undefined;
   /**
    * Fires an event the way the API would.
    *
@@ -124,9 +126,11 @@ export function createFakeNaverApi(): FakeNaverApi {
     Marker: class implements FakeMarker {
       icon: HtmlIcon | undefined;
       title: string | undefined;
+      zIndex: number | undefined;
       readonly attached: (NaverMap | null)[];
       constructor(readonly options: MarkerOptions) {
         this.icon = options.icon;
+        this.zIndex = options.zIndex;
         this.title = options.title;
         this.attached = [options.map];
         markers.push(this);
@@ -138,6 +142,9 @@ export function createFakeNaverApi(): FakeNaverApi {
         // Recorded rather than ignored: a highlight that never reached the marker's icon is a pin
         // that does not look like the row the reader is on, and nothing else in the fake would see it.
         this.icon = icon;
+      }
+      setZIndex(zIndex: number): void {
+        this.zIndex = zIndex;
       }
       emit(eventName: MarkerEventName): void {
         for (const listener of listeners.get(this)?.get(eventName) ?? []) listener();

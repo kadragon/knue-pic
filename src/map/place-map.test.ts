@@ -631,6 +631,26 @@ describe('page map pin labels', () => {
     expect(markerFor(api, ALWAYS)?.attached.at(-1)).toBe(api.maps[0]);
   });
 
+  it('stacks a pin above a dot, so a dense cluster cannot bury a rank', async () => {
+    const api = createFakeNaverApi();
+    await labelled(api, [{ place: ALWAYS, label: '1' }, { place: CAFE }]);
+
+    // Observed at 1440px around 오송: at the vendor's one default level, dots drawn after a pin
+    // covered its centre, and rows 2, 4 and 6 had no visible number on the map.
+    expect(markerFor(api, ALWAYS)?.zIndex).toBeGreaterThan(markerFor(api, CAFE)?.zIndex ?? Infinity);
+  });
+
+  it('restacks a reused marker with its icon, on promotion and on demotion', async () => {
+    const api = createFakeNaverApi();
+    const map = await labelled(api, [{ place: ALWAYS, label: '1' }, { place: CAFE }]);
+
+    // `더 보기` reuses the dot's marker, so a level set only at creation would keep it under the
+    // dots it now has to stand above — and leave a demoted pin standing over them.
+    map.setPlaces([{ place: ALWAYS }, { place: CAFE, label: '11' }]);
+
+    expect(markerFor(api, CAFE)?.zIndex).toBeGreaterThan(markerFor(api, ALWAYS)?.zIndex ?? Infinity);
+  });
+
   it('never prints a label it was not handed', async () => {
     const api = createFakeNaverApi();
     await labelled(api, [{ place: ALWAYS }]);
@@ -687,6 +707,21 @@ describe('page map highlight sync', () => {
     // Leaving the row has to undo it: a pin left active would claim a row the reader is not on.
     map.highlight(null);
     expect(pinFor(api, ALWAYS)?.icon?.content).toBe(pinLabelMarkup('1', false));
+  });
+
+  it('lifts the lit pin above the other pins and lets it back down', async () => {
+    const api = createFakeNaverApi();
+    const map = await withPins(api);
+    map.setPlaces([{ place: ALWAYS, label: '1' }, { place: CAFE, label: '2' }]);
+    const resting = pinFor(api, CAFE)?.zIndex;
+
+    // Neighbouring pins overlap at the default zoom, and the one the reader is on is the one that
+    // has to be read whole.
+    map.highlight(ALWAYS.id);
+    expect(pinFor(api, ALWAYS)?.zIndex).toBeGreaterThan(resting ?? Infinity);
+
+    map.highlight(null);
+    expect(pinFor(api, ALWAYS)?.zIndex).toBe(resting);
   });
 
   it('moves the highlight from one place to the next without leaving the first lit', async () => {

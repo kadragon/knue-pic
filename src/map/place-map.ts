@@ -311,6 +311,16 @@ const DOT_SIZE = 12;
 const PIN_SIZE = 26;
 
 /**
+ * Stacking order among the page markers: a dot under every pin, the lit pin over the rest. At the
+ * vendor's one default level a dense cluster draws in creation order, and dots built after a pin
+ * covered its number (observed at 1440px around 오송, 2026-10-03). Only the order is a decision;
+ * the values are arbitrary steps.
+ */
+const DOT_Z_INDEX = 1;
+const PIN_Z_INDEX = 2;
+const ACTIVE_PIN_Z_INDEX = 3;
+
+/**
  * The pin's body: the rank string the row printed, and nothing else.
  *
  * `active` is a class rather than a different icon so the two shapes stay one rule in the
@@ -536,6 +546,15 @@ export async function renderPageMap(
     const iconFor = (entry: PlacedMarker): HtmlIcon =>
       entry.label === null ? dotIcon(api) : pinIcon(api, entry.label, entry.active);
 
+    /** Follows the icon: every path that swaps one swaps the other through `restyle`. */
+    const zIndexFor = (entry: PlacedMarker): number =>
+      entry.label === null ? DOT_Z_INDEX : entry.active ? ACTIVE_PIN_Z_INDEX : PIN_Z_INDEX;
+
+    const restyle = (entry: PlacedMarker): void => {
+      entry.marker.setIcon(iconFor(entry));
+      entry.marker.setZIndex(zIndexFor(entry));
+    };
+
     /**
      * The two listeners every page marker gets, attached once at creation and guarded on the
      * marker's *current* state rather than removed later.
@@ -565,7 +584,7 @@ export async function renderPageMap(
       for (const [id, entry] of markers) {
         if (wanted.has(id)) continue;
         // `marker.setMap(null)` is the documented removal, and it is the only half of the vendor
-        // surface the page map needed besides `setCenter` and `setIcon` (see `./naver-api.ts`).
+        // surface the page map needed besides `setCenter`, `setIcon` and `setZIndex` (see `./naver-api.ts`).
         entry.marker.setMap(null);
         markers.delete(id);
       }
@@ -584,7 +603,7 @@ export async function renderPageMap(
           // while lit would keep the flag for good and `더 보기` would bring its row back as a pin
           // lit for a row the reader is not on.
           if (nextLabel === null) existing.active = false;
-          existing.marker.setIcon(iconFor(existing));
+          restyle(existing);
           continue;
         }
 
@@ -593,6 +612,7 @@ export async function renderPageMap(
           map,
           title: dotLabel(place),
           icon: nextLabel === null ? dotIcon(api) : pinIcon(api, nextLabel, false),
+          zIndex: nextLabel === null ? DOT_Z_INDEX : PIN_Z_INDEX,
         });
         const placed: PlacedMarker = { marker, label: nextLabel, active: false };
         markers.set(place.id, placed);
@@ -609,7 +629,7 @@ export async function renderPageMap(
         const shouldBeActive = id === placeId;
         if (entry.active === shouldBeActive) continue;
         entry.active = shouldBeActive;
-        entry.marker.setIcon(iconFor(entry));
+        restyle(entry);
       }
     };
 

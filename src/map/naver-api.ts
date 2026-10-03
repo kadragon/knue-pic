@@ -18,7 +18,7 @@
  * hand-written vendor type with no caller drifts from the real API unnoticed, so what is unused is
  * deleted rather than kept "in case". `setIcon` and `Event` came back with the numbered pins — the
  * first two are what makes a pin's own highlight possible, `Event` the only way the map learns a
- * reader touched one.
+ * reader touched one. `zIndex` and `setZIndex` followed, so a pin stands above the dots around it.
  *
  * Structural interfaces, not classes: the tests inject a fake that satisfies this shape, which is
  * the only way a jsdom test can exercise marker rendering at all.
@@ -60,6 +60,13 @@ export interface MarkerOptions {
   map: NaverMap;
   title?: string;
   icon?: HtmlIcon;
+  /**
+   * The marker's stacking order among the other markers. Every marker defaults to the same level,
+   * so a dense cluster draws in creation order and a dot can bury a numbered pin. Read off the live
+   * v3 bundle at `localhost:5173`, 2026-10-03: `new naver.maps.Marker({ zIndex: 200 }).getZIndex()`
+   * returned `200`, and the default returned `null`.
+   */
+  zIndex?: number;
 }
 
 export interface NaverMarker {
@@ -83,6 +90,13 @@ export interface NaverMarker {
    * https://navermaps.github.io/maps.js.en/docs/tutorial-2-Marker.html, read 2026-10-03).
    */
   setIcon(icon: HtmlIcon): void;
+
+  /**
+   * Restacks the marker in place — what a dot promoted to a pin, and a pin lit or unlit, needs
+   * alongside its new icon. Present on `naver.maps.Marker.prototype` in the live v3 bundle
+   * (observed 2026-10-03, with the `zIndex` option above).
+   */
+  setZIndex(zIndex: number): void;
 }
 
 /**
