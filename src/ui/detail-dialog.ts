@@ -40,7 +40,7 @@ export interface DetailDialogOptions {
 export interface DetailDialogHandle {
   /** Renders `detail` and shows the dialog. Calling it while open just swaps the contents. */
   open: (detail: PlaceDetail) => void;
-  close: (restoreFocus?: boolean) => void;
+  close: () => void;
   isOpen: () => boolean;
   /**
    * Re-renders an already-open dialog with new figures for the same selection. A no-op when
@@ -138,7 +138,7 @@ export function createDetailDialog(
     return !root.hidden;
   }
 
-  function closeDialog(restoreFocus = true): void {
+  function closeDialog(): void {
     if (!isOpen()) return;
     root.hidden = true;
     // Invalidates any mount still in flight: its release is spent on arrival instead of being
@@ -149,9 +149,7 @@ export function createDetailDialog(
     // Restoring focus is the whole point of holding `opener`: without it the caret drops to the top
     // of the document and a keyboard user has to tab back through the entire list they came from.
     // `isConnected` guards the case where the list was re-rendered while the dialog was open.
-    if (!restoreFocus) {
-      // A layout transition keeps the shared opener and focuses the replacement view.
-    } else if (options.restoreFocus) {
+    if (options.restoreFocus) {
       options.restoreFocus();
     } else if (opener?.isConnected) {
       opener.focus();

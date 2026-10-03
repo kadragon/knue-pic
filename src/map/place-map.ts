@@ -574,7 +574,7 @@ export async function renderPageMap(
      * a marker carries only this view's listeners, and the guard reaches the same behaviour without a new
      * claim about the API).
      */
-    const listenForPinHover = (entry: PlacedMarker, placeId: string): void => {
+    const listenToMarker = (entry: PlacedMarker, placeId: string): void => {
       api.Event.addListener(entry.marker, 'click', () => {
         if (live && markers.get(placeId) === entry) onSelect?.(placeId);
       });
@@ -624,7 +624,7 @@ export async function renderPageMap(
         });
         const placed: PlacedMarker = { marker, label: nextLabel, active: false };
         markers.set(place.id, placed);
-        listenForPinHover(placed, place.id);
+        listenToMarker(placed, place.id);
       }
     };
 

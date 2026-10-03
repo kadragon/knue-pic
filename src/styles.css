@@ -1529,9 +1529,7 @@ button.top-place-body,
 }
 
 /* Preserve list controls and paging while the desktop panel shows a selection. */
-.filter-head[hidden],
-.place-list-slot[hidden],
-.search-slot[hidden] {
+.filter-head[hidden] {
   display: none;
 }
 

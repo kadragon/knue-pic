@@ -305,6 +305,8 @@ export function setTopPlaceHighlight(container: HTMLElement, placeId: string | n
 }
 
 export interface TopPlacesOptions {
+  /** Current panel selection; standalone lists retain their local selection fallback. */
+  selection?: () => string | null;
   /** Rows in the first page, and in every page after it. */
   pageSize?: number;
   /**
@@ -429,7 +431,10 @@ export function renderTopPlaces(
    * at a row reports its own id, so pointing at a different row still moves the highlight there.
    */
   function leaveRow(): void {
-    onHighlight?.(selectedPlaceId);
+    const selected = options.selection ? options.selection() : selectedPlaceId;
+    const focused = document.activeElement instanceof HTMLElement
+      ? document.activeElement.closest<HTMLElement>('li.top-place') : null;
+    onHighlight?.(selected ?? (focused && list.contains(focused) ? focused.dataset['placeId'] ?? null : null));
   }
 
   function selectRow(entry: RankedPlace): void {

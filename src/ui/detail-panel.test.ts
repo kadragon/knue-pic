@@ -229,6 +229,51 @@ describe('panel detail and URL selection', () => {
     expect(resolve).not.toHaveBeenCalled();
   });
 
+  it('keeps a returned keyboard row pin lit after the history event settles', async () => {
+    const { root, api } = await setup();
+    const opener = row(root); opener.focus(); opener.click();
+    const name = opener.querySelector('.top-place-name')!.textContent;
+    const returned = returnedToList();
+    root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click();
+    await returned;
+    expect(document.activeElement).toBe(opener);
+    expect(api.markers.find((marker) => marker.title === name)?.icon?.content).toContain('is-active');
+  });
+
+  it('does not revive a dismissed row selection after another row is hovered and left', async () => {
+    const { root, api } = await setup();
+    row(root).click();
+    const returned = returnedToList();
+    root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click(); await returned;
+    const other = root.querySelectorAll('li.top-place')[1]!;
+    other.dispatchEvent(new MouseEvent('mouseenter'));
+    other.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(api.markers.some((marker) => marker.icon?.content.includes('is-active'))).toBe(false);
+  });
+
+  it('queues a marker selection made while return-to-list history is still pending', async () => {
+    const { root, api } = await setup();
+    row(root).click();
+    const marker = api.markers[1]!;
+    const returned = returnedToList();
+    root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click();
+    marker.emit('click'); await returned;
+    expect(root.querySelector('.place-detail-name')?.textContent).toBe(marker.title);
+    expect(location.hash).not.toBe('');
+  });
+
+  it('keeps card link focus and a panned map on an unchanged hash selection', async () => {
+    const { root, api } = await setup();
+    row(root).click();
+    const link = root.querySelector<HTMLAnchorElement>('.place-detail-link')!;
+    link.focus();
+    api.maps[0]!.setCenter(new api.LatLng(36, 127));
+    const centers = api.maps[0]!.centers.length;
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(document.activeElement).toBe(link);
+    expect(api.maps[0]!.centers).toHaveLength(centers);
+  });
+
   it('keeps desktop detail usable after a map failure', async () => {
     const { root } = await setup();
     (globalThis as { navermap_authFailure?: () => void }).navermap_authFailure?.();

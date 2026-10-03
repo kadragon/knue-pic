@@ -45,6 +45,9 @@ export function createDetailPanel(
   let dialog: DetailDialogHandle | null = null;
   let switching = false;
   let fromList = false;
+  let pendingBack = false;
+  let queuedSelection: PlaceDetail | null = null;
+  let paintedWide = options.wide();
 
   function restoreFocus(): void {
     if (opener?.isConnected) opener.focus();
@@ -55,13 +58,16 @@ export function createDetailPanel(
   function closeDialog(): void {
     switching = true;
     // The selection controller restores focus once, after the list becomes visible again.
-    dialog?.close(false);
+    dialog?.close();
     switching = false;
   }
 
   function close(): void {
     if (switching) return;
-    if (fromList) history.back();
+    if (fromList) {
+      pendingBack = true;
+      history.back();
+    }
     else {
       const state = historyState();
       delete state['knuePickDetail'];
@@ -73,6 +79,7 @@ export function createDetailPanel(
 
   function paint(): void {
     const panelMode = options.wide();
+    paintedWide = panelMode;
     listViews.forEach((view) => { view.hidden = panelMode && selection !== null; });
     if (!panelMode) {
       if (!dialog) {
@@ -106,6 +113,8 @@ export function createDetailPanel(
   }
 
   function show(next: PlaceDetail | null): void {
+    if ((!next && !selection) ||
+      (next && selection && next.place.id === selection.place.id && next.basis === selection.basis)) return;
     if (next && !selection) {
       const active = document.activeElement;
       opener = active instanceof HTMLElement && active !== document.body ? active : null;
@@ -128,7 +137,12 @@ export function createDetailPanel(
   }
 
   function onHashChange(): void {
-    if (container.isConnected) syncHash();
+    if (!container.isConnected) return;
+    syncHash();
+    pendingBack = false;
+    const queued = queuedSelection;
+    queuedSelection = null;
+    if (queued) open(queued);
   }
   window.addEventListener('hashchange', onHashChange);
 
@@ -136,6 +150,7 @@ export function createDetailPanel(
   return {
     syncHash,
     syncLayout() {
+      if (paintedWide === options.wide()) return;
       paint();
       options.onSelection(selection);
     },
@@ -143,18 +158,28 @@ export function createDetailPanel(
       window.removeEventListener('hashchange', onHashChange);
       closeDialog();
       container.replaceChildren();
+      selection = null;
+      pendingBack = false;
+      queuedSelection = null;
+      options.onSelection(null);
       listViews.forEach((view) => { view.hidden = false; });
     },
-    open(detail) {
-      const hash = `#place=${encodeURIComponent(detail.place.id)}`;
-      if (!selection) fromList = true;
-      const state = { ...historyState(), knuePickDetail: {
-        placeId: detail.place.id, basis: detail.basis, fromList,
-      } };
-      // A second place replaces the detail entry; one Back reaches the originating list.
-      if (selection) history.replaceState(state, '', hash);
-      else history.pushState(state, '', hash);
-      show(detail);
-    },
+    open,
   };
+
+  function open(detail: PlaceDetail): void {
+    if (pendingBack) {
+      queuedSelection = detail;
+      return;
+    }
+    const hash = `#place=${encodeURIComponent(detail.place.id)}`;
+    if (!selection) fromList = true;
+    const state = { ...historyState(), knuePickDetail: {
+      placeId: detail.place.id, basis: detail.basis, fromList,
+    } };
+    // A second place replaces the detail entry; one Back reaches the originating list.
+    if (selection) history.replaceState(state, '', hash);
+    else history.pushState(state, '', hash);
+    show(detail);
+  }
 }

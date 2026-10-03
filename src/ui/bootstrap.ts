@@ -399,6 +399,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
       onActiveChange,
       onVisibleChange,
       onHighlight,
+      selection: () => selectedDetail?.place.id ?? null,
     });
     renderKindFilter(kinds, activeKind, selectKind);
     refreshCounts();
@@ -425,6 +426,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
         onActiveChange,
         onVisibleChange,
         onHighlight,
+        selection: () => selectedDetail?.place.id ?? null,
       });
       refreshCounts();
     }
