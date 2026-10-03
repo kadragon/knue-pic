@@ -2,9 +2,9 @@
 
 ## Review Backlog
 
-### PR #66 — navermap_authFailure observation (2026-10-03)
+### Detail card on a rejected origin — `destroy()` throws after auth failure (2026-10-03)
 
-- [ ] [debt] After a rejected origin's hook nulls `naver.maps`, `loadNaverMaps` still returns the cached resolved `pending` (reset only on failure), so a second detail render mounts from the stale API object; whether the fallback appears then depends on the API calling `navermap_authFailure` again, which the 2026-10-03 observation (first render only) does not show. Observe a second render on `:5179`, then either drop `pending` when `readApi()` comes back empty or add a test that nulls the fake global after the hook and renders again (source: code-review) — `src/map/loader.ts:63`, `src/map/place-map.test.ts`
+- [ ] [bug] On a rejected origin, once `navermap_authFailure` has fired, Naver's `map.destroy()` throws `TypeError: Cannot read properties of null (reading 'isArray')`. `dropMap` calls the stored release before clearing it, so the throw escapes `closeDialog` and every later `paint()`; the second detail card never opens and stays broken until reload. Observed on `:5179`, Chromium, 2 of 2 fresh loads. Reproduce with a fake whose `destroy` throws, then make the release survive it — `src/map/place-map.ts:120`, `src/ui/detail-dialog.ts:118`
 
 ### Detail card monthly chart (follow-up, 2026-09-16)
 
