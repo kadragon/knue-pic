@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { computeMonthlyHistogram } from '../stats/histogram';
 import { computePlaceStats } from '../stats/place-stats';
@@ -243,6 +243,39 @@ describe('createDetailDialog map lifecycle', () => {
     await Promise.resolve();
 
     expect(tracker.released).toEqual([SAMPLE_DATASET.places[0]!.id]);
+    document.body.replaceChildren();
+  });
+
+  it('finishes closing and keeps painting when a release throws', async () => {
+    const { container, opener } = mount();
+    let calls = 0;
+    const dialog = createDetailDialog(container, {
+      renderMap: () =>
+        Promise.resolve(() => {
+          calls += 1;
+          throw new TypeError('destroy failed');
+        }),
+    });
+
+    opener.focus();
+    dialog.open(detailFor(0));
+    await Promise.resolve();
+    const removeListener = vi.spyOn(document, 'removeEventListener');
+
+    // A throw that escaped here would leave the capture-phase key handler attached and the caret
+    // parked inside a hidden panel.
+    expect(() => dialog.close()).not.toThrow();
+    expect(dialog.isOpen()).toBe(false);
+    expect(document.activeElement).toBe(opener);
+    expect(removeListener).toHaveBeenCalledWith('keydown', expect.any(Function), true);
+    removeListener.mockRestore();
+
+    // The spent release must not be retried by the next paint, which would throw the same way.
+    expect(() => dialog.open(detailFor(1))).not.toThrow();
+    expect(container.textContent).toContain(SAMPLE_DATASET.places[1]!.name);
+    expect(calls).toBe(1);
+
+    dialog.close();
     document.body.replaceChildren();
   });
 });

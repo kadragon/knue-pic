@@ -2,10 +2,6 @@
 
 ## Review Backlog
 
-### PR #68 — detail map release survives a throwing destroy (2026-10-03)
-
-- [ ] [debt] `dropMap` calls the stored release before nulling it, and `closeDialog` hides the root first, so any release that throws (an injected `renderMap`, a future throw in `clearAuthFailureHandler`) still escapes `closeDialog` and every later `paint()`, leaving the keydown listener attached and focus unrestored. Null the field before calling it and cover a throwing injected release in `src/ui/detail-dialog.test.ts` (source: code-review) — `src/ui/detail-dialog.ts:118`
-
 ### PR #67 — loader re-injection after auth failure (2026-10-03)
 
 - [ ] [debt] On a rejected origin every detail render calls `/v3/auth` again and waits ~1.1 s for `navermap_authFailure` before the fallback, since nothing remembers the hook already fired; once it has, later renders could go straight to the fallback. Observed 2026-10-03 on `:5179`, Chromium, 3 sequential renders: one `maps.js` request in total (the bundle is not re-downloaded), `/v3/auth` once per render, each render mounted then got the hook (source: code-review, rescoped by PR #68 observation) — `src/map/loader.ts:63`, `src/map/place-map.ts`
