@@ -6,7 +6,7 @@ import { computeKindPlaceCounts, computeWindowSummary } from '../stats/window-su
 import { computePlaceStats } from '../stats/place-stats';
 import { CAMPUS_ORIGIN } from '../stats/distance';
 import { resolvePeriodWindow } from '../stats/period';
-import { renderPageMap, type PageMapHandle } from '../map/place-map';
+import { renderPageMap, type PageMapHandle, type PageMapPlace } from '../map/place-map';
 import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
 import { createDetailDialog, type DetailDialogOptions } from './detail-dialog';
@@ -25,6 +25,7 @@ import {
   setShellUpdatedAt,
 } from './shell';
 import { renderSummaryLine, summaryLabel } from './summary-line';
+import { setTopPlaceHighlight, type VisibleRankedPlace } from './top-places';
 
 /**
  * Wires the page frame to the dataset: shell first, then the load, then whichever state the load
@@ -138,6 +139,15 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   let pageMap: PageMapHandle | null = null;
   /** The set the map draws, kept current between mounts. Empty until a dataset has rendered. */
   let dotPlaces: PlaceRecord[] = [];
+  /**
+   * The rank label each visible row printed, by place id.
+   *
+   * Held beside `dotPlaces` rather than folded into it, because the two answer different questions:
+   * the dots are every place that passes the filters, and a label is a claim about one *row*, which
+   * a window switch, an 업종 press and a `더 보기` each rewrite. Replaced whole on every report —
+   * a merge would leave a place pinned at a rank no row prints any more.
+   */
+  let pinLabels = new Map<string, string>();
   /** Set once the map has failed, so a later widening does not ask for it again. */
   let mapUnavailable = false;
   /**
@@ -160,6 +170,22 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   });
 
   /**
+   * The markers the map should be standing on right now: every filtered place, labelled where a row
+   * is showing it.
+   *
+   * Read through a function rather than kept as a second array, so the mount and every later update
+   * cannot disagree about what the map is answering. A label for a place `dotPlaces` no longer holds
+   * is dropped here rather than passed on — the map would ignore it, and passing it would make the
+   * set look wider than the dots the summary's `N곳` counts.
+   */
+  function pageMapPlaces(): PageMapPlace[] {
+    return dotPlaces.map((place) => ({
+      place,
+      ...(pinLabels.has(place.id) ? { label: pinLabels.get(place.id) } : {}),
+    }));
+  }
+
+  /**
    * Mounts the page map, at most once per page.
    *
    * Fire-and-forget, and called only after the panel is painted: the map is the page's one
@@ -174,18 +200,26 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     if (!region) return;
     mounting = true;
 
-    void renderMap(region, dotPlaces, {
+    void renderMap(region, pageMapPlaces(), {
       origin: CAMPUS_ORIGIN,
       onUnavailable: () => {
         mapUnavailable = true;
         setShellMapUnavailable(root);
       },
+      // The other direction of the sync: a reader who touched a pin has no row in hand, so the map
+      // reports the place and the panel lights the row behind it. The slot is looked up here rather
+      // than captured, for the same reason the map region is: a hover can land at any point in the
+      // page's life, and the only thing a reader must never see is a stale row still lit.
+      onPinHover: (placeId) => {
+        const rows = root.querySelector<HTMLElement>('.place-list-slot');
+        if (rows) setTopPlaceHighlight(rows, placeId);
+      },
     })
       .then((handle) => {
         pageMap = handle;
-        // The filters may have moved while the script was still downloading — `dotPlaces` is read
-        // again here rather than captured, so the dots cannot answer a window the list has left.
-        handle.setPlaces(dotPlaces);
+        // The filters may have moved while the script was still downloading — the markers are read
+        // again here rather than captured, so the map cannot answer a window the list has left.
+        handle.setPlaces(pageMapPlaces());
       })
       .finally(() => {
         mounting = false;
@@ -304,15 +338,33 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     }
 
     /**
-     * The map's dot set, from the same narrowed dataset the summary just counted.
+     * The map's marker set, from the same narrowed dataset the summary just counted.
      *
      * Called on every filter change and on the first paint, which is also where the map is first
      * mounted: `mountPageMap` mounts at most once, so on every later call this is only the update.
      */
     function refreshDots(narrowed: PlacesDataset): void {
       dotPlaces = placesInWindow(narrowed, activePeriod);
-      pageMap?.setPlaces(dotPlaces);
+      pageMap?.setPlaces(pageMapPlaces());
       mountPageMap();
+    }
+
+    /**
+     * The rows on screen, as the map's pins.
+     *
+     * A replacement, never a merge: the list reports the whole visible set every time it pages in or
+     * the window changes, and a number left over from a window the reader has left would be a pin
+     * asserting a rank no row prints. `refreshDots` follows, so the labels are on the map by the
+     * time the reader sees the list — the map is fire-and-forget, and this is not.
+     */
+    function onVisibleChange(visible: VisibleRankedPlace[]): void {
+      pinLabels = new Map(visible.map(({ place, label }) => [place.id, label]));
+      pageMap?.setPlaces(pageMapPlaces());
+    }
+
+    /** The row the reader arrived at — or left, as `null`. The map decides what lit looks like. */
+    function onHighlight(placeId: string | null): void {
+      pageMap?.highlight(placeId);
     }
 
     function onActiveChange(period: Period): void {
@@ -323,7 +375,12 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     const searchView = renderPlaceSearch(search, initial, (placeId) => {
       selectPlace(placeId, SEARCH_PERIOD);
     });
-    renderPlaceList(list, initial, selectPlace, { active: activePeriod, onActiveChange });
+    renderPlaceList(list, initial, selectPlace, {
+      active: activePeriod,
+      onActiveChange,
+      onVisibleChange,
+      onHighlight,
+    });
     renderKindFilter(kinds, activeKind, selectKind);
     refreshCounts();
 
@@ -343,7 +400,12 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
       const narrowed = filterByKind(dataset, kind);
       searchView.setDataset(narrowed);
-      renderPlaceList(list, narrowed, selectPlace, { active: activePeriod, onActiveChange });
+      renderPlaceList(list, narrowed, selectPlace, {
+        active: activePeriod,
+        onActiveChange,
+        onVisibleChange,
+        onHighlight,
+      });
       refreshCounts();
     }
   }

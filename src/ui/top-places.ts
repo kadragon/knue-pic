@@ -1,3 +1,4 @@
+import type { PlaceRecord } from '../data/types';
 import { histogramSpan, type HistogramSpan, type MonthlyHistogram } from '../stats/histogram';
 import { distanceBand, distanceFromCampusKm } from '../stats/distance';
 import type { RankedPlace, TopPlacesResult } from '../stats/top-places';
@@ -105,6 +106,19 @@ export function trendSpanNote(span: HistogramSpan): string {
 }
 
 /**
+ * One row the map has something to say about: the place, and the rank label the row prints.
+ *
+ * The same shape the page map takes (`PageMapPlace`), named for what the *list* is reporting rather
+ * than what the map will do with it — the list hands over what is on screen; where those numbers go
+ * is the map's business, and this module never learns it.
+ */
+export interface VisibleRankedPlace {
+  place: PlaceRecord;
+  /** The row's rank badge text, verbatim — `String(entry.rank)`, never recomputed here. */
+  label: string;
+}
+
+/**
  * The row's trend bars: one bar per calendar month, oldest at the left.
  *
  * Heights are scaled against the busiest month of *this place* rather than of the list, so a quiet
@@ -148,9 +162,17 @@ export function renderSparkline(buckets: MonthlyHistogram): HTMLElement {
  * must never be conveyed by colour alone (`docs/conventions.md` → Accessibility). The 업종 badge
  * beside the metadata follows the same rule: it spells its category out.
  */
-function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): HTMLLIElement {
+function renderEntry(
+  entry: RankedPlace,
+  onSelect?: (placeId: string) => void,
+  onHighlight?: (placeId: string | null) => void,
+): HTMLLIElement {
   const item = document.createElement('li');
   item.className = 'top-place';
+  // On the row, not on the control inside it: the map highlights the row it is pointed at, and the
+  // row's own `data-place-id` is the one identifier it publishes — whether or not the list happens
+  // to be wired to a detail and therefore to have a control at all.
+  item.dataset['placeId'] = entry.place.id;
 
   const badge = document.createElement('span');
   badge.className = 'top-place-rank';
@@ -162,10 +184,25 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
   body.className = 'top-place-body';
   if (body instanceof HTMLButtonElement && onSelect) {
     body.type = 'button';
-    body.dataset['placeId'] = entry.place.id;
     body.addEventListener('click', () => {
+      // Selecting is a highlight too, and a deliberate one: the pointer that made it has not left
+      // the row, so nothing here reports `null` afterwards. Map-first 5 gives the selection its own
+      // state; until then this is what keeps the pin lit while the detail is open.
+      onHighlight?.(entry.place.id);
       onSelect(entry.place.id);
     });
+  }
+
+  // Hover and focus both, and both on the row rather than the control: the reader's attention is on
+  // the row, and `focusin`/`focusout` bubble from whatever inside it holds the focus — which is the
+  // button when the list is wired to a detail and nothing at all when it is not. A keyboard reader
+  // never hovers, so without the focus pair the map would be silent for them.
+  if (onHighlight) {
+    const placeId = entry.place.id;
+    item.addEventListener('mouseenter', () => onHighlight(placeId));
+    item.addEventListener('mouseleave', () => onHighlight(null));
+    item.addEventListener('focusin', () => onHighlight(placeId));
+    item.addEventListener('focusout', () => onHighlight(null));
   }
 
   // `<span>`, not `<p>`: when `onSelect` is supplied the body is a `<button>`, whose content model
@@ -244,9 +281,44 @@ function renderEntry(entry: RankedPlace, onSelect?: (placeId: string) => void): 
   return item;
 }
 
+/**
+ * The row the map says the reader is on, stamped for the stylesheet to read.
+ *
+ * The other half of `onHighlight`: the map learns a pin was touched and the panel has to light the
+ * row behind it. A `data-` attribute rather than a class, for the same reason the 거리 밴드 badge
+ * carries one — this module decides *which* row is lit and never what lit looks like.
+ *
+ * The whole container is swept each call rather than the previous row alone: a page-in, a filter
+ * change and a period switch all rebuild the rows under it, so any row this lit is gone and the
+ * attribute left on the list is the only record. `placeId` is looked up through the row's own
+ * `data-place-id`, the one identifier a row publishes.
+ */
+export function setTopPlaceHighlight(container: HTMLElement, placeId: string | null): void {
+  for (const row of container.querySelectorAll<HTMLElement>('li.top-place')) {
+    if (row.dataset['placeId'] === placeId) row.dataset['active'] = 'true';
+    else delete row.dataset['active'];
+  }
+}
+
 export interface TopPlacesOptions {
   /** Rows in the first page, and in every page after it. */
   pageSize?: number;
+  /**
+   * The rows on screen, whole, every time one is added — what the map draws its numbered pins from.
+   *
+   * A replacement rather than a delta: the ranks move when the window changes, and a merge would
+   * leave a place pinned at a number no row prints any more. Called once per page including the
+   * first, and once with `[]` for a window that ranks nothing, so the map never keeps pins for a
+   * list that has left the window.
+   */
+  onVisibleChange?: (visible: VisibleRankedPlace[]) => void;
+  /**
+   * The row the reader arrived at, and `null` when they leave it.
+   *
+   * Hover, focus and selection all travel this one channel rather than three: what the map does with
+   * them is the same, and three callbacks would be three places to forget to clear.
+   */
+  onHighlight?: (placeId: string | null) => void;
 }
 
 /**
@@ -278,7 +350,7 @@ export function renderTopPlaces(
   heading: string = topPlacesHeading(),
   options: TopPlacesOptions = {},
 ): void {
-  const { pageSize = LIST_PAGE_SIZE } = options;
+  const { pageSize = LIST_PAGE_SIZE, onVisibleChange, onHighlight } = options;
   const section = document.createElement('section');
   section.className = 'top-places';
 
@@ -299,6 +371,9 @@ export function renderTopPlaces(
     empty.textContent = EMPTY_MESSAGE;
     section.append(empty);
     container.replaceChildren(section);
+    // The empty window is a report too: the map's pins are drawn from this list, so a window that
+    // ranks nothing has to take its pins off rather than leaving the last window's standing.
+    onVisibleChange?.([]);
     return;
   }
 
@@ -356,8 +431,16 @@ export function renderTopPlaces(
   function appendPage(): void {
     const firstIndexOfPage = rendered;
     const next = result.entries.slice(rendered, rendered + pageSize);
-    list.append(...next.map((entry) => renderEntry(entry, onSelect)));
+    list.append(...next.map((entry) => renderEntry(entry, onSelect, onHighlight)));
     rendered += next.length;
+
+    // The whole visible set, after the page has landed: `더 보기` growing the pin set is this call.
+    onVisibleChange?.(
+      result.entries.slice(0, rendered).map((entry) => ({
+        place: entry.place,
+        label: String(entry.rank),
+      })),
+    );
 
     if (rendered >= total) {
       counter.textContent = allRenderedLabel(total);

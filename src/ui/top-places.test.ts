@@ -22,6 +22,7 @@ import {
   renderedCountLabel,
   renderSparkline,
   renderTopPlaces,
+  setTopPlaceHighlight,
   sparklineLabel,
   topPlacesHeading,
   trendSpanNote,
@@ -527,6 +528,197 @@ describe('renderTopPlaces selection', () => {
 
     expect(container.querySelector('button')).toBeNull();
     expect(container.querySelector('.top-place-body')).toBeInstanceOf(HTMLDivElement);
+  });
+});
+
+/**
+ * What the map draws from: the rows that are on screen, and the row the reader is on.
+ *
+ * Two reports, not one. `onVisibleChange` is a *replacement* — the whole visible set, every time —
+ * because a rank moves when the window changes, and merging would leave a stale number standing on
+ * a pin for a place the reader has never seen at that rank. `onHighlight` is a single place id, or
+ * `null`; the list reports the row the reader arrived at and the row they left, and the map decides
+ * what that looks like.
+ */
+describe('renderTopPlaces → page map', () => {
+  /** Long enough to page, so the `더 보기` path is a real one rather than a single-page list. */
+  function pagedDataset(placeCount: number): PlacesDataset {
+    return {
+      updatedAt: '2026-07-31',
+      places: Array.from({ length: placeCount }, (_, index) => ({
+        id: `restaurant_${String(index + 1).padStart(6, '0')}`,
+        name: `가게 ${index + 1}`,
+        category: '기타',
+        kind: 'other',
+        address: '충북 청주시 흥덕구 강내면',
+        lat: 36.6,
+        lng: 127.3,
+        naverUrl: 'https://map.naver.com/p/search/x',
+        transactions: Array.from({ length: placeCount - index }, (__, visit) => ({
+          date: `2026-07-${String(visit + 2).padStart(2, '0')}`,
+          amount: 1000,
+        })),
+      })),
+    };
+  }
+
+  function withCallbacks(
+    options: Partial<Parameters<typeof renderTopPlaces>[4]> = {},
+  ): {
+    container: HTMLElement;
+    onVisibleChange: ReturnType<typeof vi.fn>;
+    onHighlight: ReturnType<typeof vi.fn>;
+  } {
+    const container = document.createElement('div');
+    const onVisibleChange = vi.fn();
+    const onHighlight = vi.fn();
+    renderTopPlaces(
+      container,
+      computeTopPlaces(SAMPLE_DATASET, '1y'),
+      () => {},
+      undefined,
+      { onVisibleChange, onHighlight, ...options },
+    );
+    return { container, onVisibleChange, onHighlight };
+  }
+
+  it('reports the rows on screen with the rank label each one printed', () => {
+    const { onVisibleChange } = withCallbacks();
+    const result = computeTopPlaces(SAMPLE_DATASET, '1y');
+
+    // The label is the row's own badge text, not a number this module recomputed — the map draws
+    // what the reader is looking at, so a second definition of the rank could not drift from it.
+    const badge = result.entries[0]!.rank;
+    expect(onVisibleChange).toHaveBeenCalledTimes(1);
+    expect(onVisibleChange.mock.calls[0]![0]).toEqual(
+      result.entries.slice(0, LIST_PAGE_SIZE).map((entry) => ({
+        place: entry.place,
+        label: String(entry.rank),
+      })),
+    );
+    expect(badge).toBe(1);
+  });
+
+  it('reports an empty visible set when the window ranks nothing', () => {
+    const container = document.createElement('div');
+    const onVisibleChange = vi.fn();
+
+    renderTopPlaces(container, computeTopPlaces(EMPTY_DATASET, '1y'), undefined, undefined, {
+      onVisibleChange,
+    });
+
+    // The map draws its pins from this, so a list with no rows has to say so rather than leaving the
+    // pins of a window the reader has already left standing on the map.
+    expect(onVisibleChange).toHaveBeenCalledWith([]);
+  });
+
+  it('더 보기 extends the visible set with the page it just added', () => {
+    const container = document.createElement('div');
+    const onVisibleChange = vi.fn();
+    const placeCount = LIST_PAGE_SIZE * 2 + 3;
+    renderTopPlaces(container, computeTopPlaces(pagedDataset(placeCount), '1m'), undefined, undefined, {
+      onVisibleChange,
+    });
+
+    expect(onVisibleChange.mock.calls.at(-1)![0]).toHaveLength(LIST_PAGE_SIZE);
+
+    container.querySelector<HTMLButtonElement>('.top-places-more-button')?.click();
+
+    // The whole set again, not just the new rows: the map keys its markers by place, and a report of
+    // only the delta would make it read the pins of rows it no longer has.
+    expect(onVisibleChange.mock.calls.at(-1)![0]).toHaveLength(LIST_PAGE_SIZE * 2);
+    expect(onVisibleChange.mock.calls.at(-1)![0].map((entry: { label: string }) => entry.label)).toEqual(
+      Array.from({ length: LIST_PAGE_SIZE * 2 }, (_, index) => String(index + 1)),
+    );
+  });
+
+  it('reports the row the reader hovered, and again when they leave it', () => {
+    const { container, onHighlight } = withCallbacks();
+    const row = container.querySelector('li.top-place')!;
+
+    row.dispatchEvent(new MouseEvent('mouseenter'));
+    row.dispatchEvent(new MouseEvent('mouseleave'));
+
+    // The `null` is the half that matters: a pin left lit would claim a row the reader has left.
+    expect(onHighlight).toHaveBeenNthCalledWith(1, 'restaurant_000001');
+    expect(onHighlight).toHaveBeenNthCalledWith(2, null);
+  });
+
+  it('reports a row that took keyboard focus, and again when the focus leaves', () => {
+    const { container, onHighlight } = withCallbacks();
+    const body = container.querySelector('.top-place-body')!;
+
+    // Keyboard readers never hover, so focus is a highlight of its own rather than a second name
+    // for the same event.
+    body.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    body.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
+    expect(onHighlight).toHaveBeenNthCalledWith(1, 'restaurant_000001');
+    expect(onHighlight).toHaveBeenNthCalledWith(2, null);
+  });
+
+  it('reports the row the reader selected, which is what a pin click will mean next', () => {
+    const { container, onHighlight } = withCallbacks();
+    const second = container.querySelectorAll('li.top-place')[1]!;
+
+    second.querySelector('.top-place-body')!.dispatchEvent(new MouseEvent('click'));
+
+    // Selecting is a highlight the reader made on purpose, and it lasts: the pointer that took it
+    // has not left, so nothing here reports `null`.
+    expect(onHighlight).toHaveBeenCalledWith(second.getAttribute('data-place-id'));
+    expect(onHighlight).not.toHaveBeenCalledWith(null);
+  });
+
+  it('reports nothing when the list is not wired to a map at all', () => {
+    const container = document.createElement('div');
+    renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'));
+
+    container.querySelector('li.top-place')!.dispatchEvent(new MouseEvent('mouseenter'));
+
+    // The page map mounts on a wide viewport only, and the list is built either way; a listener that
+    // called into a `null` handle would throw on a phone for no reader to see.
+    expect(container.querySelector('li.top-place')?.hasAttribute('data-active')).toBe(false);
+  });
+});
+
+describe('setTopPlaceHighlight', () => {
+  it('lights the row the map highlighted, and takes the light off when it is told to', () => {
+    const container = document.createElement('div');
+    renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'));
+
+    setTopPlaceHighlight(container, 'restaurant_000002');
+
+    // Only the one row: two lit rows would name two answers to "which row is this pin?".
+    const lit = container.querySelectorAll('li.top-place[data-active]');
+    expect(lit).toHaveLength(1);
+    expect(lit[0]?.getAttribute('data-place-id')).toBe('restaurant_000002');
+
+    setTopPlaceHighlight(container, null);
+    expect(container.querySelectorAll('li.top-place[data-active]')).toHaveLength(0);
+  });
+
+  it('moves the light rather than adding to it', () => {
+    const container = document.createElement('div');
+    renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'));
+
+    setTopPlaceHighlight(container, 'restaurant_000001');
+    setTopPlaceHighlight(container, 'restaurant_000003');
+
+    const lit = container.querySelectorAll('li.top-place[data-active]');
+    expect(lit).toHaveLength(1);
+    expect(lit[0]?.getAttribute('data-place-id')).toBe('restaurant_000003');
+  });
+
+  it('clears the light rather than throwing on a place with no row', () => {
+    const container = document.createElement('div');
+    renderTopPlaces(container, computeTopPlaces(SAMPLE_DATASET, '1y'));
+    setTopPlaceHighlight(container, 'restaurant_000001');
+
+    // A pin whose row is not on screen — a row that scrolled out by paging, or a place the filter
+    // has since excluded. Lighting nothing is right; leaving the old row lit is not.
+    setTopPlaceHighlight(container, 'restaurant_999999');
+
+    expect(container.querySelectorAll('li.top-place[data-active]')).toHaveLength(0);
   });
 });
 

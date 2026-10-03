@@ -1309,12 +1309,13 @@ button.top-place-body,
 }
 
 /*
- * One dot, and every place gets the same one.
+ * Two markers, and the difference between them is the only thing a row says about its place.
  *
- * No size, shade or hue from the visit count — `docs/design/map-first-layout.md` → Implementation
- * Decision 1 rules that out as surveillance framing, and the numbering that will sit beside these
- * dots is its own ticket. The white ring and the drop shadow are the same two the dialog's pin uses,
- * for the same reason: Naver's tiles are photographic, and a 12px dot has to survive them.
+ * A dot is a place that passes the filters with no row on screen, so it prints nothing; a pin is a
+ * place the list is showing, and prints that row's own rank. No size, shade or hue from the visit
+ * count in either — `docs/design/map-first-layout.md` → Implementation Decision 1 rules that out as
+ * surveillance framing. Both carry the same white ring and the same drop shadow, for the same
+ * reason: Naver's tiles are photographic, and a 12px dot and a 26px pin both have to survive them.
  */
 .page-map-dot {
   display: block;
@@ -1323,6 +1324,56 @@ button.top-place-body,
   border-radius: var(--radius-full);
   background: var(--accent);
   box-shadow: 0 0 0 2px var(--canvas), rgba(0, 0, 0, 0.25) 0 1px 3px;
+}
+
+/*
+ * The pin's number, in the same shape as the row's rank badge beside it on the panel.
+ *
+ * One size for every rank: a marker that grew with its number would be the intensity scale Decision
+ * 1 rules out, in size rather than in colour — and the top of a 500-row list would be a different
+ * object from its bottom. Three digits is what the longest rank in the dataset needs, which is why
+ * this is a fixed 26px rather than the dot's 12px.
+ */
+.page-map-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--canvas);
+  color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  /* A rank is digits, but the label is handed to this element as a string rather than stamped here;
+     a tab stop or a line break inside the pin would break the circle it is meant to be. */
+  white-space: nowrap;
+  user-select: none;
+}
+
+/*
+ * The pin for the row the reader is on.
+ *
+ * A `data-`-stamped class and nothing else: `src/map/place-map.ts` decides *which* pin is lit and
+ * never what lit looks like — the same rule the 거리 밴드 and 업종 palettes are held to. Inverted
+ * rather than tinted, because a hue change would read as a different kind of place and the only fact
+ * here is "this is the one you are looking at".
+ */
+.page-map-pin.is-active {
+  background: var(--accent);
+  color: var(--canvas);
+  box-shadow: 0 0 0 2px var(--canvas), rgba(0, 0, 0, 0.25) 0 1px 3px;
+}
+
+/*
+ * The same state on the row, for the other direction: a reader who touched a pin has no row in
+ * hand, and this is what tells them which one they are looking at. `src/ui/top-places.ts` →
+ * `setTopPlaceHighlight` stamps it; nothing here decides when.
+ */
+.top-place[data-active] {
+  background: var(--surface-hover);
 }
 
 /* ── Focus ─────────────────────────────────────────────────────────────────────────────────── */

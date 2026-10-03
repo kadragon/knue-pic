@@ -143,11 +143,16 @@ dance per file.
   and a monthly trend chart of `HISTOGRAM_MONTHS` bars whose series is spelled out in its
   `aria-label`.
 - At ≥ 768px the map *is* the page: a full-bleed Naver map with `#content` as a ~360px panel on
-  the left, and one neutral dot per place that passes the period and 업종 filters. Two rules hold it
-  honest, and both are tests rather than opinions — no marker size, shade or hue may vary with the
+  the left, and one marker per place that passes the period and 업종 filters — a numbered pin for
+  each row the list is currently showing, a neutral dot for every other. Three rules hold it honest,
+  and all three are tests rather than opinions — no marker size, shade or hue may vary with the
   visit count (`src/map/place-map.test.ts` → `renderPageMap` compares the whole icon option across
-  places with different counts), and the dot set is the same set the summary's `N곳` counts
-  (`src/ui/bootstrap.test.ts` → `bootstrap page map`), because both read one predicate. Below 768px
+  places with different counts, for pins as well as dots); a pin's number is the rank string its own
+  row printed, handed in as `{ place, label? }` and never computed in `src/map/`
+  (`page map pin labels`); and the marker set is the same set the summary's `N곳` counts
+  (`src/ui/bootstrap.test.ts` → `bootstrap page map`), because both read one predicate. Hover or
+  focus on a row lights its pin, and a pin the reader touches lights its row — one channel each way,
+  `onHighlight` in and `setTopPlaceHighlight` out. Below 768px
   the page is the single column it has always been and the Naver script is never loaded; either map
   failure — the script or a rejected key — gives the panel the whole width back and says
   `지도를 불러오지 못했습니다.` once. The detail dialog is untouched by all of this: it keeps its

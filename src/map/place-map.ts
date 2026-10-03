@@ -13,14 +13,16 @@ import type { HtmlIcon, NaverMap, NaverMarker, NaverMapsApi } from './naver-api'
  * map-first layout (`docs/design/map-first-layout.md`) is the map, the page, with the content in a
  * panel beside it, so the distance between a name and a location is gone instead of the map.
  *
- * What came back is deliberately quieter than what went: a neutral dot per filtered place, no rank
- * badge, no size, shade or hue from the visit count (Implementation Decision 1). The numbered pins
- * synced with the list are their own ticket, and the marker set is id-keyed so that ticket adds
- * labels to the dots rather than re-deriving the map.
+ * What came back, and what it carries: a numbered pin for every row the list currently shows, and a
+ * neutral dot for every other place that passes the period and 업종 filters. No size, shade or hue
+ * from the visit count (Implementation Decision 1) — the only thing that varies between one pin and
+ * another is the rank string the row already printed, and the UI hands it in rather than this module
+ * ranking anything. The marker set is id-keyed, so a row appearing, re-ranking or leaving costs a
+ * `setIcon` rather than a second marker.
  *
  * This module still derives no statistic of its own (`docs/architecture.md` → Layers): the campus
- * origin and the filtered set arrive as arguments, and nothing here imports `src/stats/`. Every
- * user-facing string is exported so the banned-phrase test can assert over it.
+ * origin, the filtered set and the labels all arrive as arguments, and nothing here imports
+ * `src/stats/`. Every user-facing string is exported so the banned-phrase test can assert over it.
  */
 
 export const MAP_HEADING = '위치';
@@ -286,22 +288,55 @@ export async function renderPlaceLocationMap(
 /* ── The page map ───────────────────────────────────────────────────────────────────────────── */
 
 /**
- * What the dot says, and all it says: the place's own name.
+ * What the marker says, and all it says: the place's own name.
  *
- * The page map's dots are the one place on the page where colour is not allowed to carry a claim
- * (`docs/design/map-first-layout.md` → Implementation Decision 1), so nothing but the name may go
- * into the marker. `markerLabel` above adds 위치 because that marker stands alone in a card whose
- * heading already says which place is being discussed.
+ * The page map is the one place on the page where colour is not allowed to carry a claim
+ * (`docs/design/map-first-layout.md` → Implementation Decision 1), so nothing but the name goes into
+ * a marker's title. On a pin the number is printed in the icon body rather than in the title: Naver
+ * shows a `title` as a tooltip, and a tooltip that said `7` would be the rank with the place's name
+ * gone. `markerLabel` above adds 위치 because that marker stands alone in a card whose heading
+ * already says which place is being discussed.
  */
 export function dotLabel(place: PlaceRecord): string {
   return place.name;
 }
 
 /**
- * Small enough to read as a dot rather than a pin, which is the point: a badge or a bigger marker
- * per place would put the ranking back on the map before the numbered-pins ticket decides how.
+ * Small enough to read as a dot rather than a pin, which is the point: a place with no row on screen
+ * has no rank to print, so the marker that stands in for it must say nothing at all.
  */
 const DOT_SIZE = 12;
+
+/** A shade wider than the dot, because a pin carries a number and the number needs room. */
+const PIN_SIZE = 26;
+
+/**
+ * The pin's body: the rank string the row printed, and nothing else.
+ *
+ * `active` is a class rather than a different icon so the two shapes stay one rule in the
+ * stylesheet — the same discipline the 거리 밴드 palette is held to (`docs/conventions.md` →
+ * Accessibility): this module decides *which* pin is lit, the stylesheet decides what lit looks like.
+ *
+ * Exported so a test can assert the pin's markup without restating it, which is what keeps a test
+ * from passing on a pin that prints a plausible wrong number.
+ */
+export function pinLabelMarkup(label: string, active: boolean): string {
+  return `<span class="page-map-pin${active ? ' is-active' : ''}">${escapeHtml(label)}</span>`;
+}
+
+/**
+ * The label is the UI's value, and the pin body is injected as HTML into the map's own overlay
+ * layer. Today the label is a rank — `String(entry.rank)` — and the reader cannot type it, but the
+ * escaping is here so that changing where the label comes from cannot turn into an injection.
+ */
+function escapeHtml(text: string): string {
+  return text.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ??
+      character,
+  );
+}
 
 /**
  * The frame the map opens on: the campus and roughly the width of 청주 around it.
@@ -314,14 +349,51 @@ const DOT_SIZE = 12;
  */
 const PAGE_ZOOM = 13;
 
+/**
+ * What the UI hands the map for one place: the record, and the rank string its row printed.
+ *
+ * A separate `label` rather than a `PlaceRecord` with a rank on it, because the rank is not the
+ * place's: it is the place's position in *one window under one filter*, computed by
+ * `src/stats/top-places.ts` and owned by the list. This module never ranks anything — Decision 2 —
+ * so a place with no row on screen arrives with no label and is drawn as the dot it has always been.
+ */
+export interface PageMapPlace {
+  place: PlaceRecord;
+  /** The rank string the row printed, verbatim. Absent for a place the list is not showing. */
+  label?: string;
+}
+
+/**
+ * One drawn marker, and the two things about it that change while it stands.
+ *
+ * `label` is `null` rather than `''` so "no row on screen" and "a row that printed nothing" cannot be
+ * confused; a rank is never the empty string, and an empty pin would be a pin asserting nothing.
+ */
+interface PlacedMarker {
+  marker: NaverMarker;
+  label: string | null;
+  active: boolean;
+}
+
 export interface PageMapHandle {
   /**
-   * Replaces the dot set with the places that pass the current filters.
+   * Replaces the marker set with the places that pass the current filters, labelled where the list
+   * is showing the place.
    *
    * Keyed by place id: a filter change adds and removes, it never redraws what survived, so
-   * widening a filter or reordering it costs no marker and no flicker.
+   * widening a filter or reordering it costs no marker and no flicker. A place that survives with a
+   * *different* label — the reader switched window and its rank moved — keeps its marker and takes
+   * the new number, which is why the label lives beside the marker rather than in the key.
    */
-  setPlaces(places: PlaceRecord[]): void;
+  setPlaces(places: PageMapPlace[]): void;
+  /**
+   * Lights the pin for `placeId`, or every pin off when handed `null`.
+   *
+   * Driven by the list: the row a reader is hovering or has focused is the one whose pin should
+   * stand out. `null` is a real state rather than "no argument" because leaving a row is an event
+   * the list reports like any other, and a pin left lit would claim a row the reader has left.
+   */
+  highlight(placeId: string | null): void;
   /** Returns the map to the origin it opened on. */
   recenter(): void;
   /** Releases the map and this render's auth-failure listener. Everything after it is inert. */
@@ -345,6 +417,15 @@ export interface RenderPageMapOptions {
    * layout, and the layout is the shell's (`src/ui/shell.ts` → `setShellMapUnavailable`).
    */
   onUnavailable?: () => void;
+  /**
+   * Which pin a reader touched, and `null` when they left it — so the panel can highlight that row.
+   *
+   * The other half of the sync: a row handing its place to `highlight` answers "where is this row?",
+   * and this answers "which row is this pin?" — a question a reader who has touched the map and has
+   * no row in hand can only ask in this direction. Pins only; a dot has no row to light, and
+   * reporting one would clear the row the reader was actually on.
+   */
+  onPinHover?: (placeId: string | null) => void;
 }
 
 function dotIcon(api: NaverMapsApi): HtmlIcon {
@@ -352,6 +433,14 @@ function dotIcon(api: NaverMapsApi): HtmlIcon {
     content: '<span class="page-map-dot"></span>',
     size: new api.Size(DOT_SIZE, DOT_SIZE),
     anchor: new api.Point(DOT_SIZE / 2, DOT_SIZE / 2),
+  };
+}
+
+function pinIcon(api: NaverMapsApi, label: string, active: boolean): HtmlIcon {
+  return {
+    content: pinLabelMarkup(label, active),
+    size: new api.Size(PIN_SIZE, PIN_SIZE),
+    anchor: new api.Point(PIN_SIZE / 2, PIN_SIZE / 2),
   };
 }
 
@@ -363,6 +452,7 @@ function dotIcon(api: NaverMapsApi): HtmlIcon {
  */
 const INERT_PAGE_MAP: PageMapHandle = {
   setPlaces: () => {},
+  highlight: () => {},
   recenter: () => {},
   release: () => {},
 };
@@ -379,10 +469,10 @@ const INERT_PAGE_MAP: PageMapHandle = {
  */
 export async function renderPageMap(
   container: HTMLElement,
-  places: PlaceRecord[],
+  places: PageMapPlace[],
   options: RenderPageMapOptions,
 ): Promise<PageMapHandle> {
-  const { loadApi = () => loadNaverMaps(), origin, onUnavailable } = options;
+  const { loadApi = () => loadNaverMaps(), origin, onUnavailable, onPinHover } = options;
 
   const canvas = document.createElement('div');
   canvas.className = 'page-map-canvas';
@@ -434,29 +524,75 @@ export async function renderPageMap(
       center: new api.LatLng(origin.lat, origin.lng),
       zoom: PAGE_ZOOM,
     });
-    const markers = new Map<string, NaverMarker>();
+    const markers = new Map<string, PlacedMarker>();
 
-    const draw = (next: PlaceRecord[]): void => {
+    /**
+     * The icon a placed marker wears right now.
+     *
+     * Only the label and the lit state can vary: both come from the list, and neither is derived
+     * here, so two places with different visit counts cannot end up with different icons beyond the
+     * number each one prints.
+     */
+    const iconFor = (entry: PlacedMarker): HtmlIcon =>
+      entry.label === null ? dotIcon(api) : pinIcon(api, entry.label, entry.active);
+
+    const draw = (next: PageMapPlace[]): void => {
       if (!live) return;
-      const wanted = new Set(next.map((place) => place.id));
-      for (const [id, marker] of markers) {
+      const wanted = new Set(next.map(({ place }) => place.id));
+      for (const [id, entry] of markers) {
         if (wanted.has(id)) continue;
         // `marker.setMap(null)` is the documented removal, and it is the only half of the vendor
-        // surface the page map needed besides `setCenter` (see `./naver-api.ts`).
-        marker.setMap(null);
+        // surface the page map needed besides `setCenter` and `setIcon` (see `./naver-api.ts`).
+        entry.marker.setMap(null);
         markers.delete(id);
       }
-      for (const place of next) {
-        if (markers.has(place.id)) continue;
-        markers.set(
-          place.id,
-          new api.Marker({
-            position: new api.LatLng(place.lat, place.lng),
-            map,
-            title: dotLabel(place),
-            icon: dotIcon(api),
-          }),
-        );
+      for (const { place, label } of next) {
+        const existing = markers.get(place.id);
+        if (existing) {
+          // The same place under a new label — the reader switched window and its rank moved. The
+          // marker is kept, so the pin the reader was reading does not blink out and back.
+          const nextLabel = label ?? null;
+          if (nextLabel === existing.label) continue;
+          existing.label = nextLabel;
+          existing.marker.setIcon(iconFor(existing));
+          continue;
+        }
+
+        // `null`, not `''`: "no row on screen" and "a row that printed nothing" are different
+        // states, and an empty pin would be a pin asserting nothing.
+        const nextLabel = label ?? null;
+        const marker = new api.Marker({
+          position: new api.LatLng(place.lat, place.lng),
+          map,
+          title: dotLabel(place),
+          icon: nextLabel === null ? dotIcon(api) : pinIcon(api, nextLabel, false),
+        });
+        const placed: PlacedMarker = { marker, label: nextLabel, active: false };
+        markers.set(place.id, placed);
+
+        // Only on a pin. A dot reports nothing, because there is no row behind it and clearing the
+        // highlight would light up the wrong place's absence.
+        if (placed.label !== null) {
+          api.Event.addListener(placed.marker, 'mouseover', () => {
+            if (live) onPinHover?.(place.id);
+          });
+          api.Event.addListener(placed.marker, 'mouseout', () => {
+            if (live) onPinHover?.(null);
+          });
+        }
+      }
+    };
+
+    const highlight = (placeId: string | null): void => {
+      if (!live) return;
+      for (const [id, entry] of markers) {
+        // A dot has nothing to light: the highlight answers "the row you are on", and a place with
+        // no row is not on one.
+        if (entry.label === null) continue;
+        const shouldBeActive = id === placeId;
+        if (entry.active === shouldBeActive) continue;
+        entry.active = shouldBeActive;
+        entry.marker.setIcon(iconFor(entry));
       }
     };
 
@@ -464,13 +600,14 @@ export async function renderPageMap(
 
     mounted = () => {
       stopListening();
-      for (const marker of markers.values()) marker.setMap(null);
+      for (const entry of markers.values()) entry.marker.setMap(null);
       markers.clear();
       releaseMap(map);
     };
 
     return {
       setPlaces: draw,
+      highlight,
       recenter: () => {
         if (!live) return;
         map.setCenter(new api.LatLng(origin.lat, origin.lng));

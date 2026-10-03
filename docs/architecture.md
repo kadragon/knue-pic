@@ -42,7 +42,8 @@ src/                  # web app; browser-only code
                       #   the shortened address the list displays and search matches
                       #   (short-address.ts)
   map/                # loader.ts (script injection), naver-api.ts (hand-written API types),
-                      #   place-map.ts (the page map's dots, the dialog's one marker, §38 fallback)
+                      #   place-map.ts (the page map's numbered pins and neutral dots, the dialog's
+                      #   one marker, §38 fallback)
   ui/                 # views, Korean strings
 data/places.json      # published dataset (generated — see below); also Vite's publicDir
 collector/            # Python; never imported by src/
@@ -71,10 +72,14 @@ review_candidates.csv # manual location approval queue (committed)
   label said so on screen until the operator shortened it to `거리 N.Nkm`, so the qualifier now
   lives in the code rather than on screen.
 - `src/map/` reads a place record and nothing else; `src/stats/` must never import from `src/map/`
-  or `src/ui/`. It draws two maps and neither carries a ranking: the page map marks every place that
-  passes the period and 업종 filters with the same neutral dot, and the dialog's map marks the one
-  place the card is about. So there is nothing here for a statistic to answer, and
-  `CAMPUS_ORIGIN` and the filtered set cross from `src/ui/` as arguments rather than as imports.
+  or `src/ui/`. It draws two maps and neither *computes* a ranking: the page map marks a place the
+  list is showing with a numbered pin and every other place that passes the period and 업종 filters
+  with the same neutral dot, and the dialog's map marks the one place the card is about. The pin's
+  number is therefore not derived here — `src/ui/` hands the map a list of `{ place, label? }`,
+  where `label` is the rank string that row already printed (`PageMapPlace` in
+  `src/map/place-map.ts`), and the module ranks nothing of its own: it has no window, no filter and
+  no ranking to rank over. So there is nothing here for a statistic to answer, and `CAMPUS_ORIGIN`,
+  the filtered set and the labels all cross from `src/ui/` as arguments rather than as imports.
 - The map script is the app's only third-party runtime input, and it is optional: `loadNaverMaps`
   rejects (never throws) when the client ID is unset or the script is blocked, offline or unusable,
   and both renders turn that — and any throw from the API while mounting — into the
