@@ -49,11 +49,11 @@ export interface HtmlIcon {
 /**
  * The marker events the page map listens for.
  *
- * A closed union rather than `string`, and the two names are the whole of what the page map asks
- * for: a pin that highlights its row needs to say "a reader arrived" and "a reader left", and every
- * other event name in the API's list would be a claim this repo has not read.
+ * A closed union rather than `string`: hover connects a pin to its row, and click selects either
+ * a pin or a dot. Each event is part of the documented Marker surface.
  */
-export type MarkerEventName = 'mouseover' | 'mouseout';
+// Marker click is documented at https://navermaps.github.io/maps.js.en/docs/naver.maps.Marker.html#event:click.
+export type MarkerEventName = 'mouseover' | 'mouseout' | 'click';
 
 export interface MarkerOptions {
   position: LatLng;

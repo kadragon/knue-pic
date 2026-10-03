@@ -406,6 +406,8 @@ export interface PageMapHandle {
   highlight(placeId: string | null): void;
   /** Returns the map to the origin it opened on. */
   recenter(): void;
+  /** Centres the page map on a selected place, including one outside the filtered marker set. */
+  focusPlace(place: PlaceRecord): void;
   /** Releases the map and this render's auth-failure listener. Everything after it is inert. */
   release(): void;
 }
@@ -436,6 +438,8 @@ export interface RenderPageMapOptions {
    * reporting one would clear the row the reader was actually on.
    */
   onPinHover?: (placeId: string | null) => void;
+  /** A click on either a numbered pin or a neutral dot selects its canonical place id. */
+  onSelect?: (placeId: string) => void;
 }
 
 function dotIcon(api: NaverMapsApi): HtmlIcon {
@@ -464,6 +468,7 @@ const INERT_PAGE_MAP: PageMapHandle = {
   setPlaces: () => {},
   highlight: () => {},
   recenter: () => {},
+  focusPlace: () => {},
   release: () => {},
 };
 
@@ -482,7 +487,7 @@ export async function renderPageMap(
   places: PageMapPlace[],
   options: RenderPageMapOptions,
 ): Promise<PageMapHandle> {
-  const { loadApi = () => loadNaverMaps(), origin, onUnavailable, onPinHover } = options;
+  const { loadApi = () => loadNaverMaps(), origin, onUnavailable, onPinHover, onSelect } = options;
 
   const canvas = document.createElement('div');
   canvas.className = 'page-map-canvas';
@@ -556,7 +561,7 @@ export async function renderPageMap(
     };
 
     /**
-     * The two listeners every page marker gets, attached once at creation and guarded on the
+     * The listeners every page marker gets, attached once at creation and guarded on the
      * marker's *current* state rather than removed later.
      *
      * Two things make the guard load-bearing, and the first is why the registration is unconditional.
@@ -566,10 +571,13 @@ export async function renderPageMap(
      * `mouseout` firing `onPinHover(null)` would clear the highlight of whichever row the reader had
      * actually moved onto. The vendor surface has no per-marker listener removal this module needs
      * (`naver.maps.Event.clearInstanceListeners` exists and is deliberately not in `./naver-api.ts`:
-     * a marker carries nothing but these two, and the guard reaches the same behaviour without a new
+     * a marker carries only this view's listeners, and the guard reaches the same behaviour without a new
      * claim about the API).
      */
     const listenForPinHover = (entry: PlacedMarker, placeId: string): void => {
+      api.Event.addListener(entry.marker, 'click', () => {
+        if (live && markers.get(placeId) === entry) onSelect?.(placeId);
+      });
       api.Event.addListener(entry.marker, 'mouseover', () => {
         if (live && entry.label !== null) onPinHover?.(placeId);
       });
@@ -648,6 +656,9 @@ export async function renderPageMap(
       recenter: () => {
         if (!live) return;
         map.setCenter(new api.LatLng(origin.lat, origin.lng));
+      },
+      focusPlace: (place) => {
+        if (live) map.setCenter(new api.LatLng(place.lat, place.lng));
       },
       release: () => {
         // `live` gates this as well as `fail`, so a release that arrives after the failure path

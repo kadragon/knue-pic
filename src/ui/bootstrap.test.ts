@@ -75,6 +75,7 @@ const flush = (): Promise<void> => Promise.resolve().then(() => {});
  */
 afterEach(() => {
   resetAuthFailureState();
+  history.replaceState(null, '', location.pathname + location.search);
 });
 
 describe('bootstrap', () => {

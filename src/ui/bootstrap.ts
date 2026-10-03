@@ -9,7 +9,8 @@ import { resolvePeriodWindow } from '../stats/period';
 import { renderPageMap, type PageMapHandle, type PageMapPlace } from '../map/place-map';
 import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
-import { createDetailDialog, type DetailDialogOptions } from './detail-dialog';
+import type { DetailDialogOptions } from './detail-dialog';
+import { createDetailPanel, type DetailPanelHandle } from './detail-panel';
 import {
   renderKindFilter,
   markActiveKind,
@@ -30,7 +31,7 @@ import { setTopPlaceHighlight, type VisibleRankedPlace } from './top-places';
 /**
  * Wires the page frame to the dataset: shell first, then the load, then whichever state the load
  * ended in. A successful load renders search, the ranked list with its period selector and the
- * detail dialog into `#content`, and — on a wide viewport — the page map beside them.
+ * responsive detail view into `#content`, and — on a wide viewport — the page map beside them.
  *
  * `load` is injectable so this is testable without stubbing global `fetch`, and `dialog`,
  * `renderMap` and `matchMedia` carry the same reach further down: jsdom cannot run the Naver
@@ -159,6 +160,9 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    * still registered and nobody left holding its release.
    */
   let mounting = false;
+  let detailView: DetailPanelHandle | null = null;
+  let selectedDetail: PlaceDetail | null = null;
+  let selectFromMap: (placeId: string) => void = () => {};
 
   viewport?.onChange((wide) => {
     // A narrowing hides the region rather than releasing the map, so widening the window again
@@ -166,6 +170,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     // that is already gone: nothing will be mounted beside the panel, so the full-width fallback
     // has to survive the resize too.
     setShellMapFirst(root, wide && !mapUnavailable);
+    detailView?.syncLayout();
     if (wide) mountPageMap();
   });
 
@@ -202,6 +207,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
     void renderMap(region, pageMapPlaces(), {
       origin: CAMPUS_ORIGIN,
+      onSelect: (placeId) => { selectFromMap(placeId); },
       onUnavailable: () => {
         mapUnavailable = true;
         setShellMapUnavailable(root);
@@ -220,6 +226,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
         // The filters may have moved while the script was still downloading — the markers are read
         // again here rather than captured, so the map cannot answer a window the list has left.
         handle.setPlaces(pageMapPlaces());
+        if (selectedDetail) handle.focusPlace(selectedDetail.place);
       })
       .finally(() => {
         mounting = false;
@@ -257,8 +264,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    * rebuilds the list alone, inside `place-list.ts`, leaving the pressed button holding focus.
    *
    * Source order — the list, then search — follows `docs/conventions.md` → Accessibility &
-   * Responsive. The dialog is not part of that flow: `.detail-slot` holds a modal, so selecting a
-   * place opens over the list the reader was in rather than moving them somewhere else.
+   * Responsive. `.detail-slot` replaces the list on desktop and holds a modal on mobile.
    */
   function renderDataset(dataset: PlacesDataset): void {
     // The frame is never rebuilt here: `renderShell` would replace `root` and detach the `content`
@@ -286,7 +292,17 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     filters.append(summary, kinds);
     content.replaceChildren(filters, list, search, detail);
 
-    const dialog = createDetailDialog(detail, dialogOptions);
+    detailView = createDetailPanel(detail, [filters, list, search], {
+      wide: () => viewport?.wide() ?? false,
+      resolve: (placeId) => currentDetail(placeId, activePeriod),
+      dialog: dialogOptions,
+      onSelection: (selection) => {
+        selectedDetail = selection;
+        if (selection) pageMap?.focusPlace(selection.place);
+        pageMap?.highlight(selection?.place.id ?? null);
+      },
+    });
+    selectFromMap = (placeId) => { selectPlace(placeId, activePeriod); };
 
     /** `null` when the selection is not in the dataset. */
     function currentDetail(placeId: string, basis: Period): PlaceDetail | null {
@@ -302,17 +318,16 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     }
 
     /**
-     * Opens the detail dialog over whatever the reader was looking at.
+     * Opens the responsive detail view for the place the reader selected.
      *
      * `basis` is the window the place was picked from — the selected period, or `SEARCH_PERIOD` for
      * a search hit — so the figures answer the list the reader was reading rather than a window they
-     * never chose. The dialog moves focus
-     * into itself and hands it back to this control on close.
+     * never chose. The detail view moves focus to the card and restores it on return.
      */
     function selectPlace(placeId: string, basis: Period): void {
       const next = currentDetail(placeId, basis);
       if (!next) return;
-      dialog.open(next);
+      detailView?.open(next);
     }
 
     // Narrowed even on the first render: `renderDataset` runs again after a failed load's retry,
@@ -364,7 +379,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
     /** The row the reader arrived at — or left, as `null`. The map decides what lit looks like. */
     function onHighlight(placeId: string | null): void {
-      pageMap?.highlight(placeId);
+      pageMap?.highlight(selectedDetail?.place.id ?? placeId);
     }
 
     function onActiveChange(period: Period): void {
@@ -383,6 +398,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     });
     renderKindFilter(kinds, activeKind, selectKind);
     refreshCounts();
+    detailView.syncHash();
 
     /**
      * One narrowed dataset feeds both views, so the list and the search can never disagree about
@@ -390,7 +406,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
      * rebuild would discard whatever the reader had typed — while the list is recomputed, since its
      * ranking is derived from the set that just changed.
      *
-     * `selectPlace` deliberately keeps reading the *unfiltered* dataset: the dialog is opened from a
+     * `selectPlace` deliberately keeps reading the *unfiltered* dataset: the detail is opened from a
      * row that was on screen, and looking the place up in the narrowed set would make a selection
      * fail silently the moment the two got out of step.
      */

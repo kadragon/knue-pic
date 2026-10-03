@@ -42,7 +42,7 @@ bundle. `vite.config.ts` pins both to port 5173 with `strictPort`: if the port i
 other of the two, too — the command exits instead of sliding to a port the key rejects. Check that
 the map mounted without relying on a screenshot:
 
-- open a place's detail at `http://localhost:5173/knue-pic/` and wait at least 2 s — a rejected
+- below 768px, open a place's detail at `http://localhost:5173/knue-pic/` and wait at least 2 s — a rejected
   origin mounts the map first and replaces it with the fallback about 1.1 s after the `401`
   (`src/map/loader.ts` module comment), so the two checks below pass on it if read too early;
 - `http://oapi.map.naver.com/v3/auth` answered `200` (a rejected origin gets `401`);
@@ -64,7 +64,7 @@ than broken. At that width, on the same page and after the same 2 s:
 
 To check the degraded layout, block the Naver script (or use an origin the key rejects) at ≥ 768px:
 `.map-shell-map` disappears, exactly one `.shell-map-note` reading `지도를 불러오지 못했습니다.` is
-above the summary line, and the list, the search and the detail dialog all still work.
+above the summary line, and the list, the search and the responsive detail view all still work.
 
 ## Build & Test
 
@@ -210,3 +210,14 @@ alters one fails there and this section has to move with it.
 - Close a finished sprint block: `python <harness-init>/scripts/reconcile-harness.py`
 - **Sweep trigger policy: manual.** `tools/sweep.sh` is not installed yet; install and run it on
   the first real drift signal (`harness-init` Step 5).
+
+### Verify panel detail and shared URLs
+
+At 1440px, select a row, pin, dot or search result: the panel shows `← 목록` and the existing
+figures/chart/links, the URL becomes `#place=<canonical id>`, and the page map centres on it.
+No modal or single-marker detail map exists at that width. `← 목록` and browser Back return
+to the preserved list and restore focus; Forward or reloading the shared URL opens the detail.
+An unknown or malformed id shows the list silently. At 360px the same selection retains the
+mobile modal, Escape/scrim dismissal and location map. Resize an open selection across 768px
+and verify that its card migrates while its hash stays. Repeat desktop selection with the Naver
+script blocked: the panel expands and every figure and link remains usable.

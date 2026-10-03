@@ -60,6 +60,16 @@ review_candidates.csv # manual location approval queue (committed)
 .github/workflows/    # validate → build → deploy to Pages
 ```
 
+## Selection and Detail
+
+`src/ui/detail-panel.ts` owns the canonical `#place=<id>` selection and browser history. It
+reuses `place-detail.ts` for every figure, chart and link: at ≥768px the card replaces the
+panel's list/search/filter views without a second map; below that breakpoint `detail-dialog.ts`
+retains the modal and its location map. Hash navigation reads the unfiltered dataset, unknown
+ids show the list silently, and resize migrates the current selection without changing the URL.
+`bootstrap.ts` passes marker clicks into that same selection path and centres the page map on
+selected coordinates through `PageMapHandle.focusPlace`; `src/map/` computes no stats.
+
 ## Layer Rules
 
 - `src/stats/` is pure: it takes places + a period and returns numbers. No DOM, no map, no fetch.

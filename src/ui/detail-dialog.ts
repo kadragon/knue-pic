@@ -3,7 +3,7 @@ import { renderPlaceLocationMap, type ReleasePlaceLocationMap } from '../map/pla
 import { DETAIL_HEADING, renderPlaceDetail, type PlaceDetail } from './place-detail';
 
 /**
- * The detail card as a modal dialog rather than the last section of the page.
+ * The mobile detail card as a modal dialog rather than the last section of the page.
  *
  * It was a section until a UI review found the defect: selecting a place from any list rendered the
  * card ~3,400px down the page and moved focus to it, so every act of curiosity was a one-way trip
@@ -20,6 +20,8 @@ import { DETAIL_HEADING, renderPlaceDetail, type PlaceDetail } from './place-det
 export const CLOSE_LABEL = '닫기';
 
 export interface DetailDialogOptions {
+  /** Reports user dismissal so the URL selection can return to the list too. */
+  onClose?: () => void;
   /**
    * Fills the card's map slot. Injectable for the same reason `renderPlaceLocationMap` takes a
    * `loadApi`: jsdom cannot run the Naver script, and the dialog's own behaviour — focus, Escape,
@@ -155,6 +157,7 @@ export function createDetailDialog(
       fallback()?.focus();
     }
     opener = null;
+    options.onClose?.();
   }
 
   /**

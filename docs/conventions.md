@@ -157,9 +157,10 @@ dance per file.
   rather than `null` (`src/ui/top-places.test.ts` → *page map*). Below 768px
   the page is the single column it has always been and the Naver script is never loaded; either map
   failure — the script or a rejected key — gives the panel the whole width back and says
-  `지도를 불러오지 못했습니다.` once. The detail dialog is untouched by all of this: it keeps its
-  own single-marker map until detail moves into the panel.
-- The place detail is a modal dialog, not a section: it opens over the list the reader is in,
+  `지도를 불러오지 못했습니다.` once. Desktop selection replaces the panel contents with the detail card and a `← 목록` control,
+  centres the page map on the place and writes `#place=<id>`. Mobile keeps the dialog and its
+  single-marker map until the bottom sheet lands.
+- Below 768px the place detail is a modal dialog: it opens over the list the reader is in,
   traps Tab, closes on Escape or scrim click, and returns focus to the control that opened it.
   It was the last section on the page until a UI review found that selecting anything threw the
   reader three screens down with no way back — see `src/ui/detail-dialog.ts`. It carries the
@@ -229,3 +230,10 @@ Branches: `<type>/<slug>` — `feat/top10-list`, `fix/rank-delta-empty-window`, 
 
 **Never commit directly to `main`.** Merging to `main` publishes the site, so treat every merge as
 a release: the validator must have passed and a human must have previewed the data.
+
+Desktop detail uses `src/ui/detail-panel.ts` to keep selection consistent across hash navigation
+and viewport changes. It hides the existing list/search/filter nodes instead of rebuilding them,
+so returning restores paging, query, filters and the originating control. Unknown or malformed
+`#place=` values show the list silently. A second selection replaces the detail history entry so
+browser Back reaches the list; the `← 목록` control clears the hash. Widening an open mobile
+dialog moves its selection into the panel and releases its map, and narrowing restores the dialog.
