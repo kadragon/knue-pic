@@ -445,8 +445,17 @@ export async function renderPageMap(
     /** The set last drawn, and whether its frame is still owed — held by a focus or by no room. */
     let current: PageMapPlace[] = places;
     let frameOwed = false;
-    /** The `coveredSides` the last frame was made inside; `null` until one is made. */
+    /**
+     * The `coveredSides` the view was last laid out inside — by a frame, or by `학교로`. `null` while
+     * unknown (no frame yet, or `학교로` with no room to measure); the next measured cover adopts it.
+     */
     let framedSides: string | null = null;
+    /**
+     * The page now covers a different side than the view was laid out for: the layout switched.
+     * Read against the cover as it stands, so switching back before the detail closes owes nothing.
+     */
+    const layoutSwitched = (insets: PageMapInsets | null): boolean =>
+      insets !== null && framedSides !== null && coveredSides(insets) !== framedSides;
 
     /**
      * Puts `lat`/`lng` in the middle of the uncovered part of the map rather than the middle of the
@@ -623,23 +632,23 @@ export async function renderPageMap(
         focused = null;
         frameOwed = false;
         const insets = coveredInsets();
-        // The campus is now what the map is framed on: a layout switch made while a place was
+        // The campus is now what the view is laid out for: a layout switch made while a place was
         // focused must not read, at the next snap, as one still owed.
-        if (insets) framedSides = coveredSides(insets);
+        framedSides = insets ? coveredSides(insets) : null;
         centreInView(origin.lat, origin.lng, insets ?? NO_INSETS);
       },
       focusPlace: (place) => {
         if (!live) return;
         focused = place;
         if (place) showFocused();
-        else if (frameOwed) frame(current);
+        else if (frameOwed || layoutSwitched(coveredInsets())) frame(current);
       },
       coverChanged: () => {
         if (!live) return;
         const insets = coveredInsets();
-        if (insets && framedSides !== null && coveredSides(insets) !== framedSides) frameOwed = true;
+        if (insets && framedSides === null) framedSides = coveredSides(insets);
         if (focused) showFocused();
-        else if (frameOwed) frame(current);
+        else if (frameOwed || layoutSwitched(insets)) frame(current);
       },
       release: () => {
         // `live` gates this as well as `fail`, so a release that arrives after the failure path

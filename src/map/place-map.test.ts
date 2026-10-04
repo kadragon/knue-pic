@@ -723,6 +723,40 @@ describe('page map framing', () => {
     expect(api.maps[0]?.fits).toHaveLength(1);
   });
 
+  it('keeps 학교로 pressed with no room through the snap that brings the sheet down', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = { top: 196, right: 0, bottom: 0, left: 360 };
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    insets = SHEET;
+    map.coverChanged();
+    insets = null;
+    map.recenter();
+
+    insets = SHEET;
+    map.coverChanged();
+
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+    expect(api.maps[0]?.fits).toHaveLength(1);
+  });
+
+  it('owes nothing for a layout switch undone before the detail closes', async () => {
+    const api = createFakeNaverApi();
+    const DESKTOP = { top: 196, right: 0, bottom: 0, left: 360 };
+    let insets: PageMapInsets = DESKTOP;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    insets = SHEET;
+    map.coverChanged();
+    insets = DESKTOP;
+    map.coverChanged();
+    map.focusPlace(null);
+
+    expect(api.maps[0]?.fits, 'the view is back in the layout it was framed for').toHaveLength(1);
+  });
+
   it('re-frames when the page swaps which side covers the map, and only then', async () => {
     const api = createFakeNaverApi();
     const DESKTOP = { top: 196, right: 0, bottom: 0, left: 360 };
