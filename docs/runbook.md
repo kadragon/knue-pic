@@ -42,17 +42,14 @@ bundle. `vite.config.ts` pins both to port 5173 with `strictPort`: if the port i
 other of the two, too — the command exits instead of sliding to a port the key rejects. Check that
 the map mounted without relying on a screenshot:
 
-- below 768px, open a place's detail at `http://localhost:5173/knue-pic/` and wait at least 2 s — a rejected
-  origin mounts the map first and replaces it with the fallback about 1.1 s after the `401`
-  (`src/map/loader.ts` module comment), so the two checks below pass on it if read too early;
+- open `http://localhost:5173/knue-pic/` at 360px and 1440px and allow at least 2 s for
+  delayed origin rejection (`src/map/loader.ts` module comment);
 - `http://oapi.map.naver.com/v3/auth` answered `200` (a rejected origin gets `401`);
-- `document.querySelector('.place-map-canvas').children.length > 0` and
+- `document.querySelector('.page-map-canvas').children.length > 0` and
   `window.naver?.maps != null` (a rejected origin leaves the global without it);
 - no `.place-map-fallback` element is present.
 
-The page map needs its own pass, and a **window at least 768px wide**: below that the layout is the
-single column and the script is never loaded, so an empty `.map-shell-map` there is correct rather
-than broken. At that width, on the same page and after the same 2 s:
+Check the page map at both widths on the same origin:
 
 - `document.querySelectorAll('.page-map-dot').length` matches the `{N}곳` in the summary line — the
   dots are the places that pass both filters, and the two are computed from one predicate;
@@ -62,7 +59,7 @@ than broken. At that width, on the same page and after the same 2 s:
 - switching 기간 or 업종 changes the dot count, and narrowing never leaves a dot behind: the count
   only ever goes down by the places that left the window, never by a redraw.
 
-To check the degraded layout, block the Naver script (or use an origin the key rejects) at ≥ 768px:
+To check the degraded layout, block the Naver script (or use an origin the key rejects) at both widths:
 `.map-shell-map` disappears, exactly one `.shell-map-note` reading `지도를 불러오지 못했습니다.` is
 above the summary line, and the list, the search and the responsive detail view all still work.
 
@@ -145,7 +142,7 @@ The collector's server/search credentials are never Vite variables and never liv
 ### Map fails to load, list still renders
 
 **Symptom:** "지도를 불러오지 못했습니다." with the ranked place list still rendering. On the page
-map this is the *whole* layout: at ≥ 768px the content column takes the full width back, because
+map this is the *whole* layout: at every width the content column takes the full width back, because
 the map was the page and there is nothing to float beside.
 **Cause:** Client ID missing, or the current origin is not in the key's allowed URLs — locally,
 any port other than `5173`.
@@ -217,7 +214,8 @@ At 1440px, select a row, pin, dot or search result: the panel shows `← 목록`
 figures/chart/links, the URL becomes `#place=<canonical id>`, and the page map centres on it.
 No modal or single-marker detail map exists at that width. `← 목록` and browser Back return
 to the preserved list and restore focus; Forward or reloading the shared URL opens the detail.
-An unknown or malformed id shows the list silently. At 360px the same selection retains the
-mobile modal, Escape/scrim dismissal and location map. Resize an open selection across 768px
-and verify that its card migrates while its hash stays. Repeat desktop selection with the Naver
+An unknown or malformed id shows the list silently. At 360px the same selection stays inside the bottom sheet without a modal or second map.
+Check peek / half / full using drag, arrow keys, Home / End, and tapping the handle. Scroll the
+content independently; tabbing into peek content must reveal focus. Resize an open selection
+across 768px and verify its card, focus and hash stay. Repeat selection at both widths with the Naver
 script blocked: the panel expands and every figure and link remains usable.

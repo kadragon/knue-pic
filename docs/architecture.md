@@ -42,8 +42,8 @@ src/                  # web app; browser-only code
                       #   the shortened address the list displays and search matches
                       #   (short-address.ts)
   map/                # loader.ts (script injection), naver-api.ts (hand-written API types),
-                      #   place-map.ts (the page map's numbered pins and neutral dots, the dialog's
-                      #   one marker, §38 fallback)
+                      #   place-map.ts (the page map's numbered pins and neutral dots,
+                      #   §38 fallback; reusable single-place renderer)
   ui/                 # views, Korean strings
 data/places.json      # published dataset (generated — see below); also Vite's publicDir
 collector/            # Python; never imported by src/
@@ -63,13 +63,14 @@ review_candidates.csv # manual location approval queue (committed)
 ## Selection and Detail
 
 `src/ui/detail-panel.ts` owns the canonical `#place=<id>` selection and browser history. It
-reuses `place-detail.ts` for every figure, chart and link: at ≥768px the card replaces the
-panel's list/search/filter views without a second map; below that breakpoint `detail-dialog.ts`
-retains the modal and its location map. Hash navigation reads the unfiltered dataset, unknown
-ids show the list silently, and resize migrates the current selection without changing the URL.
+reuses `place-detail.ts` for every figure, chart and link: the card replaces the panel's
+list/search/filter views at every width, without a modal or second map. `bottom-sheet.ts` owns
+mobile peek / half / full height stops (default half), pointer capture and keyboard controls;
+`shell.ts` wraps the header, provenance and content in its scroll region. Hash navigation reads the unfiltered dataset; unknown
+ids show the list silently, and resize preserves the current card, focus and URL.
 Validated history metadata preserves the selected figures basis on Forward/reload without adding
 fields to the shared URL. A list-origin detail is popped on dismissal; a direct shared URL is
-cleared in place. Replacing the dataset view releases its hash subscription and mobile map.
+cleared in place. Replacing the dataset view releases its hash subscription.
 `bootstrap.ts` passes marker clicks into that same selection path and centres the page map on
 selected coordinates through `PageMapHandle.focusPlace`; `src/map/` computes no stats.
 
@@ -85,9 +86,9 @@ selected coordinates through `PageMapHandle.focusPlace`; `src/map/` computes no 
   label said so on screen until the operator shortened it to `거리 N.Nkm`, so the qualifier now
   lives in the code rather than on screen.
 - `src/map/` reads a place record and nothing else; `src/stats/` must never import from `src/map/`
-  or `src/ui/`. It draws two maps and neither *computes* a ranking: the page map marks a place the
+  or `src/ui/`. The page map *computes* no ranking: it marks a place the
   list is showing with a numbered pin and every other place that passes the period and 업종 filters
-  with the same neutral dot, and the dialog's map marks the one place the card is about. The pin's
+  with the same neutral dot. The pin's
   number is therefore not derived here — `src/ui/` hands the map a list of `{ place, label? }`,
   where `label` is the rank string that row already printed (`PageMapPlace` in
   `src/map/place-map.ts`), and the module ranks nothing of its own: it has no window, no filter and
@@ -96,17 +97,17 @@ selected coordinates through `PageMapHandle.focusPlace`; `src/map/` computes no 
 - The map script is the app's only third-party runtime input, and it is optional: `loadNaverMaps`
   rejects (never throws) when the client ID is unset or the script is blocked, offline or unusable,
   and both renders turn that — and any throw from the API while mounting — into the
-  PRD §38 fallback message. The page mounts its map fire-and-forget at ≥ 768px, after the panel has
-  painted, and the dialog mounts its own after painting the figures, so the statistics never wait on
-  a map or fail with it. An origin missing from the key's allowed-URL
+  PRD §38 fallback message. The page mounts one map fire-and-forget at every width, after the panel
+  has painted, so the statistics never wait on a map or fail with it. An origin missing from the
+  key's allowed-URL
   list takes a second route: the v3 script serves its full bundle regardless, so the load succeeds,
   a map mounts, and the API signals the rejection through a `window.navermap_authFailure` global.
   Both renders register that hook before awaiting the script and drop it when the map is released,
   so each catches the rejection on either side of the mount — the real API was
   observed calling it after the mount (`src/map/loader.ts` module comment). The global is one
   dispatching function shared by whoever is listening, not a single handler overwritten per render:
-  the page map holds it for the life of the page, and a dialog opened over it would otherwise mute
-  the first screen. Both routes end
+  the page map holds it for the life of the page; reusable location-map mounts
+  can subscribe without overwriting it. Both routes end
   in the same single fallback, which is
   why the two degraded states are indistinguishable on screen — on the page map that is
   `src/ui/shell.ts` → `setShellMapUnavailable`, which gives the content column the whole width back

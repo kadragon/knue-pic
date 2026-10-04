@@ -112,9 +112,7 @@ describe('renderPlaceLocationMap', () => {
   it('drops a released render from the shared auth-failure hook', async () => {
     const { root: first, release } = await render(createFakeNaverApi());
     const { root: second } = await render(createFakeNaverApi(), SAMPLE_DATASET.places[1]!);
-    // The release is what the dialog does before every repaint (`src/ui/detail-dialog.ts` →
-    // `dropMap`), and it is the only thing that takes a render off the hook now that the page map
-    // holds one for the life of the page.
+    // Releasing one mount must leave the other subscriber listening for auth failures.
     release();
 
     authFailureHook()?.();

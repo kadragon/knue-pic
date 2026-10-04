@@ -35,7 +35,7 @@ describe('renderShell', () => {
     expect(provenance?.textContent).toContain(SOURCE_LINE);
     expect(provenance?.textContent).toContain(DISCLAIMER);
     expect(provenance?.textContent).toContain('데이터 기준일: 2026년 8월 1일');
-    const order = [...root.children].map((child) => child.className || child.id);
+    const order = [...root.querySelector('.sheet-scroll')!.children].map((child) => child.className || child.id);
     expect(order.indexOf('shell-provenance')).toBeLessThan(order.indexOf('content'));
     // Moved, not replaced: `<footer>` is the page's only `contentinfo` landmark, and it is what a
     // screen reader user jumps to in order to reach the source line and the §21 disclaimer. A
@@ -113,9 +113,7 @@ describe('renderShell map-first frame', () => {
     const narrow = document.createElement('div');
     renderShell(narrow, { mapFirst: false, onRecentre: () => {} });
 
-    // Below the breakpoint the page is today's layout, and the class is what the stylesheet reads
-    // to hold `#content` to the panel width — so it has to track the same answer the mount
-    // decision did.
+    // The layout flag is explicit; bootstrap requests the map at every width.
     expect(wide.classList.contains('is-map-first')).toBe(true);
     expect(narrow.classList.contains('is-map-first')).toBe(false);
     expect(mapRegion(narrow)).not.toBeNull();
@@ -126,8 +124,8 @@ describe('renderShell map-first frame', () => {
 
     renderShell(root, { mapFirst: true, onRecentre: () => {} });
 
-    const order = [...root.children].map((child) => child.className || child.id);
-    expect(order.indexOf('content')).toBeLessThan(order.indexOf('map-shell-map'));
+    expect(root.firstElementChild?.className).toBe('sheet-panel');
+    expect(root.lastElementChild?.className).toBe('map-shell-map');
   });
 
   it('recentres the map through the 학교로 control', () => {
@@ -206,7 +204,7 @@ describe('setShellMapUnavailable', () => {
     expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
   });
 
-  it('keeps the content, the search and the dialog working', () => {
+  it('keeps the content and search working', () => {
     const root = document.createElement('div');
     renderShell(root, { mapFirst: true, onRecentre: () => {} });
     const search = document.createElement('div');

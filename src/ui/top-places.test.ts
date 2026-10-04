@@ -675,8 +675,8 @@ describe('renderTopPlaces → page map', () => {
     const id = second.getAttribute('data-place-id');
 
     second.querySelector('.top-place-body')!.dispatchEvent(new MouseEvent('click'));
-    // What `createDetailDialog` does the instant the row is pressed (`src/ui/detail-dialog.ts` →
-    // `panel.focus()`): the focus leaves the row, and an unconditional `focusout` would un-light the
+    // What the detail panel does the instant the row is pressed (`src/ui/detail-panel.ts` →
+    // `body.querySelector('.place-detail')?.focus()`): the focus leaves the row, and an unconditional `focusout` would un-light the
     // pin in the same paint that opens the card — the opposite of what selecting it meant.
     second.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
 

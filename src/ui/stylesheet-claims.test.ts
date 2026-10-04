@@ -1765,8 +1765,8 @@ describe('map links are styled as peers', () => {
  * positioned surfaces, or a raised region with unpositioned ones, fails one half each.
  */
 describe('the page map takes the pointer', () => {
-  const REGION = '.map-shell-map';
-  const OVER_MAP = ['.is-map-first .shell-header', '.is-map-first .shell-provenance', '.is-map-first #content'];
+  const REGION = '.is-map-first .map-shell-map';
+  const OVER_MAP = ['.is-map-first .sheet-panel', '.is-map-first .shell-header', '.is-map-first .shell-provenance', '.is-map-first #content'];
 
   /** Every declaration block, at any viewport, of a rule listing `part` as one of its selectors. */
   const blocksListing = (part: string): string =>

@@ -111,10 +111,6 @@
   --space-8: 48px;
   --space-9: 64px;
 
-  /* The one shadow on the page: the dialog, which is the one surface that is actually above
-     another. Nothing on the page itself is raised. */
-  --shadow-overlay: rgba(20, 32, 27, 0.18) 0 12px 40px, rgba(20, 32, 27, 0.1) 0 2px 8px;
-
   /* The measure `#content` is capped at, and the inset derived from it.
      `--column-inset` exists so the full-bleed masthead lines its text up with `#content` without
      needing a wrapper element, which only holds while the two agree on the width. Derived rather
@@ -225,7 +221,7 @@ body {
   padding: var(--space-6) var(--space-6) var(--space-9);
 }
 
-/* The slot contains a fixed mobile dialog or an in-flow desktop detail panel. */
+/* Detail replaces the list inside the desktop panel or mobile sheet. */
 .detail-slot {
   display: contents;
 }
@@ -412,7 +408,7 @@ a[role='button'] {
 /* ── Badges ────────────────────────────────────────────────────────────────────────────────── */
 
 /*
- * The 업종 badge on a place row, in the detail dialog, and anywhere else a place is named. Text
+ * The 업종 badge on a place row, in the detail panel, and anywhere else a place is named. Text
  * plus colour, never colour alone; the text is Naver's own category, which is finer than the four
  * kinds, so the badge says more than the chip that selects it.
  */
@@ -868,69 +864,6 @@ button.top-place-body,
   background: var(--surface-hover);
 }
 
-/* ── Detail dialog ─────────────────────────────────────────────────────────────────────────── */
-
-/*
- * The detail card used to be the last section of the page: selecting anything threw the reader ~3
- * screens down, past every other section, with no way back and no way to compare a second place.
- * As a dialog it opens over the list the reader is already in and hands focus back on close.
- */
-.detail-dialog {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-}
-
-.detail-dialog[hidden] {
-  display: none;
-}
-
-.detail-dialog-scrim {
-  position: absolute;
-  inset: 0;
-  background: rgba(20, 32, 27, 0.5);
-}
-
-.detail-dialog-panel {
-  position: relative;
-  width: min(600px, 100%);
-  max-height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: var(--space-7);
-  border-radius: var(--radius-md);
-  background: var(--canvas);
-  box-shadow: var(--shadow-overlay);
-}
-
-/* Sized as an icon button and parked out of the reading order. */
-.detail-dialog-close {
-  position: absolute;
-  top: var(--space-4);
-  inset-inline-end: var(--space-4);
-  min-width: 44px;
-  /* optical: the 44px minimum width sizes this control, so the inline pad follows it. */
-  padding: 0 14px;
-  border: 1px solid var(--border-control);
-  border-radius: var(--radius-sm);
-  background: var(--canvas);
-  color: var(--ink);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease;
-}
-
-.detail-dialog-close:hover {
-  background: var(--surface-hover);
-  border-color: var(--ink);
-}
-
 /* Inside the panel the card is content, not a surface — the panel already carries the edges. */
 .place-detail {
   padding: 0;
@@ -1180,21 +1113,19 @@ button.top-place-body,
 
 /* ── Map-first layout ──────────────────────────────────────────────────────────────────────── */
 
-/*
- * The map is the page at ≥ 768px and `#content` is a panel beside it; below that the region is off
- * screen and the page is the single column it has always been (the bottom sheet is its own ticket).
- *
- * The breakpoint is stated in two places on purpose: here, and as `MAP_FIRST_QUERY` in
- * `src/ui/bootstrap.ts`, which decides whether to load the Naver script at all. They have to move
- * together — a layout that showed a panel where no map is mounted is a column with a hole in it.
- *
- * The region is `fixed` rather than in flow, which is what makes it full-bleed, and it sits at
- * `z-index: 0` with the masthead and the panel one level above it. Not `-1`: a negative level paints
- * under `body` and `#app` too, so they took every pointer event and the map could be neither
- * dragged, zoomed, nor hovered — a pin's hover never reached its row (observed at 1440px,
- * 2026-10-03; `src/ui/stylesheet-claims.test.ts` guards both halves).
- */
+/* The map stays mounted across widths; CSS switches its panel into a mobile sheet. */
 .map-shell-map {
+  display: none;
+}
+
+.is-map-first .map-shell-map {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: block;
+}
+
+.sheet-handle {
   display: none;
 }
 
@@ -1228,8 +1159,7 @@ button.top-place-body,
 /*
  * The panel: today's column, held to the ~360px the list rows are measured against and pushed to
  * the left edge. It carries its own background so the rows stay readable over the map, and no
- * shadow — `--shadow-overlay` is the dialog's, and this surface is not raised, it is a column the
- * map is behind.
+ * shadow: it is a column the map is behind.
  */
 .is-map-first #content {
   max-width: 360px;
@@ -1253,21 +1183,91 @@ button.top-place-body,
 }
 
 @media (min-width: 768px) {
-  .map-shell-map {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    display: block;
-  }
-
-  /* The surfaces drawn over the map. Positioned, or the region — now above in-flow blocks — would
-     paint over them. `#content` comes last in source order, so at an equal level the detail dialog
-     inside it still covers the masthead. */
   .is-map-first .shell-header,
   .is-map-first .shell-provenance,
   .is-map-first #content {
     position: relative;
     z-index: 1;
+  }
+}
+
+@media (max-width: 767px) {
+  .is-map-first {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .is-map-first .sheet-panel {
+    --sheet-height: 50dvh;
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: var(--sheet-drag-height, var(--sheet-height));
+    max-height: calc(100dvh - var(--space-4));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-top: 1px solid var(--border-control);
+    background: var(--paper);
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .is-map-first .sheet-panel[data-snap='peek'] {
+    --sheet-height: 104px;
+  }
+
+  .is-map-first .sheet-panel[data-snap='full'] {
+    --sheet-height: calc(100dvh - var(--space-4));
+  }
+
+  .is-map-first .sheet-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .is-map-first .sheet-handle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: var(--space-1) var(--space-4);
+    gap: var(--space-1);
+    border: 0;
+    background: var(--paper);
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    cursor: ns-resize;
+    touch-action: none;
+  }
+
+  .sheet-handle::before {
+    content: '';
+    width: var(--space-7);
+    height: var(--space-1);
+    border-radius: var(--radius-full);
+    background: var(--border-strong);
+  }
+
+  .is-map-first .sheet-handle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .is-map-first #content {
+    width: 100%;
+    max-width: none;
+    padding-bottom: var(--space-6);
+  }
+
+  .is-map-first .map-recentre {
+    top: var(--space-4);
+    bottom: auto;
   }
 }
 
@@ -1400,8 +1400,7 @@ button.top-place-body,
 
 /* `#content` takes focus after a keyboard-driven retry succeeds. Without this the browser draws its
    default ring around the whole region; an inset outline keeps the cue on screen at 360px. */
-#content:focus-visible,
-.detail-dialog-panel:focus-visible {
+#content:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
@@ -1473,10 +1472,6 @@ button.top-place-body,
     padding: var(--space-5) var(--space-4);
   }
 
-  .detail-dialog {
-    padding: 0;
-    align-items: flex-end;
-  }
 
   .place-detail-figures {
     gap: var(--space-3) var(--space-6);
@@ -1494,14 +1489,6 @@ button.top-place-body,
     font-size: 11px;
   }
 
-  /* A bottom sheet rather than a centred box: at 360px a centred dialog with margins wastes the
-     only space the histogram has. */
-  .detail-dialog-panel {
-    width: 100%;
-    max-height: 92vh;
-    padding: var(--space-6) var(--space-4);
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-  }
 }
 
 /* ── User preferences ──────────────────────────────────────────────────────────────────────── */

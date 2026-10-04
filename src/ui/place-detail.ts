@@ -346,7 +346,7 @@ export function renderPlaceDetail(
   periodNote.textContent = periodStatsHeading(basis);
 
   // Left empty here on purpose: the card stays pure DOM over already-computed numbers, and the map
-  // is the one view that needs a third-party script. `src/ui/detail-dialog.ts` fills this slot, so
+  // is the one view that needs a third-party script. A caller using `withMap` fills this slot, so
   // a caller that has no map — or a test — renders the whole card without one. Appended below the
   // histogram, next to the link out.
   const mapSlot = document.createElement('div');

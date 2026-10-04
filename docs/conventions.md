@@ -153,20 +153,14 @@ dance per file.
   (`src/ui/bootstrap.test.ts` → `bootstrap page map`), because both read one predicate. One channel
   each way: a row's hover, focus and selection light its pin through `onHighlight`, and a pin the
   reader touches lights its row through `setTopPlaceHighlight`. Selection outranks the pointer — the
-  desktop panel or mobile dialog takes focus the instant a row is pressed, so leaving a row reports the selection
-  rather than `null` (`src/ui/top-places.test.ts` → *page map*). Below 768px
-  the page is the single column it has always been and the Naver script is never loaded; either map
-  failure — the script or a rejected key — gives the panel the whole width back and says
-  `지도를 불러오지 못했습니다.` once. Desktop selection replaces the panel contents with the detail card and a `← 목록` control,
-  centres the page map on the place and writes `#place=<id>`. Mobile keeps the dialog and its
-  single-marker map until the bottom sheet lands.
-- Below 768px the place detail is a modal dialog: it opens over the list the reader is in,
-  traps Tab, closes on Escape or scrim click, and returns focus to the control that opened it.
-  It was the last section on the page until a UI review found that selecting anything threw the
-  reader three screens down with no way back — see `src/ui/detail-dialog.ts`. It carries the
-  selected place's location map: the map exists to answer "where is *this* one?", which is a
-  question only ever asked from inside the dialog. The figures render whether or not the map
-  script arrives.
+  desktop panel or mobile sheet takes focus the instant a row is pressed, so leaving a row reports the selection
+  rather than `null` (`src/ui/top-places.test.ts` → *page map*). Below 768px the same page map sits
+  behind a bottom sheet with peek / half / full stops (default half). Its labelled vertical slider
+  supports arrows, Home (full), End (peek) and tap-to-cycle; drag only uses the handle while the
+  content scrolls independently. Keyboard focus entering peek content opens it halfway.
+  Either map failure gives the content the full width back and says `지도를 불러오지 못했습니다.`
+  once. Selection replaces list/search/filter views inside the panel at every width, centres the
+  map and writes `#place=<id>`. `← 목록` restores the preserved views and originating control.
 - The list opens on `LIST_PAGE_SIZE` rows and grows by that many at a time, never truncating:
   the counter under the list states both halves (`47곳 중 10곳 표시`, then `47곳 모두 표시`), so
   what is held back is on screen as a number. The heading names the window only — a count there
@@ -198,8 +192,7 @@ metadata retains the selected figures basis, so a search selection stays at `1y`
 and reload while the canonical URL still contains only the id. A selection arriving during a
 pending Back traversal waits for the list entry before opening. The ranked view reads the live
 panel selection on row departure, falling back to the keyboard-focused row rather than a
-previously pressed row. Unchanged hash/layout notifications preserve card focus and map position. Widening an open mobile
-dialog moves its selection into the panel and releases its map, and narrowing restores the dialog.
+previously pressed row. Unchanged hash/layout notifications preserve card focus and map position. Changing viewport width preserves the same detail card, focus and map; CSS switches panel to sheet.
 
 ## Docs
 

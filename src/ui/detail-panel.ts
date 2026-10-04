@@ -1,17 +1,13 @@
 import type { Period } from '../data/types';
-import { createDetailDialog, type DetailDialogHandle, type DetailDialogOptions } from './detail-dialog';
 import { renderPlaceDetail, type PlaceDetail } from './place-detail';
 
 export interface DetailPanelOptions {
-  wide: () => boolean;
   resolve: (placeId: string, basis?: Period) => PlaceDetail | null;
-  dialog: DetailDialogOptions;
   onSelection: (detail: PlaceDetail | null) => void;
 }
 
 export interface DetailPanelHandle {
   open(detail: PlaceDetail): void;
-  syncLayout(): void;
   syncHash(): void;
   release(): void;
 }
@@ -34,7 +30,7 @@ function selectionState(placeId: string): { basis?: Period; fromList: boolean } 
   };
 }
 
-/** One selection across URL navigation and the desktop panel / mobile dialog boundary. */
+/** One selection across URL navigation and the desktop panel / mobile sheet boundary. */
 export function createDetailPanel(
   container: HTMLElement,
   listViews: HTMLElement[],
@@ -42,12 +38,9 @@ export function createDetailPanel(
 ): DetailPanelHandle {
   let selection: PlaceDetail | null = null;
   let opener: HTMLElement | null = null;
-  let dialog: DetailDialogHandle | null = null;
-  let switching = false;
   let fromList = false;
   let pendingBack = false;
   let queuedSelection: PlaceDetail | null = null;
-  let paintedWide = options.wide();
 
   function restoreFocus(): void {
     if (opener?.isConnected) opener.focus();
@@ -55,15 +48,7 @@ export function createDetailPanel(
     opener = null;
   }
 
-  function closeDialog(): void {
-    switching = true;
-    // The selection controller restores focus once, after the list becomes visible again.
-    dialog?.close();
-    switching = false;
-  }
-
   function close(): void {
-    if (switching) return;
     if (fromList) {
       pendingBack = true;
       history.back();
@@ -78,23 +63,7 @@ export function createDetailPanel(
   }
 
   function paint(): void {
-    const panelMode = options.wide();
-    paintedWide = panelMode;
-    listViews.forEach((view) => { view.hidden = panelMode && selection !== null; });
-    if (!panelMode) {
-      if (!dialog) {
-        dialog = createDetailDialog(container, {
-          ...options.dialog, onClose: close,
-          // Shared opener state must survive a desktop/mobile transition.
-          restoreFocus: () => {},
-        });
-      }
-      if (selection) dialog.open(selection);
-      else closeDialog();
-      return;
-    }
-    closeDialog();
-    dialog = null;
+    listViews.forEach((view) => { view.hidden = selection !== null; });
     container.replaceChildren();
     if (!selection) return;
 
@@ -149,14 +118,8 @@ export function createDetailPanel(
   paint();
   return {
     syncHash,
-    syncLayout() {
-      if (paintedWide === options.wide()) return;
-      paint();
-      options.onSelection(selection);
-    },
     release() {
       window.removeEventListener('hashchange', onHashChange);
-      closeDialog();
       container.replaceChildren();
       selection = null;
       pendingBack = false;
