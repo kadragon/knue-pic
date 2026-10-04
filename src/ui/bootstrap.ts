@@ -71,6 +71,13 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     renderMap = renderPageMap,
   } = options;
 
+  /**
+   * Holds the cover listeners — the root's sheet snap and the window's resize — so they go when the
+   * map does: past a failure there is nothing left for them to tell. Declared before `renderFrame`,
+   * which registers them.
+   */
+  const coverListeners = new AbortController();
+
   // Rendered once. A retry re-renders `#content` alone: re-rendering the shell would destroy the
   // button the user just pressed and drop keyboard focus to the top of the document.
   const content = renderFrame();
@@ -157,6 +164,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
       onSelect: (placeId) => { selectFromMap(placeId); },
       onUnavailable: () => {
         mapUnavailable = true;
+        coverListeners.abort();
         setShellMapUnavailable(root);
       },
       // The other direction of the sync: a reader who touched a pin has no row in hand, so the map
@@ -381,12 +389,20 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   function renderFrame(): HTMLElement {
     // On `root`, which outlives every shell render; the sheet inside it is replaced with the frame.
     // A resize too: crossing the breakpoint swaps the desktop column for the sheet without a snap.
+    const { signal } = coverListeners;
     root.addEventListener(SHEET_SNAP_EVENT, () => {
       pageMap?.coverChanged();
-    });
+    }, { signal });
+    // A drag-resize fires many times a frame, and each `coverChanged` measures the layout: one per
+    // frame is all the map can show.
+    let resizeFrame: number | null = null;
     window.addEventListener('resize', () => {
-      pageMap?.coverChanged();
-    });
+      if (resizeFrame !== null) return;
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        if (!signal.aborted) pageMap?.coverChanged();
+      });
+    }, { signal });
     renderShell(root, {
       mapFirst: true,
       // The shell holds no map, so the press travels: before the script has loaded there is nothing

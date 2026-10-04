@@ -43,6 +43,11 @@
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
 
+### PR #77 — Map framing review debt (2026-10-05)
+
+- [ ] [debt] `학교로` releases the map's focus while the detail panel and `selectedDetail` still hold the place; re-opening the same row hits `show()`'s early return, so the map stays on the campus, and a filter change with the detail open re-frames (source: code-review, confidence 45) (introduced here) — `src/map/place-map.ts:623`
+- [ ] [debt] `학교로` with the sheet fully open (`coveredInsets()` null) centres the campus with `NO_INSETS` and now also drops the owed frame, so nothing re-centres it above the sheet once it comes down; consider a "recentre owed" flag (source: code-review, confidence 40) (introduced here) — `src/map/place-map.ts:625`
+
 ## Review Backlog — found reviewing PR #72 (map-first shell, 2026-10-03)
 
 - [ ] [feat] Overlap is now observed on the real map, which is the condition

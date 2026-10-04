@@ -1,4 +1,4 @@
-import { MAP_ERROR_MESSAGE, type PageMapInsets } from '../map/place-map';
+import { MAP_ERROR_MESSAGE, NO_INSETS, type PageMapInsets } from '../map/place-map';
 import { createBottomSheet } from './bottom-sheet';
 import { displayDate } from './place-labels';
 
@@ -147,7 +147,7 @@ function mapRegion(onRecentre?: () => void): HTMLElement {
 export function mapCoveredInsets(root: HTMLElement): PageMapInsets | null {
   const region = root.querySelector('.map-shell-map');
   const panel = root.querySelector('.sheet-panel');
-  if (!region || !panel) return { top: 0, right: 0, bottom: 0, left: 0 };
+  if (!region || !panel) return NO_INSETS;
 
   const map = region.getBoundingClientRect();
   const sheet = panel.getBoundingClientRect();
