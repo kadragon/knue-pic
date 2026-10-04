@@ -2,42 +2,33 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { createFakeNaverApi } from '../map/fake-naver-api';
 import { renderPageMap, resetAuthFailureState } from '../map/place-map';
-import { bootstrap, type MatchMedia } from './bootstrap';
+import { bootstrap } from './bootstrap';
 import { createDetailPanel } from './detail-panel';
 
 const flush = async (): Promise<void> => { await Promise.resolve(); await Promise.resolve(); };
 const views: HTMLElement[] = [];
 
-function viewport(initial: boolean) {
-  let matches = initial;
-  const listeners: (() => void)[] = [];
-  const list = {
-    get matches() { return matches; },
-    addEventListener: (_: string, listener: () => void) => listeners.push(listener),
-  } as unknown as MediaQueryList;
-  return {
-    matchMedia: (() => list) as MatchMedia,
-    set(value: boolean) { matches = value; listeners.forEach((listener) => listener()); },
-  };
+function viewport() {
+  return { set: (wide: boolean) => {
+      window.innerWidth = wide ? 1024 : 360;
+      window.dispatchEvent(new Event('resize'));
+    } };
 }
 
-async function setup(wide = true) {
+async function setup() {
   const root = document.createElement('div');
   document.body.append(root);
   views.push(root);
   const api = createFakeNaverApi();
-  const view = viewport(wide);
-  const renderDetailMap = vi.fn();
+  const view = viewport();
   await bootstrap(root, {
     load: () => Promise.resolve(SAMPLE_DATASET),
-    matchMedia: view.matchMedia,
-    dialog: { renderMap: renderDetailMap },
     renderMap: (container, places, options) => renderPageMap(container, places, {
       ...options, loadApi: () => Promise.resolve(api),
     }),
   });
   await flush();
-  return { root, api, view, renderDetailMap };
+  return { root, api, view };
 }
 
 function row(root: HTMLElement) { return root.querySelector<HTMLButtonElement>('.top-place-body')!; }
@@ -58,7 +49,7 @@ afterEach(() => {
 
 describe('panel detail and URL selection', () => {
   it('opens a desktop row in the panel without a modal or second map, then restores focus', async () => {
-    const { root, renderDetailMap, api } = await setup();
+    const { root, api } = await setup();
     const opener = row(root);
     const id = opener.closest('[data-place-id]')!.getAttribute('data-place-id')!;
     opener.focus();
@@ -69,7 +60,6 @@ describe('panel detail and URL selection', () => {
     expect(root.querySelector<HTMLElement>('.place-list-slot')?.hidden).toBe(true);
     expect(root.querySelector('.detail-dialog')).toBeNull();
     expect(root.querySelector('.place-detail-map')).toBeNull();
-    expect(renderDetailMap).not.toHaveBeenCalled();
     expect(location.hash).toBe(`#place=${id}`);
     const place = SAMPLE_DATASET.places.find((p) => p.id === id)!;
     expect(api.maps[0]?.centers.at(-1)).toMatchObject({ latitude: place.lat, longitude: place.lng });
@@ -108,7 +98,7 @@ describe('panel detail and URL selection', () => {
     })) };
     const other = document.createElement('div'); document.body.append(other); views.push(other);
     const dots = createFakeNaverApi();
-    await bootstrap(other, { load: () => Promise.resolve(dataset), matchMedia: viewport(true).matchMedia,
+    await bootstrap(other, { load: () => Promise.resolve(dataset),
       renderMap: (container, places, options) => renderPageMap(container, places, {
         ...options, loadApi: () => Promise.resolve(dots),
       }),
@@ -144,18 +134,20 @@ describe('panel detail and URL selection', () => {
     expect(root.querySelector('.detail-panel')).not.toBeNull();
   });
 
-  it('keeps the mobile dialog and migrates an open selection across the breakpoint', async () => {
-    const { root, view, renderDetailMap } = await setup(false);
+  it('keeps one mobile panel, map and focused card across the breakpoint', async () => {
+    const { root, view, api } = await setup();
     const opener = row(root); opener.focus(); opener.click();
-    expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(false);
-    expect(renderDetailMap).toHaveBeenCalledOnce();
-    view.set(true);
-    expect(root.querySelector('.detail-dialog')).toBeNull();
-    expect(root.querySelector('.detail-panel')).not.toBeNull();
-    view.set(false);
-    expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(false);
+    const card = root.querySelector('.detail-panel');
+    const link = root.querySelector<HTMLAnchorElement>('.place-detail-link')!;
+    link.focus();
+    expect(root.querySelector('[role="dialog"]')).toBeNull();
+    expect(root.querySelector<HTMLElement>('.place-list-slot')?.hidden).toBe(true);
+    view.set(true); view.set(false);
+    expect(root.querySelector('.detail-panel')).toBe(card);
+    expect(document.activeElement).toBe(link);
+    expect(api.maps).toHaveLength(1);
     const returned = returnedToList();
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click();
     await returned;
     expect(location.hash).toBe('');
     expect(document.activeElement).toBe(opener);
@@ -197,24 +189,15 @@ describe('panel detail and URL selection', () => {
     expect(api.markers.find((marker) => marker.title === place.name)?.icon?.content).toContain('is-active');
   });
 
-  it('reuses an open mobile dialog when a second place is selected', async () => {
-    const { root } = await setup(false);
+  it('replaces a mobile selection through another marker with one Back to list', async () => {
+    const { root, api } = await setup();
     row(root).click();
-    const dialog = root.querySelector('.detail-dialog');
-    root.querySelectorAll<HTMLButtonElement>('.top-place-body')[1]!.click();
-    expect(root.querySelector('.detail-dialog')).toBe(dialog);
+    api.markers[1]!.emit('click');
+    expect(root.querySelector('.place-detail-name')?.textContent).toBe(api.markers[1]!.title);
     const returned = returnedToList();
-    root.querySelector<HTMLButtonElement>('.detail-dialog-close')!.click();
+    root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click();
     await returned;
-  });
-
-  it('re-centres and highlights an existing page map when an open mobile selection widens', async () => {
-    const { root, api, view } = await setup();
-    view.set(false); row(root).click();
-    const before = api.maps[0]!.centers.length;
-    view.set(true);
-    expect(api.maps[0]!.centers.length).toBeGreaterThan(before);
-    expect(api.markers.some((marker) => marker.icon?.content.includes('is-active'))).toBe(true);
+    expect(location.hash).toBe('');
   });
 
   it('releases its hash subscription when a dataset view is replaced', () => {
@@ -222,7 +205,7 @@ describe('panel detail and URL selection', () => {
     document.body.append(container); views.push(container);
     const resolve = vi.fn(() => null);
     const handle = createDetailPanel(container, [], {
-      wide: () => true, resolve, dialog: {}, onSelection: () => {},
+      resolve, onSelection: () => {},
     });
     handle.release();
     navigate(`#place=${SAMPLE_DATASET.places[0]!.id}`);

@@ -1765,8 +1765,8 @@ describe('map links are styled as peers', () => {
  * positioned surfaces, or a raised region with unpositioned ones, fails one half each.
  */
 describe('the page map takes the pointer', () => {
-  const REGION = '.map-shell-map';
-  const OVER_MAP = ['.is-map-first .shell-header', '.is-map-first .shell-provenance', '.is-map-first #content'];
+  const REGION = '.is-map-first .map-shell-map';
+  const OVER_MAP = ['.is-map-first .sheet-panel', '.is-map-first .shell-header', '.is-map-first .shell-provenance', '.is-map-first #content'];
 
   /** Every declaration block, at any viewport, of a rule listing `part` as one of its selectors. */
   const blocksListing = (part: string): string =>
@@ -1792,5 +1792,18 @@ describe('the page map takes the pointer', () => {
   it.each(OVER_MAP)('raises `%s` above the region on a stacking level of its own', (part) => {
     expect(blocksListing(part)).toMatch(/(?:^|;\s*)position:\s*(?:relative|sticky|absolute|fixed)/);
     expect(zIndexOf(part)).toBeGreaterThan(zIndexOf(REGION) ?? 0);
+  });
+});
+
+
+describe('mobile sheet layout regressions', () => {
+  it('uses defined radius tokens and complements the desktop breakpoint without a gap', () => {
+    const tokens = new Set([...CSS.matchAll(/(--radius-[\w-]+):/g)].map((match) => match[1]));
+    for (const [, token] of CSS.matchAll(/var\((--radius-[\w-]+)\)/g)) expect(tokens.has(token)).toBe(true);
+    expect(CSS).toContain('@media (width < 768px)');
+  });
+
+  it('keeps the source and disclaimer outside the clipped peek content', () => {
+    expect(CSS).toMatch(/\.is-map-first \.sheet-panel\[data-snap='peek'\] \.shell-provenance \{[^}]*position: fixed/);
   });
 });

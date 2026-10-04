@@ -57,17 +57,6 @@
   built-in clusterer (the commonly cited `MarkerClustering.js` is example code to vendor), so this is
   a follow-up ticket, not a rider on the next one — `src/map/place-map.ts`
 
-## Map-first 6 — mobile bottom sheet (2026-10-03)
-
-- [ ] [feat] Below 768px: full-screen map with the panel as a bottom sheet snapping to peek / half
-  / full (default half) with a grab handle; the panel's list → search source order and the
-  map-failure fallback (full-screen list) carry over; the modal dialog left below 768px by ticket 5
-  is removed here. Accept: works at 360px with the map loaded
-  and with the Naver script blocked; snap states reachable by keyboard as well as drag; all four
-  `docs/eval-criteria.md` criteria graded for the finished layout (source:
-  `docs/design/map-first-layout.md` → Solution, Implementation Decision 9) — `src/ui/shell.ts`,
-  `src/styles.css`
-
 ## Someday
 
 - [x] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget
@@ -76,3 +65,10 @@
 - [ ] Distance-from-me search, favourites, heatmap (PRD §44 V2 candidates) — conditions and the
   heatmap's framing objection in `docs/design/deferred-scope.md`; `src/ui/device-state.test.ts`
   must be widened by whichever lands first
+
+
+## Review Backlog
+
+### PR #75 — Mobile bottom sheet (2026-10-04)
+
+- [ ] [debt] Keep selected pins inside the uncovered mobile map when the sheet snaps; the default half stop currently overlaps the centred marker (source: codex, code-review; Sprint Contract excludes map framing) — `src/map/place-map.ts`, `src/ui/bottom-sheet.ts`

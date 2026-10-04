@@ -6,11 +6,10 @@ import { createFakeNaverApi } from '../map/fake-naver-api';
 import {
   MAP_ERROR_MESSAGE,
   renderPageMap,
-  renderPlaceLocationMap,
   resetAuthFailureState,
 } from '../map/place-map';
 import { CAMPUS_ORIGIN } from '../stats/distance';
-import { bootstrap, type BootstrapOptions, type MatchMedia } from './bootstrap';
+import { bootstrap, type BootstrapOptions } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
 import { DEFAULT_PERIOD, PERIOD_TABS, listHeading, periodLabel } from './place-list';
@@ -39,7 +38,7 @@ function pressedTab(root: HTMLElement): HTMLButtonElement | undefined {
 
 /**
  * Selects a window and returns the first row of the list it produced, which is how every selection
- * case opens the dialog. Only one list is on screen at a time, so the period has to be chosen
+ * case opens the detail. Only one list is on screen at a time, so the period has to be chosen
  * before the row exists.
  */
 function firstRow(root: HTMLElement, period: Period): HTMLButtonElement | null {
@@ -65,7 +64,7 @@ function typeQuery(root: HTMLElement, text: string): void {
   input.dispatchEvent(new Event('input'));
 }
 
-/** Lets the dialog's fire-and-forget map render settle before the assertions run. */
+/** Lets the detail's fire-and-forget map render settle before the assertions run. */
 const flush = (): Promise<void> => Promise.resolve().then(() => {});
 
 /**
@@ -256,7 +255,7 @@ describe('bootstrap ranked list', () => {
     expect(root.querySelector('.place-list-body')?.textContent).not.toContain('황새울분식');
   });
 
-  it('shows the picked window in the dialog', async () => {
+  it('shows the picked window in the detail', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
@@ -378,17 +377,17 @@ describe('bootstrap summary line and 업종 counts', () => {
 });
 
 describe('bootstrap place selection', () => {
-  it('opens the dialog only once a place is picked', async () => {
+  it('opens the detail only once a place is picked', async () => {
     const root = document.createElement('div');
 
     await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
-    // Nothing selected yet: the dialog exists but is not shown, so the page does not end in an
+    // Nothing selected yet: no detail card, so the page does not end in an
     // empty card explaining a feature the visitor has not used.
-    expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(true);
+    expect(root.querySelector('.detail-panel')).toBeNull();
 
     firstRow(root, '1y')?.click();
 
-    expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(false);
+    expect(root.querySelector('.detail-panel')).not.toBeNull();
     expect(root.querySelector<HTMLAnchorElement>('.place-detail-link')?.rel).toBe(
       'noopener noreferrer',
     );
@@ -409,16 +408,16 @@ describe('bootstrap place selection', () => {
     button?.focus();
     button?.click();
 
-    // Only the dialog body is repainted — an in-progress search query and the ranked list survive
+    // Only the detail body is repainted — an in-progress search query and the ranked list survive
     // the selection, asserted by node identity rather than by where focus ended up.
     expect(root.querySelector('.place-search-input')).toBe(searchInput);
     expect(root.querySelector('.place-list-body .top-places-list')).toBe(rankedList);
-    // Focus moves into the dialog so the selection is announced rather than happening off-screen.
-    expect(document.activeElement).toBe(root.querySelector('.detail-dialog-panel'));
+    // Focus moves into the detail so the selection is announced rather than happening off-screen.
+    expect(document.activeElement).toBe(root.querySelector('.detail-panel .place-detail'));
     root.remove();
   });
 
-  it('returns focus to the row that opened the dialog when it is closed', async () => {
+  it('returns focus to the row that opened the detail when it is closed', async () => {
     const root = document.createElement('div');
     document.body.append(root);
 
@@ -427,68 +426,60 @@ describe('bootstrap place selection', () => {
     button?.focus();
     button?.click();
     const returned = new Promise<void>((resolve) => window.addEventListener('hashchange', () => resolve(), { once: true }));
-    root.querySelector<HTMLButtonElement>('.detail-dialog-close')?.click();
+    root.querySelector<HTMLButtonElement>('.detail-panel-back')?.click();
     await returned;
 
-    // The whole point of the dialog over the old bottom-of-page card: the reader keeps their place
+    // The whole point of the detail over the old bottom-of-page card: the reader keeps their place
     // in the list they were reading.
-    expect(root.querySelector<HTMLElement>('.detail-dialog')?.hidden).toBe(true);
+    expect(root.querySelector('.detail-panel')).toBeNull();
     expect(document.activeElement).toBe(button);
     root.remove();
   });
 });
 
 describe('bootstrap map wiring', () => {
-  it('mounts the selected place on the map inside the dialog', async () => {
+  it('mounts one page map on mobile and centres it on the selected place', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
-
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      dialog: {
-        renderMap: (container, place) =>
-          renderPlaceLocationMap(container, place, { loadApi: () => Promise.resolve(api) }),
-      },
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.resolve(api),
+      }),
     });
-    // The map is mounted on selection, not on load: nothing is picked yet.
-    expect(api.markers).toHaveLength(0);
-
-    firstRow(root, '1y')?.click();
     await flush();
-
-    expect(api.markers).toHaveLength(1);
-    const selected = SAMPLE_DATASET.places.find((place) =>
-      api.markers[0]?.options.title?.startsWith(place.name),
-    );
-    expect(api.markers[0]?.options.position.lat()).toBe(selected?.lat);
-    expect(root.querySelector('.detail-slot .place-map-canvas')).toBeInstanceOf(HTMLElement);
+    expect(api.maps).toHaveLength(1);
+    firstRow(root, '1y')?.click();
+    expect(root.querySelector('.detail-panel .place-detail-figures')).not.toBeNull();
+    expect(root.querySelector('.detail-dialog')).toBeNull();
+    expect(root.querySelector('.place-detail-map')).toBeNull();
+    expect(api.maps).toHaveLength(1);
   });
 
-  it('keeps the figures and the rest of the page when the map script never loads', async () => {
+  it('keeps mobile search and detail usable when the page map script is blocked', async () => {
     const root = document.createElement('div');
-
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      dialog: {
-        renderMap: (container, place) =>
-          renderPlaceLocationMap(container, place, {
-            loadApi: () => Promise.reject(new Error('blocked')),
-          }),
-      },
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.reject(new Error('blocked')),
+      }),
     });
-    firstRow(root, '1y')?.click();
     await flush();
-
-    expect(root.querySelector('.detail-slot')?.textContent).toContain(MAP_ERROR_MESSAGE);
-    // The statistics are what the dialog is for; the map failing may never take them with it.
+    expect(root.querySelectorAll('.shell-map-note')).toHaveLength(1);
+    firstRow(root, '1y')?.click();
+    expect(root.querySelector('.shell-map-note')?.textContent).toBe(MAP_ERROR_MESSAGE);
     expect(root.querySelector('.place-detail-figures')).not.toBeNull();
-    expect(root.textContent).toContain(PERIOD_LABELS['1y']);
+    expect(root.classList.contains('is-map-first')).toBe(false);
     expect(root.textContent).not.toContain(LOAD_ERROR_MESSAGE);
     expect(root.querySelector('.search-slot')).not.toBeNull();
   });
   it('narrows the ranked list and the search with one 업종 selection', async () => {
     const root = document.createElement('div');
-    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET),
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.resolve(createFakeNaverApi()),
+      }),
+    });
     typeQuery(root, '식당');
     expect(root.querySelector('.search-slot')?.textContent).toContain(resultCountLabel(1));
 
@@ -504,7 +495,11 @@ describe('bootstrap map wiring', () => {
 
   it('restores every place when 전체 is picked again', async () => {
     const root = document.createElement('div');
-    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET),
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.resolve(createFakeNaverApi()),
+      }),
+    });
 
     kindOption(root, KIND_LABELS.cafe)?.click();
     kindOption(root, ALL_KINDS_LABEL)?.click();
@@ -514,7 +509,11 @@ describe('bootstrap map wiring', () => {
 
   it('keeps the typed query and the selected window across a 업종 change', async () => {
     const root = document.createElement('div');
-    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET),
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.resolve(createFakeNaverApi()),
+      }),
+    });
     typeQuery(root, '카페');
     periodTab(root, periodLabel('1y'))?.click();
     const input = searchField(root);
@@ -527,16 +526,13 @@ describe('bootstrap map wiring', () => {
     expect(pressedTab(root)?.dataset['period']).toBe('1y');
   });
 
-  it('still opens the detail dialog for a place listed under a narrowed 업종', async () => {
+  it('still opens the panel detail for a place listed under a narrowed 업종', async () => {
     const root = document.createElement('div');
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      dialog: {
-        renderMap: (container, place) =>
-          renderPlaceLocationMap(container, place, {
-            loadApi: () => Promise.resolve(createFakeNaverApi()),
-          }),
-      },
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.resolve(createFakeNaverApi()),
+      }),
     });
 
     kindOption(root, KIND_LABELS.cafe)?.click();
@@ -544,41 +540,21 @@ describe('bootstrap map wiring', () => {
     await flush();
 
     expect(root.querySelector('.detail-slot')?.textContent).toContain('청람카페');
+    expect(root.classList.contains('is-map-first')).toBe(true);
   });
 });
 
 /**
  * The page map: the first screen, and the layout it came with
- * (`docs/design/map-first-layout.md`). jsdom has no `matchMedia`, so every case here states the
+ * (`docs/design/map-first-layout.md`). CSS owns layout; these cases exercise the shared map and
  * viewport it wants rather than relying on a layout engine that does not exist.
  */
 describe('bootstrap page map', () => {
-  /**
-   * A `matchMedia` whose answer can be changed mid-test, which is the only way to reach the resize
-   * path — a window is not something jsdom can do to itself.
-   */
-  function viewport(initial: boolean): { matchMedia: MatchMedia; set: (wide: boolean) => void } {
-    let wide = initial;
-    const listeners = new Set<() => void>();
-    const list = {
-      get matches() {
-        return wide;
-      },
-      addEventListener: (_type: string, listener: () => void) => {
-        listeners.add(listener);
-      },
-      removeEventListener: (_type: string, listener: () => void) => {
-        listeners.delete(listener);
-      },
-    } as unknown as MediaQueryList;
-
-    return {
-      matchMedia: () => list,
-      set: (next: boolean) => {
-        wide = next;
-        for (const listener of [...listeners]) listener();
-      },
-    };
+  function viewport() {
+    return { set: (wide: boolean) => {
+      window.innerWidth = wide ? 1024 : 360;
+      window.dispatchEvent(new Event('resize'));
+    } };
   }
 
   /** The dots still standing on the map — the fake records every marker ever made. */
@@ -604,7 +580,6 @@ describe('bootstrap page map', () => {
 
     const loading = bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       renderMap: (container, places, options) => {
         rowsWhenAsked = root.querySelectorAll('.top-place').length;
         return renderPageMap(container, places, {
@@ -632,7 +607,6 @@ describe('bootstrap page map', () => {
     const api = createFakeNaverApi();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       ...mapOptions(api),
     });
     await flush();
@@ -669,7 +643,6 @@ describe('bootstrap page map', () => {
       const api = createFakeNaverApi();
       await bootstrap(root, {
         load: () => Promise.resolve(SAMPLE_DATASET),
-        matchMedia: viewport(true).matchMedia,
         ...mapOptions(api),
       });
       await flush();
@@ -697,7 +670,6 @@ describe('bootstrap page map', () => {
       const api = createFakeNaverApi();
       await bootstrap(root, {
         load: () => Promise.resolve(SAMPLE_DATASET),
-        matchMedia: viewport(true).matchMedia,
         ...mapOptions(api),
       });
       await flush();
@@ -715,7 +687,6 @@ describe('bootstrap page map', () => {
       const api = createFakeNaverApi();
       await bootstrap(root, {
         load: () => Promise.resolve(SAMPLE_DATASET),
-        matchMedia: viewport(true).matchMedia,
         ...mapOptions(api),
       });
       await flush();
@@ -732,20 +703,18 @@ describe('bootstrap page map', () => {
       expect(placeId).toBeTruthy();
     });
 
-    it('never throws from a row highlight on the narrow page, which has no map', async () => {
+    it('highlights the mobile page map from the row', async () => {
       const root = document.createElement('div');
       const api = createFakeNaverApi();
       await bootstrap(root, {
         load: () => Promise.resolve(SAMPLE_DATASET),
-        matchMedia: viewport(false).matchMedia,
         ...mapOptions(api),
       });
       await flush();
 
-      // The list is built either way and the map only exists at ≥768px; a handler reaching into an
-      // absent handle would break the page on a phone for a highlight nobody can see there.
+      // Mobile rows highlight the same page map as desktop rows.
       expect(() => firstRow(root).dispatchEvent(new MouseEvent('mouseenter'))).not.toThrow();
-      expect(api.maps).toHaveLength(0);
+      expect(api.maps).toHaveLength(1);
     });
   });
 
@@ -754,7 +723,6 @@ describe('bootstrap page map', () => {
     const api = createFakeNaverApi();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       ...mapOptions(api),
     });
     await flush();
@@ -771,7 +739,6 @@ describe('bootstrap page map', () => {
     const root = document.createElement('div');
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       renderMap: (container, places, options) =>
         renderPageMap(container, places, { ...options, loadApi: () => Promise.reject(new Error()) }),
     });
@@ -797,7 +764,6 @@ describe('bootstrap page map', () => {
 
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       renderMap: (container, places, options) =>
         renderPageMap(container, places, { ...options, loadApi: () => pending }),
     });
@@ -822,7 +788,6 @@ describe('bootstrap page map', () => {
     const api = createFakeNaverApi();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       ...mapOptions(api),
     });
     await flush();
@@ -834,31 +799,29 @@ describe('bootstrap page map', () => {
     expect(root.querySelectorAll('.place-list-body .top-place').length).toBeGreaterThan(0);
   });
 
-  it('never loads the map script on a narrow viewport', async () => {
+  it('loads the page map behind the half-open sheet on a narrow viewport', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(false).matchMedia,
       ...mapOptions(api),
     });
     await flush();
 
-    // Below the breakpoint the page is today's layout until the mobile sheet lands, and the Naver
-    // script is not worth a phone's load budget for a map nobody can see.
-    expect(api.maps).toHaveLength(0);
-    expect(root.querySelector('.page-map-canvas')).toBeNull();
-    expect(root.classList.contains('is-map-first')).toBe(false);
+    // The sheet opens halfway with a live page map behind it.
+    expect(api.maps).toHaveLength(1);
+    expect(root.querySelector('.page-map-canvas')).not.toBeNull();
+    expect(root.classList.contains('is-map-first')).toBe(true);
+    expect(root.querySelector<HTMLElement>('.sheet-panel')?.dataset['snap']).toBe('half');
     expect(root.querySelectorAll('.place-list-body .top-place').length).toBeGreaterThan(0);
   });
 
   it('mounts the map when a narrow window is widened, drawing the filters as they stand', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
-    const view = viewport(false);
+    const view = viewport();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: view.matchMedia,
       ...mapOptions(api),
     });
     kindOption(root, KIND_LABELS.cafe)?.click();
@@ -875,10 +838,9 @@ describe('bootstrap page map', () => {
 
   it('keeps the full-width fallback when a map that failed is followed by a resize', async () => {
     const root = document.createElement('div');
-    const view = viewport(true);
+    const view = viewport();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: view.matchMedia,
       renderMap: (container, places, options) =>
         renderPageMap(container, places, { ...options, loadApi: () => Promise.reject(new Error()) }),
     });
@@ -900,11 +862,10 @@ describe('bootstrap page map', () => {
 
   it('falls back even when the window was narrowed before the failure arrived', async () => {
     const root = document.createElement('div');
-    const view = viewport(true);
+    const view = viewport();
     let reject!: (reason: Error) => void;
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: view.matchMedia,
       renderMap: (container, places, options) =>
         renderPageMap(container, places, {
           ...options,
@@ -929,19 +890,18 @@ describe('bootstrap page map', () => {
   it('leaves a mounted map alone when a wide window narrows, rather than calling it a failure', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
-    const view = viewport(true);
+    const view = viewport();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: view.matchMedia,
       ...mapOptions(api),
     });
     await flush();
 
     view.set(false);
 
-    // The layout goes back to today's column and the map stays mounted behind it, so widening the
+    // The layout becomes a sheet and the map stays mounted behind it, so widening the
     // window again finds the same map and the same dots. A resize is not a map failure.
-    expect(root.classList.contains('is-map-first')).toBe(false);
+    expect(root.classList.contains('is-map-first')).toBe(true);
     expect(root.querySelector('.shell-map-note')).toBeNull();
     expect(root.querySelector('.map-shell-map')).not.toBeNull();
     expect(liveDots(api)).toHaveLength(5);

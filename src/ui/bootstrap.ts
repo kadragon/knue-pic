@@ -9,7 +9,6 @@ import { resolvePeriodWindow } from '../stats/period';
 import { renderPageMap, type PageMapHandle, type PageMapPlace } from '../map/place-map';
 import type { PlaceDetail } from './place-detail';
 import { renderLoadFailure, renderLoading } from './data-state';
-import type { DetailDialogOptions } from './detail-dialog';
 import { createDetailPanel, type DetailPanelHandle } from './detail-panel';
 import {
   renderKindFilter,
@@ -21,7 +20,6 @@ import { DEFAULT_PERIOD, renderPlaceList } from './place-list';
 import { renderPlaceSearch } from './search';
 import {
   renderShell,
-  setShellMapFirst,
   setShellMapUnavailable,
   setShellUpdatedAt,
 } from './shell';
@@ -31,57 +29,15 @@ import { setTopPlaceHighlight, type VisibleRankedPlace } from './top-places';
 /**
  * Wires the page frame to the dataset: shell first, then the load, then whichever state the load
  * ended in. A successful load renders search, the ranked list with its period selector and the
- * responsive detail view into `#content`, and — on a wide viewport — the page map beside them.
+ * responsive detail view into `#content`, and the page map behind the desktop panel or mobile sheet.
  *
- * `load` is injectable so this is testable without stubbing global `fetch`, and `dialog`,
- * `renderMap` and `matchMedia` carry the same reach further down: jsdom cannot run the Naver
- * script and has no `matchMedia` at all, so both the map and the viewport that decides whether to
- * ask for it are handed in.
+ * `load` and `renderMap` are injectable because jsdom cannot fetch the dataset or run the Naver
+ * script. Layout changes belong to CSS; the map and selection persist across them.
  */
 export interface BootstrapOptions {
   load?: () => Promise<PlacesDataset>;
-  dialog?: DetailDialogOptions;
-  /** Mounts the page map. Injectable for the same reason `dialog.renderMap` is. */
+  /** Mounts the page map. Injectable for the same reason the map API is. */
   renderMap?: typeof renderPageMap;
-  /** `window.matchMedia` by default; injectable so a test can decide the viewport. */
-  matchMedia?: MatchMedia;
-}
-
-/** The viewport query the map-first layout turns on. `src/styles.css` holds the same breakpoint. */
-const MAP_FIRST_QUERY = '(min-width: 768px)';
-
-export type MatchMedia = (query: string) => MediaQueryList;
-
-/** The one question the layout asks of the window, and the answer changing. */
-interface Viewport {
-  wide(): boolean;
-  onChange(onChange: (wide: boolean) => void): void;
-}
-
-/**
- * The window's answer, or `null` when there is no media query to ask.
- *
- * Feature-detected rather than assumed: jsdom implements no `matchMedia`, so an un-injected case
- * gets today's full-width layout and no map — which is what a narrow phone gets anyway, rather than
- * a crash on the page's first render.
- */
-function resolveViewport(matchMedia: MatchMedia | undefined): Viewport | null {
-  const ask =
-    matchMedia ??
-    (typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : undefined);
-  if (ask === undefined) return null;
-
-  const list = ask(MAP_FIRST_QUERY);
-  return {
-    wide: () => list.matches,
-    onChange: (onChange) => {
-      // Read from the list rather than the event: a `change` event carries no value of its own, and
-      // every consumer here asks the same one question.
-      list.addEventListener('change', () => {
-        onChange(list.matches);
-      });
-    },
-  };
 }
 
 /**
@@ -110,12 +66,8 @@ const SEARCH_PERIOD: Period = '1y';
 export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {}): Promise<void> {
   const {
     load = () => loadPlacesDataset(),
-    dialog: dialogOptions = {},
     renderMap = renderPageMap,
-    matchMedia,
   } = options;
-
-  const viewport = resolveViewport(matchMedia);
 
   // Rendered once. A retry re-renders `#content` alone: re-rendering the shell would destroy the
   // button the user just pressed and drop keyboard focus to the top of the document.
@@ -164,15 +116,6 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   let selectedDetail: PlaceDetail | null = null;
   let selectFromMap: (placeId: string) => void = () => {};
 
-  viewport?.onChange((wide) => {
-    // A narrowing hides the region rather than releasing the map, so widening the window again
-    // finds the same dots — and a resize is never reported as a failure. The exception is a map
-    // that is already gone: nothing will be mounted beside the panel, so the full-width fallback
-    // has to survive the resize too.
-    setShellMapFirst(root, wide && !mapUnavailable);
-    detailView?.syncLayout();
-    if (wide) mountPageMap();
-  });
 
   /**
    * The markers the map should be standing on right now: every filtered place, labelled where a row
@@ -200,7 +143,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    * window the list has left.
    */
   function mountPageMap(): void {
-    if (pageMap || mounting || mapUnavailable || (viewport?.wide() ?? false) === false) return;
+    if (pageMap || mounting || mapUnavailable) return;
     const region = root.querySelector<HTMLElement>('.map-shell-map');
     if (!region) return;
     mounting = true;
@@ -262,12 +205,12 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   }
 
   /**
-   * Each view owns its own container. Selecting a place rebuilds the dialog alone, which is what
+   * Each view owns its own container. Selecting a place rebuilds the detail alone, which is what
    * keeps the row the reader pressed alive to hand focus back to on close; selecting a period
    * rebuilds the list alone, inside `place-list.ts`, leaving the pressed button holding focus.
    *
    * Source order — the list, then search — follows `docs/conventions.md` → Accessibility &
-   * Responsive. `.detail-slot` replaces the list on desktop and holds a modal on mobile.
+   * Responsive. `.detail-slot` replaces the list inside the panel at every width.
    */
   function renderDataset(dataset: PlacesDataset): void {
     detailView?.release();
@@ -297,9 +240,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     content.replaceChildren(filters, list, search, detail);
 
     detailView = createDetailPanel(detail, [filters, list, search], {
-      wide: () => viewport?.wide() ?? false,
       resolve: (placeId, basis) => currentDetail(placeId, basis ?? activePeriod),
-      dialog: dialogOptions,
       onSelection: (selection) => {
         selectedDetail = selection;
         if (selection) pageMap?.focusPlace(selection.place);
@@ -434,9 +375,9 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
   function renderFrame(): HTMLElement {
     renderShell(root, {
-      mapFirst: viewport?.wide() ?? false,
+      mapFirst: true,
       // The shell holds no map, so the press travels: before the script has loaded there is nothing
-      // to move, and the button is off screen at every width where the map is not mounted.
+      // to move; a failed map removes the control with its region.
       onRecentre: () => {
         pageMap?.recenter();
       },

@@ -1,4 +1,5 @@
 import { MAP_ERROR_MESSAGE } from '../map/place-map';
+import { createBottomSheet } from './bottom-sheet';
 import { displayDate } from './place-labels';
 
 /** Strings shown on every screen. PRD §21 requires both the source line and the disclaimer. */
@@ -20,7 +21,7 @@ export const HEADLINE = '요즘 동료들은 어디를 자주 갈까';
 /** The control that takes the map back to the campus after a reader pans away from it. */
 export const RECENTRE_LABEL = '학교로';
 
-/** Marks the root as showing the map-first layout; `src/styles.css` reads it at ≥ 768px. */
+/** Marks the root as showing the map-first layout; `src/styles.css` reads it at every width. */
 const MAP_FIRST_CLASS = 'is-map-first';
 
 export interface ShellOptions {
@@ -57,7 +58,7 @@ export interface ShellOptions {
  *
  * The map region comes last in source order and holds nothing but the `학교로` control and whatever
  * the map mounts into it. Last so that a keyboard walk meets the page's own content before a
- * control over a picture; the stylesheet places it, since below 768px it is not on screen at all.
+ * control over a picture; the stylesheet places it behind the desktop panel or mobile sheet.
  */
 export function renderShell(root: HTMLElement, options: ShellOptions = {}): void {
   const header = document.createElement('header');
@@ -88,7 +89,13 @@ export function renderShell(root: HTMLElement, options: ShellOptions = {}): void
   const content = document.createElement('main');
   content.id = 'content';
 
-  root.replaceChildren(header, provenance, content, mapRegion(options.onRecentre));
+  const panel = document.createElement('div');
+  panel.className = 'sheet-panel';
+  const scroll = document.createElement('div');
+  scroll.className = 'sheet-scroll';
+  scroll.append(header, provenance, content);
+  panel.append(createBottomSheet(panel, scroll), scroll);
+  root.replaceChildren(panel, mapRegion(options.onRecentre));
 
   if (options.mapFirst === true) root.classList.add(MAP_FIRST_CLASS);
 
@@ -100,8 +107,7 @@ export function renderShell(root: HTMLElement, options: ShellOptions = {}): void
  *
  * A `<section>` with no accessible name, deliberately: it is a picture and a button, not a document
  * region, and naming it would put a landmark in the tab order that reaches nothing a reader came
- * for. The button is inside it rather than over it so that a hidden region — the layout below 768px
- * — takes its control out of the tab order with it.
+ * for. The button is inside it so removing an unavailable map also removes its control.
  */
 function mapRegion(onRecentre?: () => void): HTMLElement {
   const region = document.createElement('div');
@@ -143,8 +149,7 @@ export function setShellMapFirst(root: HTMLElement, on: boolean): void {
  * Keyed on the region still being there rather than on the layout class, because a failure that
  * lands after the reader has narrowed the window is still a failure: gating on the class dropped it,
  * and the window then widened to a panel with no map and no line saying why. The caller decides
- * *whether* a map was ever asked for — nothing below the breakpoint ever calls this, which is what
- * keeps a phone from being told about a map it never had.
+ * *whether* a map was ever asked for — every viewport now requests the page map.
  */
 export function setShellMapUnavailable(root: HTMLElement): void {
   const region = root.querySelector('.map-shell-map');
@@ -153,6 +158,11 @@ export function setShellMapUnavailable(root: HTMLElement): void {
   if (!region || !content) return;
 
   root.classList.remove(MAP_FIRST_CLASS);
+  if (document.activeElement === root.querySelector('.sheet-handle') ||
+    region.contains(document.activeElement)) {
+    (content as HTMLElement).tabIndex = -1;
+    (content as HTMLElement).focus();
+  }
   region.remove();
 
   const note = document.createElement('p');

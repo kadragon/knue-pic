@@ -13,7 +13,7 @@ import type { NaverMapsApi } from './naver-api';
  * list. The v3 script serves the full API bundle whatever the key says, so it loads, `naver.maps`
  * exists, and this promise resolves; the API then nulls the global and calls a
  * `window.navermap_authFailure` hook. Catching that is a different mechanism from this loader —
- * `renderPlaceLocationMap` in `./place-map.ts` owns it, listening from before this promise settles
+ * `renderPageMap` in `./place-map.ts` owns it, listening from before this promise settles
  * until the map is released. Observed 2026-10-03 on a rejected origin (`localhost:5179`, Chromium,
  * 3 of 3 runs): this promise resolved, the map mounted, `/v3/auth` answered 401, and about 1.1 s
  * later the API nulled `naver.maps` and called the hook — after the mount in every observed run.
