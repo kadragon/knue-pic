@@ -156,7 +156,7 @@ dance per file.
   desktop panel or mobile sheet takes focus the instant a row is pressed, so leaving a row reports the selection
   rather than `null` (`src/ui/top-places.test.ts` → *page map*). Below 768px the same page map sits
   behind a bottom sheet with peek / half / full stops (default half). Its labelled vertical slider
-  supports arrows, Home (full), End (peek) and tap-to-cycle; drag only uses the handle while the
+  keeps the provenance visible above the map at peek. The handle supports arrows, Home (peek), End (full) and tap-to-cycle; drag only uses the handle while the
   content scrolls independently. Keyboard focus entering peek content opens it halfway.
   Either map failure gives the content the full width back and says `지도를 불러오지 못했습니다.`
   once. Selection replaces list/search/filter views inside the panel at every width, centres the

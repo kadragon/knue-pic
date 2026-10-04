@@ -66,7 +66,7 @@ review_candidates.csv # manual location approval queue (committed)
 reuses `place-detail.ts` for every figure, chart and link: the card replaces the panel's
 list/search/filter views at every width, without a modal or second map. `bottom-sheet.ts` owns
 mobile peek / half / full height stops (default half), pointer capture and keyboard controls;
-`shell.ts` wraps the header, provenance and content in its scroll region. Hash navigation reads the unfiltered dataset; unknown
+`shell.ts` wraps the header, provenance and content in its scroll region; at peek the provenance stays visible above the map. Hash navigation reads the unfiltered dataset; unknown
 ids show the list silently, and resize preserves the current card, focus and URL.
 Validated history metadata preserves the selected figures basis on Forward/reload without adding
 fields to the shared URL. A list-origin detail is popped on dismissal; a direct shared URL is

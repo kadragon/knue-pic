@@ -1794,3 +1794,16 @@ describe('the page map takes the pointer', () => {
     expect(zIndexOf(part)).toBeGreaterThan(zIndexOf(REGION) ?? 0);
   });
 });
+
+
+describe('mobile sheet layout regressions', () => {
+  it('uses defined radius tokens and complements the desktop breakpoint without a gap', () => {
+    const tokens = new Set([...CSS.matchAll(/(--radius-[\w-]+):/g)].map((match) => match[1]));
+    for (const [, token] of CSS.matchAll(/var\((--radius-[\w-]+)\)/g)) expect(tokens.has(token)).toBe(true);
+    expect(CSS).toContain('@media (width < 768px)');
+  });
+
+  it('keeps the source and disclaimer outside the clipped peek content', () => {
+    expect(CSS).toMatch(/\.is-map-first \.sheet-panel\[data-snap='peek'\] \.shell-provenance \{[^}]*position: fixed/);
+  });
+});

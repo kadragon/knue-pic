@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderShell, setShellMapUnavailable } from './shell';
 
 function setup() {
@@ -7,6 +7,9 @@ function setup() {
   renderShell(root, { mapFirst: true });
   const panel = root.querySelector<HTMLElement>('.sheet-panel')!;
   const handle = root.querySelector<HTMLButtonElement>('.sheet-handle')!;
+  vi.spyOn(panel, 'getBoundingClientRect').mockImplementation(() => ({
+    height: ({ peek: 140, half: 430, full: 900 } as Record<string, number>)[panel.dataset['snap']!]!,
+  }) as DOMRect);
   return { root, panel, handle };
 }
 
@@ -28,9 +31,9 @@ describe('mobile bottom sheet', () => {
     expect(panel.dataset['snap']).toBe('full');
     handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     expect(panel.dataset['snap']).toBe('half');
-    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
-    expect(panel.dataset['snap']).toBe('peek');
     handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
+    expect(panel.dataset['snap']).toBe('peek');
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
     expect(panel.dataset['snap']).toBe('full');
     root.remove();
   });
@@ -80,7 +83,7 @@ describe('mobile bottom sheet', () => {
 
   it('reveals focused content from peek and keeps fallback content intact', () => {
     const { root, panel, handle } = setup();
-    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
     const content = root.querySelector<HTMLElement>('#content')!;
     const input = document.createElement('input'); content.append(input);
     input.focus(); expect(panel.dataset['snap']).toBe('half');

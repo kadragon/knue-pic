@@ -13,7 +13,7 @@ export function createBottomSheet(panel: HTMLElement, scroll: HTMLElement): HTML
   handle.setAttribute('aria-valuemin', '1');
   handle.setAttribute('aria-valuemax', '3');
   let index = 1;
-  let drag: { id: number; y: number; height: number; moved: boolean } | null = null;
+  let drag: { id: number; y: number; height: number; stops: number[]; moved: boolean } | null = null;
   let suppressClick = false;
 
   function snap(next: number): void {
@@ -26,8 +26,13 @@ export function createBottomSheet(panel: HTMLElement, scroll: HTMLElement): HTML
   }
 
   function heights(): number[] {
-    const height = window.innerHeight;
-    return [Math.min(104, height - 16), height / 2, height - 16];
+    // Measure the CSS stops once per gesture, including dynamic viewport units and tokens.
+    const stops = STOPS.map((stop) => {
+      panel.dataset['snap'] = stop;
+      return panel.getBoundingClientRect().height;
+    });
+    panel.dataset['snap'] = STOPS[index];
+    return stops;
   }
 
   handle.addEventListener('click', (event) => {
@@ -38,7 +43,7 @@ export function createBottomSheet(panel: HTMLElement, scroll: HTMLElement): HTML
   handle.addEventListener('keydown', (event) => {
     const next = event.key === 'ArrowUp' || event.key === 'ArrowRight' ? index + 1
       : event.key === 'ArrowDown' || event.key === 'ArrowLeft' ? index - 1
-      : event.key === 'Home' ? 2 : event.key === 'End' ? 0 : null;
+      : event.key === 'Home' ? 0 : event.key === 'End' ? 2 : null;
     if (next === null) return;
     event.preventDefault();
     snap(next);
@@ -46,8 +51,9 @@ export function createBottomSheet(panel: HTMLElement, scroll: HTMLElement): HTML
   handle.addEventListener('pointerdown', (event) => {
     if (event.button !== 0 || !event.isPrimary) return;
     suppressClick = false;
+    const stops = heights();
     drag = { id: event.pointerId, y: event.clientY,
-      height: panel.getBoundingClientRect().height || heights()[index]!, moved: false };
+      height: stops[index]!, stops, moved: false };
     handle.setPointerCapture?.(event.pointerId);
   });
   handle.addEventListener('pointermove', (event) => {
@@ -55,7 +61,7 @@ export function createBottomSheet(panel: HTMLElement, scroll: HTMLElement): HTML
     const delta = drag.y - event.clientY;
     drag.moved ||= Math.abs(delta) > 6;
     if (!drag.moved) return;
-    const stops = heights();
+    const stops = drag.stops;
     const height = Math.max(stops[0]!, Math.min(stops[2]!, drag.height + delta));
     panel.style.setProperty('--sheet-drag-height', `${height}px`);
   });
@@ -66,7 +72,7 @@ export function createBottomSheet(panel: HTMLElement, scroll: HTMLElement): HTML
     suppressClick = previous.moved && !cancelled;
     if (cancelled || !previous.moved) { snap(index); return; }
     const height = previous.height + previous.y - event.clientY;
-    const distances = heights().map((stop) => Math.abs(stop - height));
+    const distances = previous.stops.map((stop) => Math.abs(stop - height));
     snap(distances.indexOf(Math.min(...distances)));
   }
   handle.addEventListener('pointerup', (event) => { finish(event, false); });

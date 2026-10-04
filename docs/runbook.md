@@ -47,7 +47,7 @@ the map mounted without relying on a screenshot:
 - `http://oapi.map.naver.com/v3/auth` answered `200` (a rejected origin gets `401`);
 - `document.querySelector('.page-map-canvas').children.length > 0` and
   `window.naver?.maps != null` (a rejected origin leaves the global without it);
-- no `.place-map-fallback` element is present.
+- no `.shell-map-note` failure status is present.
 
 Check the page map at both widths on the same origin:
 

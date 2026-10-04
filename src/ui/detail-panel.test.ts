@@ -2,34 +2,27 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
 import { createFakeNaverApi } from '../map/fake-naver-api';
 import { renderPageMap, resetAuthFailureState } from '../map/place-map';
-import { bootstrap, type MatchMedia } from './bootstrap';
+import { bootstrap } from './bootstrap';
 import { createDetailPanel } from './detail-panel';
 
 const flush = async (): Promise<void> => { await Promise.resolve(); await Promise.resolve(); };
 const views: HTMLElement[] = [];
 
-function viewport(initial: boolean) {
-  let matches = initial;
-  const listeners: (() => void)[] = [];
-  const list = {
-    get matches() { return matches; },
-    addEventListener: (_: string, listener: () => void) => listeners.push(listener),
-  } as unknown as MediaQueryList;
-  return {
-    matchMedia: (() => list) as MatchMedia,
-    set(value: boolean) { matches = value; listeners.forEach((listener) => listener()); },
-  };
+function viewport() {
+  return { set: (wide: boolean) => {
+      window.innerWidth = wide ? 1024 : 360;
+      window.dispatchEvent(new Event('resize'));
+    } };
 }
 
-async function setup(wide = true) {
+async function setup() {
   const root = document.createElement('div');
   document.body.append(root);
   views.push(root);
   const api = createFakeNaverApi();
-  const view = viewport(wide);
+  const view = viewport();
   await bootstrap(root, {
     load: () => Promise.resolve(SAMPLE_DATASET),
-    matchMedia: view.matchMedia,
     renderMap: (container, places, options) => renderPageMap(container, places, {
       ...options, loadApi: () => Promise.resolve(api),
     }),
@@ -105,7 +98,7 @@ describe('panel detail and URL selection', () => {
     })) };
     const other = document.createElement('div'); document.body.append(other); views.push(other);
     const dots = createFakeNaverApi();
-    await bootstrap(other, { load: () => Promise.resolve(dataset), matchMedia: viewport(true).matchMedia,
+    await bootstrap(other, { load: () => Promise.resolve(dataset),
       renderMap: (container, places, options) => renderPageMap(container, places, {
         ...options, loadApi: () => Promise.resolve(dots),
       }),
@@ -142,7 +135,7 @@ describe('panel detail and URL selection', () => {
   });
 
   it('keeps one mobile panel, map and focused card across the breakpoint', async () => {
-    const { root, view, api } = await setup(false);
+    const { root, view, api } = await setup();
     const opener = row(root); opener.focus(); opener.click();
     const card = root.querySelector('.detail-panel');
     const link = root.querySelector<HTMLAnchorElement>('.place-detail-link')!;
@@ -197,7 +190,7 @@ describe('panel detail and URL selection', () => {
   });
 
   it('replaces a mobile selection through another marker with one Back to list', async () => {
-    const { root, api } = await setup(false);
+    const { root, api } = await setup();
     row(root).click();
     api.markers[1]!.emit('click');
     expect(root.querySelector('.place-detail-name')?.textContent).toBe(api.markers[1]!.title);

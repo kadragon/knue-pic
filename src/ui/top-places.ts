@@ -416,7 +416,7 @@ export function renderTopPlaces(
    * The row the reader selected, or `null`.
    *
    * Separate from whatever is highlighted, because selection and attention are different facts and
-   * only one of them is transient. `createDetailDialog` moves focus into the panel the instant a row
+   * only one of them is transient. `detail-panel.ts` focuses the detail card the instant a row
    * is pressed, so an unconditional `focusout` cleared the highlight in the same paint that opened
    * the card — the exact opposite of what selecting the row meant, and the pin went dark while the
    * reader was looking at its place.

@@ -873,7 +873,7 @@ button.top-place-body,
 
 .place-detail h2 {
   margin: 0;
-  /* The dialog's own accessible name; the panel's size and position already announce it visually,
+  /* The card's section label; the panel's size and position already announce it visually,
      so it stays a quiet label rather than competing with the place name below it. */
   font-size: 13px;
   font-weight: 700;
@@ -913,13 +913,10 @@ button.top-place-body,
 }
 
 /*
- * One rhythm between the card's sections — figures, monthly chart, location — so each reads as
- * its own block rather than as the next line of the one above. The map slot takes it only once the
- * dialog has filled it; an empty slot would draw a rule over nothing.
+ * One rhythm between the card's figures and monthly chart, so each reads as its own block.
  */
 .place-detail-period,
-.place-histogram,
-.place-detail-map:not(:empty) {
+.place-histogram {
   margin-top: var(--space-7);
   padding-top: var(--space-6);
   border-top: 1px solid var(--hairline-soft);
@@ -971,8 +968,7 @@ button.top-place-body,
 
 /* ── Histogram ─────────────────────────────────────────────────────────────────────────────── */
 
-.place-histogram h4,
-.place-map h4 {
+.place-histogram h4 {
   margin: 0 0 var(--space-3);
   font-size: 14px;
   font-weight: 700;
@@ -1191,7 +1187,7 @@ button.top-place-body,
   }
 }
 
-@media (max-width: 767px) {
+@media (width < 768px) {
   .is-map-first {
     height: 100dvh;
     overflow: hidden;
@@ -1206,7 +1202,7 @@ button.top-place-body,
     flex-direction: column;
     height: var(--sheet-drag-height, var(--sheet-height));
     max-height: calc(100dvh - var(--space-4));
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     border-top: 1px solid var(--border-control);
     background: var(--paper);
     overflow: hidden;
@@ -1215,6 +1211,19 @@ button.top-place-body,
 
   .is-map-first .sheet-panel[data-snap='peek'] {
     --sheet-height: 104px;
+  }
+
+  /* A collapsed sheet must still show what the data means, above the map. */
+  .is-map-first .sheet-panel[data-snap='peek'] .shell-provenance {
+    position: fixed;
+    /* optical: 44px clears the recentre control's minimum touch target above this overlay. */
+    top: calc(var(--space-4) + 44px + var(--space-4));
+    left: var(--space-4);
+    right: var(--space-4);
+    z-index: 1;
+    padding: var(--space-3);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
   }
 
   .is-map-first .sheet-panel[data-snap='full'] {
@@ -1272,45 +1281,6 @@ button.top-place-body,
 }
 
 /* ── Map ───────────────────────────────────────────────────────────────────────────────────── */
-
-/* Fixed height because the Naver API sizes itself to its container: a height-less div renders a map
-   zero pixels tall. `vh`-capped so it never eats a 360px screen whole. */
-.place-map-canvas {
-  width: 100%;
-  height: min(50vh, 18rem);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.place-map-fallback {
-  margin: 0;
-  padding: var(--space-6) var(--space-4);
-  border: 1px dashed var(--hairline);
-  border-radius: var(--radius-sm);
-  background: var(--paper);
-  color: var(--muted);
-  text-align: center;
-  font-size: 14px;
-}
-
-/* Marker bodies are injected as markup into the map's own overlay layer, so they are styled here
-   rather than in the module that builds them.
-
-   One marker, one meaning: the map shows the place the dialog is about, so there is no second kind
-   of pin for this one to be told apart from. The name is carried in the marker's title, never by
-   the pin alone. */
-.place-map-marker {
-  display: block;
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--canvas);
-  border-radius: var(--radius-full);
-  background: var(--accent);
-  /* Over Naver's photographic tiles the 2px white border alone does not separate the pin; this
-     shadow is sized for that backdrop and nothing on the page itself. */
-  box-shadow: rgba(0, 0, 0, 0.25) 0 1px 3px;
-}
 
 /* The page map's canvas fills its fixed region edge to edge: no border and no radius, because the
    map is the page rather than a card inside it. Height is not declared — the region is the height,

@@ -75,7 +75,7 @@ export function createDetailPanel(
     back.textContent = '← 목록';
     back.addEventListener('click', close);
     const body = document.createElement('div');
-    renderPlaceDetail(body, selection, { withMap: false });
+    renderPlaceDetail(body, selection);
     panel.append(back, body);
     container.append(panel);
     body.querySelector<HTMLElement>('.place-detail')?.focus();

@@ -9,7 +9,7 @@ import {
   resetAuthFailureState,
 } from '../map/place-map';
 import { CAMPUS_ORIGIN } from '../stats/distance';
-import { bootstrap, type BootstrapOptions, type MatchMedia } from './bootstrap';
+import { bootstrap, type BootstrapOptions } from './bootstrap';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
 import { DEFAULT_PERIOD, PERIOD_TABS, listHeading, periodLabel } from './place-list';
@@ -475,7 +475,11 @@ describe('bootstrap map wiring', () => {
   });
   it('narrows the ranked list and the search with one 업종 selection', async () => {
     const root = document.createElement('div');
-    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET),
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.resolve(createFakeNaverApi()),
+      }),
+    });
     typeQuery(root, '식당');
     expect(root.querySelector('.search-slot')?.textContent).toContain(resultCountLabel(1));
 
@@ -491,7 +495,11 @@ describe('bootstrap map wiring', () => {
 
   it('restores every place when 전체 is picked again', async () => {
     const root = document.createElement('div');
-    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET),
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.resolve(createFakeNaverApi()),
+      }),
+    });
 
     kindOption(root, KIND_LABELS.cafe)?.click();
     kindOption(root, ALL_KINDS_LABEL)?.click();
@@ -501,7 +509,11 @@ describe('bootstrap map wiring', () => {
 
   it('keeps the typed query and the selected window across a 업종 change', async () => {
     const root = document.createElement('div');
-    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET) });
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET),
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.resolve(createFakeNaverApi()),
+      }),
+    });
     typeQuery(root, '카페');
     periodTab(root, periodLabel('1y'))?.click();
     const input = searchField(root);
@@ -518,7 +530,9 @@ describe('bootstrap map wiring', () => {
     const root = document.createElement('div');
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-
+      renderMap: (container, places, options) => renderPageMap(container, places, {
+        ...options, loadApi: () => Promise.resolve(createFakeNaverApi()),
+      }),
     });
 
     kindOption(root, KIND_LABELS.cafe)?.click();
@@ -526,41 +540,21 @@ describe('bootstrap map wiring', () => {
     await flush();
 
     expect(root.querySelector('.detail-slot')?.textContent).toContain('청람카페');
+    expect(root.classList.contains('is-map-first')).toBe(true);
   });
 });
 
 /**
  * The page map: the first screen, and the layout it came with
- * (`docs/design/map-first-layout.md`). jsdom has no `matchMedia`, so every case here states the
+ * (`docs/design/map-first-layout.md`). CSS owns layout; these cases exercise the shared map and
  * viewport it wants rather than relying on a layout engine that does not exist.
  */
 describe('bootstrap page map', () => {
-  /**
-   * A `matchMedia` whose answer can be changed mid-test, which is the only way to reach the resize
-   * path — a window is not something jsdom can do to itself.
-   */
-  function viewport(initial: boolean): { matchMedia: MatchMedia; set: (wide: boolean) => void } {
-    let wide = initial;
-    const listeners = new Set<() => void>();
-    const list = {
-      get matches() {
-        return wide;
-      },
-      addEventListener: (_type: string, listener: () => void) => {
-        listeners.add(listener);
-      },
-      removeEventListener: (_type: string, listener: () => void) => {
-        listeners.delete(listener);
-      },
-    } as unknown as MediaQueryList;
-
-    return {
-      matchMedia: () => list,
-      set: (next: boolean) => {
-        wide = next;
-        for (const listener of [...listeners]) listener();
-      },
-    };
+  function viewport() {
+    return { set: (wide: boolean) => {
+      window.innerWidth = wide ? 1024 : 360;
+      window.dispatchEvent(new Event('resize'));
+    } };
   }
 
   /** The dots still standing on the map — the fake records every marker ever made. */
@@ -586,7 +580,6 @@ describe('bootstrap page map', () => {
 
     const loading = bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       renderMap: (container, places, options) => {
         rowsWhenAsked = root.querySelectorAll('.top-place').length;
         return renderPageMap(container, places, {
@@ -614,7 +607,6 @@ describe('bootstrap page map', () => {
     const api = createFakeNaverApi();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       ...mapOptions(api),
     });
     await flush();
@@ -651,7 +643,6 @@ describe('bootstrap page map', () => {
       const api = createFakeNaverApi();
       await bootstrap(root, {
         load: () => Promise.resolve(SAMPLE_DATASET),
-        matchMedia: viewport(true).matchMedia,
         ...mapOptions(api),
       });
       await flush();
@@ -679,7 +670,6 @@ describe('bootstrap page map', () => {
       const api = createFakeNaverApi();
       await bootstrap(root, {
         load: () => Promise.resolve(SAMPLE_DATASET),
-        matchMedia: viewport(true).matchMedia,
         ...mapOptions(api),
       });
       await flush();
@@ -697,7 +687,6 @@ describe('bootstrap page map', () => {
       const api = createFakeNaverApi();
       await bootstrap(root, {
         load: () => Promise.resolve(SAMPLE_DATASET),
-        matchMedia: viewport(true).matchMedia,
         ...mapOptions(api),
       });
       await flush();
@@ -719,7 +708,6 @@ describe('bootstrap page map', () => {
       const api = createFakeNaverApi();
       await bootstrap(root, {
         load: () => Promise.resolve(SAMPLE_DATASET),
-        matchMedia: viewport(false).matchMedia,
         ...mapOptions(api),
       });
       await flush();
@@ -735,7 +723,6 @@ describe('bootstrap page map', () => {
     const api = createFakeNaverApi();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       ...mapOptions(api),
     });
     await flush();
@@ -752,7 +739,6 @@ describe('bootstrap page map', () => {
     const root = document.createElement('div');
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       renderMap: (container, places, options) =>
         renderPageMap(container, places, { ...options, loadApi: () => Promise.reject(new Error()) }),
     });
@@ -778,7 +764,6 @@ describe('bootstrap page map', () => {
 
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       renderMap: (container, places, options) =>
         renderPageMap(container, places, { ...options, loadApi: () => pending }),
     });
@@ -803,7 +788,6 @@ describe('bootstrap page map', () => {
     const api = createFakeNaverApi();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(true).matchMedia,
       ...mapOptions(api),
     });
     await flush();
@@ -820,7 +804,6 @@ describe('bootstrap page map', () => {
     const api = createFakeNaverApi();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: viewport(false).matchMedia,
       ...mapOptions(api),
     });
     await flush();
@@ -836,10 +819,9 @@ describe('bootstrap page map', () => {
   it('mounts the map when a narrow window is widened, drawing the filters as they stand', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
-    const view = viewport(false);
+    const view = viewport();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: view.matchMedia,
       ...mapOptions(api),
     });
     kindOption(root, KIND_LABELS.cafe)?.click();
@@ -856,10 +838,9 @@ describe('bootstrap page map', () => {
 
   it('keeps the full-width fallback when a map that failed is followed by a resize', async () => {
     const root = document.createElement('div');
-    const view = viewport(true);
+    const view = viewport();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: view.matchMedia,
       renderMap: (container, places, options) =>
         renderPageMap(container, places, { ...options, loadApi: () => Promise.reject(new Error()) }),
     });
@@ -881,11 +862,10 @@ describe('bootstrap page map', () => {
 
   it('falls back even when the window was narrowed before the failure arrived', async () => {
     const root = document.createElement('div');
-    const view = viewport(true);
+    const view = viewport();
     let reject!: (reason: Error) => void;
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: view.matchMedia,
       renderMap: (container, places, options) =>
         renderPageMap(container, places, {
           ...options,
@@ -910,10 +890,9 @@ describe('bootstrap page map', () => {
   it('leaves a mounted map alone when a wide window narrows, rather than calling it a failure', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
-    const view = viewport(true);
+    const view = viewport();
     await bootstrap(root, {
       load: () => Promise.resolve(SAMPLE_DATASET),
-      matchMedia: view.matchMedia,
       ...mapOptions(api),
     });
     await flush();

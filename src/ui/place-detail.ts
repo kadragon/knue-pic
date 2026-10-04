@@ -14,7 +14,7 @@ import {
 } from './place-labels';
 
 /**
- * The detail card for one selected place: a slot for the location map, the figures for the period
+ * The detail card for one selected place: the figures for the period
  * the place was picked from, a monthly visit histogram, and the links out to Naver Maps and
  * Kakao Map.
  *
@@ -52,7 +52,7 @@ export const KAKAO_LINK_LABEL = '카카오지도에서 보기';
 /**
  * The distance badge, alongside the address rather than replacing it.
  *
- * The dialog is where a reader goes for the exact location, so the full address stays whole here
+ * The detail card is where a reader goes for the exact location, so the full address stays whole here
  * and the shortened form the list row carries (`src/ui/top-places.ts`) has no place on this screen.
  * The distance is the one thing the address does not tell them, so it is added rather than traded.
  */
@@ -292,7 +292,6 @@ export interface PlaceDetail {
 export function renderPlaceDetail(
   container: HTMLElement,
   detail: PlaceDetail | null,
-  options: { withMap?: boolean } = {},
 ): void {
   const section = document.createElement('section');
   section.className = 'place-detail';
@@ -345,15 +344,6 @@ export function renderPlaceDetail(
   periodNote.className = 'place-detail-period';
   periodNote.textContent = periodStatsHeading(basis);
 
-  // Left empty here on purpose: the card stays pure DOM over already-computed numbers, and the map
-  // is the one view that needs a third-party script. A caller using `withMap` fills this slot, so
-  // a caller that has no map — or a test — renders the whole card without one. Appended below the
-  // histogram, next to the link out.
-  const mapSlot = document.createElement('div');
-  mapSlot.className = 'place-detail-map';
-
-  // The figures come before the map: the number is what the reader opened the row for, and the
-  // map — which may never arrive — answers the follow-up question, so it sits above the link out.
   section.append(name, meta, address, periodNote);
 
   if (stats.visitCount === 0) {
@@ -375,7 +365,6 @@ export function renderPlaceDetail(
   }
 
   section.append(renderHistogram(histogram));
-  if (options.withMap !== false) section.append(mapSlot);
 
   // The only place a dataset string reaches an executable position in this app — see
   // `naverLinkHref`, which owns the scheme check; `kakaoLinkHref` composes its href and reads no

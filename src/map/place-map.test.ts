@@ -4,31 +4,25 @@ import type { PlaceRecord } from '../data/types';
 import type { FakeNaverApi } from './fake-naver-api';
 import { createFakeNaverApi } from './fake-naver-api';
 import {
-  MAP_ERROR_MESSAGE,
-  MAP_HEADING,
   dotLabel,
-  markerLabel,
   pinLabelMarkup,
   renderPageMap,
-  renderPlaceLocationMap,
   resetAuthFailureState,
   type PageMapHandle,
   type PageMapPlace,
   type RenderPageMapOptions,
 } from './place-map';
 
-const PLACE: PlaceRecord = SAMPLE_DATASET.places[0]!;
-
 function container(): HTMLElement {
   return document.createElement('div');
 }
 
 /**
- * `renderPlaceLocationMap` installs its auth-failure hook on the real global, so a rendered case
+ * `renderPageMap` installs its auth-failure hook on the real global, so a rendered case
  * would otherwise leave a live closure over a detached DOM for every case that follows.
  */
 afterEach(() => {
-  // Both renders install an auth-failure listener on the real global, so a case that mounts without
+  // Each render installs an auth-failure listener on the real global, so a case that mounts without
   // releasing leaves a live closure over a detached DOM — and a listener entry — for the cases after
   // it. This clears the entries too, and the rejected-key memo with them: that is remembered for the
   // life of a real page, so one case's hook call would send every later case to the fallback.
@@ -39,253 +33,6 @@ afterEach(() => {
 function authFailureHook(): (() => void) | undefined {
   return (globalThis as { navermap_authFailure?: () => void }).navermap_authFailure;
 }
-
-async function render(
-  api: FakeNaverApi,
-  place: PlaceRecord = PLACE,
-): Promise<{ root: HTMLElement; release: () => void }> {
-  const root = container();
-  const release = await renderPlaceLocationMap(root, place, { loadApi: () => Promise.resolve(api) });
-  return { root, release };
-}
-
-describe('renderPlaceLocationMap', () => {
-  it('renders the heading and a canvas for the map to draw into', async () => {
-    const { root } = await render(createFakeNaverApi());
-
-    expect(root.querySelector('h4')?.textContent).toBe(MAP_HEADING);
-    expect(root.querySelector('.place-map-canvas')).toBeInstanceOf(HTMLElement);
-    expect(root.querySelector('.place-map-fallback')).toBeNull();
-  });
-
-  it('centres one marker on the selected place and never fits bounds', async () => {
-    const api = createFakeNaverApi();
-    await render(api);
-
-    expect(api.markers).toHaveLength(1);
-    expect(api.markers[0]?.options.position.lat()).toBe(PLACE.lat);
-    expect(api.markers[0]?.options.position.lng()).toBe(PLACE.lng);
-    expect(api.maps).toHaveLength(1);
-    expect(api.maps[0]?.options.center.lat()).toBe(PLACE.lat);
-    // A single marker has no extent to fit to; the fixed zoom is the whole framing decision.
-    expect(api.maps[0]?.options.zoom).toBeGreaterThan(0);
-  });
-
-  it('names the place in the marker title, so the pin is not its only carrier', async () => {
-    const api = createFakeNaverApi();
-    await render(api);
-
-    expect(api.markers[0]?.options.title).toBe(markerLabel(PLACE));
-    expect(markerLabel(PLACE)).toContain(PLACE.name);
-  });
-
-  it('shows the documented fallback when the map script never arrives', async () => {
-    const root = container();
-    await renderPlaceLocationMap(root, PLACE, {
-      loadApi: () => Promise.reject(new Error('script blocked')),
-    });
-
-    expect(root.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
-    expect(root.querySelector('.place-map-canvas')).toBeNull();
-    // The failure lands after the dialog has settled, so it has to announce itself.
-    expect(root.querySelector('.place-map-fallback')?.getAttribute('role')).toBe('status');
-  });
-
-  it('shows the same fallback when the key rejects the origin after the map mounts', async () => {
-    const { root } = await render(createFakeNaverApi());
-
-    authFailureHook()?.();
-
-    expect(root.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
-    expect(root.querySelector('.place-map-canvas')).toBeNull();
-  });
-
-  it('appends only one fallback however often the API calls the hook', async () => {
-    const { root } = await render(createFakeNaverApi());
-
-    authFailureHook()?.();
-    authFailureHook()?.();
-
-    expect(root.querySelectorAll('.place-map-fallback')).toHaveLength(1);
-  });
-
-  it('drops a released render from the shared auth-failure hook', async () => {
-    const { root: first, release } = await render(createFakeNaverApi());
-    const { root: second } = await render(createFakeNaverApi(), SAMPLE_DATASET.places[1]!);
-    // Releasing one mount must leave the other subscriber listening for auth failures.
-    release();
-
-    authFailureHook()?.();
-
-    // The stale closure would otherwise blank the first dialog's canvas, which is already detached.
-    expect(first.querySelector('.place-map-fallback')).toBeNull();
-    expect(second.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
-  });
-
-  it('leaves no handler installed when the script failed to load', async () => {
-    await renderPlaceLocationMap(container(), PLACE, {
-      loadApi: () => Promise.reject(new Error('script blocked')),
-    });
-
-    expect(authFailureHook()).toBeUndefined();
-  });
-
-  it('releases the map instance it mounted', async () => {
-    const api = createFakeNaverApi();
-    const { release } = await render(api);
-
-    release();
-
-    // Without this every dialog open would leave a live map behind, holding the listeners and tile
-    // state the API attached to a node that is no longer in the document.
-    expect(api.maps[0]?.destroyCalls).toBe(1);
-  });
-
-  it('survives a destroy that throws after the key was rejected, so the next place still renders', async () => {
-    // Observed on a rejected origin: once the hook has fired, the real `map.destroy()` throws
-    // `TypeError: Cannot read properties of null (reading 'isArray')`.
-    const api = createFakeNaverApi();
-    const { release } = await render(api);
-    authFailureHook()?.();
-    api.maps[0]!.destroy = () => {
-      throw new TypeError("Cannot read properties of null (reading 'isArray')");
-    };
-
-    // The regression guard. The hook check below passes either way: `release` clears the hook
-    // before it calls `destroy`.
-    expect(() => release()).not.toThrow();
-    expect(authFailureHook()).toBeUndefined();
-
-    // Forget the rejection, so the next render takes the full mount path rather than the memo's
-    // shortcut — what this case pins is that a throwing release leaves that path usable.
-    resetAuthFailureState();
-    const next = createFakeNaverApi();
-    const { root: second } = await render(next, SAMPLE_DATASET.places[1]!);
-    expect(next.maps).toHaveLength(1);
-    authFailureHook()?.();
-    expect(second.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
-  });
-
-  it('goes straight to the fallback once the key has been rejected', async () => {
-    const { release } = await render(createFakeNaverApi());
-    authFailureHook()?.();
-    release();
-
-    // The origin does not change within a page, so asking `/v3/auth` again only buys the reader
-    // another ~1.1 s of a map that will be taken away (`./loader.ts` module comment).
-    let loads = 0;
-    const root = container();
-    const next = await renderPlaceLocationMap(root, SAMPLE_DATASET.places[1]!, {
-      loadApi: () => {
-        loads += 1;
-        return Promise.resolve(createFakeNaverApi());
-      },
-    });
-
-    expect(loads).toBe(0);
-    expect(root.querySelector('h4')?.textContent).toBe(MAP_HEADING);
-    expect(root.querySelectorAll('.place-map-fallback')).toHaveLength(1);
-    expect(root.querySelector('.place-map-fallback')?.getAttribute('role')).toBe('status');
-    expect(root.querySelector('.place-map-canvas')).toBeNull();
-    expect(authFailureHook()).toBeUndefined();
-    expect(() => next()).not.toThrow();
-  });
-
-  it('keeps loading after a script failure, which a later attempt can recover from', async () => {
-    await renderPlaceLocationMap(container(), PLACE, {
-      loadApi: () => Promise.reject(new Error('script blocked')),
-    });
-
-    const api = createFakeNaverApi();
-    await render(api);
-
-    expect(api.maps).toHaveLength(1);
-  });
-
-  it('takes its auth-failure hook down with the map', async () => {
-    const { root, release } = await render(createFakeNaverApi());
-
-    release();
-    // The hook is gone, and even a stale reference to it can no longer paint into the detached card.
-    expect(authFailureHook()).toBeUndefined();
-    expect(root.querySelector('.place-map-fallback')).toBeNull();
-  });
-
-  /**
-   * The other ordering. The real API was observed calling the hook only after the map mounts
-   * (`./loader.ts` module comment), but no vendor doc pins that, so the render must hold either
-   * way — these cases drive the hook while the script is still arriving, which the fake can do and
-   * a real browser has not been shown to.
-   */
-  function pendingApi(): { load: () => Promise<FakeNaverApi>; settle: (api: FakeNaverApi | null) => void } {
-    let settle: (api: FakeNaverApi | null) => void = () => {};
-    const pending = new Promise<FakeNaverApi>((resolve, reject) => {
-      settle = (api) => (api ? resolve(api) : reject(new Error('script blocked')));
-    });
-    return { load: () => pending, settle };
-  }
-
-  it('listens for a rejected key before the script has arrived', () => {
-    const { load } = pendingApi();
-    void renderPlaceLocationMap(container(), PLACE, { loadApi: load });
-
-    expect(authFailureHook()).toBeTypeOf('function');
-  });
-
-  it('shows one fallback and mounts nothing when the key is rejected before the script resolves', async () => {
-    const root = container();
-    const api = createFakeNaverApi();
-    const { load, settle } = pendingApi();
-    const rendering = renderPlaceLocationMap(root, PLACE, { loadApi: load });
-
-    authFailureHook()?.();
-    settle(api);
-    const release = await rendering;
-
-    expect(root.querySelectorAll('.place-map-fallback')).toHaveLength(1);
-    expect(root.querySelector('.place-map-canvas')).toBeNull();
-    expect(api.maps).toHaveLength(0);
-    expect(authFailureHook()).toBeUndefined();
-    expect(() => release()).not.toThrow();
-  });
-
-  it('shows one fallback when the key is rejected and then the script fails anyway', async () => {
-    const root = container();
-    const { load, settle } = pendingApi();
-    const rendering = renderPlaceLocationMap(root, PLACE, { loadApi: load });
-
-    authFailureHook()?.();
-    settle(null);
-    await rendering;
-
-    expect(root.querySelectorAll('.place-map-fallback')).toHaveLength(1);
-    expect(authFailureHook()).toBeUndefined();
-  });
-
-  it('keeps the newer render listening when an older one resolves after it', async () => {
-    const older = pendingApi();
-    const first = container();
-    const firstRender = renderPlaceLocationMap(first, PLACE, { loadApi: older.load });
-    const { root: second } = await render(createFakeNaverApi(), SAMPLE_DATASET.places[1]!);
-
-    older.settle(createFakeNaverApi());
-    const releaseFirst = await firstRender;
-    releaseFirst();
-    authFailureHook()?.();
-
-    expect(second.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
-    expect(first.querySelector('.place-map-fallback')).toBeNull();
-  });
-
-  it('hands back a release even when nothing mounted', async () => {
-    const release = await renderPlaceLocationMap(container(), PLACE, {
-      loadApi: () => Promise.reject(new Error('script blocked')),
-    });
-
-    // The caller never has to branch on whether the map came up.
-    expect(() => release()).not.toThrow();
-  });
-});
 
 /**
  * The page map: the first screen, not a dialog's one marker.
@@ -463,17 +210,18 @@ describe('renderPageMap', () => {
     expect(unavailable).toHaveBeenCalledTimes(1);
   });
 
-  it('tells a page map and an open dialog about the same rejected key', async () => {
+  it('tells every page-map subscriber about the same rejected key', async () => {
     const unavailable = vi.fn();
     await page(createFakeNaverApi(), [{ place: ALWAYS }], { onUnavailable: unavailable });
-    const { root: dialog } = await render(createFakeNaverApi(), CAFE);
+    const another = vi.fn();
+    await page(createFakeNaverApi(), [{ place: CAFE }], { onUnavailable: another });
 
     authFailureHook()?.();
 
     // The page map holds the hook for the life of the page, so a handler that only the newest
     // render owns would leave the first screen showing a map the key had already taken away.
     expect(unavailable).toHaveBeenCalledTimes(1);
-    expect(dialog.querySelector('.place-map-fallback')?.textContent).toBe(MAP_ERROR_MESSAGE);
+    expect(another).toHaveBeenCalledTimes(1);
   });
 
   it('releases the map and stops listening when the page releases it', async () => {

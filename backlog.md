@@ -65,3 +65,10 @@
 - [ ] Distance-from-me search, favourites, heatmap (PRD §44 V2 candidates) — conditions and the
   heatmap's framing objection in `docs/design/deferred-scope.md`; `src/ui/device-state.test.ts`
   must be widened by whichever lands first
+
+
+## Review Backlog
+
+### PR #75 — Mobile bottom sheet (2026-10-04)
+
+- [ ] [debt] Keep selected pins inside the uncovered mobile map when the sheet snaps; the default half stop currently overlaps the centred marker (source: codex, code-review; Sprint Contract excludes map framing) — `src/map/place-map.ts`, `src/ui/bottom-sheet.ts`

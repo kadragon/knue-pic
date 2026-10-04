@@ -20,7 +20,6 @@ import { DEFAULT_PERIOD, renderPlaceList } from './place-list';
 import { renderPlaceSearch } from './search';
 import {
   renderShell,
-  setShellMapFirst,
   setShellMapUnavailable,
   setShellUpdatedAt,
 } from './shell';
@@ -33,47 +32,12 @@ import { setTopPlaceHighlight, type VisibleRankedPlace } from './top-places';
  * responsive detail view into `#content`, and the page map behind the desktop panel or mobile sheet.
  *
  * `load` and `renderMap` are injectable because jsdom cannot fetch the dataset or run the Naver
- * script. `matchMedia` lets tests report viewport changes without a layout engine.
+ * script. Layout changes belong to CSS; the map and selection persist across them.
  */
 export interface BootstrapOptions {
   load?: () => Promise<PlacesDataset>;
   /** Mounts the page map. Injectable for the same reason the map API is. */
   renderMap?: typeof renderPageMap;
-  /** `window.matchMedia` by default; injectable so a test can decide the viewport. */
-  matchMedia?: MatchMedia;
-}
-
-/** Layout-change notifications use the same breakpoint as `src/styles.css`. */
-const MAP_FIRST_QUERY = '(min-width: 768px)';
-
-export type MatchMedia = (query: string) => MediaQueryList;
-
-/** The one question the layout asks of the window, and the answer changing. */
-interface Viewport {
-  onChange(onChange: (wide: boolean) => void): void;
-}
-
-/**
- * The window's answer, or `null` when there is no media query to ask.
- *
- * Feature-detected because jsdom implements no `matchMedia`; rendering needs no subscription.
- */
-function resolveViewport(matchMedia: MatchMedia | undefined): Viewport | null {
-  const ask =
-    matchMedia ??
-    (typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : undefined);
-  if (ask === undefined) return null;
-
-  const list = ask(MAP_FIRST_QUERY);
-  return {
-    onChange: (onChange) => {
-      // Read from the list rather than the event: a `change` event carries no value of its own, and
-      // every consumer here asks the same one question.
-      list.addEventListener('change', () => {
-        onChange(list.matches);
-      });
-    },
-  };
 }
 
 /**
@@ -103,10 +67,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   const {
     load = () => loadPlacesDataset(),
     renderMap = renderPageMap,
-    matchMedia,
   } = options;
-
-  const viewport = resolveViewport(matchMedia);
 
   // Rendered once. A retry re-renders `#content` alone: re-rendering the shell would destroy the
   // button the user just pressed and drop keyboard focus to the top of the document.
@@ -155,11 +116,6 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   let selectedDetail: PlaceDetail | null = null;
   let selectFromMap: (placeId: string) => void = () => {};
 
-  viewport?.onChange(() => {
-    // Keep the same map and selection across viewport changes; CSS owns panel versus sheet.
-    setShellMapFirst(root, !mapUnavailable);
-    mountPageMap();
-  });
 
   /**
    * The markers the map should be standing on right now: every filtered place, labelled where a row
