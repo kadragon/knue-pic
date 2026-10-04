@@ -10,6 +10,7 @@ import {
 } from '../map/place-map';
 import { CAMPUS_ORIGIN } from '../stats/distance';
 import { bootstrap, type BootstrapOptions } from './bootstrap';
+import { SHEET_SNAP_EVENT } from './bottom-sheet';
 import { LOADING_MESSAGE, LOAD_ERROR_MESSAGE, RETRY_LABEL } from './data-state';
 import { PERIOD_LABELS } from './period-labels';
 import { DEFAULT_PERIOD, PERIOD_TABS, listHeading, periodLabel } from './place-list';
@@ -718,21 +719,133 @@ describe('bootstrap page map', () => {
     });
   });
 
-  it('keeps the map on the campus origin and returns there on demand', async () => {
+  /** Lays the shell's boxes out the way the stylesheet would — jsdom has no layout engine. */
+  function layOut(
+    root: HTMLElement,
+    boxes: { map: Partial<DOMRect>; panel: Partial<DOMRect>; provenance?: Partial<DOMRect>; column?: Partial<DOMRect> },
+  ): void {
+    const place = (selector: string, box: Partial<DOMRect> | undefined) => {
+      const node = root.querySelector(selector);
+      if (node && box) node.getBoundingClientRect = () => ({ top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0, ...box }) as DOMRect;
+    };
+    place('.map-shell-map', boxes.map);
+    place('.sheet-panel', boxes.panel);
+    place('.shell-provenance', boxes.provenance);
+    place('#content', boxes.column);
+  }
+
+  /** A 1024×768 window: the 376px-wide column down the left, the masthead's band to 120px. */
+  const DESKTOP_BOXES = {
+    map: { top: 0, right: 1024, bottom: 768, left: 0, width: 1024, height: 768 },
+    panel: { top: 0, bottom: 768 },
+    provenance: { bottom: 120 },
+    column: { right: 376 },
+  };
+  /** A 360×640 phone: the half-open sheet starts 340px down, covering the bottom 300px. */
+  const MOBILE_BOXES = {
+    map: { top: 0, right: 360, bottom: 640, left: 0, width: 360, height: 640 },
+    panel: { top: 340, bottom: 640 },
+  };
+
+  const nextFrame = (): Promise<void> =>
+    new Promise((resolve) => requestAnimationFrame(() => { resolve(); }));
+
+  it('opens on the campus, frames the dots beside the measured column, and returns there on demand', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
     await bootstrap(root, {
-      load: () => Promise.resolve(SAMPLE_DATASET),
+      // The shell is up by the time the load is asked for, and the map mounts after it resolves.
+      load: () => {
+        layOut(root, DESKTOP_BOXES);
+        return Promise.resolve(SAMPLE_DATASET);
+      },
       ...mapOptions(api),
     });
     await flush();
 
     expect(api.maps[0]?.options.center.lat()).toBe(CAMPUS_ORIGIN.lat);
+    // `mapCoveredInsets` reaches the map: 120px of masthead, 376px of column, plus the 16px gap on
+    // every side — each doubled for the vendor's half-margin fit.
+    expect(api.maps[0]?.fits).toHaveLength(1);
+    expect(api.maps[0]?.fits[0]?.options).toEqual({ top: 272, right: 32, bottom: 32, left: 784, maxZoom: 16 });
 
     root.querySelector<HTMLButtonElement>('.map-recentre')?.click();
 
     expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAMPUS_ORIGIN.lat);
     expect(api.maps[0]?.centers.at(-1)?.lng()).toBe(CAMPUS_ORIGIN.lng);
+    // Centred in what the column and masthead leave: half of each, the view moving up and left.
+    const pan = api.maps[0]?.pans.at(-1);
+    expect([pan?.x, pan?.y]).toEqual([-188, -60]);
+  });
+
+  it('re-frames the dots above the sheet when the window crosses into the mobile layout', async () => {
+    const root = document.createElement('div');
+    const api = createFakeNaverApi();
+    await bootstrap(root, {
+      load: () => {
+        layOut(root, DESKTOP_BOXES);
+        return Promise.resolve(SAMPLE_DATASET);
+      },
+      ...mapOptions(api),
+    });
+    await flush();
+
+    layOut(root, MOBILE_BOXES);
+    window.dispatchEvent(new Event('resize'));
+    await nextFrame();
+
+    expect(api.maps[0]?.fits).toHaveLength(2);
+    expect(api.maps[0]?.fits[1]?.options).toEqual({ top: 32, right: 32, bottom: 632, left: 32, maxZoom: 16 });
+  });
+
+  /** A page map that only counts what the page tells it, and hands back the options it was given. */
+  function countingMap() {
+    const handle = {
+      setPlaces: vi.fn(),
+      highlight: vi.fn(),
+      recenter: vi.fn(),
+      focusPlace: vi.fn(),
+      coverChanged: vi.fn(),
+      release: vi.fn(),
+    };
+    let given: Parameters<typeof renderPageMap>[2] | undefined;
+    const renderMap: typeof renderPageMap = (_container, _places, options) => {
+      given = options;
+      return Promise.resolve(handle);
+    };
+    return { handle, renderMap, options: () => given };
+  }
+
+  it('tells the map about a burst of resizes once per animation frame', async () => {
+    const root = document.createElement('div');
+    const map = countingMap();
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET), renderMap: map.renderMap });
+    await flush();
+
+    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event('resize'));
+    expect(map.handle.coverChanged).not.toHaveBeenCalled();
+    await nextFrame();
+
+    expect(map.handle.coverChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops listening for snaps and resizes once the map is unavailable', async () => {
+    const root = document.createElement('div');
+    const map = countingMap();
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET), renderMap: map.renderMap });
+    await flush();
+
+    root.dispatchEvent(new Event(SHEET_SNAP_EVENT));
+    expect(map.handle.coverChanged, 'the probe reaches the listener').toHaveBeenCalledTimes(1);
+
+    map.options()?.onUnavailable?.();
+    root.dispatchEvent(new Event(SHEET_SNAP_EVENT));
+    window.dispatchEvent(new Event('resize'));
+    await nextFrame();
+
+    expect(map.handle.coverChanged).toHaveBeenCalledTimes(1);
   });
 
   it('gives the page back its full width when the map script never arrives', async () => {

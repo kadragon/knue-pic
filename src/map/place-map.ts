@@ -216,7 +216,18 @@ export interface PageMapInsets {
   left: number;
 }
 
-const NO_INSETS: PageMapInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+export const NO_INSETS: PageMapInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+
+/**
+ * Which sides other than the top a cover takes from the map — the shape of the layout, not its size.
+ *
+ * The top is left out because both layouts may cover it (the masthead beside the column, the card a
+ * peeking sheet floats), and scrolling the masthead away changes it inside one layout. What tells
+ * the desktop column from the mobile sheet is the left edge against the bottom one.
+ */
+function coveredSides(insets: PageMapInsets): string {
+  return [insets.right > 0 ? 'r' : '', insets.bottom > 0 ? 'b' : '', insets.left > 0 ? 'l' : ''].join('');
+}
 
 /**
  * What the UI hands the map for one place: the record, and the rank string its row printed.
@@ -263,18 +274,24 @@ export interface PageMapHandle {
    * the list reports like any other, and a pin left lit would claim a row the reader has left.
    */
   highlight(placeId: string | null): void;
-  /** Returns the map to the campus origin, centred in the part of the map the page leaves visible. */
+  /**
+   * Returns the map to the campus origin, centred in the part of the map the page leaves visible.
+   *
+   * Lets go of a focused place and of any frame it held: the reader asked for the campus, and a
+   * later snap or resize must not pull the map back to the place they left.
+   */
   recenter(): void;
   /**
    * Centres the page map on a selected place, including one outside the filtered marker set, and
    * holds it there: while a place is focused a filter change does not re-frame the map. `null` lets
-   * go — the detail closed — without moving anything.
+   * go — the detail closed — and does not re-centre; it only makes the frame a held change owed.
    */
   focusPlace(place: PlaceRecord | null): void;
   /**
    * What covers the map changed — the sheet snapped, the window resized. Re-centres the focused
-   * place against the new cover, or makes the frame that was waiting for room. Otherwise nothing
-   * moves: the reader may have panned the map themselves.
+   * place against the new cover, or makes the frame that was waiting for room — or the one a
+   * layout switch owes, since a fit made beside the desktop column can leave dots under the mobile
+   * sheet. Otherwise nothing moves: the reader may have panned the map themselves.
    */
   coverChanged(): void;
   /** Releases the map and this render's auth-failure listener. Everything after it is inert. */
@@ -428,6 +445,8 @@ export async function renderPageMap(
     /** The set last drawn, and whether its frame is still owed — held by a focus or by no room. */
     let current: PageMapPlace[] = places;
     let frameOwed = false;
+    /** The `coveredSides` the last frame was made inside; `null` until one is made. */
+    let framedSides: string | null = null;
 
     /**
      * Puts `lat`/`lng` in the middle of the uncovered part of the map rather than the middle of the
@@ -449,7 +468,10 @@ export async function renderPageMap(
       const insets = coveredInsets();
       frameOwed = insets === null;
       if (insets === null || next.length === 0) return;
-      if (next.length === 1) {
+      framedSides = coveredSides(insets);
+      // Distinct coordinates, not places: two places in one building give bounds with no area, and
+      // `fitBounds` over those left the live map where it was, as it did for one place.
+      if (new Set(next.map(({ place }) => `${place.lat},${place.lng}`)).size === 1) {
         // A lone place at the zoom a fit stops at, not at whatever region-wide zoom the last fit left.
         const [{ place }] = next as [PageMapPlace];
         map.setZoom(FIT_MAX_ZOOM);
@@ -523,8 +545,7 @@ export async function renderPageMap(
       const reframe = wanted.size !== markers.size || [...wanted].some((id) => !markers.has(id));
       for (const [id, entry] of markers) {
         if (wanted.has(id)) continue;
-        // `marker.setMap(null)` is the documented removal, and it is the only half of the vendor
-        // surface the page map needed besides `setCenter`, `setIcon` and `setZIndex` (see `./naver-api.ts`).
+        // `marker.setMap(null)` is the documented removal (see `./naver-api.ts`).
         entry.marker.setMap(null);
         markers.delete(id);
       }
@@ -599,6 +620,8 @@ export async function renderPageMap(
       highlight,
       recenter: () => {
         if (!live) return;
+        focused = null;
+        frameOwed = false;
         centreInView(origin.lat, origin.lng, coveredInsets() ?? NO_INSETS);
       },
       focusPlace: (place) => {
@@ -609,6 +632,8 @@ export async function renderPageMap(
       },
       coverChanged: () => {
         if (!live) return;
+        const insets = coveredInsets();
+        if (insets && framedSides !== null && coveredSides(insets) !== framedSides) frameOwed = true;
         if (focused) showFocused();
         else if (frameOwed) frame(current);
       },

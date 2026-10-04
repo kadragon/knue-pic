@@ -672,6 +672,78 @@ describe('page map framing', () => {
     expect(pans(api)).toEqual([[0, 150]]);
   });
 
+  it('centres places sharing one coordinate like a lone place, not as a zero-area fit', async () => {
+    const api = createFakeNaverApi();
+    const twin: PlaceRecord = { ...THIRD, id: 'restaurant_999999', lat: CAFE.lat, lng: CAFE.lng };
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
+
+    // Two places, one building: their bounds have no area, and `fitBounds` over them did not move
+    // the live map, exactly like the lone-place case it was split from.
+    map.setPlaces([{ place: CAFE }, { place: twin, label: '1' }]);
+    expect(api.maps[0]?.fits).toHaveLength(1);
+    expect(api.maps[0]?.zooms).toEqual([16]);
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAFE.lat);
+    expect(api.maps[0]?.centers.at(-1)?.lng()).toBe(CAFE.lng);
+    expect(pans(api)).toEqual([[0, 150]]);
+  });
+
+  it('lets go of the focused place on 학교로, so the next cover change leaves the campus in view', async () => {
+    const api = createFakeNaverApi();
+    let insets = SHEET;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    // A filter change while focused owes a frame; 학교로 must not leave it owed either.
+    map.setPlaces([{ place: CAFE }, { place: THIRD }]);
+    map.recenter();
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+
+    insets = { top: 0, right: 0, bottom: 104, left: 0 };
+    map.coverChanged();
+    map.focusPlace(null);
+
+    expect(api.maps[0]?.centers.at(-1)?.lat(), 'the reader asked for the campus').toBe(ORIGIN.lat);
+    expect(api.maps[0]?.fits).toHaveLength(1);
+  });
+
+  it('re-frames when the page swaps which side covers the map, and only then', async () => {
+    const api = createFakeNaverApi();
+    const DESKTOP = { top: 196, right: 0, bottom: 0, left: 360 };
+    let insets: PageMapInsets = DESKTOP;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    // Same layout, different measure — a narrower window, a masthead scrolled away: the reader may
+    // have panned, so nothing moves.
+    insets = { top: 0, right: 0, bottom: 0, left: 360 };
+    map.coverChanged();
+    expect(api.maps[0]?.fits).toHaveLength(1);
+
+    // The breakpoint: the column became a sheet, and a frame made beside the column can leave dots
+    // under the sheet.
+    insets = SHEET;
+    map.coverChanged();
+    expect(api.maps[0]?.fits).toHaveLength(2);
+    expect(api.maps[0]?.fits[1]?.options).toEqual({ top: 32, right: 32, bottom: 632, left: 32, maxZoom: 16 });
+
+    insets = { top: 0, right: 0, bottom: 104, left: 0 };
+    map.coverChanged();
+    expect(api.maps[0]?.fits, 'a snap inside one layout moves nothing').toHaveLength(2);
+  });
+
+  it('owes the layout-switch frame while focused, and pays it when the detail closes', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets = { top: 196, right: 0, bottom: 0, left: 360 };
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    insets = SHEET;
+    map.coverChanged();
+    expect(api.maps[0]?.fits, 'the focused place holds the frame').toHaveLength(1);
+
+    map.focusPlace(null);
+    expect(api.maps[0]?.fits).toHaveLength(2);
+  });
+
   it('centres a focused place above the sheet rather than under it', async () => {
     const api = createFakeNaverApi();
     const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
@@ -713,7 +785,7 @@ describe('page map framing', () => {
     expect(api.maps[0]?.fits, 'a reader reading one place keeps it in view').toHaveLength(1);
 
     map.focusPlace(null);
-    expect(api.maps[0]?.centers.at(-1)?.lat(), 'closing re-centres nothing').toBe(CAFE.lat);
+    expect(api.maps[0]?.centers.at(-1)?.lat(), 'closing does not re-centre the place').toBe(CAFE.lat);
     // Closing paid the frame the held change owed; after that, filter changes frame again.
     expect(api.maps[0]?.fits).toHaveLength(2);
     map.setPlaces([{ place: ALWAYS }, { place: THIRD }]);

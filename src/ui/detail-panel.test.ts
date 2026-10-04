@@ -271,6 +271,8 @@ describe('panel detail and URL selection', () => {
     const map = api.maps[0]!;
     const pans = map.pans.length;
     view.set(false);
+    // The resize is coalesced to the next animation frame (`bootstrap.ts` → `renderFrame`).
+    await new Promise<void>((resolve) => requestAnimationFrame(() => { resolve(); }));
     expect(map.pans).toHaveLength(pans + 1);
   });
 
