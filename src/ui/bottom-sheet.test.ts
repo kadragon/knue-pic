@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SHEET_SNAP_EVENT } from './bottom-sheet';
 import { renderShell, setShellMapUnavailable } from './shell';
 
 function setup() {
@@ -78,6 +79,20 @@ describe('mobile bottom sheet', () => {
     expect(panel.style.getPropertyValue('--sheet-drag-height')).toBe('');
     handle.click();
     expect(panel.dataset['snap']).toBe('full');
+    root.remove();
+  });
+
+  it('announces every settled stop, so the map can re-centre what the sheet now covers', () => {
+    const { root, panel, handle } = setup();
+    const snaps: (string | undefined)[] = [];
+    root.addEventListener(SHEET_SNAP_EVENT, () => { snaps.push(panel.dataset['snap']); });
+    handle.click();
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
+    pointer(handle, 'pointerdown', 700);
+    pointer(handle, 'pointermove', 420);
+    expect(snaps, 'a drag in progress has not settled anywhere').toEqual(['full', 'peek']);
+    pointer(handle, 'pointerup', 420);
+    expect(snaps).toEqual(['full', 'peek', 'half']);
     root.remove();
   });
 

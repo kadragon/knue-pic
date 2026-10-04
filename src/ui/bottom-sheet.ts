@@ -2,6 +2,13 @@
 const STOPS = ['peek', 'half', 'full'] as const;
 const LABELS = ['접힘', '절반', '전체'];
 
+/**
+ * Fired on the panel, bubbling, each time the sheet settles on a stop — never mid-drag. The sheet
+ * covers a different share of the map at each stop, and the map is the one that must react; the
+ * sheet only says that it moved.
+ */
+export const SHEET_SNAP_EVENT = 'sheetsnap';
+
 export function createBottomSheet(panel: HTMLElement, scroll: HTMLElement): HTMLButtonElement {
   const handle = document.createElement('button');
   handle.type = 'button';
@@ -23,6 +30,7 @@ export function createBottomSheet(panel: HTMLElement, scroll: HTMLElement): HTML
     handle.setAttribute('aria-valuenow', String(index + 1));
     handle.setAttribute('aria-valuetext', LABELS[index]!);
     handle.textContent = `목록 · ${LABELS[index]}`;
+    panel.dispatchEvent(new Event(SHEET_SNAP_EVENT, { bubbles: true }));
   }
 
   function heights(): number[] {

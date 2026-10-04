@@ -45,12 +45,6 @@
 
 ## Review Backlog — found reviewing PR #72 (map-first shell, 2026-10-03)
 
-- [ ] [debt] The page map opens on a fixed campus-centred frame (`PAGE_ZOOM` 13) rather than on the
-  dots: the median place is 5.4km out and the p90 is 14.9km, but 125 of the 543 sit beyond 10km and
-  the tail reaches 110km (대전, 세종), so a good share of the filtered set is drawn off-screen at every
-  default zoom and the summary's `N곳` counts more places than a reader can see. Fit the frame to the
-  dot set (`map.fitBounds`, verified on the official reference) and re-fit on a filter change, or
-  state the framing where the reader can find it — `src/map/place-map.ts`
 - [ ] [feat] Overlap is now observed on the real map, which is the condition
   `docs/design/map-first-layout.md` → Implementation Decision 3 set for revisiting clustering: the
   campus cluster stacks many dots on nearly the same block at zoom 13. Naver Maps v3 core has no
@@ -65,10 +59,3 @@
 - [ ] Distance-from-me search, favourites, heatmap (PRD §44 V2 candidates) — conditions and the
   heatmap's framing objection in `docs/design/deferred-scope.md`; `src/ui/device-state.test.ts`
   must be widened by whichever lands first
-
-
-## Review Backlog
-
-### PR #75 — Mobile bottom sheet (2026-10-04)
-
-- [ ] [debt] Keep selected pins inside the uncovered mobile map when the sheet snaps; the default half stop currently overlaps the centred marker (source: codex, code-review; Sprint Contract excludes map framing) — `src/map/place-map.ts`, `src/ui/bottom-sheet.ts`

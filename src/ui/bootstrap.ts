@@ -18,7 +18,9 @@ import {
 } from './kind-filter';
 import { DEFAULT_PERIOD, renderPlaceList } from './place-list';
 import { renderPlaceSearch } from './search';
+import { SHEET_SNAP_EVENT } from './bottom-sheet';
 import {
+  mapCoveredInsets,
   renderShell,
   setShellMapUnavailable,
   setShellUpdatedAt,
@@ -150,6 +152,8 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
     void renderMap(region, pageMapPlaces(), {
       origin: CAMPUS_ORIGIN,
+      // Read at each fit, not once: the sheet snaps and the page scrolls while the map stands.
+      coveredInsets: () => mapCoveredInsets(root),
       onSelect: (placeId) => { selectFromMap(placeId); },
       onUnavailable: () => {
         mapUnavailable = true;
@@ -243,7 +247,8 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
       resolve: (placeId, basis) => currentDetail(placeId, basis ?? activePeriod),
       onSelection: (selection) => {
         selectedDetail = selection;
-        if (selection) pageMap?.focusPlace(selection.place);
+        // `null` too: a closed detail lets the next filter change re-frame the map.
+        pageMap?.focusPlace(selection?.place ?? null);
         pageMap?.highlight(selection?.place.id ?? null);
       },
     });
@@ -374,6 +379,10 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
   }
 
   function renderFrame(): HTMLElement {
+    // On `root`, which outlives every shell render; the sheet inside it is replaced with the frame.
+    root.addEventListener(SHEET_SNAP_EVENT, () => {
+      pageMap?.keepFocusVisible();
+    });
     renderShell(root, {
       mapFirst: true,
       // The shell holds no map, so the press travels: before the script has loaded there is nothing

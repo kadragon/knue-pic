@@ -1,6 +1,6 @@
 import type { PlaceRecord } from '../data/types';
 import { loadNaverMaps } from './loader';
-import type { HtmlIcon, NaverMap, NaverMarker, NaverMapsApi } from './naver-api';
+import type { FitBoundsOptions, HtmlIcon, NaverMap, NaverMarker, NaverMapsApi } from './naver-api';
 
 /**
  * The page map fills the viewport behind a desktop panel or mobile sheet.
@@ -187,15 +187,35 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * The frame the map opens on: the campus and roughly the width of 청주 around it.
- *
- * A fixed zoom rather than a fit to the dots, for one reason — `fitBounds` would drag `LatLngBounds`
- * and `getBounds` into the hand-written vendor surface, and nothing here has watched the live bundle
- * return either. `src/stats/distance.ts` cuts its bands at 2/5/15km and notes that most of the
- * dataset falls between 1 and 10km, so a campus-centred frame shows the cluster a reader came for
- * and `학교로` is there for the rest.
+ * The zoom the map is built at, before the first fit replaces it — and the one it keeps when the
+ * filtered set is empty and there is nothing to fit to.
  */
 const PAGE_ZOOM = 13;
+
+/**
+ * The frame stops zooming in here. A display choice, not a data claim: two places on one block
+ * would otherwise fit to street level, and the reader loses where the block is.
+ */
+const FIT_MAX_ZOOM = 16;
+
+/** Clear space between the outermost dot and whatever covers the map's edge, in CSS pixels. */
+const FRAME_GAP = 16;
+
+/**
+ * How much of the map, per edge, the page has drawn over — in CSS pixels.
+ *
+ * The map fills the viewport behind the desktop column and masthead, and behind the mobile sheet;
+ * the page measures them (`src/ui/shell.ts` → `mapCoveredInsets`) and this module frames inside
+ * what is left.
+ */
+export interface PageMapInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+const NO_INSETS: PageMapInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 
 /**
  * What the UI hands the map for one place: the record, and the rank string its row printed.
@@ -242,10 +262,19 @@ export interface PageMapHandle {
    * the list reports like any other, and a pin left lit would claim a row the reader has left.
    */
   highlight(placeId: string | null): void;
-  /** Returns the map to the origin it opened on. */
+  /** Returns the map to the campus origin, centred in the part of the map the page leaves visible. */
   recenter(): void;
-  /** Centres the page map on a selected place, including one outside the filtered marker set. */
-  focusPlace(place: PlaceRecord): void;
+  /**
+   * Centres the page map on a selected place, including one outside the filtered marker set, and
+   * holds it there: while a place is focused a filter change does not re-frame the map. `null` lets
+   * go — the detail closed — without moving anything.
+   */
+  focusPlace(place: PlaceRecord | null): void;
+  /**
+   * Re-centres the focused place against what covers the map *now* — the mobile sheet snapped to
+   * another height. Nothing focused, nothing moves: the reader may have panned the map themselves.
+   */
+  keepFocusVisible(): void;
   /** Releases the map and this render's auth-failure listener. Everything after it is inert. */
   release(): void;
 }
@@ -278,6 +307,11 @@ export interface RenderPageMapOptions {
   onPinHover?: (placeId: string | null) => void;
   /** A click on either a numbered pin or a neutral dot selects its canonical place id. */
   onSelect?: (placeId: string) => void;
+  /**
+   * What the page has drawn over the map, read at the moment of each fit or centring rather than
+   * once: the sheet snaps and the window resizes while the map stands. Absent → nothing covers it.
+   */
+  coveredInsets?: () => PageMapInsets;
 }
 
 function dotIcon(api: NaverMapsApi): HtmlIcon {
@@ -307,6 +341,7 @@ const INERT_PAGE_MAP: PageMapHandle = {
   highlight: () => {},
   recenter: () => {},
   focusPlace: () => {},
+  keepFocusVisible: () => {},
   release: () => {},
 };
 
@@ -325,7 +360,14 @@ export async function renderPageMap(
   places: PageMapPlace[],
   options: RenderPageMapOptions,
 ): Promise<PageMapHandle> {
-  const { loadApi = () => loadNaverMaps(), origin, onUnavailable, onPinHover, onSelect } = options;
+  const {
+    loadApi = () => loadNaverMaps(),
+    origin,
+    onUnavailable,
+    onPinHover,
+    onSelect,
+    coveredInsets = () => NO_INSETS,
+  } = options;
 
   const canvas = document.createElement('div');
   canvas.className = 'page-map-canvas';
@@ -378,6 +420,47 @@ export async function renderPageMap(
       zoom: PAGE_ZOOM,
     });
     const markers = new Map<string, PlacedMarker>();
+    /** The place the detail is showing, held in view until the detail closes. */
+    let focused: PlaceRecord | null = null;
+
+    /**
+     * Puts `lat`/`lng` in the middle of the uncovered part of the map rather than the middle of the
+     * map. `panBy` moves the view by its offset (measured — `./naver-api.ts`), so the offset is the
+     * uncovered centre's distance *from* the map centre, negated: half of what each opposite pair of
+     * edges leaves unbalanced.
+     */
+    const centreInView = (lat: number, lng: number): void => {
+      const insets = coveredInsets();
+      map.setCenter(new api.LatLng(lat, lng));
+      map.panBy(new api.Point((insets.right - insets.left) / 2, (insets.bottom - insets.top) / 2));
+    };
+
+    /**
+     * Frames the filtered set inside the uncovered part of the map. Every dot, the far ones
+     * included: the summary's `N곳` counts all of them, and a frame that left some off-screen would
+     * show fewer places than the line above it says.
+     */
+    const frame = (next: PageMapPlace[]): void => {
+      if (next.length === 0) return;
+      if (next.length === 1) {
+        const [{ place }] = next as [PageMapPlace];
+        centreInView(place.lat, place.lng);
+        return;
+      }
+      const insets = coveredInsets();
+      // Doubled: the bundle widens the frame by half the margin it is handed (`./naver-api.ts`).
+      const margin: FitBoundsOptions = {
+        top: 2 * (insets.top + FRAME_GAP),
+        right: 2 * (insets.right + FRAME_GAP),
+        bottom: 2 * (insets.bottom + FRAME_GAP),
+        left: 2 * (insets.left + FRAME_GAP),
+        maxZoom: FIT_MAX_ZOOM,
+      };
+      map.fitBounds(
+        next.map(({ place }) => new api.LatLng(place.lat, place.lng)),
+        margin,
+      );
+    };
 
     /**
      * The icon a placed marker wears right now.
@@ -427,6 +510,9 @@ export async function renderPageMap(
     const draw = (next: PageMapPlace[]): void => {
       if (!live) return;
       const wanted = new Set(next.map(({ place }) => place.id));
+      // A relabel — `더 보기`, a row hovered — keeps the set; only a filter or window change moves
+      // the frame, so paging through the list never yanks the map out from under the reader.
+      const reframe = wanted.size !== markers.size || [...wanted].some((id) => !markers.has(id));
       for (const [id, entry] of markers) {
         if (wanted.has(id)) continue;
         // `marker.setMap(null)` is the documented removal, and it is the only half of the vendor
@@ -464,6 +550,7 @@ export async function renderPageMap(
         markers.set(place.id, placed);
         listenToMarker(placed, place.id);
       }
+      if (reframe && focused === null) frame(next);
     };
 
     const highlight = (placeId: string | null): void => {
@@ -493,10 +580,15 @@ export async function renderPageMap(
       highlight,
       recenter: () => {
         if (!live) return;
-        map.setCenter(new api.LatLng(origin.lat, origin.lng));
+        centreInView(origin.lat, origin.lng);
       },
       focusPlace: (place) => {
-        if (live) map.setCenter(new api.LatLng(place.lat, place.lng));
+        if (!live) return;
+        focused = place;
+        if (place) centreInView(place.lat, place.lng);
+      },
+      keepFocusVisible: () => {
+        if (live && focused) centreInView(focused.lat, focused.lng);
       },
       release: () => {
         // `live` gates this as well as `fail`, so a release that arrives after the failure path

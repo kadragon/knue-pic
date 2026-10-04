@@ -245,6 +245,26 @@ describe('panel detail and URL selection', () => {
     expect(location.hash).not.toBe('');
   });
 
+  it('re-centres the open place when the sheet snaps, and stops once the detail closes', async () => {
+    const { root, api } = await setup();
+    const opener = row(root);
+    const place = SAMPLE_DATASET.places.find(
+      (p) => p.id === opener.closest('[data-place-id]')!.getAttribute('data-place-id'))!;
+    opener.click();
+    const handle = root.querySelector<HTMLButtonElement>('.sheet-handle')!;
+    const map = api.maps[0]!;
+    const pans = map.pans.length;
+    map.setCenter(new api.LatLng(36, 127));
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
+    expect(map.pans).toHaveLength(pans + 1);
+    expect(map.centers.at(-1)).toMatchObject({ latitude: place.lat, longitude: place.lng });
+    const returned = returnedToList();
+    root.querySelector<HTMLButtonElement>('.detail-panel-back')!.click();
+    await returned;
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
+    expect(map.pans).toHaveLength(pans + 1);
+  });
+
   it('keeps card link focus and a panned map on an unchanged hash selection', async () => {
     const { root, api } = await setup();
     row(root).click();

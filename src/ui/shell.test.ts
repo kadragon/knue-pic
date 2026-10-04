@@ -4,6 +4,7 @@ import {
   DISCLAIMER,
   RECENTRE_LABEL,
   SOURCE_LINE,
+  mapCoveredInsets,
   renderShell,
   setShellMapFirst,
   setShellMapUnavailable,
@@ -248,5 +249,81 @@ describe('setShellMapUnavailable', () => {
     setShellMapUnavailable(second);
     setShellMapUnavailable(second);
     expect(second.querySelectorAll('.shell-map-note')).toHaveLength(1);
+  });
+});
+
+/**
+ * What the page draws over the map, measured from the boxes it laid out. jsdom lays nothing out, so
+ * each case stubs the rects a real layout produced: 360×640 with the sheet half open, 1440×900 with
+ * the masthead and the 360px column (observed 2026-10-04 at `localhost:5173`).
+ */
+describe('mapCoveredInsets', () => {
+  function shell(rects: Record<string, [number, number, number, number]>, floating = false) {
+    const root = document.createElement('div');
+    renderShell(root, { mapFirst: true });
+    // jsdom loads no stylesheet; the peek rule's `position: fixed` is set where it would compute.
+    if (floating) root.querySelector<HTMLElement>('.shell-provenance')!.style.position = 'fixed';
+    for (const [selector, [left, top, right, bottom]] of Object.entries(rects)) {
+      vi.spyOn(root.querySelector(selector)!, 'getBoundingClientRect').mockReturnValue({
+        left, top, right, bottom, width: right - left, height: bottom - top,
+      } as DOMRect);
+    }
+    return root;
+  }
+
+  it('reads the bottom-anchored sheet as a bottom inset', () => {
+    const root = shell({
+      '.map-shell-map': [0, 0, 360, 640],
+      '.sheet-panel': [0, 320, 360, 640],
+      '.shell-provenance': [0, 420, 360, 520],
+    });
+    expect(mapCoveredInsets(root)).toEqual({ top: 0, right: 0, bottom: 320, left: 0 });
+  });
+
+  it('ignores provenance the sheet has scrolled up out of its own view', () => {
+    // Half open, the detail scrolled: the card's box sits above the sheet's top edge, clipped by the
+    // sheet's own scroller — it covers nothing (observed 2026-10-04: the pin landed 59px low).
+    const root = shell({
+      '.map-shell-map': [0, 0, 360, 640],
+      '.sheet-panel': [0, 320, 360, 640],
+      '.shell-provenance': [0, 18, 360, 118],
+    });
+    expect(mapCoveredInsets(root)).toEqual({ top: 0, right: 0, bottom: 320, left: 0 });
+  });
+
+  it('adds the provenance card a collapsed sheet floats over the top of the map', () => {
+    const root = shell({
+      '.map-shell-map': [0, 0, 360, 640],
+      '.sheet-panel': [0, 536, 360, 640],
+      '.shell-provenance': [16, 76, 344, 180],
+    }, true);
+    expect(mapCoveredInsets(root)).toEqual({ top: 180, right: 0, bottom: 104, left: 0 });
+  });
+
+  it('reads the desktop masthead as a top inset and the column as a left one', () => {
+    const root = shell({
+      '.map-shell-map': [0, 0, 1440, 900],
+      '.sheet-panel': [0, 0, 1440, 1964],
+      '.shell-provenance': [0, 97, 1440, 196],
+      '#content': [0, 196, 360, 1964],
+    });
+    expect(mapCoveredInsets(root)).toEqual({ top: 196, right: 0, bottom: 0, left: 360 });
+  });
+
+  it('lets the masthead go once the page has scrolled it away', () => {
+    const root = shell({
+      '.map-shell-map': [0, 0, 1440, 900],
+      '.sheet-panel': [0, -600, 1440, 1364],
+      '.shell-provenance': [0, -503, 1440, -404],
+      '#content': [0, -404, 360, 1364],
+    });
+    expect(mapCoveredInsets(root)).toEqual({ top: 0, right: 0, bottom: 0, left: 360 });
+  });
+
+  it('reports nothing once the map region is gone', () => {
+    const root = document.createElement('div');
+    renderShell(root, { mapFirst: true });
+    setShellMapUnavailable(root);
+    expect(mapCoveredInsets(root)).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
   });
 });
