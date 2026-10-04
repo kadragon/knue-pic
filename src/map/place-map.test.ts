@@ -706,6 +706,23 @@ describe('page map framing', () => {
     expect(api.maps[0]?.fits).toHaveLength(1);
   });
 
+  it('keeps 학교로 through a snap after a layout switch made while a place was focused', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets = { top: 196, right: 0, bottom: 0, left: 360 };
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    insets = SHEET;
+    map.coverChanged();
+    map.recenter();
+
+    insets = { top: 0, right: 0, bottom: 104, left: 0 };
+    map.coverChanged();
+
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+    expect(api.maps[0]?.fits).toHaveLength(1);
+  });
+
   it('re-frames when the page swaps which side covers the map, and only then', async () => {
     const api = createFakeNaverApi();
     const DESKTOP = { top: 196, right: 0, bottom: 0, left: 360 };

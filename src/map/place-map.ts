@@ -622,7 +622,11 @@ export async function renderPageMap(
         if (!live) return;
         focused = null;
         frameOwed = false;
-        centreInView(origin.lat, origin.lng, coveredInsets() ?? NO_INSETS);
+        const insets = coveredInsets();
+        // The campus is now what the map is framed on: a layout switch made while a place was
+        // focused must not read, at the next snap, as one still owed.
+        if (insets) framedSides = coveredSides(insets);
+        centreInView(origin.lat, origin.lng, insets ?? NO_INSETS);
       },
       focusPlace: (place) => {
         if (!live) return;
