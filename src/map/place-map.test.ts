@@ -9,6 +9,7 @@ import {
   renderPageMap,
   resetAuthFailureState,
   type PageMapHandle,
+  type PageMapInsets,
   type PageMapPlace,
   type RenderPageMapOptions,
 } from './place-map';
@@ -171,7 +172,6 @@ describe('renderPageMap', () => {
     // about a window and a filter the list has already moved on from.
     expect(dropped?.attached.at(-1)).toBeNull();
     expect(kept?.attached.at(-1)).toBe(api.maps[0]);
-    expect(api.maps[0]?.centers).toHaveLength(1);
   });
 
   it('keeps a surviving dot as the same marker rather than drawing a second one', async () => {
@@ -586,6 +586,215 @@ describe('page map highlight sync', () => {
     // be inert rather than throwing into the vendor's own event dispatch.
     expect(() => map.highlight(ALWAYS.id)).not.toThrow();
     expect(api.markers).toHaveLength(2);
+  });
+});
+
+/**
+ * Where the map looks, given that part of it is always under the page.
+ *
+ * The map fills the viewport behind the desktop column and the mobile sheet, so "the middle of the
+ * map" is a point a reader may not be able to see. The page hands in what covers it; the map frames
+ * the filtered set inside what is left, and centres a focused place there. Margins and offsets are
+ * pinned as literals: a value recomputed with the module's own arithmetic would agree with any
+ * arithmetic.
+ */
+describe('page map framing', () => {
+  const ORIGIN = { lat: 36.6084, lng: 127.3582 };
+  const [ALWAYS, CAFE, THIRD] = SAMPLE_DATASET.places as [
+    PlaceRecord,
+    PlaceRecord,
+    PlaceRecord,
+    ...PlaceRecord[],
+  ];
+  /** The half-open mobile sheet: 300px of a phone-height map under the panel. */
+  const SHEET = { top: 0, right: 0, bottom: 300, left: 0 };
+
+  async function framed(
+    api: FakeNaverApi,
+    places: PageMapPlace[],
+    insets: () => PageMapInsets | null = () => SHEET,
+  ): Promise<PageMapHandle> {
+    return renderPageMap(container(), places, {
+      loadApi: () => Promise.resolve(api),
+      origin: ORIGIN,
+      coveredInsets: insets,
+    });
+  }
+
+  const coords = (api: FakeNaverApi, fit = -1) =>
+    api.maps[0]?.fits.at(fit)?.coords.map((point) => [point.lat(), point.lng()]);
+  const pans = (api: FakeNaverApi) => api.maps[0]?.pans.map(({ x, y }) => [x, y]);
+
+  it('frames every filtered dot on mount, reserving the covered edge at the vendor\'s 2x', async () => {
+    const api = createFakeNaverApi();
+    await framed(api, [{ place: ALWAYS }, { place: CAFE, label: '1' }]);
+
+    expect(api.maps[0]?.fits).toHaveLength(1);
+    expect(coords(api)).toEqual([
+      [ALWAYS.lat, ALWAYS.lng],
+      [CAFE.lat, CAFE.lng],
+    ]);
+    // 16px gap on every side, the sheet's 300px on the bottom — each doubled, because the bundle
+    // widens the frame by half of what it is handed (measured 2026-10-04, `./naver-api.ts`).
+    expect(api.maps[0]?.fits[0]?.options).toEqual({ top: 32, right: 32, bottom: 632, left: 32, maxZoom: 16 });
+  });
+
+  it('re-frames when a filter changes which places are drawn, not when a row is relabelled', async () => {
+    const api = createFakeNaverApi();
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
+
+    map.setPlaces([{ place: ALWAYS, label: '1' }, { place: CAFE, label: '2' }]);
+    expect(api.maps[0]?.fits, '`더 보기` paged rows in; the set is the same').toHaveLength(1);
+
+    map.setPlaces([{ place: ALWAYS }, { place: CAFE }, { place: THIRD }]);
+    expect(api.maps[0]?.fits).toHaveLength(2);
+    expect(coords(api)).toEqual([
+      [ALWAYS.lat, ALWAYS.lng],
+      [CAFE.lat, CAFE.lng],
+      [THIRD.lat, THIRD.lng],
+    ]);
+  });
+
+  it('centres a lone place in the uncovered part, and leaves an empty set where it is', async () => {
+    const api = createFakeNaverApi();
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
+
+    map.setPlaces([]);
+    expect(api.maps[0]?.fits).toHaveLength(1);
+    expect(api.maps[0]?.centers).toHaveLength(1);
+
+    // `fitBounds` over one coordinate did not move the live map at all, so one place is a centring
+    // at the zoom a fit would have stopped at — not at whatever region-wide zoom the last fit left.
+    map.setPlaces([{ place: CAFE }]);
+    expect(api.maps[0]?.fits).toHaveLength(1);
+    expect(api.maps[0]?.zooms).toEqual([16]);
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAFE.lat);
+    expect(pans(api)).toEqual([[0, 150]]);
+  });
+
+  it('centres a focused place above the sheet rather than under it', async () => {
+    const api = createFakeNaverApi();
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
+
+    map.focusPlace(CAFE);
+
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAFE.lat);
+    expect(api.maps[0]?.centers.at(-1)?.lng()).toBe(CAFE.lng);
+    // Half the sheet: the view moves down by 150px, so the place sits 150px above the map's middle —
+    // the middle of the 300px of map the sheet leaves uncovered on a 600px screen.
+    expect(pans(api)).toEqual([[0, 150]]);
+  });
+
+  it('centres beside the desktop column and below the masthead', async () => {
+    const api = createFakeNaverApi();
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => ({
+      top: 196,
+      right: 0,
+      bottom: 0,
+      left: 360,
+    }));
+
+    map.focusPlace(CAFE);
+    map.recenter();
+
+    expect(pans(api)).toEqual([
+      [-180, -98],
+      [-180, -98],
+    ]);
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+  });
+
+  it('holds the focused place across a filter change, and lets go when the detail closes', async () => {
+    const api = createFakeNaverApi();
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
+
+    map.focusPlace(CAFE);
+    map.setPlaces([{ place: CAFE }, { place: THIRD }]);
+    expect(api.maps[0]?.fits, 'a reader reading one place keeps it in view').toHaveLength(1);
+
+    map.focusPlace(null);
+    expect(api.maps[0]?.centers.at(-1)?.lat(), 'closing re-centres nothing').toBe(CAFE.lat);
+    // Closing paid the frame the held change owed; after that, filter changes frame again.
+    expect(api.maps[0]?.fits).toHaveLength(2);
+    map.setPlaces([{ place: ALWAYS }, { place: THIRD }]);
+    expect(api.maps[0]?.fits).toHaveLength(3);
+  });
+
+  it('re-centres the focused place against the sheet\'s new height after a snap', async () => {
+    const api = createFakeNaverApi();
+    let insets = SHEET;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.coverChanged();
+    expect(pans(api), 'nothing focused: a snap must not move a map the reader panned').toEqual([]);
+
+    map.focusPlace(CAFE);
+    insets = { top: 0, right: 0, bottom: 104, left: 0 };
+    map.coverChanged();
+
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAFE.lat);
+    expect(pans(api)).toEqual([
+      [0, 150],
+      [0, 52],
+    ]);
+  });
+
+  it('frames the set that changed while a place was focused once the detail closes', async () => {
+    const api = createFakeNaverApi();
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
+
+    map.focusPlace(CAFE);
+    map.setPlaces([{ place: CAFE }, { place: THIRD }]);
+    expect(api.maps[0]?.fits).toHaveLength(1);
+
+    // The summary already counts the new set; the frame must not wait for yet another filter change.
+    map.focusPlace(null);
+    expect(api.maps[0]?.fits).toHaveLength(2);
+    expect(coords(api)).toEqual([
+      [CAFE.lat, CAFE.lng],
+      [THIRD.lat, THIRD.lng],
+    ]);
+  });
+
+  it('holds a frame while the page leaves too little map to frame into, and frames on the next snap', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = null;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+    expect(api.maps[0]?.fits, 'the sheet is fully open: nothing to frame into').toHaveLength(0);
+
+    map.focusPlace(CAFE);
+    expect(pans(api), 'nor to centre in').toEqual([]);
+
+    insets = SHEET;
+    map.coverChanged();
+    expect(pans(api)).toEqual([[0, 150]]);
+
+    insets = null;
+    map.focusPlace(null);
+    map.setPlaces([{ place: ALWAYS }, { place: THIRD }]);
+    expect(api.maps[0]?.fits).toHaveLength(0);
+    insets = SHEET;
+    map.coverChanged();
+    expect(coords(api)).toEqual([
+      [ALWAYS.lat, ALWAYS.lng],
+      [THIRD.lat, THIRD.lng],
+    ]);
+    map.coverChanged();
+    expect(api.maps[0]?.fits, 'a frame already made is not made again').toHaveLength(1);
+  });
+
+  it('does not frame or pan after a release', async () => {
+    const api = createFakeNaverApi();
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
+    map.focusPlace(CAFE);
+    map.release();
+
+    map.coverChanged();
+    map.focusPlace(null);
+    map.setPlaces([{ place: THIRD }, { place: ALWAYS }]);
+
+    expect(api.maps[0]?.fits).toHaveLength(1);
+    expect(api.maps[0]?.pans).toHaveLength(1);
   });
 });
 

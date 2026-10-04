@@ -14,7 +14,8 @@
  * `https://navermaps.github.io/maps.js.en/docs/naver.maps.Event.html` for `addListener`;
  * `naver.maps.Event.addListener(map, 'click', …)` appears in the Markers tutorial itself).
  *
- * The bounds surface still went with the page-level map in PR #17 and has not come back: a
+ * The bounds surface went with the page-level map in PR #17; framing came back as `fitBounds` over
+ * a plain coordinate array, so `LatLngBounds` itself still has no caller and no type here. A
  * hand-written vendor type with no caller drifts from the real API unnoticed, so what is unused is
  * deleted rather than kept "in case". `setIcon` and `Event` came back with the numbered pins — the
  * first two are what makes a pin's own highlight possible, `Event` the only way the map learns a
@@ -112,6 +113,23 @@ export interface NaverEventApi {
   addListener(target: NaverMarker, eventName: MarkerEventName, listener: () => void): unknown;
 }
 
+/**
+ * The second argument of `map.fitBounds`: pixel margins per side, plus an optional zoom ceiling.
+ *
+ * Read off the official reference (https://navermaps.github.io/maps.js.en/docs/naver.maps.Map.html,
+ * read 2026-10-04): "left 값이 10이면 왼쪽 여백이 5px 증가합니다" — each side widens the frame by
+ * *half* the value given. Measured on the live v3 bundle at `localhost:5173` the same day, on a
+ * 400×400 map: `{ bottom: 200 }` centred the fitted pair 50px above the map's centre and `{ left:
+ * 200 }` 50px right of it, i.e. 100px reserved for 200 passed. A caller reserving N pixels passes 2N.
+ */
+export interface FitBoundsOptions {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+  maxZoom?: number;
+}
+
 export interface MapOptions {
   center: LatLng;
   zoom: number;
@@ -134,6 +152,31 @@ export interface NaverMap {
    * watched the live bundle throw or return one.
    */
   setCenter(position: LatLng): void;
+
+  /**
+   * Moves the map so every coordinate in `coords` is inside the frame, less the margins.
+   *
+   * The reference types `bounds` as `Bounds | ArrayOfCoords` among others; only the array is
+   * declared, because the page map frames a set of places and never holds a bounds object. Measured
+   * 2026-10-04 on the live bundle: handed a *single* coordinate it did not move the map at all, so
+   * the page map centres a lone place with `setCenter` instead.
+   */
+  fitBounds(coords: LatLng[], options?: FitBoundsOptions): void;
+
+  /**
+   * Shifts the map by a pixel offset. The reference says only "지정한 픽셀 좌표만큼 지도를
+   * 이동합니다"; the direction is measured, not read: on the live v3 bundle (`localhost:5173`,
+   * 2026-10-04) `panBy(new Point(0, 100))` left the previous centre coordinate 100px *above* the
+   * map's middle — the view moves by the offset, so the content moves against it.
+   */
+  panBy(offset: Point): void;
+
+  /**
+   * Sets the zoom level. In the reference's method list (`setZoom(zoom, effect)`); the optional
+   * `effect` is left out because nothing here animates. Called on the live v3 bundle 2026-10-04:
+   * `setZoom(15)` then `getZoom()` returned `15`.
+   */
+  setZoom(zoom: number): void;
 }
 
 /** Constructors are exposed as values so a fake can supply plain functions. */

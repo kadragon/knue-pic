@@ -1,4 +1,5 @@
 import type {
+  FitBoundsOptions,
   HtmlIcon,
   LatLng,
   MapOptions,
@@ -7,6 +8,7 @@ import type {
   NaverMap,
   NaverMapsApi,
   NaverMarker,
+  Point,
 } from './naver-api';
 
 /**
@@ -49,6 +51,12 @@ export interface FakeMap extends NaverMap {
   destroyCalls: number;
   /** Every centre this map was moved to, oldest first — the construction centre included. */
   readonly centers: LatLng[];
+  /** Every `fitBounds`, oldest first: the coordinates framed and the margins asked for. */
+  readonly fits: { coords: LatLng[]; options: FitBoundsOptions | undefined }[];
+  /** Every `panBy` offset, oldest first. Nothing here models the projection, so no centre moves. */
+  readonly pans: Point[];
+  /** Every `setZoom`, oldest first. */
+  readonly zooms: number[];
 }
 
 export interface FakeNaverApi extends NaverMapsApi {
@@ -107,6 +115,9 @@ export function createFakeNaverApi(): FakeNaverApi {
     Map: class implements FakeMap {
       destroyCalls = 0;
       readonly centers: LatLng[] = [];
+      readonly fits: { coords: LatLng[]; options: FitBoundsOptions | undefined }[] = [];
+      readonly pans: Point[] = [];
+      readonly zooms: number[] = [];
       constructor(
         readonly element: HTMLElement,
         readonly options: MapOptions,
@@ -118,6 +129,15 @@ export function createFakeNaverApi(): FakeNaverApi {
       }
       setCenter(position: LatLng): void {
         this.centers.push(position);
+      }
+      fitBounds(coords: LatLng[], options?: FitBoundsOptions): void {
+        this.fits.push({ coords: [...coords], options });
+      }
+      panBy(offset: Point): void {
+        this.pans.push(offset);
+      }
+      setZoom(zoom: number): void {
+        this.zooms.push(zoom);
       }
       destroy(): void {
         this.destroyCalls += 1;
