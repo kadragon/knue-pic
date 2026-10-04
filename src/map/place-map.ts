@@ -206,7 +206,8 @@ const FRAME_GAP = 16;
  *
  * The map fills the viewport behind the desktop column and masthead, and behind the mobile sheet;
  * the page measures them (`src/ui/shell.ts` → `mapCoveredInsets`) and this module frames inside
- * what is left.
+ * what is left. The page answers `null` instead when too little map shows to frame into — the sheet
+ * fully open — and the frame waits for `coverChanged`.
  */
 export interface PageMapInsets {
   top: number;
@@ -271,10 +272,11 @@ export interface PageMapHandle {
    */
   focusPlace(place: PlaceRecord | null): void;
   /**
-   * Re-centres the focused place against what covers the map *now* — the mobile sheet snapped to
-   * another height. Nothing focused, nothing moves: the reader may have panned the map themselves.
+   * What covers the map changed — the sheet snapped, the window resized. Re-centres the focused
+   * place against the new cover, or makes the frame that was waiting for room. Otherwise nothing
+   * moves: the reader may have panned the map themselves.
    */
-  keepFocusVisible(): void;
+  coverChanged(): void;
   /** Releases the map and this render's auth-failure listener. Everything after it is inert. */
   release(): void;
 }
@@ -309,9 +311,10 @@ export interface RenderPageMapOptions {
   onSelect?: (placeId: string) => void;
   /**
    * What the page has drawn over the map, read at the moment of each fit or centring rather than
-   * once: the sheet snaps and the window resizes while the map stands. Absent → nothing covers it.
+   * once: the sheet snaps and the window resizes while the map stands. Absent → nothing covers it;
+   * `null` → too little map shows to frame into, so the frame waits for `coverChanged`.
    */
-  coveredInsets?: () => PageMapInsets;
+  coveredInsets?: () => PageMapInsets | null;
 }
 
 function dotIcon(api: NaverMapsApi): HtmlIcon {
@@ -341,7 +344,7 @@ const INERT_PAGE_MAP: PageMapHandle = {
   highlight: () => {},
   recenter: () => {},
   focusPlace: () => {},
-  keepFocusVisible: () => {},
+  coverChanged: () => {},
   release: () => {},
 };
 
@@ -422,6 +425,9 @@ export async function renderPageMap(
     const markers = new Map<string, PlacedMarker>();
     /** The place the detail is showing, held in view until the detail closes. */
     let focused: PlaceRecord | null = null;
+    /** The set last drawn, and whether its frame is still owed — held by a focus or by no room. */
+    let current: PageMapPlace[] = places;
+    let frameOwed = false;
 
     /**
      * Puts `lat`/`lng` in the middle of the uncovered part of the map rather than the middle of the
@@ -429,8 +435,7 @@ export async function renderPageMap(
      * uncovered centre's distance *from* the map centre, negated: half of what each opposite pair of
      * edges leaves unbalanced.
      */
-    const centreInView = (lat: number, lng: number): void => {
-      const insets = coveredInsets();
+    const centreInView = (lat: number, lng: number, insets: PageMapInsets): void => {
       map.setCenter(new api.LatLng(lat, lng));
       map.panBy(new api.Point((insets.right - insets.left) / 2, (insets.bottom - insets.top) / 2));
     };
@@ -441,13 +446,16 @@ export async function renderPageMap(
      * show fewer places than the line above it says.
      */
     const frame = (next: PageMapPlace[]): void => {
-      if (next.length === 0) return;
+      const insets = coveredInsets();
+      frameOwed = insets === null;
+      if (insets === null || next.length === 0) return;
       if (next.length === 1) {
+        // A lone place at the zoom a fit stops at, not at whatever region-wide zoom the last fit left.
         const [{ place }] = next as [PageMapPlace];
-        centreInView(place.lat, place.lng);
+        map.setZoom(FIT_MAX_ZOOM);
+        centreInView(place.lat, place.lng, insets);
         return;
       }
-      const insets = coveredInsets();
       // Doubled: the bundle widens the frame by half the margin it is handed (`./naver-api.ts`).
       const margin: FitBoundsOptions = {
         top: 2 * (insets.top + FRAME_GAP),
@@ -550,7 +558,18 @@ export async function renderPageMap(
         markers.set(place.id, placed);
         listenToMarker(placed, place.id);
       }
-      if (reframe && focused === null) frame(next);
+      current = next;
+      // A focused place holds the frame; the change is owed, and paid when the detail closes.
+      if (reframe) {
+        if (focused === null) frame(next);
+        else frameOwed = true;
+      }
+    };
+
+    /** Centres the focused place, if the page leaves room to; otherwise `coverChanged` will. */
+    const showFocused = (): void => {
+      const insets = coveredInsets();
+      if (focused && insets) centreInView(focused.lat, focused.lng, insets);
     };
 
     const highlight = (placeId: string | null): void => {
@@ -580,15 +599,18 @@ export async function renderPageMap(
       highlight,
       recenter: () => {
         if (!live) return;
-        centreInView(origin.lat, origin.lng);
+        centreInView(origin.lat, origin.lng, coveredInsets() ?? NO_INSETS);
       },
       focusPlace: (place) => {
         if (!live) return;
         focused = place;
-        if (place) centreInView(place.lat, place.lng);
+        if (place) showFocused();
+        else if (frameOwed) frame(current);
       },
-      keepFocusVisible: () => {
-        if (live && focused) centreInView(focused.lat, focused.lng);
+      coverChanged: () => {
+        if (!live) return;
+        if (focused) showFocused();
+        else if (frameOwed) frame(current);
       },
       release: () => {
         // `live` gates this as well as `fail`, so a release that arrives after the failure path

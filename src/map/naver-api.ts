@@ -170,6 +170,13 @@ export interface NaverMap {
    * map's middle — the view moves by the offset, so the content moves against it.
    */
   panBy(offset: Point): void;
+
+  /**
+   * Sets the zoom level. In the reference's method list (`setZoom(zoom, effect)`); the optional
+   * `effect` is left out because nothing here animates. Called on the live v3 bundle 2026-10-04:
+   * `setZoom(15)` then `getZoom()` returned `15`.
+   */
+  setZoom(zoom: number): void;
 }
 
 /** Constructors are exposed as values so a fake can supply plain functions. */

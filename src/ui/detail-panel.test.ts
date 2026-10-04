@@ -265,6 +265,15 @@ describe('panel detail and URL selection', () => {
     expect(map.pans).toHaveLength(pans + 1);
   });
 
+  it('re-centres the open place when the window crosses into the sheet layout', async () => {
+    const { root, api, view } = await setup();
+    row(root).click();
+    const map = api.maps[0]!;
+    const pans = map.pans.length;
+    view.set(false);
+    expect(map.pans).toHaveLength(pans + 1);
+  });
+
   it('keeps card link focus and a panned map on an unchanged hash selection', async () => {
     const { root, api } = await setup();
     row(root).click();

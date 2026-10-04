@@ -380,8 +380,12 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
 
   function renderFrame(): HTMLElement {
     // On `root`, which outlives every shell render; the sheet inside it is replaced with the frame.
+    // A resize too: crossing the breakpoint swaps the desktop column for the sheet without a snap.
     root.addEventListener(SHEET_SNAP_EVENT, () => {
-      pageMap?.keepFocusVisible();
+      pageMap?.coverChanged();
+    });
+    window.addEventListener('resize', () => {
+      pageMap?.coverChanged();
     });
     renderShell(root, {
       mapFirst: true,

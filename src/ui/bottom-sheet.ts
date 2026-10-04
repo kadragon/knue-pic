@@ -24,13 +24,15 @@ export function createBottomSheet(panel: HTMLElement, scroll: HTMLElement): HTML
   let suppressClick = false;
 
   function snap(next: number): void {
+    const previous = index;
     index = Math.max(0, Math.min(2, next));
     panel.dataset['snap'] = STOPS[index];
     panel.style.removeProperty('--sheet-drag-height');
     handle.setAttribute('aria-valuenow', String(index + 1));
     handle.setAttribute('aria-valuetext', LABELS[index]!);
     handle.textContent = `목록 · ${LABELS[index]}`;
-    panel.dispatchEvent(new Event(SHEET_SNAP_EVENT, { bubbles: true }));
+    // Settling back on the stop it left covers the same map; only a move is news.
+    if (index !== previous) panel.dispatchEvent(new Event(SHEET_SNAP_EVENT, { bubbles: true }));
   }
 
   function heights(): number[] {

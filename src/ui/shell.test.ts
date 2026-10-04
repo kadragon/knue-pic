@@ -320,6 +320,15 @@ describe('mapCoveredInsets', () => {
     expect(mapCoveredInsets(root)).toEqual({ top: 0, right: 0, bottom: 0, left: 360 });
   });
 
+  it('reports no room at all while the sheet is fully open', () => {
+    const root = shell({
+      '.map-shell-map': [0, 0, 360, 640],
+      '.sheet-panel': [0, 16, 360, 640],
+      '.shell-provenance': [0, 116, 360, 216],
+    });
+    expect(mapCoveredInsets(root)).toBeNull();
+  });
+
   it('reports nothing once the map region is gone', () => {
     const root = document.createElement('div');
     renderShell(root, { mapFirst: true });

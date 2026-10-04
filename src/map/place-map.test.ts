@@ -9,6 +9,7 @@ import {
   renderPageMap,
   resetAuthFailureState,
   type PageMapHandle,
+  type PageMapInsets,
   type PageMapPlace,
   type RenderPageMapOptions,
 } from './place-map';
@@ -611,7 +612,7 @@ describe('page map framing', () => {
   async function framed(
     api: FakeNaverApi,
     places: PageMapPlace[],
-    insets: () => { top: number; right: number; bottom: number; left: number } = () => SHEET,
+    insets: () => PageMapInsets | null = () => SHEET,
   ): Promise<PageMapHandle> {
     return renderPageMap(container(), places, {
       loadApi: () => Promise.resolve(api),
@@ -662,9 +663,11 @@ describe('page map framing', () => {
     expect(api.maps[0]?.fits).toHaveLength(1);
     expect(api.maps[0]?.centers).toHaveLength(1);
 
-    // `fitBounds` over one coordinate did not move the live map at all, so one place is a centring.
+    // `fitBounds` over one coordinate did not move the live map at all, so one place is a centring
+    // at the zoom a fit would have stopped at — not at whatever region-wide zoom the last fit left.
     map.setPlaces([{ place: CAFE }]);
     expect(api.maps[0]?.fits).toHaveLength(1);
+    expect(api.maps[0]?.zooms).toEqual([16]);
     expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAFE.lat);
     expect(pans(api)).toEqual([[0, 150]]);
   });
@@ -710,9 +713,11 @@ describe('page map framing', () => {
     expect(api.maps[0]?.fits, 'a reader reading one place keeps it in view').toHaveLength(1);
 
     map.focusPlace(null);
-    expect(api.maps[0]?.centers.at(-1)?.lat(), 'closing moves nothing').toBe(CAFE.lat);
-    map.setPlaces([{ place: ALWAYS }, { place: THIRD }]);
+    expect(api.maps[0]?.centers.at(-1)?.lat(), 'closing re-centres nothing').toBe(CAFE.lat);
+    // Closing paid the frame the held change owed; after that, filter changes frame again.
     expect(api.maps[0]?.fits).toHaveLength(2);
+    map.setPlaces([{ place: ALWAYS }, { place: THIRD }]);
+    expect(api.maps[0]?.fits).toHaveLength(3);
   });
 
   it('re-centres the focused place against the sheet\'s new height after a snap', async () => {
@@ -720,12 +725,12 @@ describe('page map framing', () => {
     let insets = SHEET;
     const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
 
-    map.keepFocusVisible();
+    map.coverChanged();
     expect(pans(api), 'nothing focused: a snap must not move a map the reader panned').toEqual([]);
 
     map.focusPlace(CAFE);
     insets = { top: 0, right: 0, bottom: 104, left: 0 };
-    map.keepFocusVisible();
+    map.coverChanged();
 
     expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAFE.lat);
     expect(pans(api)).toEqual([
@@ -734,13 +739,57 @@ describe('page map framing', () => {
     ]);
   });
 
+  it('frames the set that changed while a place was focused once the detail closes', async () => {
+    const api = createFakeNaverApi();
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
+
+    map.focusPlace(CAFE);
+    map.setPlaces([{ place: CAFE }, { place: THIRD }]);
+    expect(api.maps[0]?.fits).toHaveLength(1);
+
+    // The summary already counts the new set; the frame must not wait for yet another filter change.
+    map.focusPlace(null);
+    expect(api.maps[0]?.fits).toHaveLength(2);
+    expect(coords(api)).toEqual([
+      [CAFE.lat, CAFE.lng],
+      [THIRD.lat, THIRD.lng],
+    ]);
+  });
+
+  it('holds a frame while the page leaves too little map to frame into, and frames on the next snap', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = null;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+    expect(api.maps[0]?.fits, 'the sheet is fully open: nothing to frame into').toHaveLength(0);
+
+    map.focusPlace(CAFE);
+    expect(pans(api), 'nor to centre in').toEqual([]);
+
+    insets = SHEET;
+    map.coverChanged();
+    expect(pans(api)).toEqual([[0, 150]]);
+
+    insets = null;
+    map.focusPlace(null);
+    map.setPlaces([{ place: ALWAYS }, { place: THIRD }]);
+    expect(api.maps[0]?.fits).toHaveLength(0);
+    insets = SHEET;
+    map.coverChanged();
+    expect(coords(api)).toEqual([
+      [ALWAYS.lat, ALWAYS.lng],
+      [THIRD.lat, THIRD.lng],
+    ]);
+    map.coverChanged();
+    expect(api.maps[0]?.fits, 'a frame already made is not made again').toHaveLength(1);
+  });
+
   it('does not frame or pan after a release', async () => {
     const api = createFakeNaverApi();
     const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
     map.focusPlace(CAFE);
     map.release();
 
-    map.keepFocusVisible();
+    map.coverChanged();
     map.focusPlace(null);
     map.setPlaces([{ place: THIRD }, { place: ALWAYS }]);
 

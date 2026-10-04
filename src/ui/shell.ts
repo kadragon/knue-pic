@@ -1,4 +1,4 @@
-import { MAP_ERROR_MESSAGE } from '../map/place-map';
+import { MAP_ERROR_MESSAGE, type PageMapInsets } from '../map/place-map';
 import { createBottomSheet } from './bottom-sheet';
 import { displayDate } from './place-labels';
 
@@ -20,6 +20,13 @@ export const HEADLINE = '요즘 동료들은 어디를 자주 갈까';
 
 /** The control that takes the map back to the campus after a reader pans away from it. */
 export const RECENTRE_LABEL = '학교로';
+
+/**
+ * The least map height, in CSS pixels, worth framing into. A display choice: below it the fully
+ * open sheet leaves a strip a pin barely fits in, and a frame made there would be the wrong one the
+ * moment the sheet came down.
+ */
+const MIN_UNCOVERED = 96;
 
 /** Marks the root as showing the map-first layout; `src/styles.css` reads it at every width. */
 const MAP_FIRST_CLASS = 'is-map-first';
@@ -137,12 +144,7 @@ function mapRegion(onRecentre?: () => void): HTMLElement {
  * provenance cover a band across the top while `#content` covers a column down the left. Each edge
  * is clamped to the map, so a masthead the reader has scrolled away covers nothing.
  */
-export function mapCoveredInsets(root: HTMLElement): {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-} {
+export function mapCoveredInsets(root: HTMLElement): PageMapInsets | null {
   const region = root.querySelector('.map-shell-map');
   const panel = root.querySelector('.sheet-panel');
   if (!region || !panel) return { top: 0, right: 0, bottom: 0, left: 0 };
@@ -158,12 +160,11 @@ export function mapCoveredInsets(root: HTMLElement): {
     // so: inside a scrolled sheet the card's box also sits above the sheet's top, clipped unseen.
     const lifted = provenanceNode && getComputedStyle(provenanceNode).position === 'fixed';
     const floating = lifted && provenance ? provenance.bottom : map.top;
-    return {
-      top: clampTo(floating - map.top, map.height),
-      right: 0,
-      bottom: clampTo(map.bottom - sheet.top, map.height),
-      left: 0,
-    };
+    const top = clampTo(floating - map.top, map.height);
+    const bottom = clampTo(map.bottom - sheet.top, map.height);
+    // The sheet fully open leaves a sliver: nothing to frame into until it comes down.
+    if (map.height - top - bottom < MIN_UNCOVERED) return null;
+    return { top, right: 0, bottom, left: 0 };
   }
   const column = root.querySelector('#content')?.getBoundingClientRect();
   return {
