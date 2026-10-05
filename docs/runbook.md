@@ -51,12 +51,14 @@ the map mounted without relying on a screenshot:
 
 Check the page map at both widths on the same origin:
 
-- `document.querySelectorAll('.page-map-dot').length` matches the `{N}곳` in the summary line — the
-  dots are the places that pass both filters, and the two are computed from one predicate;
+- dots + pins + the sum of the cluster counts matches the `{N}곳` in the summary line —
+  `.page-map-dot` and `.page-map-pin` count one each, `.page-map-cluster` prints its own `{n}곳`;
+  the markers are the places that pass both filters, and the two are computed from one predicate;
+- no two `.page-map-cluster` boxes intersect, and clicking an uncovered one zooms in and regroups;
 - `document.querySelector('.page-map-canvas')` exists and no `.shell-map-note` is present;
 - pressing `학교로` re-centres on `CAMPUS_ORIGIN` (`src/stats/distance.ts`) — the map's centre after
   the press is `36.6084, 127.3582`;
-- switching 기간 or 업종 changes the dot count, and narrowing never leaves a dot behind: the count
+- switching 기간 or 업종 changes that total, and narrowing never leaves a marker behind: the total
   only ever goes down by the places that left the window, never by a redraw.
 
 To check the degraded layout, block the Naver script (or use an origin the key rejects) at both widths:

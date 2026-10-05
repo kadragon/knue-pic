@@ -63,10 +63,13 @@ shows `지도를 불러오지 못했습니다.` once at the top. Everything the 
    computes no statistic and never imports `src/stats/`; the UI hands it a list of
    `{ place, label? }` where `label` is the rank string the row already printed. The
    `src/map/place-map.ts` header is rewritten to record why the page map returned.
-3. **No clustering in this spec.** Only the filtered set is drawn (the 3-month window shows 162
-   places on the current dataset; 525 total). Naver Maps v3 core is believed to have no built-in
-   clusterer — unverified; the commonly cited `MarkerClustering.js` is example code that would have
-   to be vendored. Revisit only if overlap is observed on the real map.
+3. **Dots cluster; pins never do.** Shipped without clustering, then overlap was observed on the
+   real map (PR #72 review: the campus dots stack at zoom 13). `src/map/cluster.ts` groups neutral
+   dots — in-house, not the vendored `MarkerClustering.js` example — by the cluster marker's own
+   box on the Web Mercator plane, so no two cluster markers overlap. A cluster prints `N곳` (places,
+   never visits) in one fixed-size pill; a numbered pin and the focused place stay out of every
+   cluster. Clicking one fits its members; from `FIT_MAX_ZOOM` in nothing clusters, so a click
+   always opens it.
 4. **Detail inside the panel, URL hash state.** `#place=<id>` uses the canonical place id; an id
    absent from the dataset falls back to the list silently (the place left the rolling window).
    Only the id enters the URL — never a position. `location.hash`/`history` are not in
@@ -102,7 +105,6 @@ shows `지도를 불러오지 못했습니다.` once at the top. Everything the 
 
 ## Out of Scope
 
-- Marker clustering (follow-up ticket only on observed overlap).
 - Distance-from-me, favourites, heatmap / density / intensity-scaled markers.
 - i18n, link to the source disclosure record, new data fields in `places.json`.
 

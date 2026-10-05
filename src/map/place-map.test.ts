@@ -4,6 +4,8 @@ import type { PlaceRecord } from '../data/types';
 import type { FakeNaverApi } from './fake-naver-api';
 import { createFakeNaverApi } from './fake-naver-api';
 import {
+  clusterLabel,
+  clusterMarkup,
   dotLabel,
   pinLabelMarkup,
   renderPageMap,
@@ -44,6 +46,13 @@ function authFailureHook(): (() => void) | undefined {
  * surveillance framing — and the number on a pin is the rank string the row itself printed, so it
  * is a text channel the reader has already read rather than a second encoding to decode.
  */
+/**
+ * A map the reader has zoomed in past clustering (`FIT_MAX_ZOOM`). The suites up to the framing one
+ * are about single markers; the fixture's places sit within one cluster radius of each other at the
+ * opening zoom, and those suites should not depend on that. Clustering has its own suite below.
+ */
+const UNCLUSTERED = { zoom: 16 };
+
 describe('renderPageMap', () => {
   /** `CAMPUS_ORIGIN`, handed in rather than imported: `src/map/` never reads `src/stats/`. */
   const ORIGIN = { lat: 36.6084, lng: 127.3582 };
@@ -65,7 +74,7 @@ describe('renderPageMap', () => {
   }
 
   it('draws one dot per filtered place, on that place\'s own coordinates', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const { root } = await page(api);
 
     expect(root.querySelector('.page-map-canvas')).toBeInstanceOf(HTMLElement);
@@ -79,7 +88,7 @@ describe('renderPageMap', () => {
   });
 
   it('leaves the control already in the region standing', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const root = container();
     // What the shell puts there (`src/ui/shell.ts` → `mapRegion`).
     const control = document.createElement('button');
@@ -98,7 +107,7 @@ describe('renderPageMap', () => {
   });
 
   it('names the place in the dot, so the dot is never its only carrier', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     await page(api);
 
     // Naver shows a marker's `title` as its own tooltip, so the dot's colour and size never carry
@@ -108,7 +117,7 @@ describe('renderPageMap', () => {
   });
 
   it('gives every dot the same icon, whatever the visit count', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     await page(api);
 
     // The fixture really does span different counts, or this would pass on a map that varied.
@@ -123,7 +132,7 @@ describe('renderPageMap', () => {
   });
 
   it('gives pins the same icon option object whatever the visit count', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     await page(api, [
       { place: ALWAYS, label: '1' },
       { place: CAFE, label: '2' },
@@ -145,7 +154,7 @@ describe('renderPageMap', () => {
   });
 
   it('opens on the campus origin and returns there on demand', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const { map } = await page(api);
     const centre = () => api.maps[0]?.centers.at(-1);
 
@@ -161,7 +170,7 @@ describe('renderPageMap', () => {
   });
 
   it('takes the excluded dots off the map when the filtered set narrows', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const { map } = await page(api);
 
     map.setPlaces([{ place: CAFE }]);
@@ -175,7 +184,7 @@ describe('renderPageMap', () => {
   });
 
   it('keeps a surviving dot as the same marker rather than drawing a second one', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const { map } = await page(api, [{ place: ALWAYS }, { place: CAFE }]);
 
     map.setPlaces([{ place: CAFE }, { place: ALWAYS }]);
@@ -201,7 +210,7 @@ describe('renderPageMap', () => {
 
   it('tells the page once however often the key is rejected', async () => {
     const unavailable = vi.fn();
-    await page(createFakeNaverApi(), [{ place: ALWAYS }], { onUnavailable: unavailable });
+    await page(createFakeNaverApi(UNCLUSTERED), [{ place: ALWAYS }], { onUnavailable: unavailable });
 
     authFailureHook()?.();
     authFailureHook()?.();
@@ -212,9 +221,9 @@ describe('renderPageMap', () => {
 
   it('tells every page-map subscriber about the same rejected key', async () => {
     const unavailable = vi.fn();
-    await page(createFakeNaverApi(), [{ place: ALWAYS }], { onUnavailable: unavailable });
+    await page(createFakeNaverApi(UNCLUSTERED), [{ place: ALWAYS }], { onUnavailable: unavailable });
     const another = vi.fn();
-    await page(createFakeNaverApi(), [{ place: CAFE }], { onUnavailable: another });
+    await page(createFakeNaverApi(UNCLUSTERED), [{ place: CAFE }], { onUnavailable: another });
 
     authFailureHook()?.();
 
@@ -226,7 +235,7 @@ describe('renderPageMap', () => {
 
   it('releases the map and stops listening when the page releases it', async () => {
     const unavailable = vi.fn();
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const { map } = await page(api, [{ place: ALWAYS }], { onUnavailable: unavailable });
 
     map.release();
@@ -240,7 +249,7 @@ describe('renderPageMap', () => {
 
   it('goes straight to the fallback once the key has been rejected', async () => {
     const first = vi.fn();
-    const { map } = await page(createFakeNaverApi(), [{ place: ALWAYS }], { onUnavailable: first });
+    const { map } = await page(createFakeNaverApi(UNCLUSTERED), [{ place: ALWAYS }], { onUnavailable: first });
     authFailureHook()?.();
     map.release();
 
@@ -250,7 +259,7 @@ describe('renderPageMap', () => {
     await renderPageMap(root, [{ place: ALWAYS }], {
       loadApi: () => {
         loads += 1;
-        return Promise.resolve(createFakeNaverApi());
+        return Promise.resolve(createFakeNaverApi(UNCLUSTERED));
       },
       origin: ORIGIN,
       onUnavailable: second,
@@ -266,7 +275,7 @@ describe('renderPageMap', () => {
   });
 
   it('does nothing on setPlaces or recenter after a release', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const { map } = await page(api, [{ place: ALWAYS }, { place: CAFE }]);
 
     map.release();
@@ -283,7 +292,7 @@ describe('renderPageMap', () => {
   });
 
   it('releases the map and stops listening when the key is rejected after the mount', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const unavailable = vi.fn();
     const { map } = await page(api, [{ place: ALWAYS }, { place: CAFE }], { onUnavailable: unavailable });
 
@@ -341,7 +350,7 @@ describe('page map pin labels', () => {
   }
 
   it("prints each visible row's own label and leaves every other filtered place a dot", async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     await labelled(api, [{ place: ALWAYS, label: '1' }, { place: CAFE }]);
 
     // The pin carries the number the row printed, and nothing about the visit count: the label is
@@ -353,7 +362,7 @@ describe('page map pin labels', () => {
   });
 
   it('re-labels the marker it already has when a row\'s rank moves, rather than drawing a second', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const map = await labelled(api, [{ place: ALWAYS, label: '1' }, { place: CAFE }]);
 
     map.setPlaces([{ place: ALWAYS, label: '4' }, { place: CAFE }]);
@@ -365,7 +374,7 @@ describe('page map pin labels', () => {
   });
 
   it('drops a place back to a dot when its row leaves the visible set', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const map = await labelled(api, [{ place: ALWAYS, label: '1' }, { place: CAFE }]);
 
     // `더 보기` has not run, or the reader switched window and the row is gone: the place is still
@@ -378,7 +387,7 @@ describe('page map pin labels', () => {
   });
 
   it('stacks a pin above a dot, so a dense cluster cannot bury a rank', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     await labelled(api, [{ place: ALWAYS, label: '1' }, { place: CAFE }]);
 
     // Observed at 1440px around 오송: at the vendor's one default level, dots drawn after a pin
@@ -387,7 +396,7 @@ describe('page map pin labels', () => {
   });
 
   it('restacks a reused marker with its icon, on promotion and on demotion', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const map = await labelled(api, [{ place: ALWAYS, label: '1' }, { place: CAFE }]);
 
     // `더 보기` reuses the dot's marker, so a level set only at creation would keep it under the
@@ -398,7 +407,7 @@ describe('page map pin labels', () => {
   });
 
   it('never prints a label it was not handed', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     await labelled(api, [{ place: ALWAYS }]);
 
     // The module computes no rank, so with no label there is no number to invent — a rank of 1
@@ -407,7 +416,7 @@ describe('page map pin labels', () => {
   });
 
   it('escapes a label rather than injecting it as markup', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     await labelled(api, [{ place: ALWAYS, label: '<img src=x>' }]);
 
     // The pin body is injected as HTML into the map's own overlay layer, and `label` is the UI's
@@ -444,7 +453,7 @@ describe('page map highlight sync', () => {
   }
 
   it('puts the matching pin on its active icon and takes it off again', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const map = await withPins(api);
 
     map.highlight(ALWAYS.id);
@@ -456,7 +465,7 @@ describe('page map highlight sync', () => {
   });
 
   it('lifts the lit pin above the other pins and lets it back down', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const map = await withPins(api);
     map.setPlaces([{ place: ALWAYS, label: '1' }, { place: CAFE, label: '2' }]);
     const resting = pinFor(api, CAFE)?.zIndex;
@@ -471,7 +480,7 @@ describe('page map highlight sync', () => {
   });
 
   it('moves the highlight from one place to the next without leaving the first lit', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const map = await withPins(api);
 
     map.highlight(ALWAYS.id);
@@ -484,7 +493,7 @@ describe('page map highlight sync', () => {
   });
 
   it('keeps a labelled place lit across a filter change that kept it', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const map = await withPins(api);
     map.highlight(ALWAYS.id);
 
@@ -495,7 +504,7 @@ describe('page map highlight sync', () => {
   });
 
   it('drops the highlight when the row leaves the visible set, so it cannot come back lit', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const map = await withPins(api);
     map.highlight(ALWAYS.id);
 
@@ -509,7 +518,7 @@ describe('page map highlight sync', () => {
   });
 
   it('stops reporting once a pin is demoted to a dot', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const onPinHover = vi.fn();
     const map = await withPins(api, { onPinHover });
     const demoted = pinFor(api, ALWAYS)!;
@@ -526,7 +535,7 @@ describe('page map highlight sync', () => {
   });
 
   it('tells the page which pin the reader touched, so it can highlight that row', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const onPinHover = vi.fn();
     await withPins(api, { onPinHover });
 
@@ -540,7 +549,7 @@ describe('page map highlight sync', () => {
   });
 
   it('has no listener on a dot, because a place with no row has no row to light', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const onPinHover = vi.fn();
     await withPins(api, { onPinHover });
 
@@ -552,7 +561,7 @@ describe('page map highlight sync', () => {
   });
 
   it('gives a dot listeners when `더 보기` promotes it to a pin', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const onPinHover = vi.fn();
     const map = await withPins(api, { onPinHover });
 
@@ -565,7 +574,7 @@ describe('page map highlight sync', () => {
   });
 
   it('attaches the listeners once, so a re-ranking pin does not report twice', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const onPinHover = vi.fn();
     const map = await withPins(api, { onPinHover });
 
@@ -578,7 +587,7 @@ describe('page map highlight sync', () => {
   });
 
   it('does nothing on highlight after a release', async () => {
-    const api = createFakeNaverApi();
+    const api = createFakeNaverApi(UNCLUSTERED);
     const map = await withPins(api);
     map.release();
 
@@ -1021,6 +1030,230 @@ describe('page map framing', () => {
 
     expect(api.maps[0]?.fits).toHaveLength(1);
     expect(api.maps[0]?.pans).toHaveLength(1);
+  });
+});
+
+/**
+ * Dots that would stack at the current zoom are drawn as one `N곳` marker (`./cluster.ts`).
+ *
+ * `NEAR` sits half a pixel from `ALWAYS` at the zoom the page opens on, and `TWIN` on the same
+ * coordinate; `CAFE` is ~31px away, past the radius, so it stays a dot in every case below.
+ */
+describe('page map dot clusters', () => {
+  const ORIGIN = { lat: 36.6084, lng: 127.3582 };
+  const [ALWAYS, CAFE] = SAMPLE_DATASET.places as [PlaceRecord, PlaceRecord, ...PlaceRecord[]];
+  const NEAR: PlaceRecord = { ...CAFE, id: 'near-always', name: '바로 옆', lat: ALWAYS.lat, lng: ALWAYS.lng + 0.0001 };
+  const TWIN: PlaceRecord = { ...CAFE, id: 'twin-always', name: '같은 건물', lat: ALWAYS.lat, lng: ALWAYS.lng };
+  /** ~5.5km north: past any radius at the opening zoom, so it stays a dot in every case. */
+  const FAR: PlaceRecord = { ...CAFE, id: 'far-north', name: '먼 곳', lat: ALWAYS.lat + 0.05, lng: ALWAYS.lng };
+  /** The half-open mobile sheet, as in the framing cases. */
+  const SHEET = { top: 0, right: 0, bottom: 300, left: 0 };
+
+  async function clustered(
+    api: FakeNaverApi,
+    places: PageMapPlace[],
+  ): Promise<PageMapHandle> {
+    return renderPageMap(container(), places, {
+      loadApi: () => Promise.resolve(api),
+      origin: ORIGIN,
+      coveredInsets: () => SHEET,
+    });
+  }
+
+  const dotFor = (api: FakeNaverApi, place: PlaceRecord) =>
+    api.markers.find((candidate) => candidate.title === dotLabel(place));
+  const onMap = (api: FakeNaverApi, place: PlaceRecord) => dotFor(api, place)?.attached.at(-1) === api.maps[0];
+  /** Cluster markers still standing — the only markers titled with a count. */
+  const clusters = (api: FakeNaverApi) =>
+    api.markers.filter(
+      (candidate) => /^\d+곳$/.test(candidate.title ?? '') && candidate.attached.at(-1) === api.maps[0],
+    );
+
+  it('draws dots that would stack as one marker printing how many places it holds', async () => {
+    const api = createFakeNaverApi();
+    await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: FAR }]);
+
+    expect(onMap(api, ALWAYS)).toBe(false);
+    expect(onMap(api, NEAR)).toBe(false);
+    expect(onMap(api, FAR)).toBe(true);
+    expect(clusters(api)).toHaveLength(1);
+    expect(clusters(api)[0]?.title).toBe('2곳');
+    expect(clusters(api)[0]?.icon?.content).toBe(clusterMarkup(2));
+    expect(clusters(api)[0]?.icon?.content).toContain('2곳');
+    // On its seed, the first member in id order — `near-always` sorts before `restaurant_000001`.
+    expect(clusters(api)[0]?.options.position.lng()).toBe(NEAR.lng);
+  });
+
+  it('gives every cluster one size whatever it holds, and stacks it between dots and pins', async () => {
+    const api = createFakeNaverApi();
+    await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: TWIN }, { place: FAR, label: '1' }]);
+
+    const [cluster] = clusters(api);
+    expect(cluster?.title).toBe(clusterLabel(3));
+    const two = createFakeNaverApi();
+    await clustered(two, [{ place: ALWAYS }, { place: NEAR }]);
+    // A cluster that grew with its count would be the density scale Decision 1 rules out.
+    expect(cluster?.icon?.size).toEqual(clusters(two)[0]?.icon?.size);
+    expect(cluster?.icon?.anchor).toEqual(clusters(two)[0]?.icon?.anchor);
+    const pin = api.markers.find((candidate) => candidate.title === dotLabel(FAR));
+    expect(cluster?.zIndex).toBeGreaterThan(dotFor(api, ALWAYS)?.zIndex ?? Infinity);
+    expect(cluster?.zIndex).toBeLessThan(pin?.zIndex ?? -Infinity);
+  });
+
+  it('never folds a numbered pin into a cluster', async () => {
+    const api = createFakeNaverApi();
+    await clustered(api, [{ place: ALWAYS, label: '1' }, { place: NEAR }]);
+
+    expect(clusters(api)).toHaveLength(0);
+    expect(onMap(api, ALWAYS)).toBe(true);
+    expect(onMap(api, NEAR)).toBe(true);
+  });
+
+  it('dissolves a cluster when `더 보기` promotes a member to a pin', async () => {
+    const api = createFakeNaverApi();
+    const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }]);
+
+    map.setPlaces([{ place: ALWAYS, label: '1' }, { place: NEAR }]);
+
+    expect(clusters(api)).toHaveLength(0);
+    expect(onMap(api, ALWAYS)).toBe(true);
+    expect(onMap(api, NEAR)).toBe(true);
+  });
+
+  it('keeps the focused place out of any cluster, and folds it back when the detail closes', async () => {
+    const api = createFakeNaverApi();
+    const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }]);
+
+    map.focusPlace(NEAR);
+    expect(clusters(api)).toHaveLength(0);
+    expect(onMap(api, NEAR)).toBe(true);
+
+    map.focusPlace(null);
+    expect(clusters(api)).toHaveLength(1);
+    expect(onMap(api, NEAR)).toBe(false);
+  });
+
+  it('stacks the focused dot above a cluster that stands on its coordinate', async () => {
+    const api = createFakeNaverApi();
+    // `ALWAYS` focused leaves `NEAR` and `TWIN` to cluster on `NEAR`, half a pixel from it.
+    const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: TWIN }, { place: FAR }]);
+
+    map.focusPlace(ALWAYS);
+    expect(clusters(api)).toHaveLength(1);
+    expect(dotFor(api, ALWAYS)?.zIndex).toBeGreaterThan(clusters(api)[0]?.zIndex ?? Infinity);
+
+    map.focusPlace(null);
+    expect(dotFor(api, ALWAYS)?.zIndex).toBe(dotFor(api, FAR)?.zIndex);
+  });
+
+  it('settles what 학교로 owed when a cluster is clicked, so a later snap keeps the opened cluster', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = SHEET;
+    const map = await renderPageMap(container(), [{ place: ALWAYS }, { place: NEAR }, { place: FAR }], {
+      loadApi: () => Promise.resolve(api),
+      origin: ORIGIN,
+      coveredInsets: () => insets,
+    });
+    // 학교로 with no room to measure owes a campus re-centre at the next measured cover.
+    insets = null;
+    map.recenter();
+    insets = SHEET;
+    clusters(api)[0]?.emit('click');
+    const centres = api.maps[0]?.centers.length;
+
+    map.coverChanged();
+
+    expect(api.maps[0]?.centers).toHaveLength(centres ?? -1);
+  });
+
+  it('stops following the focused place once a cluster is clicked', async () => {
+    const api = createFakeNaverApi();
+    const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: TWIN }, { place: FAR }]);
+    map.focusPlace(FAR);
+    clusters(api)[0]?.emit('click');
+    const centres = api.maps[0]?.centers.length;
+
+    map.coverChanged();
+
+    expect(api.maps[0]?.centers).toHaveLength(centres ?? -1);
+  });
+
+  it('splits on a zoom change and regroups on the way back out', async () => {
+    const api = createFakeNaverApi();
+    await clustered(api, [{ place: ALWAYS }, { place: NEAR }]);
+    const fake = api.maps[0]!;
+
+    fake.zoom = 16;
+    fake.emit('zoom_changed');
+    expect(clusters(api)).toHaveLength(0);
+    expect(onMap(api, ALWAYS)).toBe(true);
+
+    fake.zoom = 13;
+    fake.emit('zoom_changed');
+    expect(clusters(api)).toHaveLength(1);
+    expect(onMap(api, ALWAYS)).toBe(false);
+  });
+
+  it('dissolves a cluster a filter change leaves with one member, and puts that dot back', async () => {
+    const api = createFakeNaverApi();
+    const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }]);
+
+    map.setPlaces([{ place: ALWAYS }]);
+
+    expect(clusters(api)).toHaveLength(0);
+    expect(onMap(api, ALWAYS)).toBe(true);
+  });
+
+  it('keeps an unchanged cluster as the same marker across a relabel elsewhere', async () => {
+    const api = createFakeNaverApi();
+    const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: FAR }]);
+    const before = clusters(api)[0];
+
+    map.setPlaces([{ place: ALWAYS }, { place: NEAR }, { place: FAR, label: '1' }]);
+
+    expect(clusters(api)).toEqual([before]);
+    expect(before?.attached.every((at) => at !== null)).toBe(true);
+  });
+
+  it('frames the members inside the uncovered map when a cluster is clicked', async () => {
+    const api = createFakeNaverApi();
+    await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: FAR }]);
+
+    clusters(api)[0]?.emit('click');
+
+    const fit = api.maps[0]?.fits.at(-1);
+    // In id order, as the cluster holds them: `near-always` sorts before `restaurant_000001`.
+    expect(fit?.coords.map((point) => [point.lat(), point.lng()])).toEqual([
+      [NEAR.lat, NEAR.lng],
+      [ALWAYS.lat, ALWAYS.lng],
+    ]);
+    expect(fit?.options).toEqual({ top: 32, right: 32, bottom: 632, left: 32, maxZoom: 16 });
+  });
+
+  it('zooms to where a fit stops for members sharing one coordinate, which dissolves them', async () => {
+    const api = createFakeNaverApi();
+    // `FAR` keeps the mount on `fitBounds`: a set of one coordinate is framed at zoom 16 already.
+    await clustered(api, [{ place: ALWAYS }, { place: TWIN }, { place: FAR }]);
+    expect(clusters(api)).toHaveLength(1);
+    const fits = api.maps[0]?.fits.length;
+
+    clusters(api)[0]?.emit('click');
+
+    expect(api.maps[0]?.fits).toHaveLength(fits ?? -1);
+    expect(api.maps[0]?.zooms.at(-1)).toBe(16);
+    expect(clusters(api)).toHaveLength(0);
+    expect(onMap(api, ALWAYS)).toBe(true);
+    expect(onMap(api, TWIN)).toBe(true);
+  });
+
+  it('takes cluster markers off the map on release', async () => {
+    const api = createFakeNaverApi();
+    const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }]);
+    const [cluster] = clusters(api);
+
+    map.release();
+
+    expect(cluster?.attached.at(-1)).toBeNull();
   });
 });
 

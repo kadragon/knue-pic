@@ -43,13 +43,12 @@
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
 
-## Review Backlog — found reviewing PR #72 (map-first shell, 2026-10-03)
+### PR #79 — Cluster overlapping page-map dots into fixed-size N곳 markers (2026-10-05)
 
-- [ ] [feat] Overlap is now observed on the real map, which is the condition
-  `docs/design/map-first-layout.md` → Implementation Decision 3 set for revisiting clustering: the
-  campus cluster stacks many dots on nearly the same block at zoom 13. Naver Maps v3 core has no
-  built-in clusterer (the commonly cited `MarkerClustering.js` is example code to vendor), so this is
-  a follow-up ticket, not a rider on the next one — `src/map/place-map.ts`
+- [ ] [debt] A numbered pin stands over any cluster whose seed shares its spot (pins outrank
+  clusters by design), so a 26px pin can hide a pill's `N곳` count. Treat pin boxes as obstacles
+  when seeding, or offset a cluster that lands under a pin (source: code-review) —
+  `src/map/place-map.ts:162` (introduced here)
 
 ## Someday
 

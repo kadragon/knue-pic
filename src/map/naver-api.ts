@@ -12,7 +12,8 @@
  * all read off that reference on 2026-10-03 rather than inferred
  * (`https://navermaps.github.io/maps.js.en/docs/naver.maps.Marker.html` for `setIcon`,
  * `https://navermaps.github.io/maps.js.en/docs/naver.maps.Event.html` for `addListener`;
- * `naver.maps.Event.addListener(map, 'click', …)` appears in the Markers tutorial itself).
+ * `naver.maps.Event.addListener(map, 'click', …)` appears in the Markers tutorial itself). `getZoom`
+ * and the map's `zoom_changed` came with dot clustering, each observed on the live bundle.
  *
  * The bounds surface went with the page-level map in PR #17; framing came back as `fitBounds` over
  * a plain coordinate array, so `LatLngBounds` itself still has no caller and no type here. A
@@ -55,6 +56,14 @@ export interface HtmlIcon {
  */
 // Marker click is documented at https://navermaps.github.io/maps.js.en/docs/naver.maps.Marker.html#event:click.
 export type MarkerEventName = 'mouseover' | 'mouseout' | 'click';
+
+/**
+ * The one map event the page map listens for: a zoom change regroups the dots (`./cluster.ts`).
+ * Observed on the live v3 bundle at `localhost:5173`, 2026-10-05: `setZoom(15)` on a zoom-13 map
+ * fired `zoom_changed` with `15`, then `idle`. The listener reads `getZoom()` rather than the
+ * argument, so the payload is not part of the type.
+ */
+export type MapEventName = 'zoom_changed';
 
 export interface MarkerOptions {
   position: LatLng;
@@ -106,11 +115,12 @@ export interface NaverMarker {
  * Named after the vendor's own static object rather than as a bare function, so the call site reads
  * as the reference does: `api.Event.addListener(marker, 'mouseover', …)`. The reference types
  * `target` as a bare `object`; it is narrowed to `NaverMarker` because the only target the page map
- * ever hands it is a marker, and a wider type here would be a claim about callers that do not exist.
+ * hands it is a marker, or the map for its zoom; a wider type would claim callers that do not exist.
  */
 export interface NaverEventApi {
   /** Returns a `MapEventListener` the app does not hold — it releases nothing on its own. */
   addListener(target: NaverMarker, eventName: MarkerEventName, listener: () => void): unknown;
+  addListener(target: NaverMap, eventName: MapEventName, listener: () => void): unknown;
 }
 
 /**
@@ -177,6 +187,12 @@ export interface NaverMap {
    * `setZoom(15)` then `getZoom()` returned `15`.
    */
   setZoom(zoom: number): void;
+
+  /**
+   * The current zoom level. Called on the live v3 bundle 2026-10-05: a map built at `zoom: 13`
+   * returned `13`, and `15` after `setZoom(15)`. What `./cluster.ts` groups the dots at.
+   */
+  getZoom(): number;
 }
 
 /** Constructors are exposed as values so a fake can supply plain functions. */
