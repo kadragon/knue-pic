@@ -68,7 +68,8 @@ shows `지도를 불러오지 못했습니다.` once at the top. Everything the 
    dots — in-house, not the vendored `MarkerClustering.js` example — by the cluster marker's own
    box on the Web Mercator plane, so no two cluster markers overlap. A cluster prints `N곳` (places,
    never visits) in one fixed-size pill; a numbered pin and the focused place stay out of every
-   cluster. Clicking one fits its members; from `FIT_MAX_ZOOM` in nothing clusters, so a click
+   cluster, and no cluster seeds where a pin's box would cover its count (a dot crowded under a pin
+   joins a cluster seeded clear of it, or stays a dot). Clicking one fits its members; from `FIT_MAX_ZOOM` in nothing clusters, so a click
    always opens it.
 4. **Detail inside the panel, URL hash state.** `#place=<id>` uses the canonical place id; an id
    absent from the dataset falls back to the list silently (the place left the rolling window).
