@@ -612,7 +612,15 @@ export async function renderPageMap(
             const entry = markers.get(id);
             return entry ? [entry.place] : [];
           });
-          if (members.length > 0) fitInto(members, coveredInsets() ?? NO_INSETS);
+          if (members.length === 0) return;
+          // The reader moved the view, as with `학교로`: nothing owed from before may pull it back,
+          // and a held focus stops being followed. The place itself still holds the frame.
+          following = false;
+          frameOwed = false;
+          campusOwed = false;
+          const insets = coveredInsets();
+          framedSides = insets === null ? null : coveredSides(insets);
+          fitInto(members, insets ?? NO_INSETS);
         });
       }
       for (const [key, marker] of clusterMarkers) {
@@ -635,9 +643,19 @@ export async function renderPageMap(
     const iconFor = (entry: PlacedMarker): HtmlIcon =>
       entry.label === null ? dotIcon(api) : pinIcon(api, entry.label, entry.active);
 
-    /** Follows the icon: every path that swaps one swaps the other through `restyle`. */
+    /**
+     * Follows the icon: every path that swaps one swaps the other through `restyle`. The focused
+     * place's dot stands with the pins, over the clusters: it is left out of every cluster, but a
+     * cluster of its neighbours can still stand on its coordinate.
+     */
     const zIndexFor = (entry: PlacedMarker): number =>
-      entry.label === null ? DOT_Z_INDEX : entry.active ? ACTIVE_PIN_Z_INDEX : PIN_Z_INDEX;
+      entry.label !== null
+        ? entry.active
+          ? ACTIVE_PIN_Z_INDEX
+          : PIN_Z_INDEX
+        : entry.place.id === focused?.id
+          ? PIN_Z_INDEX
+          : DOT_Z_INDEX;
 
     const restyle = (entry: PlacedMarker): void => {
       entry.marker.setIcon(iconFor(entry));
@@ -784,8 +802,14 @@ export async function renderPageMap(
       },
       focusPlace: (place) => {
         if (!live) return;
+        const previous = focused;
         focused = place;
         following = place !== null;
+        // Restacked before regrouping, both ways: the dot that loses focus drops back under clusters.
+        for (const id of new Set([previous?.id, place?.id])) {
+          const entry = id === undefined ? undefined : markers.get(id);
+          if (entry) restyle(entry);
+        }
         recluster();
         if (place) {
           campusOwed = false;

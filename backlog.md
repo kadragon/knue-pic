@@ -43,6 +43,13 @@
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
 
+### PR #79 — Cluster overlapping page-map dots into fixed-size N곳 markers (2026-10-05)
+
+- [ ] [debt] A numbered pin stands over any cluster whose seed shares its spot (pins outrank
+  clusters by design), so a 26px pin can hide a pill's `N곳` count. Treat pin boxes as obstacles
+  when seeding, or offset a cluster that lands under a pin (source: code-review) —
+  `src/map/place-map.ts:162` (introduced here)
+
 ## Someday
 
 - [x] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget

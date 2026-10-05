@@ -1133,6 +1133,51 @@ describe('page map dot clusters', () => {
     expect(onMap(api, NEAR)).toBe(false);
   });
 
+  it('stacks the focused dot above a cluster that stands on its coordinate', async () => {
+    const api = createFakeNaverApi();
+    // `ALWAYS` focused leaves `NEAR` and `TWIN` to cluster on `NEAR`, half a pixel from it.
+    const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: TWIN }, { place: FAR }]);
+
+    map.focusPlace(ALWAYS);
+    expect(clusters(api)).toHaveLength(1);
+    expect(dotFor(api, ALWAYS)?.zIndex).toBeGreaterThan(clusters(api)[0]?.zIndex ?? Infinity);
+
+    map.focusPlace(null);
+    expect(dotFor(api, ALWAYS)?.zIndex).toBe(dotFor(api, FAR)?.zIndex);
+  });
+
+  it('settles what 학교로 owed when a cluster is clicked, so a later snap keeps the opened cluster', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = SHEET;
+    const map = await renderPageMap(container(), [{ place: ALWAYS }, { place: NEAR }, { place: FAR }], {
+      loadApi: () => Promise.resolve(api),
+      origin: ORIGIN,
+      coveredInsets: () => insets,
+    });
+    // 학교로 with no room to measure owes a campus re-centre at the next measured cover.
+    insets = null;
+    map.recenter();
+    insets = SHEET;
+    clusters(api)[0]?.emit('click');
+    const centres = api.maps[0]?.centers.length;
+
+    map.coverChanged();
+
+    expect(api.maps[0]?.centers).toHaveLength(centres ?? -1);
+  });
+
+  it('stops following the focused place once a cluster is clicked', async () => {
+    const api = createFakeNaverApi();
+    const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: TWIN }, { place: FAR }]);
+    map.focusPlace(FAR);
+    clusters(api)[0]?.emit('click');
+    const centres = api.maps[0]?.centers.length;
+
+    map.coverChanged();
+
+    expect(api.maps[0]?.centers).toHaveLength(centres ?? -1);
+  });
+
   it('splits on a zoom change and regroups on the way back out', async () => {
     const api = createFakeNaverApi();
     await clustered(api, [{ place: ALWAYS }, { place: NEAR }]);
