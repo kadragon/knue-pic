@@ -1119,6 +1119,29 @@ describe('page map dot clusters', () => {
     expect(onMap(api, TWIN)).toBe(true);
   });
 
+  it('moves a cluster off a pin that lands on its seed, though its members stay the same', async () => {
+    const api = createFakeNaverApi();
+    /** `dx` screen pixels east of `ALWAYS` at the opening zoom, 13. */
+    const east = (id: string, dx: number): PlaceRecord => ({
+      ...CAFE,
+      id,
+      name: id,
+      lat: ALWAYS.lat,
+      lng: ALWAYS.lng + (dx * 360) / (256 * 2 ** 13),
+    });
+    // Id order a, b, c, x: `a` takes `x` in, `b` seeds 41px out and takes `c`. A pin on `x` sits
+    // 2px from `b`, so `b` can no longer seed: `c` seeds and `b` joins it — the same two members.
+    const [a, b, c, x] = [east('p-a', 0), east('p-b', 41), east('p-c', 75), east('p-x', 39)];
+    const map = await clustered(api, [{ place: a }, { place: b }, { place: c }, { place: x }]);
+    expect(clusters(api).map((cluster) => cluster.options.position.lng())).toContain(b.lng);
+
+    map.setPlaces([{ place: a }, { place: b }, { place: c }, { place: x, label: '1' }]);
+
+    expect(clusters(api)).toHaveLength(1);
+    expect(clusters(api)[0]?.title).toBe(clusterLabel(2));
+    expect(clusters(api)[0]?.options.position.lng()).toBe(c.lng);
+  });
+
   it('dissolves a cluster when `더 보기` promotes a member to a pin', async () => {
     const api = createFakeNaverApi();
     const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }]);

@@ -599,7 +599,9 @@ export async function renderPageMap(
       }
       const standing = new Set<string>();
       for (const cluster of clusters) {
-        const key = cluster.ids.join('\n');
+        // The seed is in the key: a pin can move the seed while the members stay, and a marker kept
+        // by members alone would stay on the old spot, under that pin.
+        const key = [`${cluster.lat},${cluster.lng}`, ...cluster.ids].join('\n');
         standing.add(key);
         if (clusterMarkers.has(key)) continue;
         const marker = new api.Marker({
