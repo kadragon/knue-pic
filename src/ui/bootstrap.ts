@@ -260,7 +260,12 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
         pageMap?.highlight(selection?.place.id ?? null);
       },
     });
-    selectFromMap = (placeId) => { selectPlace(placeId, activePeriod); };
+    selectFromMap = (placeId) => {
+      // The detail already shows this place, so the panel has nothing to repaint and reports no
+      // selection — but the reader may have pressed `학교로` since, and the pin asks for the place.
+      if (selectedDetail?.place.id === placeId) pageMap?.focusPlace(selectedDetail.place);
+      selectPlace(placeId, activePeriod);
+    };
 
     /** `null` when the selection is not in the dataset. */
     function currentDetail(placeId: string, basis: Period): PlaceDetail | null {

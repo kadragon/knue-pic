@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [done] Hold an open detail's frame through 학교로 and re-centre the campus once the sheet leaves room (2026-10-05)
 - [done] Frame co-located places, release focus on 학교로, re-frame on layout switch, coalesce resize (2026-10-05)
 - [done] Fit the page map to the filtered dots and keep a focused place clear of the panel and sheet (2026-10-04)
 - [done] Mobile map with keyboard and drag bottom-sheet controls (2026-10-04)
