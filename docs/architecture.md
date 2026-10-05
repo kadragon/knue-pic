@@ -43,7 +43,8 @@ src/                  # web app; browser-only code
                       #   (short-address.ts)
   map/                # loader.ts (script injection), naver-api.ts (hand-written API types),
                       #   place-map.ts (the page map's numbered pins and neutral dots,
-                      #   §38 fallback; reusable single-place renderer)
+                      #   §38 fallback; reusable single-place renderer),
+                      #   cluster.ts (pure: which dots one `N곳` marker stands in for)
   ui/                 # views, Korean strings
 data/places.json      # published dataset (generated — see below); also Vite's publicDir
 collector/            # Python; never imported by src/

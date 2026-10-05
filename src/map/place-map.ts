@@ -1,4 +1,5 @@
 import type { PlaceRecord } from '../data/types';
+import { clusterPoints } from './cluster';
 import { loadNaverMaps } from './loader';
 import type { FitBoundsOptions, HtmlIcon, NaverMap, NaverMarker, NaverMapsApi } from './naver-api';
 
@@ -10,7 +11,8 @@ import type { FitBoundsOptions, HtmlIcon, NaverMap, NaverMarker, NaverMapsApi } 
  * from the visit count (Implementation Decision 1) — the only thing that varies between one pin and
  * another is the rank string the row already printed, and the UI hands it in rather than this module
  * ranking anything. The marker set is id-keyed, so a row appearing, re-ranking or leaving costs a
- * `setIcon` rather than a second marker.
+ * `setIcon` rather than a second marker. Dots that would stack at the current zoom stand down behind
+ * one `N곳` marker (`./cluster.ts`); pins never do — a rank is never hidden behind a count.
  *
  * This module still derives no statistic of its own (`docs/architecture.md` → Layers): the campus
  * origin, the filtered set and the labels all arrive as arguments, and nothing here imports
@@ -149,14 +151,40 @@ const DOT_SIZE = 12;
 const PIN_SIZE = 26;
 
 /**
- * Stacking order among the page markers: a dot under every pin, the lit pin over the rest. At the
+ * Stacking order among the page markers: a dot under every cluster, a cluster under every pin — a
+ * rank is never buried under a count — and the lit pin over the rest. At the
  * vendor's one default level a dense cluster draws in creation order, and dots built after a pin
  * covered its number (observed at 1440px around 오송, 2026-10-03). Only the order is a decision;
  * the values are arbitrary steps.
  */
 const DOT_Z_INDEX = 1;
-const PIN_Z_INDEX = 2;
-const ACTIVE_PIN_Z_INDEX = 3;
+const CLUSTER_Z_INDEX = 2;
+const PIN_Z_INDEX = 3;
+const ACTIVE_PIN_Z_INDEX = 4;
+
+/**
+ * A cluster's whole text: how many places it stands for. `곳`, not a bare number, because a pin
+ * prints a bare number and that number is a rank — a cluster reading `7` would read as seventh.
+ */
+export function clusterLabel(count: number): string {
+  return `${count}곳`;
+}
+
+/** The cluster's body. Exported for the same reason as `pinLabelMarkup`. */
+export function clusterMarkup(count: number): string {
+  return `<span class="page-map-cluster">${clusterLabel(count)}</span>`;
+}
+
+/**
+ * One box for every cluster, wide enough for `525곳`. A cluster that grew with its count would be the
+ * density scale Implementation Decision 1 rules out.
+ *
+ * The box is also what `clusterPoints` groups by, so two clusters cannot stand on each other's
+ * label: a 24px radius let `11곳` cover `25곳` on the real map, and a 40px radius around a mean
+ * still overlapped four pairs (2026-10-05).
+ */
+const CLUSTER_WIDTH = 40;
+const CLUSTER_HEIGHT = 24;
 
 /**
  * The pin's body: the rank string the row printed, and nothing else.
@@ -251,8 +279,11 @@ export interface PageMapPlace {
  */
 interface PlacedMarker {
   marker: NaverMarker;
+  place: PlaceRecord;
   label: string | null;
   active: boolean;
+  /** `false` while a cluster stands in for this dot. */
+  shown: boolean;
 }
 
 export interface PageMapHandle {
@@ -342,6 +373,14 @@ function dotIcon(api: NaverMapsApi): HtmlIcon {
     content: '<span class="page-map-dot"></span>',
     size: new api.Size(DOT_SIZE, DOT_SIZE),
     anchor: new api.Point(DOT_SIZE / 2, DOT_SIZE / 2),
+  };
+}
+
+function clusterIcon(api: NaverMapsApi, count: number): HtmlIcon {
+  return {
+    content: clusterMarkup(count),
+    size: new api.Size(CLUSTER_WIDTH, CLUSTER_HEIGHT),
+    anchor: new api.Point(CLUSTER_WIDTH / 2, CLUSTER_HEIGHT / 2),
   };
 }
 
@@ -443,6 +482,8 @@ export async function renderPageMap(
       zoom: PAGE_ZOOM,
     });
     const markers = new Map<string, PlacedMarker>();
+    /** Cluster markers standing now, keyed by their member ids — an unchanged group keeps its marker. */
+    const clusterMarkers = new Map<string, NaverMarker>();
     /** The place the detail is showing; it holds the frame until the detail closes. */
     let focused: PlaceRecord | null = null;
     /**
@@ -484,22 +525,14 @@ export async function renderPageMap(
     };
 
     /**
-     * Frames the filtered set inside the uncovered part of the map. Every dot, the far ones
-     * included: the summary's `N곳` counts all of them, and a frame that left some off-screen would
-     * show fewer places than the line above it says.
+     * Fits `places` inside what `insets` leaves uncovered — the set's frame and a cluster click alike.
+     * Distinct coordinates, not places: two places in one building give bounds with no area, and
+     * `fitBounds` over those left the live map where it was, as it did for one place.
      */
-    const frame = (next: PageMapPlace[]): void => {
-      const insets = coveredInsets();
-      frameOwed = insets === null;
-      // The set is newer than any `학교로` still waiting for room.
-      campusOwed = false;
-      if (insets === null || next.length === 0) return;
-      framedSides = coveredSides(insets);
-      // Distinct coordinates, not places: two places in one building give bounds with no area, and
-      // `fitBounds` over those left the live map where it was, as it did for one place.
-      if (new Set(next.map(({ place }) => `${place.lat},${place.lng}`)).size === 1) {
+    const fitInto = (places: PlaceRecord[], insets: PageMapInsets): void => {
+      if (new Set(places.map((place) => `${place.lat},${place.lng}`)).size === 1) {
         // A lone place at the zoom a fit stops at, not at whatever region-wide zoom the last fit left.
-        const [{ place }] = next as [PageMapPlace];
+        const [place] = places as [PlaceRecord];
         map.setZoom(FIT_MAX_ZOOM);
         centreInView(place.lat, place.lng, insets);
         return;
@@ -513,10 +546,84 @@ export async function renderPageMap(
         maxZoom: FIT_MAX_ZOOM,
       };
       map.fitBounds(
-        next.map(({ place }) => new api.LatLng(place.lat, place.lng)),
+        places.map((place) => new api.LatLng(place.lat, place.lng)),
         margin,
       );
     };
+
+    /**
+     * Frames the filtered set inside the uncovered part of the map. Every dot, the far ones
+     * included: the summary's `N곳` counts all of them, and a frame that left some off-screen would
+     * show fewer places than the line above it says.
+     */
+    const frame = (next: PageMapPlace[]): void => {
+      const insets = coveredInsets();
+      frameOwed = insets === null;
+      // The set is newer than any `학교로` still waiting for room.
+      campusOwed = false;
+      if (insets === null || next.length === 0) return;
+      framedSides = coveredSides(insets);
+      fitInto(
+        next.map(({ place }) => place),
+        insets,
+      );
+    };
+
+    /**
+     * Regroups the dots for the current zoom: hides each dot a cluster now stands in for, brings back
+     * each one it no longer does, and keeps a cluster whose members did not change as the marker it
+     * was. Pins and the focused place are left out — a rank is never hidden behind a count, and the
+     * place the detail shows must stay where the reader can see it.
+     */
+    const recluster = (): void => {
+      const dots = [...markers]
+        .filter(([id, entry]) => entry.label === null && id !== focused?.id)
+        .map(([id, { place }]) => ({ id, lat: place.lat, lng: place.lng }));
+      const { clusters } = clusterPoints(dots, map.getZoom(), {
+        width: CLUSTER_WIDTH,
+        height: CLUSTER_HEIGHT,
+        stopZoom: FIT_MAX_ZOOM,
+      });
+      const hidden = new Set(clusters.flatMap(({ ids }) => ids));
+      for (const [id, entry] of markers) {
+        const shown = !hidden.has(id);
+        if (entry.shown === shown) continue;
+        entry.shown = shown;
+        entry.marker.setMap(shown ? map : null);
+      }
+      const standing = new Set<string>();
+      for (const cluster of clusters) {
+        const key = cluster.ids.join('\n');
+        standing.add(key);
+        if (clusterMarkers.has(key)) continue;
+        const marker = new api.Marker({
+          position: new api.LatLng(cluster.lat, cluster.lng),
+          map,
+          title: clusterLabel(cluster.ids.length),
+          icon: clusterIcon(api, cluster.ids.length),
+          zIndex: CLUSTER_Z_INDEX,
+        });
+        clusterMarkers.set(key, marker);
+        // Opens the cluster up: fitting its members lands at most at `FIT_MAX_ZOOM`, where nothing
+        // clusters, so a click always leaves fewer dots behind one marker than before.
+        api.Event.addListener(marker, 'click', () => {
+          if (!live || clusterMarkers.get(key) !== marker) return;
+          const members = cluster.ids.flatMap((id) => {
+            const entry = markers.get(id);
+            return entry ? [entry.place] : [];
+          });
+          if (members.length > 0) fitInto(members, coveredInsets() ?? NO_INSETS);
+        });
+      }
+      for (const [key, marker] of clusterMarkers) {
+        if (standing.has(key)) continue;
+        marker.setMap(null);
+        clusterMarkers.delete(key);
+      }
+    };
+    api.Event.addListener(map, 'zoom_changed', () => {
+      if (live) recluster();
+    });
 
     /**
      * The icon a placed marker wears right now.
@@ -601,11 +708,12 @@ export async function renderPageMap(
           icon: nextLabel === null ? dotIcon(api) : pinIcon(api, nextLabel, false),
           zIndex: nextLabel === null ? DOT_Z_INDEX : PIN_Z_INDEX,
         });
-        const placed: PlacedMarker = { marker, label: nextLabel, active: false };
+        const placed: PlacedMarker = { marker, place, label: nextLabel, active: false, shown: true };
         markers.set(place.id, placed);
         listenToMarker(placed, place.id);
       }
       current = next;
+      recluster();
       // A focused place holds the frame; the change is owed, and paid when the detail closes.
       if (reframe) {
         if (focused === null) frame(next);
@@ -645,6 +753,8 @@ export async function renderPageMap(
       stopListening();
       for (const entry of markers.values()) entry.marker.setMap(null);
       markers.clear();
+      for (const marker of clusterMarkers.values()) marker.setMap(null);
+      clusterMarkers.clear();
       releaseMap(map);
     };
 
@@ -676,6 +786,7 @@ export async function renderPageMap(
         if (!live) return;
         focused = place;
         following = place !== null;
+        recluster();
         if (place) {
           campusOwed = false;
           showFocused();

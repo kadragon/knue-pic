@@ -2,6 +2,7 @@ import type {
   FitBoundsOptions,
   HtmlIcon,
   LatLng,
+  MapEventName,
   MapOptions,
   MarkerEventName,
   MarkerOptions,
@@ -57,6 +58,13 @@ export interface FakeMap extends NaverMap {
   readonly pans: Point[];
   /** Every `setZoom`, oldest first. */
   readonly zooms: number[];
+  /**
+   * Fires a map event the way the API would. `setZoom` to a new level emits `zoom_changed` itself,
+   * as the live bundle does; this is for a zoom the reader made, which the fake has no wheel for.
+   */
+  emit(eventName: MapEventName): void;
+  /** The level `getZoom` answers — the construction zoom, then every `setZoom`. */
+  zoom: number;
 }
 
 export interface FakeNaverApi extends NaverMapsApi {
@@ -64,15 +72,28 @@ export interface FakeNaverApi extends NaverMapsApi {
   readonly markers: FakeMarker[];
 }
 
-export function createFakeNaverApi(): FakeNaverApi {
+export interface FakeNaverApiOptions {
+  /**
+   * The level every map built from this fake starts at, in place of the one it was built with — a
+   * reader already zoomed in. Suites about individual markers pass a zoom past clustering, so their
+   * fixture places stay dots however close the fixture put them.
+   */
+  zoom?: number;
+}
+
+export function createFakeNaverApi(fakeOptions: FakeNaverApiOptions = {}): FakeNaverApi {
   const maps: FakeMap[] = [];
   const markers: FakeMarker[] = [];
   /** The listeners `Event.addListener` registered, oldest first — one bucket per target. */
-  const listeners = new Map<NaverMarker, Map<MarkerEventName, (() => void)[]>>();
+  type EventName = MarkerEventName | MapEventName;
+  const listeners = new Map<NaverMarker | NaverMap, Map<EventName, (() => void)[]>>();
+  const fire = (target: NaverMarker | NaverMap, eventName: EventName): void => {
+    for (const listener of listeners.get(target)?.get(eventName) ?? []) listener();
+  };
 
   const Event = {
-    addListener(target: NaverMarker, eventName: MarkerEventName, listener: () => void): unknown {
-      const forTarget = listeners.get(target) ?? new Map<MarkerEventName, (() => void)[]>();
+    addListener(target: NaverMarker | NaverMap, eventName: EventName, listener: () => void): unknown {
+      const forTarget = listeners.get(target) ?? new Map<EventName, (() => void)[]>();
       listeners.set(target, forTarget);
       const forEvent = forTarget.get(eventName) ?? [];
       forTarget.set(eventName, forEvent);
@@ -118,10 +139,12 @@ export function createFakeNaverApi(): FakeNaverApi {
       readonly fits: { coords: LatLng[]; options: FitBoundsOptions | undefined }[] = [];
       readonly pans: Point[] = [];
       readonly zooms: number[] = [];
+      zoom: number;
       constructor(
         readonly element: HTMLElement,
         readonly options: MapOptions,
       ) {
+        this.zoom = fakeOptions.zoom ?? options.zoom;
         // The centre the map was built at is a move too, so `학교로` after a pan and `학교로` on a
         // map that has not moved cannot be told apart by reading `centers[0]` alone.
         this.centers.push(options.center);
@@ -138,6 +161,15 @@ export function createFakeNaverApi(): FakeNaverApi {
       }
       setZoom(zoom: number): void {
         this.zooms.push(zoom);
+        if (zoom === this.zoom) return;
+        this.zoom = zoom;
+        fire(this, 'zoom_changed');
+      }
+      getZoom(): number {
+        return this.zoom;
+      }
+      emit(eventName: MapEventName): void {
+        fire(this, eventName);
       }
       destroy(): void {
         this.destroyCalls += 1;
@@ -167,7 +199,7 @@ export function createFakeNaverApi(): FakeNaverApi {
         this.zIndex = zIndex;
       }
       emit(eventName: MarkerEventName): void {
-        for (const listener of listeners.get(this)?.get(eventName) ?? []) listener();
+        fire(this, eventName);
       }
     },
     Event,

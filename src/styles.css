@@ -1291,7 +1291,7 @@ button.top-place-body,
 }
 
 /*
- * Two markers, and the difference between them is the only thing a row says about its place.
+ * Two place markers, and the difference between them is the only thing a row says about its place.
  *
  * A dot is a place that passes the filters with no row on screen, so it prints nothing; a pin is a
  * place the list is showing, and prints that row's own rank. No size, shade or hue from the visit
@@ -1306,6 +1306,31 @@ button.top-place-body,
   border-radius: var(--radius-full);
   background: var(--accent);
   box-shadow: 0 0 0 2px var(--canvas), rgba(0, 0, 0, 0.25) 0 1px 3px;
+}
+
+/*
+ * Several dots that would stack at this zoom, drawn as one: how many places, never how often.
+ *
+ * A pill rather than a circle and `N곳` rather than a bare number, so it cannot be read as a pin's
+ * rank. One box for every count (`src/map/place-map.ts` → `CLUSTER_WIDTH`), for the reason the pin
+ * keeps one size. The dot's ring and shadow, because it stands for dots.
+ */
+.page-map-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  box-shadow: 0 0 0 2px var(--canvas), rgba(0, 0, 0, 0.25) 0 1px 3px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
 }
 
 /*

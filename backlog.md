@@ -43,14 +43,6 @@
   predates the field and gains it at the next `data/YYYY-MM` build. The finer filter was left out:
   the 상세 분류 select still lists `category`)*
 
-## Review Backlog — found reviewing PR #72 (map-first shell, 2026-10-03)
-
-- [ ] [feat] Overlap is now observed on the real map, which is the condition
-  `docs/design/map-first-layout.md` → Implementation Decision 3 set for revisiting clustering: the
-  campus cluster stacks many dots on nearly the same block at zoom 13. Naver Maps v3 core has no
-  built-in clusterer (the commonly cited `MarkerClustering.js` is example code to vendor), so this is
-  a follow-up ticket, not a rider on the next one — `src/map/place-map.ts`
-
 ## Someday
 
 - [x] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget
