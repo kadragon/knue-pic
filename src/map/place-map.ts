@@ -279,7 +279,8 @@ export interface PageMapHandle {
    *
    * Stops following a focused place and drops any frame it held: the reader asked for the campus,
    * and a later snap or resize must not pull the map back to the place they left. The place itself
-   * still holds the frame while the detail shows it, so a filter change stays owed until it closes.
+   * still holds the frame while the detail shows it, so a filter change after the press stays owed
+   * until it closes.
    * With no room to measure, the campus is re-centred at the next `coverChanged` that has some.
    */
   recenter(): void;
@@ -451,11 +452,14 @@ export async function renderPageMap(
     let following = false;
     /** The set last drawn. */
     let current: PageMapPlace[] = places;
+    /** Whether the set's frame is still owed — held by a focus, or by no room to frame into. */
+    let frameOwed = false;
     /**
-     * A layout still owed: the set's frame, held by a focus or by no room; or the campus, pressed by
-     * `학교로` with no room to centre it in. Whichever the reader asked for last wins.
+     * Whether `학교로` is still owed a centring in the uncovered part: pressed with no room to measure.
+     * Separate from `frameOwed` because the two fall due at different moments — the campus at the
+     * next measured cover, a held frame when the detail closes.
      */
-    let owed: 'frame' | 'campus' | null = null;
+    let campusOwed = false;
     /**
      * The `coveredSides` the view was last laid out inside — by a frame, or by `학교로`. `null` while
      * unknown (no frame yet, or `학교로` with no room to measure); the next measured cover adopts it.
@@ -486,7 +490,9 @@ export async function renderPageMap(
      */
     const frame = (next: PageMapPlace[]): void => {
       const insets = coveredInsets();
-      owed = insets === null ? 'frame' : null;
+      frameOwed = insets === null;
+      // The set is newer than any `학교로` still waiting for room.
+      campusOwed = false;
       if (insets === null || next.length === 0) return;
       framedSides = coveredSides(insets);
       // Distinct coordinates, not places: two places in one building give bounds with no area, and
@@ -603,7 +609,7 @@ export async function renderPageMap(
       // A focused place holds the frame; the change is owed, and paid when the detail closes.
       if (reframe) {
         if (focused === null) frame(next);
-        else owed = 'frame';
+        else frameOwed = true;
       }
     };
 
@@ -615,7 +621,7 @@ export async function renderPageMap(
 
     /** Centres the campus in what the page leaves visible, and lays the view out for that cover. */
     const showCampus = (insets: PageMapInsets): void => {
-      owed = null;
+      campusOwed = false;
       framedSides = coveredSides(insets);
       centreInView(origin.lat, origin.lng, insets);
     };
@@ -650,6 +656,9 @@ export async function renderPageMap(
         // `focused` stays: the detail still shows the place, so it still holds the frame. Only the
         // view lets go, and a later snap must not pull it back to the place the reader left.
         following = false;
+        // A frame owed so far is dropped — the reader asked for the campus. A filter change after the
+        // press is a newer request, and is owed again until the detail closes.
+        frameOwed = false;
         const insets = coveredInsets();
         // The campus is now what the view is laid out for: a layout switch made while a place was
         // focused must not read, at the next snap, as one still owed.
@@ -658,8 +667,8 @@ export async function renderPageMap(
           return;
         }
         // No room to measure: centre on the whole map now, and again above the sheet when it
-        // comes down. A frame owed before the press is dropped — the reader asked for the campus.
-        owed = 'campus';
+        // comes down.
+        campusOwed = true;
         framedSides = null;
         centreInView(origin.lat, origin.lng, NO_INSETS);
       },
@@ -668,9 +677,9 @@ export async function renderPageMap(
         focused = place;
         following = place !== null;
         if (place) {
-          if (owed === 'campus') owed = null;
+          campusOwed = false;
           showFocused();
-        } else if (owed === 'frame' || (owed === null && layoutSwitched(coveredInsets()))) {
+        } else if (frameOwed || (!campusOwed && layoutSwitched(coveredInsets()))) {
           frame(current);
         }
       },
@@ -679,9 +688,11 @@ export async function renderPageMap(
         const insets = coveredInsets();
         if (insets && framedSides === null) framedSides = coveredSides(insets);
         if (focused && following) showFocused();
-        else if (owed === 'campus') {
+        // After `학교로` the campus is the view, open detail or not: an owed press or a layout switch
+        // re-centres it for the new cover. A held frame waits for the detail to close.
+        else if (campusOwed || (focused && layoutSwitched(insets))) {
           if (insets) showCampus(insets);
-        } else if (!focused && (owed === 'frame' || layoutSwitched(insets))) {
+        } else if (!focused && (frameOwed || layoutSwitched(insets))) {
           frame(current);
         }
       },

@@ -801,10 +801,47 @@ describe('page map framing', () => {
 
     map.recenter();
     map.focusPlace(CAFE);
+    map.focusPlace(null);
     insets = SHEET;
+    const centred = api.maps[0]?.centers.length;
     map.coverChanged();
 
-    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAFE.lat);
+    expect(api.maps[0]?.centers, 'the reader went to a place after 학교로').toHaveLength(centred ?? -1);
+  });
+
+  it('pays an owed campus re-centre on the snap even when a filter change also owes a frame', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = SHEET;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    insets = null;
+    map.recenter();
+    map.setPlaces([{ place: CAFE }, { place: THIRD }]);
+
+    insets = SHEET;
+    map.coverChanged();
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+    expect(pans(api)?.at(-1)).toEqual([0, 150]);
+
+    map.focusPlace(null);
+    expect(api.maps[0]?.fits, 'the filter change is still paid when the detail closes').toHaveLength(2);
+  });
+
+  it('re-centres the campus on a layout switch after 학교로 with the detail open, and owes no frame for it', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets = { top: 196, right: 0, bottom: 0, left: 360 };
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    map.recenter();
+    insets = SHEET;
+    map.coverChanged();
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+    expect(pans(api)?.at(-1)).toEqual([0, 150]);
+
+    map.focusPlace(null);
+    expect(api.maps[0]?.fits, 'the campus is laid out for the new cover').toHaveLength(1);
   });
 
   it('owes nothing for a layout switch undone before the detail closes', async () => {
