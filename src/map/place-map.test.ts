@@ -741,6 +741,109 @@ describe('page map framing', () => {
     expect(api.maps[0]?.fits).toHaveLength(1);
   });
 
+  it('holds the open detail\'s frame through 학교로: a filter change is owed until the detail closes', async () => {
+    const api = createFakeNaverApi();
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }]);
+
+    map.focusPlace(CAFE);
+    map.recenter();
+    // The detail still shows CAFE: 학교로 moved the view, not the selection.
+    map.setPlaces([{ place: CAFE }, { place: THIRD }]);
+    expect(api.maps[0]?.fits, 'the detail is still open').toHaveLength(1);
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+
+    map.focusPlace(null);
+    expect(api.maps[0]?.fits).toHaveLength(2);
+    expect(coords(api)).toEqual([
+      [CAFE.lat, CAFE.lng],
+      [THIRD.lat, THIRD.lng],
+    ]);
+  });
+
+  it('follows the place again once the reader returns to it after 학교로', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets = SHEET;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    map.recenter();
+    map.focusPlace(CAFE);
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAFE.lat);
+
+    insets = { top: 0, right: 0, bottom: 104, left: 0 };
+    map.coverChanged();
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAFE.lat);
+    expect(pans(api)?.at(-1)).toEqual([0, 52]);
+  });
+
+  it('owes 학교로 pressed with no room a re-centre above the sheet once it comes down', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = null;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.recenter();
+    expect(pans(api)?.at(-1), 'nothing to measure yet').toEqual([0, 0]);
+
+    insets = SHEET;
+    map.coverChanged();
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+    expect(pans(api)?.at(-1), 'the campus sits in the middle of what the sheet leaves').toEqual([0, 150]);
+
+    const centred = api.maps[0]?.centers.length;
+    map.coverChanged();
+    expect(api.maps[0]?.centers, 'paid once').toHaveLength(centred ?? -1);
+  });
+
+  it('drops an owed campus re-centre once the reader focuses a place', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = null;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.recenter();
+    map.focusPlace(CAFE);
+    map.focusPlace(null);
+    insets = SHEET;
+    const centred = api.maps[0]?.centers.length;
+    map.coverChanged();
+
+    expect(api.maps[0]?.centers, 'the reader went to a place after 학교로').toHaveLength(centred ?? -1);
+  });
+
+  it('pays an owed campus re-centre on the snap even when a filter change also owes a frame', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = SHEET;
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    insets = null;
+    map.recenter();
+    map.setPlaces([{ place: CAFE }, { place: THIRD }]);
+
+    insets = SHEET;
+    map.coverChanged();
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+    expect(pans(api)?.at(-1)).toEqual([0, 150]);
+
+    map.focusPlace(null);
+    expect(api.maps[0]?.fits, 'the filter change is still paid when the detail closes').toHaveLength(2);
+  });
+
+  it('re-centres the campus on a layout switch after 학교로 with the detail open, and owes no frame for it', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets = { top: 196, right: 0, bottom: 0, left: 360 };
+    const map = await framed(api, [{ place: ALWAYS }, { place: CAFE }], () => insets);
+
+    map.focusPlace(CAFE);
+    map.recenter();
+    insets = SHEET;
+    map.coverChanged();
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+    expect(pans(api)?.at(-1)).toEqual([0, 150]);
+
+    map.focusPlace(null);
+    expect(api.maps[0]?.fits, 'the campus is laid out for the new cover').toHaveLength(1);
+  });
+
   it('owes nothing for a layout switch undone before the detail closes', async () => {
     const api = createFakeNaverApi();
     const DESKTOP = { top: 196, right: 0, bottom: 0, left: 360 };

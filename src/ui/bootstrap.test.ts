@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATASET } from '../data/fixtures/sample-dataset';
-import type { Period } from '../data/types';
+import type { Period, PlaceRecord } from '../data/types';
 import type { FakeMarker, FakeNaverApi } from '../map/fake-naver-api';
 import { createFakeNaverApi } from '../map/fake-naver-api';
 import {
@@ -815,6 +815,23 @@ describe('bootstrap page map', () => {
     };
     return { handle, renderMap, options: () => given };
   }
+
+  it('re-focuses the map on a pin click for the place the detail already shows', async () => {
+    const root = document.createElement('div');
+    const map = countingMap();
+    await bootstrap(root, { load: () => Promise.resolve(SAMPLE_DATASET), renderMap: map.renderMap });
+    await flush();
+
+    firstRow(root, '1y')?.click();
+    const [open] = map.handle.focusPlace.mock.calls.at(-1) as [PlaceRecord];
+    expect(open).not.toBeNull();
+    // 학교로 moved the view off the place; the panel still shows it, so `show()` has nothing to
+    // repaint — the click must still reach the map.
+    map.handle.focusPlace.mockClear();
+    map.options()?.onSelect?.(open.id);
+
+    expect(map.handle.focusPlace).toHaveBeenCalledExactlyOnceWith(open);
+  });
 
   it('tells the map about a burst of resizes once per animation frame', async () => {
     const root = document.createElement('div');
