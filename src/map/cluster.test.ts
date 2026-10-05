@@ -110,4 +110,54 @@ describe('clusterPoints', () => {
       }
     }
   });
+
+  /** A numbered pin's box, as the page map hands it in: 26px square on its place. */
+  const PIN = 26;
+  const pinAt = (lng: number, lat = ORIGIN.lat) => ({ lat, lng, width: PIN, height: PIN });
+
+  it('stands no cluster where its box would overlap an obstacle', () => {
+    const { clusters, singles } = clusterPoints(
+      [point('a', ORIGIN.lng), point('b', eastBy(1, 13))],
+      13,
+      { ...OPTIONS, obstacles: [pinAt(ORIGIN.lng)] },
+    );
+    expect(clusters).toEqual([]);
+    expect(singles).toEqual(['a', 'b']);
+  });
+
+  it('lets a point under an obstacle join a cluster seeded clear of it', () => {
+    // Half a cluster plus half a pin is 33px: `b` at 34px seeds clear of the pin and takes `a` in,
+    // though `a` comes first in id order.
+    const { clusters } = clusterPoints(
+      [point('a', ORIGIN.lng), point('b', eastBy(34, 13)), point('c', eastBy(36, 13))],
+      13,
+      { ...OPTIONS, obstacles: [pinAt(ORIGIN.lng)] },
+    );
+    expect(clusters).toEqual([{ ids: ['a', 'b', 'c'], lat: ORIGIN.lat, lng: eastBy(34, 13) }]);
+  });
+
+  it('never stands a cluster over an obstacle, on a dense random field', () => {
+    let seed = 11;
+    const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const scatter = () => ({ lng: ORIGIN.lng + (random() - 0.5) * 0.2, lat: ORIGIN.lat + (random() - 0.5) * 0.15 });
+    const field = Array.from({ length: 500 }, (_, index) => {
+      const { lat, lng } = scatter();
+      return point(`p${String(index).padStart(3, '0')}`, lng, lat);
+    });
+    const pins = Array.from({ length: 30 }, () => {
+      const { lat, lng } = scatter();
+      return pinAt(lng, lat);
+    });
+    const { clusters } = clusterPoints(field, 13, { ...OPTIONS, obstacles: pins });
+    expect(clusters.length).toBeGreaterThan(3);
+    for (const cluster of clusters) {
+      const at = worldPixel(cluster.lat, cluster.lng, 13);
+      for (const pin of pins) {
+        const of = worldPixel(pin.lat, pin.lng, 13);
+        expect(
+          Math.abs(at.x - of.x) >= (WIDTH + PIN) / 2 || Math.abs(at.y - of.y) >= (HEIGHT + PIN) / 2,
+        ).toBe(true);
+      }
+    }
+  });
 });

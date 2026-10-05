@@ -1109,6 +1109,16 @@ describe('page map dot clusters', () => {
     expect(onMap(api, NEAR)).toBe(true);
   });
 
+  it('stands no cluster under a numbered pin, where the pin would cover its count', async () => {
+    const api = createFakeNaverApi();
+    // `NEAR` and `TWIN` would cluster on `NEAR`, half a pixel from the pin on `ALWAYS`.
+    await clustered(api, [{ place: ALWAYS, label: '1' }, { place: NEAR }, { place: TWIN }]);
+
+    expect(clusters(api)).toHaveLength(0);
+    expect(onMap(api, NEAR)).toBe(true);
+    expect(onMap(api, TWIN)).toBe(true);
+  });
+
   it('dissolves a cluster when `더 보기` promotes a member to a pin', async () => {
     const api = createFakeNaverApi();
     const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }]);

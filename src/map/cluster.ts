@@ -28,6 +28,17 @@ export interface Cluster {
   lng: number;
 }
 
+/**
+ * A marker that outranks every cluster in the stacking order — a numbered pin — as a box of screen
+ * pixels centred on its coordinate. A cluster standing on it would have its count covered.
+ */
+export interface ClusterObstacle {
+  lat: number;
+  lng: number;
+  width: number;
+  height: number;
+}
+
 export interface Clustering {
   clusters: Cluster[];
   /** The ids drawn as themselves, ascending. */
@@ -62,6 +73,11 @@ export function worldPixel(lat: number, lng: number, zoom: number): { x: number;
  * seed cannot cover another's label. Id order rather than input order, so the same filtered set
  * groups the same way however the list happened to hand it over.
  *
+ * No cluster seeds where its box would overlap one of `options.obstacles`: a point that sits too
+ * close to a pin to seed waits until every seed is down, then joins the first cluster in reach or
+ * stays a dot — under the pin, a dot hides nothing a reader needed, a count would. Two such points
+ * never group with each other, so one block crowded around a pin draws as dots, not as a smear.
+ *
  * From `options.stopZoom` in, nothing groups. The page map hands in the zoom its fits stop at, so a cluster
  * click — which fits the members — always lands on a zoom where the cluster is gone, even when its
  * members share one coordinate.
@@ -69,31 +85,51 @@ export function worldPixel(lat: number, lng: number, zoom: number): { x: number;
 export function clusterPoints(
   points: ClusterPoint[],
   zoom: number,
-  options: { width: number; height: number; stopZoom: number },
+  options: { width: number; height: number; stopZoom: number; obstacles?: ClusterObstacle[] },
 ): Clustering {
-  const { width, height, stopZoom } = options;
+  const { width, height, stopZoom, obstacles = [] } = options;
   const ordered = [...points].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   if (zoom >= stopZoom) return { clusters: [], singles: ordered.map((point) => point.id) };
 
+  const blocked = obstacles.map((obstacle) => ({
+    at: worldPixel(obstacle.lat, obstacle.lng, zoom),
+    reachX: (width + obstacle.width) / 2,
+    reachY: (height + obstacle.height) / 2,
+  }));
+  const canSeed = (at: { x: number; y: number }): boolean =>
+    !blocked.some(
+      (obstacle) =>
+        Math.abs(obstacle.at.x - at.x) < obstacle.reachX && Math.abs(obstacle.at.y - at.y) < obstacle.reachY,
+    );
+
   const groups: { seed: { x: number; y: number }; members: [ClusterPoint, ...ClusterPoint[]] }[] = [];
+  const reach = (at: { x: number; y: number }) =>
+    groups.find(({ seed }) => Math.abs(seed.x - at.x) < width && Math.abs(seed.y - at.y) < height);
+  const waiting: { point: ClusterPoint; at: { x: number; y: number } }[] = [];
   for (const point of ordered) {
     const at = worldPixel(point.lat, point.lng, zoom);
-    const group = groups.find(
-      ({ seed }) => Math.abs(seed.x - at.x) < width && Math.abs(seed.y - at.y) < height,
-    );
+    const group = reach(at);
     if (group) group.members.push(point);
-    else groups.push({ seed: at, members: [point] });
+    else if (canSeed(at)) groups.push({ seed: at, members: [point] });
+    else waiting.push({ point, at });
+  }
+
+  const singles: string[] = [];
+  for (const { point, at } of waiting) {
+    const group = reach(at);
+    if (group) group.members.push(point);
+    else singles.push(point.id);
   }
 
   const clusters: Cluster[] = [];
-  const singles: string[] = [];
   for (const { members } of groups) {
     const [seed] = members;
     if (members.length === 1) {
       singles.push(seed.id);
       continue;
     }
-    clusters.push({ ids: members.map((member) => member.id), lat: seed.lat, lng: seed.lng });
+    const ids = members.map((member) => member.id).sort();
+    clusters.push({ ids, lat: seed.lat, lng: seed.lng });
   }
   singles.sort();
   return { clusters, singles };

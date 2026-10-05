@@ -573,16 +573,22 @@ export async function renderPageMap(
      * Regroups the dots for the current zoom: hides each dot a cluster now stands in for, brings back
      * each one it no longer does, and keeps a cluster whose members did not change as the marker it
      * was. Pins and the focused place are left out — a rank is never hidden behind a count, and the
-     * place the detail shows must stay where the reader can see it.
+     * place the detail shows must stay where the reader can see it. Pins also keep clusters off
+     * their own spot: they stack above a cluster, so one standing there would lose its count.
      */
     const recluster = (): void => {
       const dots = [...markers]
         .filter(([id, entry]) => entry.label === null && id !== focused?.id)
         .map(([id, { place }]) => ({ id, lat: place.lat, lng: place.lng }));
+      // Every pin, shown or not: a pin never hides, so each one is standing on the map.
+      const obstacles = [...markers.values()]
+        .filter((entry) => entry.label !== null)
+        .map(({ place }) => ({ lat: place.lat, lng: place.lng, width: PIN_SIZE, height: PIN_SIZE }));
       const { clusters } = clusterPoints(dots, map.getZoom(), {
         width: CLUSTER_WIDTH,
         height: CLUSTER_HEIGHT,
         stopZoom: FIT_MAX_ZOOM,
+        obstacles,
       });
       const hidden = new Set(clusters.flatMap(({ ids }) => ids));
       for (const [id, entry] of markers) {
