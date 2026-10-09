@@ -219,7 +219,7 @@ describe('renderPageMap', () => {
     // After a pan, so this cannot pass on a map that was never moved at all.
     expect(centre()?.lat()).toBe(ORIGIN.lat);
     expect(centre()?.lng()).toBe(ORIGIN.lng);
-    expect(api.maps[0]?.centers).toHaveLength(2);
+    expect(api.maps[0]?.centers).toHaveLength(3);
   });
 
   it('takes the excluded dots off the map when the filtered set narrows', async () => {
@@ -341,7 +341,7 @@ describe('renderPageMap', () => {
       map.release();
     }).not.toThrow();
     expect(api.markers).toHaveLength(2);
-    expect(api.maps[0]?.centers).toHaveLength(1);
+    expect(api.maps[0]?.centers).toHaveLength(2);
   });
 
   it('releases the map and stops listening when the key is rejected after the mount', async () => {
@@ -671,23 +671,69 @@ describe('page map framing', () => {
   /** The half-open mobile sheet: 300px of a phone-height map under the panel. */
   const SHEET = { top: 0, right: 0, bottom: 300, left: 0 };
 
+  it.each([SHEET, { top: 196, right: 0, bottom: 0, left: 360 }])(
+    'opens around campus without fitting distant places, with cover %j',
+    async (insets) => {
+      const api = createFakeNaverApi();
+      await renderPageMap(container(), [{ place: ALWAYS }, { place: CAFE }], {
+        loadApi: () => Promise.resolve(api),
+        origin: ORIGIN,
+        coveredInsets: () => insets,
+      });
+      expect(api.maps[0]?.options.zoom).toBe(14);
+      expect(api.maps[0]?.fits).toHaveLength(0);
+      expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+      expect(api.maps[0]?.centers.at(-1)?.lng()).toBe(ORIGIN.lng);
+      expect(api.maps[0]?.pans).toEqual([
+        { x: (insets.right - insets.left) / 2, y: (insets.bottom - insets.top) / 2 },
+      ]);
+    },
+  );
+
+  it('keeps the opening campus view when room appears and the layout switches', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets | null = null;
+    const map = await renderPageMap(container(), [{ place: ALWAYS }, { place: CAFE }], {
+      loadApi: () => Promise.resolve(api),
+      origin: ORIGIN,
+      coveredInsets: () => insets,
+    });
+    expect(api.maps[0]?.fits).toHaveLength(0);
+    insets = SHEET;
+    map.coverChanged();
+    expect(api.maps[0]?.pans.at(-1)).toEqual({ x: 0, y: 150 });
+    insets = { top: 196, right: 0, bottom: 0, left: 360 };
+    map.coverChanged();
+    expect(api.maps[0]?.pans.at(-1)).toEqual({ x: -180, y: -98 });
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(ORIGIN.lat);
+    expect(api.maps[0]?.fits).toHaveLength(0);
+    expect(api.maps[0]?.zoom).toBe(14);
+    map.setPlaces([{ place: ALWAYS }, { place: THIRD }]);
+    expect(api.maps[0]?.fits).toHaveLength(1);
+  });
+
   async function framed(
     api: FakeNaverApi,
     places: PageMapPlace[],
     insets: () => PageMapInsets | null = () => SHEET,
   ): Promise<PageMapHandle> {
-    return renderPageMap(container(), places, {
+    // These transition tests start after an explicit filter change has framed the set.
+    const map = await renderPageMap(container(), [], {
       loadApi: () => Promise.resolve(api),
       origin: ORIGIN,
       coveredInsets: insets,
     });
+    api.maps[0]!.centers.splice(1);
+    api.maps[0]!.pans.length = 0;
+    map.setPlaces(places);
+    return map;
   }
 
   const coords = (api: FakeNaverApi, fit = -1) =>
     api.maps[0]?.fits.at(fit)?.coords.map((point) => [point.lat(), point.lng()]);
   const pans = (api: FakeNaverApi) => api.maps[0]?.pans.map(({ x, y }) => [x, y]);
 
-  it('frames every filtered dot on mount, reserving the covered edge at the vendor\'s 2x', async () => {
+  it('frames every filtered dot after a filter change, reserving the covered edge at the vendor\'s 2x', async () => {
     const api = createFakeNaverApi();
     await framed(api, [{ place: ALWAYS }, { place: CAFE, label: '1' }]);
 
@@ -1173,8 +1219,8 @@ describe('page map dot clusters', () => {
   });
 
   it('moves a cluster off a pin that lands on its seed, though its members stay the same', async () => {
-    const api = createFakeNaverApi();
-    /** `dx` screen pixels east of `ALWAYS` at the opening zoom, 13. */
+    const api = createFakeNaverApi({ zoom: 13 });
+    /** `dx` screen pixels east of `ALWAYS` at the fixture's zoom, 13. */
     const east = (id: string, dx: number): PlaceRecord => ({
       ...CAFE,
       id,
