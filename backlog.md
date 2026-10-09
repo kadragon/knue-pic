@@ -2,6 +2,10 @@
 
 ## Review Backlog
 
+### PR #83 — Opening campus view (2026-10-09)
+
+- [ ] [debt] Clear openingCampus after a cluster click so a later desktop/mobile layout switch respects the explored view; add a click-then-breakpoint test (source: codex) — src/map/place-map.ts:849 (introduced here)
+
 ### `fetch_disclosures.py` walk — sanctioned gaps left by the positional stop (2026-08-25)
 
 - [x] [debt] Three limits QA reproduced on PR #23 and the contract sanctioned, none of them
