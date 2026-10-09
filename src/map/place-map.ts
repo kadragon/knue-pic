@@ -2,6 +2,7 @@ import type { PlaceRecord } from '../data/types';
 import { clusterPoints } from './cluster';
 import { loadNaverMaps } from './loader';
 import type { FitBoundsOptions, HtmlIcon, NaverMap, NaverMarker, NaverMapsApi } from './naver-api';
+import { bindWheelZoom } from './wheel-zoom';
 
 /**
  * The page map fills the viewport behind a desktop panel or mobile sheet.
@@ -480,6 +481,7 @@ export async function renderPageMap(
     const map: NaverMap = new api.Map(canvas, {
       center: new api.LatLng(origin.lat, origin.lng),
       zoom: PAGE_ZOOM,
+      scrollWheel: false,
     });
     const markers = new Map<string, PlacedMarker>();
     /** Cluster markers standing now, keyed by their member ids — an unchanged group keeps its marker. */
@@ -774,8 +776,13 @@ export async function renderPageMap(
     };
 
     draw(places);
+    const stopWheelZoom = bindWheelZoom(canvas, (delta, x, y) => {
+      const origin = map.getProjection().fromOffsetToCoord(new api.Point(x, y));
+      map.zoomBy(delta, origin, !globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+    });
 
     mounted = () => {
+      stopWheelZoom();
       stopListening();
       for (const entry of markers.values()) entry.marker.setMap(null);
       markers.clear();

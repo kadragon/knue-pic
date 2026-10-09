@@ -87,6 +87,41 @@ describe('renderPageMap', () => {
     }
   });
 
+  it('owns canvas wheel zoom, animates at its pointer, and removes handling on release', async () => {
+    const api = createFakeNaverApi(UNCLUSTERED);
+    const { root, map } = await page(api);
+    const canvas = root.querySelector<HTMLElement>('.page-map-canvas')!;
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ left: 20, top: 40 } as DOMRect);
+    const wheel = () => new WheelEvent('wheel', { deltaY: -100, clientX: 100, clientY: 120, cancelable: true, bubbles: true });
+    const outside = wheel();
+    root.dispatchEvent(outside);
+    expect(outside.defaultPrevented).toBe(false);
+    expect(api.maps[0]?.wheelZooms).toHaveLength(0);
+    expect(api.maps[0]?.options.scrollWheel).toBe(false);
+    canvas.dispatchEvent(wheel());
+    const zoom = api.maps[0]?.wheelZooms[0];
+    expect(zoom?.delta).toBe(1);
+    expect(zoom?.effect).toBe(true);
+    expect(zoom?.origin.lat()).toBe(80);
+    expect(zoom?.origin.lng()).toBe(80);
+    map.release();
+    const released = wheel();
+    canvas.dispatchEvent(released);
+    expect(released.defaultPrevented).toBe(false);
+    expect(api.maps[0]?.wheelZooms).toHaveLength(1);
+  });
+
+  it('removes wheel handling when map authentication fails', async () => {
+    const api = createFakeNaverApi();
+    const { root } = await page(api);
+    const canvas = root.querySelector('.page-map-canvas')!;
+    (globalThis as { navermap_authFailure?: () => void }).navermap_authFailure?.();
+    const event = new WheelEvent('wheel', { deltaY: -100, cancelable: true });
+    canvas.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(api.maps[0]?.wheelZooms).toHaveLength(0);
+  });
+
   it('leaves the control already in the region standing', async () => {
     const api = createFakeNaverApi(UNCLUSTERED);
     const root = container();

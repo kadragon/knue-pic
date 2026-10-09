@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [done] Animate pointer-anchored map wheel zoom with normalized input and bounded burst speed (2026-10-09)
 - [done] Keep page-map clusters clear of numbered pins (2026-10-05) → docs/design/map-first-layout.md
 - [done] Cluster overlapping page-map dots into fixed-size N곳 markers (2026-10-05) → docs/design/map-first-layout.md
 - [done] Hold an open detail's frame through 학교로 and re-centre the campus once the sheet leaves room (2026-10-05)
