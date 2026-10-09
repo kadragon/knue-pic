@@ -750,7 +750,7 @@ describe('bootstrap page map', () => {
   const nextFrame = (): Promise<void> =>
     new Promise((resolve) => requestAnimationFrame(() => { resolve(); }));
 
-  it('opens on the campus, frames the dots beside the measured column, and returns there on demand', async () => {
+  it('opens on the campus beside the measured column and returns there on demand', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
     await bootstrap(root, {
@@ -764,10 +764,10 @@ describe('bootstrap page map', () => {
     await flush();
 
     expect(api.maps[0]?.options.center.lat()).toBe(CAMPUS_ORIGIN.lat);
-    // `mapCoveredInsets` reaches the map: 120px of masthead, 376px of column, plus the 16px gap on
-    // every side — each doubled for the vendor's half-margin fit.
-    expect(api.maps[0]?.fits).toHaveLength(1);
-    expect(api.maps[0]?.fits[0]?.options).toEqual({ top: 272, right: 32, bottom: 32, left: 784, maxZoom: 16 });
+    expect(api.maps[0]?.options.zoom).toBe(14);
+    expect(api.maps[0]?.fits).toHaveLength(0);
+    // Keep campus clear of the 120px masthead and 376px column on first load.
+    expect(api.maps[0]?.pans.at(-1)).toEqual({ x: -188, y: -60 });
 
     root.querySelector<HTMLButtonElement>('.map-recentre')?.click();
 
@@ -778,7 +778,7 @@ describe('bootstrap page map', () => {
     expect([pan?.x, pan?.y]).toEqual([-188, -60]);
   });
 
-  it('re-frames the dots above the sheet when the window crosses into the mobile layout', async () => {
+  it('keeps campus above the sheet when the opening view crosses into the mobile layout', async () => {
     const root = document.createElement('div');
     const api = createFakeNaverApi();
     await bootstrap(root, {
@@ -794,8 +794,10 @@ describe('bootstrap page map', () => {
     window.dispatchEvent(new Event('resize'));
     await nextFrame();
 
-    expect(api.maps[0]?.fits).toHaveLength(2);
-    expect(api.maps[0]?.fits[1]?.options).toEqual({ top: 32, right: 32, bottom: 632, left: 32, maxZoom: 16 });
+    expect(api.maps[0]?.fits).toHaveLength(0);
+    expect(api.maps[0]?.pans.at(-1)).toEqual({ x: 0, y: 150 });
+    expect(api.maps[0]?.centers.at(-1)?.lat()).toBe(CAMPUS_ORIGIN.lat);
+    expect(api.maps[0]?.centers.at(-1)?.lng()).toBe(CAMPUS_ORIGIN.lng);
   });
 
   /** A page map that only counts what the page tells it, and hands back the options it was given. */

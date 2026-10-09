@@ -216,10 +216,9 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * The zoom the map is built at, before the first fit replaces it — and the one it keeps when the
- * filtered set is empty and there is nothing to fit to.
+ * Opens on the campus neighbourhood; distant places remain available by panning or filtering.
  */
-const PAGE_ZOOM = 13;
+const PAGE_ZOOM = 14;
 
 /**
  * The frame stops zooming in here. A display choice, not a data claim: two places on one block
@@ -503,6 +502,8 @@ export async function renderPageMap(
      * next measured cover, a held frame when the detail closes.
      */
     let campusOwed = false;
+    /** The opening campus view survives a layout switch until a filter or selection replaces it. */
+    let openingCampus = true;
     /**
      * The `coveredSides` the view was last laid out inside — by a frame, or by `학교로`. `null` while
      * unknown (no frame yet, or `학교로` with no room to measure); the next measured cover adopts it.
@@ -559,6 +560,7 @@ export async function renderPageMap(
      * show fewer places than the line above it says.
      */
     const frame = (next: PageMapPlace[]): void => {
+      openingCampus = false;
       const insets = coveredInsets();
       frameOwed = insets === null;
       // The set is newer than any `학교로` still waiting for room.
@@ -698,7 +700,7 @@ export async function renderPageMap(
       });
     };
 
-    const draw = (next: PageMapPlace[]): void => {
+    const draw = (next: PageMapPlace[], fit = true): void => {
       if (!live) return;
       const wanted = new Set(next.map(({ place }) => place.id));
       // A relabel — `더 보기`, a row hovered — keeps the set; only a filter or window change moves
@@ -743,7 +745,7 @@ export async function renderPageMap(
       current = next;
       recluster();
       // A focused place holds the frame; the change is owed, and paid when the detail closes.
-      if (reframe) {
+      if (reframe && fit) {
         if (focused === null) frame(next);
         else frameOwed = true;
       }
@@ -775,7 +777,10 @@ export async function renderPageMap(
       }
     };
 
-    draw(places);
+    draw(places, false);
+    const initialInsets = coveredInsets();
+    if (initialInsets) showCampus(initialInsets);
+    else campusOwed = true;
     const stopWheelZoom = bindWheelZoom(canvas, (delta, x, y) => {
       const origin = map.getProjection().fromOffsetToCoord(new api.Point(x, y));
       map.zoomBy(delta, origin, !globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
@@ -817,6 +822,7 @@ export async function renderPageMap(
       },
       focusPlace: (place) => {
         if (!live) return;
+        if (place) openingCampus = false;
         const previous = focused;
         focused = place;
         following = place !== null;
@@ -840,7 +846,7 @@ export async function renderPageMap(
         if (focused && following) showFocused();
         // After `학교로` the campus is the view, open detail or not: an owed press or a layout switch
         // re-centres it for the new cover. A held frame waits for the detail to close.
-        else if (campusOwed || (focused && layoutSwitched(insets))) {
+        else if (campusOwed || ((focused || openingCampus) && layoutSwitched(insets))) {
           if (insets) showCampus(insets);
         } else if (!focused && (frameOwed || layoutSwitched(insets))) {
           frame(current);
