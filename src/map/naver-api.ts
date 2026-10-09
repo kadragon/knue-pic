@@ -143,9 +143,14 @@ export interface FitBoundsOptions {
 export interface MapOptions {
   center: LatLng;
   zoom: number;
+  scrollWheel?: boolean;
 }
 
 export interface NaverMap {
+  /** Official Map/MapSystemProjection reference, read 2026-10-09: canvas offsets to coordinates. */
+  getProjection(): { fromOffsetToCoord(offset: Point): LatLng };
+  /** Keeps the origin fixed while applying an animated relative zoom (official Map reference). */
+  zoomBy(deltaZoom: number, zoomOrigin: LatLng, effect: boolean): void;
   /**
    * Optional because this file only promises what the app has seen the API do, and nothing in this
    * repo has verified `destroy` against the live v3 bundle. A map that is dropped without one still

@@ -46,6 +46,7 @@ export interface FakeMarker extends NaverMarker {
 }
 
 export interface FakeMap extends NaverMap {
+  readonly wheelZooms: { delta: number; origin: LatLng; effect: boolean }[];
   readonly element: HTMLElement;
   readonly options: MapOptions;
   /** How often the map module released this instance; the real API leaks one otherwise. */
@@ -134,6 +135,15 @@ export function createFakeNaverApi(fakeOptions: FakeNaverApiOptions = {}): FakeN
       ) {}
     },
     Map: class implements FakeMap {
+      readonly wheelZooms: { delta: number; origin: LatLng; effect: boolean }[] = [];
+      getProjection(): { fromOffsetToCoord(offset: Point): LatLng } {
+        // Records canvas offsets as coordinates; intentionally models no geographic projection.
+        return { fromOffsetToCoord: (offset) => ({ lat: () => offset.y, lng: () => offset.x }) };
+      }
+      zoomBy(delta: number, origin: LatLng, effect: boolean): void {
+        this.wheelZooms.push({ delta, origin, effect });
+        this.setZoom(this.zoom + delta);
+      }
       destroyCalls = 0;
       readonly centers: LatLng[] = [];
       readonly fits: { coords: LatLng[]; options: FitBoundsOptions | undefined }[] = [];
