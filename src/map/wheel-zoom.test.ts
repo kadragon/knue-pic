@@ -36,12 +36,16 @@ describe('map wheel zoom', () => {
     expect(zoom).toHaveBeenCalledTimes(1);
   });
 
-  it.each([1, 2])('normalizes deltaMode %s', (deltaMode) => {
-    wheel(-3, { deltaMode });
-    expect(zoom).toHaveBeenCalledWith(1, 80, 70);
-  });
+  it.each([{ deltaMode: 1, deltaY: -2 }, { deltaMode: 2, deltaY: -0.05 }])(
+    'normalizes deltaMode $deltaMode before applying the pixel threshold', ({ deltaMode, deltaY }) => {
+      wheel(deltaY, { deltaMode });
+      expect(zoom).not.toHaveBeenCalled();
+      wheel(deltaY, { deltaMode });
+      expect(zoom).toHaveBeenCalledWith(1, 80, 70);
+    },
+  );
 
-  it('bounds a burst and never queues inertial input', () => {
+  it('bounds a burst and drops input received during the cooldown', () => {
     wheel(-100);
     for (let i = 0; i < 20; i++) { vi.advanceTimersByTime(5); wheel(-100); }
     expect(zoom).toHaveBeenCalledTimes(1);

@@ -111,6 +111,24 @@ describe('renderPageMap', () => {
     expect(api.maps[0]?.wheelZooms).toHaveLength(1);
   });
 
+  it('disables wheel animation when reduced motion is preferred', async () => {
+    const matchMedia = vi.fn(() => ({ matches: true }));
+    vi.stubGlobal('matchMedia', matchMedia);
+    try {
+      const api = createFakeNaverApi(UNCLUSTERED);
+      const { root, map } = await page(api);
+      root.querySelector('.page-map-canvas')!.dispatchEvent(
+        new WheelEvent('wheel', { deltaY: -100, cancelable: true }),
+      );
+      expect(matchMedia).toHaveBeenCalledWith('(prefers-reduced-motion: reduce)');
+      expect(api.maps[0]?.wheelZooms).toHaveLength(1);
+      expect(api.maps[0]?.wheelZooms[0]?.effect).toBe(false);
+      map.release();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('removes wheel handling when map authentication fails', async () => {
     const api = createFakeNaverApi();
     const { root } = await page(api);
