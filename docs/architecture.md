@@ -337,3 +337,13 @@ saying so.
    length. When that window's data is incomplete, the rank delta is omitted — never guessed.
 4. **Approval queue.** `review_candidates.csv` is the human gate between geocoding and publication;
    only `approved` rows reach `places.json`.
+
+## Personal Favourites
+
+`src/ui/favourites-store.ts` persists only canonical IDs in the browser under
+`knue-pick:favourites:v1`. It filters missing IDs and malformed entries on load; failed reads
+block writes, and failed writes leave the previous state intact. No dataset schema changes.
+`favourites.ts` renders a collapsible personal list independent of period/kind filters and a
+save/remove control in the existing detail panel. List selections use the same `1y` basis as
+search; map destinations reuse `renderPlaceMapLinks`. Surviving list buttons retain identity
+so closing detail restores focus. Storage deletion loses bookmarks; devices do not sync.

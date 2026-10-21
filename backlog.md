@@ -52,6 +52,6 @@
 - [x] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget
   *(decided not warranted — `docs/design/deferred-scope.md`; `src/data/published-dataset.test.ts`
   holds the wire format and a 1 MB review trigger)*
-- [ ] Distance-from-me search, favourites, heatmap (PRD §44 V2 candidates) — conditions and the
-  heatmap's framing objection in `docs/design/deferred-scope.md`; `src/ui/device-state.test.ts`
-  must be widened by whichever lands first
+- [ ] Distance-from-me search, heatmap (PRD §44 V2 candidates) — conditions and the
+  heatmap's framing objection in `docs/design/deferred-scope.md`; additional device access needs
+  a scoped exception in `src/ui/device-state.test.ts` *(deferred: outside the approved favourites scope)*
