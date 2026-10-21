@@ -24,6 +24,32 @@ describe('personal favourites storage', () => {
     expect(reloaded.toggle(ids[0]!)).toBe(true);
     expect(createFavourites(ids).ids()).toEqual([ids[1]]);
   });
+  it('merges sequential changes from stale tabs without losing other bookmarks', () => {
+    const first = createFavourites(ids);
+    const second = createFavourites(ids);
+    first.toggle(ids[0]!);
+    second.toggle(ids[1]!);
+    expect(createFavourites(ids).ids()).toEqual(ids);
+    first.toggle(ids[0]!);
+    expect(createFavourites(ids).ids()).toEqual([ids[1]]);
+  });
+  it('preserves absent canonical IDs through edits so returning places remain saved', () => {
+    window.localStorage.setItem(FAVOURITES_KEY, JSON.stringify(ids));
+    const current = createFavourites([ids[0]!]);
+    expect(current.ids()).toEqual([ids[0]]);
+    current.toggle(ids[0]!);
+    expect(createFavourites(ids).ids()).toEqual([ids[1]]);
+  });
+  it('does not overwrite storage if the fresh read fails during a toggle', () => {
+    const store = createFavourites(ids);
+    store.toggle(ids[0]!);
+    vi.spyOn(Object.getPrototypeOf(window.localStorage) as Storage, 'getItem')
+      .mockImplementation(() => { throw new Error('denied'); });
+    const write = vi.spyOn(Object.getPrototypeOf(window.localStorage) as Storage, 'setItem');
+    expect(store.toggle(ids[1]!)).toBe(false);
+    expect(write).not.toHaveBeenCalled();
+    expect(store.ids()).toEqual([ids[0]]);
+  });
   it('ignores missing, duplicate and non-string IDs and refuses unknown additions', () => {
     window.localStorage.setItem(FAVOURITES_KEY, JSON.stringify([...ids, ids[0], 'gone', {}, 3]));
     const store = createFavourites([ids[0]!]);

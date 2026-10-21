@@ -249,9 +249,8 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     });
     const detail = document.createElement('div');
     detail.className = 'detail-slot';
-    // The list before the search: the ranked list is the answer the page exists for, and search is
-    // the lookup for a reader who already has a name — `docs/conventions.md` → Accessibility &
-    // Responsive.
+    // Personal bookmarks precede discovery. The ranked list remains before search; the
+    // collapsed favourites summary keeps saved places reachable without repeating a search.
     // The summary above the filters, grouped with them: it states what they currently select, so
     // it reads as their caption rather than as a section of its own.
     const filters = document.createElement('div');
@@ -260,6 +259,8 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     content.replaceChildren(filters, favourites, list, search, detail);
 
     detailView = createDetailPanel(detail, [filters, favourites, list, search], {
+      fallbackFocus: (opener) => opener?.classList.contains('favourite-open')
+        ? favourites.querySelector('summary') : null,
       renderActions: (container, selection) => {
         renderFavouriteToggle(container, selection.place.id, store, refreshFavourites);
       },

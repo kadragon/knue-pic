@@ -2,6 +2,10 @@
 
 ## Review Backlog
 
+### PR #85 — Personal favourites (2026-10-21)
+
+- [ ] [debt] Refresh open tabs on storage events so bookmark lists reflect changes in other tabs without reloading (source: codex) — src/ui/favourites-store.ts:33 (introduced here)
+
 ### PR #83 — Opening campus view (2026-10-09)
 
 - [ ] [debt] Clear openingCampus after a cluster click so a later desktop/mobile layout switch respects the explored view; add a click-then-breakpoint test (source: codex) — src/map/place-map.ts:849 (introduced here)

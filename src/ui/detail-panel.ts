@@ -2,6 +2,7 @@ import type { Period } from '../data/types';
 import { renderPlaceDetail, type PlaceDetail } from './place-detail';
 
 export interface DetailPanelOptions {
+  fallbackFocus?: (opener: HTMLElement | null) => HTMLElement | null;
   renderActions?: (container: HTMLElement, detail: PlaceDetail) => void;
   resolve: (placeId: string, basis?: Period) => PlaceDetail | null;
   onSelection: (detail: PlaceDetail | null) => void;
@@ -45,7 +46,7 @@ export function createDetailPanel(
 
   function restoreFocus(): void {
     if (opener?.isConnected) opener.focus();
-    else container.closest<HTMLElement>('#content')?.focus();
+    else (options.fallbackFocus?.(opener) ?? container.closest<HTMLElement>('#content'))?.focus();
     opener = null;
   }
 

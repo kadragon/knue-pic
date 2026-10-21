@@ -30,6 +30,9 @@ export function renderFavourites(
     const ids = store.ids();
     summary.textContent = `내 즐겨찾기 (${ids.length})`;
     empty.hidden = ids.length > 0;
+    for (const id of rows.keys()) {
+      if (!ids.includes(id)) rows.delete(id);
+    }
     list.replaceChildren(...ids.flatMap((id) => {
       const place = byId.get(id);
       if (!place) return [];
@@ -44,7 +47,11 @@ export function renderFavourites(
         button.addEventListener('click', () => { onSelect(id); });
         const address = document.createElement('p');
         address.textContent = place.address;
-        row.append(button, address, renderPlaceMapLinks(place));
+        const links = renderPlaceMapLinks(place);
+        links.querySelectorAll('a').forEach((link) => {
+          link.setAttribute('aria-label', `${place.name} · ${link.textContent}`);
+        });
+        row.append(button, address, links);
         rows.set(id, row);
       }
       return [row];
@@ -68,7 +75,6 @@ export function renderFavouriteToggle(
   status.setAttribute('role', 'status');
   const refresh = (): void => {
     button.textContent = store.has(id) ? '즐겨찾기 해제' : '즐겨찾기 추가';
-    button.setAttribute('aria-pressed', String(store.has(id)));
   };
   button.disabled = !store.readable;
   if (!store.readable) status.textContent = READ_FAILURE;

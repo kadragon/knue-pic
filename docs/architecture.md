@@ -341,9 +341,10 @@ saying so.
 ## Personal Favourites
 
 `src/ui/favourites-store.ts` persists only canonical IDs in the browser under
-`knue-pick:favourites:v1`. It filters missing IDs and malformed entries on load; failed reads
-block writes, and failed writes leave the previous state intact. No dataset schema changes.
+`knue-pick:favourites:v1`. It hides missing IDs but preserves them for returning places and ignores malformed entries.
+Each write rereads stored IDs to preserve completed edits from other tabs; open tabs do not
+refresh automatically. Failed reads block writes, and failed writes leave the previous state intact. No dataset schema changes.
 `favourites.ts` renders a collapsible personal list independent of period/kind filters and a
 save/remove control in the existing detail panel. List selections use the same `1y` basis as
 search; map destinations reuse `renderPlaceMapLinks`. Surviving list buttons retain identity
-so closing detail restores focus. Storage deletion loses bookmarks; devices do not sync.
+so closing detail restores focus; removing the opener falls back to the favourites summary. Storage deletion loses bookmarks; devices do not sync.

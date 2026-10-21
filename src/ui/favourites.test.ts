@@ -46,14 +46,14 @@ describe('favourites in the page', () => {
     const place = SAMPLE_DATASET.places[0]!;
     const root = await mount(place.id);
     const button = click(root, '.favourite-toggle');
-    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(button.textContent).toBe('즐겨찾기 해제');
     expect(document.activeElement).toBe(button);
     expect(JSON.parse(window.localStorage.getItem(key)!)).toEqual([place.id]);
     expect(root.querySelectorAll('.favourite-place')).toHaveLength(1);
     expect(root.textContent).toContain('기기 간에 동기화되지 않습니다');
     expect(root.textContent).toContain('브라우저 데이터를 삭제하면');
     button.click();
-    expect(button.getAttribute('aria-pressed')).toBe('false');
+    expect(button.textContent).toBe('즐겨찾기 추가');
     expect(root.querySelectorAll('.favourite-place')).toHaveLength(0);
   });
   it('opens saved places and map links with maps blocked, ignoring missing IDs', async () => {
@@ -71,11 +71,27 @@ describe('favourites in the page', () => {
     expect(document.activeElement).toBe(opener);
     expect(root.querySelector<HTMLElement>('.favourites-slot')?.hidden).toBe(false);
   });
+  it('returns focus to favourites after removing the row that opened detail', async () => {
+    window.localStorage.setItem(key, JSON.stringify([SAMPLE_DATASET.places[0]!.id]));
+    const root = await mount();
+    root.querySelector('details')!.open = true;
+    click(root, '.favourite-open');
+    click(root, '.favourite-toggle');
+    click(root, '.detail-panel-back');
+    expect(document.activeElement).toBe(root.querySelector('.favourites summary'));
+  });
+  it('names each saved map destination with its place and uses action button semantics', async () => {
+    const place = SAMPLE_DATASET.places[0]!;
+    window.localStorage.setItem(key, JSON.stringify([place.id]));
+    const root = await mount(place.id);
+    expect(root.querySelector('.favourite-place a')?.getAttribute('aria-label')).toContain(place.name);
+    expect(root.querySelector('.favourite-toggle')?.hasAttribute('aria-pressed')).toBe(false);
+  });
   it('reports write failure without changing the button or list', async () => {
     const root = await mount(SAMPLE_DATASET.places[0]!.id);
     vi.spyOn(Object.getPrototypeOf(window.localStorage) as Storage, 'setItem').mockImplementation(() => { throw new Error('quota'); });
     const button = click(root, '.favourite-toggle');
-    expect(button.getAttribute('aria-pressed')).toBe('false');
+    expect(button.textContent).toBe('즐겨찾기 추가');
     expect(root.querySelectorAll('.favourite-place')).toHaveLength(0);
     expect(root.querySelector('.favourite-status')?.textContent).toContain('저장하지 못했습니다');
   });

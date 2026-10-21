@@ -1579,11 +1579,6 @@ button.top-place-body,
   cursor: pointer;
 }
 
-.favourite-toggle[aria-pressed='true'] {
-  font-weight: 700;
-  border-color: var(--accent);
-}
-
 .favourite-toggle:disabled {
   cursor: not-allowed;
   color: var(--muted);

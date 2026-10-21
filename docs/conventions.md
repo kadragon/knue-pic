@@ -131,9 +131,9 @@ dance per file.
 - Every ranked row prints the in-window visit count (`N회`) it is ranked by, in the figures column
   beside the trend bars. The order is the page's claim, and a row that stated the order without the
   number made the reader open every row to learn why it sat where it did.
-- Layout must hold at 360px width; source order is the ranked list → search. The list is the answer
-  the page exists for, and search is the lookup for a reader who already has a name, so it follows
-  the list rather than standing between the reader and the first row.
+- Layout must hold at 360px width; source order is the collapsible personal favourites → ranked
+  list → search. Bookmarks open collapsed and provide a direct route to saved places. The ranked
+  list remains before search, which is the lookup for a reader who already has a name.
 - One ranked list at a time, over the window the reader selected. The four windows — 최근 1개월 /
   3개월 / 6개월 / 1년 — are peers in the selector (`.period-tabs`, on screen at every width): same
   pill, same heading tier, same page size once chosen. Making one heavier states something about
