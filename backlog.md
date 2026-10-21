@@ -2,6 +2,10 @@
 
 ## Review Backlog
 
+### PR #85 — Personal favourites (2026-10-21)
+
+- [ ] [debt] Refresh open tabs on storage events so bookmark lists reflect changes in other tabs without reloading (source: codex) — src/ui/favourites-store.ts:33 (introduced here)
+
 ### PR #83 — Opening campus view (2026-10-09)
 
 - [ ] [debt] Clear openingCampus after a cluster click so a later desktop/mobile layout switch respects the explored view; add a click-then-breakpoint test (source: codex) — src/map/place-map.ts:849 (introduced here)
@@ -52,6 +56,6 @@
 - [x] Precomputed monthly aggregates in the JSON if `transactions` growth threatens the 3s load budget
   *(decided not warranted — `docs/design/deferred-scope.md`; `src/data/published-dataset.test.ts`
   holds the wire format and a 1 MB review trigger)*
-- [ ] Distance-from-me search, favourites, heatmap (PRD §44 V2 candidates) — conditions and the
-  heatmap's framing objection in `docs/design/deferred-scope.md`; `src/ui/device-state.test.ts`
-  must be widened by whichever lands first
+- [ ] Distance-from-me search, heatmap (PRD §44 V2 candidates) — conditions and the
+  heatmap's framing objection in `docs/design/deferred-scope.md`; additional device access needs
+  a scoped exception in `src/ui/device-state.test.ts` *(deferred: outside the approved favourites scope)*

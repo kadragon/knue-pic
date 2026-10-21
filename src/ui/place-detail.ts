@@ -366,12 +366,14 @@ export function renderPlaceDetail(
 
   section.append(renderHistogram(histogram));
 
-  // The only place a dataset string reaches an executable position in this app — see
-  // `naverLinkHref`, which owns the scheme check; `kakaoLinkHref` composes its href and reads no
-  // dataset URL at all. `src/data/load.ts` now rejects the whole file
-  // unless `naverUrl` is an https URL on a Naver host, so a `javascript:` value never reaches that
-  // check — but it stays, because the cost of being wrong is that value running in the page origin
-  // on click.
+  const links = renderPlaceMapLinks(place);
+  if (links.childElementCount > 0) section.append(links);
+
+  container.replaceChildren(section);
+}
+
+/** Shared map destinations for detail and personal bookmarks. */
+export function renderPlaceMapLinks(place: PlaceRecord): HTMLElement {
   const links: HTMLAnchorElement[] = [];
   const naverHref = naverLinkHref(place);
   if (naverHref !== null) {
@@ -388,8 +390,8 @@ export function renderPlaceDetail(
     const linkRow = document.createElement('div');
     linkRow.className = 'place-detail-links';
     linkRow.append(...links);
-    section.append(linkRow);
+    return linkRow;
   }
 
-  container.replaceChildren(section);
+  return document.createElement('div');
 }

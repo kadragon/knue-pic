@@ -1,6 +1,6 @@
 # Deferred Scope: Monthly Aggregates and the PRD §44 V2 Candidates
 
-Decision record for the two `backlog.md` → Someday items, written 2026-09-11. Neither is built.
+Decision record for the two `backlog.md` → Someday items, written 2026-09-11. Aggregates, distance-from-me and heatmap remain unbuilt; personal favourites shipped in October 2026.
 This file says why, what would reopen each, and which test holds the line in the meantime.
 
 **Source limits.** The PRD is cited throughout the repo by section number but is not committed, so
@@ -32,11 +32,11 @@ typed wire format (so an aggregate cannot slip in unreviewed), and it stays unde
 review trigger. The trigger is roughly 2.4× today's size, chosen so crossing it means the
 disclosures themselves grew; it is a prompt to measure load, not a measured budget.
 
-## 2. V2 candidates — none built now
+## 2. V2 candidates — favourites implemented
 
 Backlog: "Distance-from-me search, favourites, heatmap (PRD §44 V2 candidates)." Filed as V2 —
-outside the MVP — with no Sprint Contract, and each needs product decisions (new copy, device
-state) that are not the implementer's to make. What the repo does fix is the conditions each must
+outside the original MVP. The October 2026 favourites contract explicitly approved personal
+bookmarks; distance-from-me and heatmap remain deferred. What the repo does fix is the conditions each must
 meet, so the eventual contract starts from them.
 
 ### Distance-from-me search
@@ -49,7 +49,7 @@ meet, so the eventual contract starts from them.
 - Denied or unavailable permission falls back to the campus distance the rows already print —
   the same graceful-degradation rule the map follows.
 
-### Favourites
+### Favourites — implemented
 
 - `localStorage` holding canonical place ids and nothing else. Ids are stable and never reused
   (`docs/architecture.md` → Canonical ID), so a stored id cannot come to name another business.
@@ -66,6 +66,7 @@ rules out — and the page-level map it would sit on was removed on purpose (`sr
 header). The per-place monthly histogram already answers "when". Reopen only with a framing that
 passes `docs/conventions.md` → Framing Vocabulary, stated in the Sprint Contract.
 
-**Held by:** `src/ui/device-state.test.ts` — no shipped source touches geolocation, storage,
-cookies, or a service worker. Landing distance-from-me or favourites means adding the file to its
-`ALLOWED` map, which is where the conditions above get checked.
+**Held by:** `src/ui/device-state.test.ts` — only `favourites-store.ts` may use `localStorage`.
+All other device APIs remain forbidden. Store and integration tests cover ID-only persistence,
+missing IDs, malformed data and storage failures. The UI explains browser deletion and no
+cross-device synchronization. See `docs/architecture.md` → Personal Favourites.
