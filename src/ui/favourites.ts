@@ -76,6 +76,12 @@ export function renderFavouriteToggle(
   const refresh = (): void => {
     button.textContent = store.has(id) ? '즐겨찾기 해제' : '즐겨찾기 추가';
   };
+  // Another tab may change this bookmark while the detail is open; the label must match what a
+  // click will do. The panel gives actions no teardown, so a detached button ends its own subscription.
+  const stop = store.subscribe(() => {
+    if (!button.isConnected) { stop(); return; }
+    refresh();
+  });
   button.disabled = !store.readable;
   if (!store.readable) status.textContent = READ_FAILURE;
   button.addEventListener('click', () => {
