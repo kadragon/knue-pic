@@ -1344,6 +1344,26 @@ describe('page map dot clusters', () => {
     expect(camera.pans.at(-1)).toEqual({ x: -180, y: -98 });
   });
 
+  it('does not reframe the set on detail close after a layout switch in a cluster', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets = SHEET;
+    const map = await renderPageMap(container(), [{ place: ALWAYS }, { place: NEAR }, { place: FAR }], {
+      loadApi: () => Promise.resolve(api),
+      origin: ORIGIN,
+      coveredInsets: () => insets,
+    });
+    const [cluster] = clusters(api);
+    cluster!.emit('click');
+    expect(api.maps[0]?.fits).toHaveLength(1);
+
+    insets = { top: 196, right: 0, bottom: 0, left: 360 };
+    map.coverChanged();
+    map.focusPlace(ALWAYS);
+    map.focusPlace(null);
+
+    expect(api.maps[0]?.fits).toHaveLength(1);
+  });
+
   it('stops following the focused place once a cluster is clicked', async () => {
     const api = createFakeNaverApi();
     const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: TWIN }, { place: FAR }]);

@@ -850,7 +850,8 @@ export async function renderPageMap(
       coverChanged: () => {
         if (!live) return;
         const insets = coveredInsets();
-        if (insets && framedSides === null) framedSides = coveredSides(insets);
+        // An explored cluster accepts the new cover without moving the camera or owing a reframe.
+        if (insets && (framedSides === null || exploringCluster)) framedSides = coveredSides(insets);
         if (focused && following) showFocused();
         // Pay an owed `학교로` press as soon as room appears. On a layout switch, re-centre the
         // opening campus view or the campus shown beneath a detail that still holds the frame.
