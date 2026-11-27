@@ -33,7 +33,8 @@ export function renderFavourites(
     for (const id of rows.keys()) {
       if (!ids.includes(id)) rows.delete(id);
     }
-    list.replaceChildren(...ids.flatMap((id) => {
+    const focused = list.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
+    const next = ids.flatMap((id) => {
       const place = byId.get(id);
       if (!place) return [];
       let row = rows.get(id);
@@ -55,7 +56,11 @@ export function renderFavourites(
         rows.set(id, row);
       }
       return [row];
-    }));
+    });
+    list.replaceChildren(...next);
+    // A remote refresh can run while a row holds focus, and replaceChildren drops it: put it back
+    // on the surviving control, or on the summary when its row went away.
+    if (focused && document.activeElement !== focused) (list.contains(focused) ? focused : summary).focus();
   };
   refresh();
   return refresh;
