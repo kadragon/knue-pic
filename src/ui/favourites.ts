@@ -66,6 +66,8 @@ export function renderFavourites(
   return refresh;
 }
 
+const activeToggleSync = new WeakMap<Favourites, () => void>();
+
 export function renderFavouriteToggle(
   container: HTMLElement,
   id: string,
@@ -83,10 +85,13 @@ export function renderFavouriteToggle(
   };
   // Another tab may change this bookmark while the detail is open; the label must match what a
   // click will do. The panel gives actions no teardown, so a detached button ends its own subscription.
+  // Only one detail is open at a time, so a new toggle replaces the store's previous subscription.
+  activeToggleSync.get(store)?.();
   const stop = store.subscribe(() => {
     if (!button.isConnected) { stop(); return; }
     refresh();
   });
+  activeToggleSync.set(store, stop);
   button.disabled = !store.readable;
   if (!store.readable) status.textContent = READ_FAILURE;
   button.addEventListener('click', () => {
