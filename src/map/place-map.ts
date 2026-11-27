@@ -502,19 +502,21 @@ export async function renderPageMap(
      * next measured cover, a held frame when the detail closes.
      */
     let campusOwed = false;
-    /** Layout changes reframe the opening campus or the filtered set, while an opened cluster stays in view. */
-    let layoutView: 'opening-campus' | 'places' | 'cluster' = 'opening-campus';
+    /** The opening campus view survives a layout switch until a filter or selection replaces it. */
+    let openingCampus = true;
+    /** The reader opened a cluster. Keep its camera through layout changes until they choose another view. */
+    let exploringCluster = false;
     /**
      * The `coveredSides` the view was last laid out inside — by a frame, or by `학교로`. `null` while
      * unknown (no frame yet, or `학교로` with no room to measure); the next measured cover adopts it.
      */
     let framedSides: string | null = null;
     /**
-     * The page now covers a different side than the view was laid out for: the layout switched.
+     * Whether the layout switched and the current view should be reframed for the new cover.
      * Read against the cover as it stands, so switching back before the detail closes owes nothing.
      */
-    const layoutSwitched = (insets: PageMapInsets | null): boolean =>
-      layoutView !== 'cluster' && insets !== null && framedSides !== null && coveredSides(insets) !== framedSides;
+    const needsLayoutReframe = (insets: PageMapInsets | null): boolean =>
+      !exploringCluster && insets !== null && framedSides !== null && coveredSides(insets) !== framedSides;
 
     /**
      * Puts `lat`/`lng` in the middle of the uncovered part of the map rather than the middle of the
@@ -560,7 +562,8 @@ export async function renderPageMap(
      * show fewer places than the line above it says.
      */
     const frame = (next: PageMapPlace[]): void => {
-      layoutView = 'places';
+      openingCampus = false;
+      exploringCluster = false;
       const insets = coveredInsets();
       frameOwed = insets === null;
       // The set is newer than any `학교로` still waiting for room.
@@ -627,7 +630,7 @@ export async function renderPageMap(
           if (members.length === 0) return;
           // The reader moved the view, as with `학교로`: nothing owed from before may pull it back,
           // and a held focus stops being followed. The place itself still holds the frame.
-          layoutView = 'cluster';
+          exploringCluster = true;
           following = false;
           frameOwed = false;
           campusOwed = false;
@@ -805,7 +808,7 @@ export async function renderPageMap(
         // `focused` stays: the detail still shows the place, so it still holds the frame. Only the
         // view lets go, and a later snap must not pull it back to the place the reader left.
         following = false;
-        if (layoutView === 'cluster') layoutView = 'places';
+        exploringCluster = false;
         // A frame owed so far is dropped — the reader asked for the campus. A filter change after the
         // press is a newer request, and is owed again until the detail closes.
         frameOwed = false;
@@ -824,7 +827,10 @@ export async function renderPageMap(
       },
       focusPlace: (place) => {
         if (!live) return;
-        if (place) layoutView = 'places';
+        if (place) {
+          openingCampus = false;
+          exploringCluster = false;
+        }
         const previous = focused;
         focused = place;
         following = place !== null;
@@ -837,7 +843,7 @@ export async function renderPageMap(
         if (place) {
           campusOwed = false;
           showFocused();
-        } else if (frameOwed || (!campusOwed && layoutSwitched(coveredInsets()))) {
+        } else if (frameOwed || (!campusOwed && needsLayoutReframe(coveredInsets()))) {
           frame(current);
         }
       },
@@ -846,11 +852,11 @@ export async function renderPageMap(
         const insets = coveredInsets();
         if (insets && framedSides === null) framedSides = coveredSides(insets);
         if (focused && following) showFocused();
-        // After `학교로` the campus is the view, open detail or not: an owed press or a layout switch
-        // re-centres it for the new cover. A held frame waits for the detail to close.
-        else if (campusOwed || ((focused || layoutView === 'opening-campus') && layoutSwitched(insets))) {
+        // Pay an owed `학교로` press as soon as room appears. On a layout switch, re-centre the
+        // opening campus view or the campus shown beneath a detail that still holds the frame.
+        else if (campusOwed || ((focused || openingCampus) && needsLayoutReframe(insets))) {
           if (insets) showCampus(insets);
-        } else if (!focused && (frameOwed || layoutSwitched(insets))) {
+        } else if (!focused && (frameOwed || needsLayoutReframe(insets))) {
           frame(current);
         }
       },
