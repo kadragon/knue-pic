@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [done] Refresh favourites in open tabs on storage events (#88) (2026-11-27)
 - [done] Add personal favourites with browser-only ID persistence (2026-10-21) → docs/architecture.md
 - [done] Open the map around campus at zoom 14 instead of fitting all places on first load (2026-10-09)
 - [done] Animate pointer-anchored map wheel zoom with normalized input and bounded burst speed (2026-10-09)

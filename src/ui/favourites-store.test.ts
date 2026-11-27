@@ -13,6 +13,44 @@ beforeEach(() => {
 
 afterEach(() => { storageFrame.contentWindow!.localStorage.clear(); vi.restoreAllMocks(); storageFrame.remove(); });
 
+function remoteChange(ids: string[], key: string | null = FAVOURITES_KEY): void {
+  // jsdom fires no storage event for a same-window write, so stand in for the other tab.
+  window.localStorage.setItem(FAVOURITES_KEY, JSON.stringify(ids));
+  window.dispatchEvent(new StorageEvent('storage', { key, storageArea: window.localStorage }));
+}
+
+describe('cross-tab sync', () => {
+  it('re-reads storage and notifies subscribers when another tab changes the bookmarks', () => {
+    const store = createFavourites(ids);
+    const listener = vi.fn();
+    store.subscribe(listener);
+    remoteChange([ids[1]!]);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(store.ids()).toEqual([ids[1]]);
+    expect(store.has(ids[0]!)).toBe(false);
+  });
+  it('treats a cleared storage area as an emptied list and ignores unrelated keys', () => {
+    const store = createFavourites(ids);
+    store.toggle(ids[0]!);
+    const listener = vi.fn();
+    store.subscribe(listener);
+    window.dispatchEvent(new StorageEvent('storage', { key: 'other', storageArea: window.localStorage }));
+    expect(listener).not.toHaveBeenCalled();
+    window.localStorage.clear();
+    window.dispatchEvent(new StorageEvent('storage', { key: null, storageArea: window.localStorage }));
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(store.ids()).toEqual([]);
+  });
+  it('stops notifying after unsubscribe', () => {
+    const store = createFavourites(ids);
+    const listener = vi.fn();
+    store.subscribe(listener)();
+    remoteChange([ids[0]!]);
+    expect(listener).not.toHaveBeenCalled();
+    expect(store.ids()).toEqual([]);
+  });
+});
+
 describe('personal favourites storage', () => {
   it('persists two IDs across recreation and removes a saved ID', () => {
     const store = createFavourites(ids);

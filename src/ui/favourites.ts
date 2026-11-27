@@ -33,7 +33,8 @@ export function renderFavourites(
     for (const id of rows.keys()) {
       if (!ids.includes(id)) rows.delete(id);
     }
-    list.replaceChildren(...ids.flatMap((id) => {
+    const focused = list.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
+    const next = ids.flatMap((id) => {
       const place = byId.get(id);
       if (!place) return [];
       let row = rows.get(id);
@@ -55,11 +56,17 @@ export function renderFavourites(
         rows.set(id, row);
       }
       return [row];
-    }));
+    });
+    list.replaceChildren(...next);
+    // A remote refresh can run while a row holds focus, and replaceChildren drops it: put it back
+    // on the surviving control, or on the summary when its row went away.
+    if (focused && document.activeElement !== focused) (list.contains(focused) ? focused : summary).focus();
   };
   refresh();
   return refresh;
 }
+
+const activeToggleSync = new WeakMap<Favourites, () => void>();
 
 export function renderFavouriteToggle(
   container: HTMLElement,
@@ -76,6 +83,15 @@ export function renderFavouriteToggle(
   const refresh = (): void => {
     button.textContent = store.has(id) ? '즐겨찾기 해제' : '즐겨찾기 추가';
   };
+  // Another tab may change this bookmark while the detail is open; the label must match what a
+  // click will do. The panel gives actions no teardown, so a detached button ends its own subscription.
+  // Only one detail is open at a time, so a new toggle replaces the store's previous subscription.
+  activeToggleSync.get(store)?.();
+  const stop = store.subscribe(() => {
+    if (!button.isConnected) { stop(); return; }
+    refresh();
+  });
+  activeToggleSync.set(store, stop);
   button.disabled = !store.readable;
   if (!store.readable) status.textContent = READ_FAILURE;
   button.addEventListener('click', () => {

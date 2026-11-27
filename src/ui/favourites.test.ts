@@ -87,6 +87,33 @@ describe('favourites in the page', () => {
     expect(root.querySelector('.favourite-place a')?.getAttribute('aria-label')).toContain(place.name);
     expect(root.querySelector('.favourite-toggle')?.hasAttribute('aria-pressed')).toBe(false);
   });
+  it('reflects a change made in another tab in the list and the open toggle', async () => {
+    const place = SAMPLE_DATASET.places[0]!;
+    const root = await mount(place.id);
+    expect(root.querySelectorAll('.favourite-place')).toHaveLength(0);
+    window.localStorage.setItem(key, JSON.stringify([place.id]));
+    window.dispatchEvent(new StorageEvent('storage', { key, storageArea: window.localStorage }));
+    expect(root.querySelectorAll('.favourite-place')).toHaveLength(1);
+    expect(root.querySelector('.favourite-toggle')?.textContent).toBe('즐겨찾기 해제');
+    window.localStorage.setItem(key, '[]');
+    window.dispatchEvent(new StorageEvent('storage', { key, storageArea: window.localStorage }));
+    expect(root.querySelectorAll('.favourite-place')).toHaveLength(0);
+    expect(root.querySelector('.favourite-toggle')?.textContent).toBe('즐겨찾기 추가');
+  });
+  it('keeps focus on a favourite row when another tab changes the list, else moves it to the summary', async () => {
+    const [a, b] = SAMPLE_DATASET.places;
+    window.localStorage.setItem(key, JSON.stringify([a!.id, b!.id]));
+    const root = await mount();
+    root.querySelector('details')!.open = true;
+    const opener = root.querySelector<HTMLButtonElement>('.favourite-open')!;
+    opener.focus();
+    window.localStorage.setItem(key, JSON.stringify([a!.id]));
+    window.dispatchEvent(new StorageEvent('storage', { key, storageArea: window.localStorage }));
+    expect(document.activeElement).toBe(opener);
+    window.localStorage.setItem(key, JSON.stringify([b!.id]));
+    window.dispatchEvent(new StorageEvent('storage', { key, storageArea: window.localStorage }));
+    expect(document.activeElement).toBe(root.querySelector('.favourites summary'));
+  });
   it('reports write failure without changing the button or list', async () => {
     const root = await mount(SAMPLE_DATASET.places[0]!.id);
     vi.spyOn(Object.getPrototypeOf(window.localStorage) as Storage, 'setItem').mockImplementation(() => { throw new Error('quota'); });

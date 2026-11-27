@@ -124,6 +124,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    */
   let mounting = false;
   let detailView: DetailPanelHandle | null = null;
+  let stopFavouritesSync: () => void = () => {};
   let selectedDetail: PlaceDetail | null = null;
   let selectFromMap: (placeId: string) => void = () => {};
 
@@ -228,6 +229,7 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
    */
   function renderDataset(dataset: PlacesDataset): void {
     detailView?.release();
+    stopFavouritesSync();
     // The frame is never rebuilt here: `renderShell` would replace `root` and detach the `content`
     // node captured above, taking whatever held focus with it. Only the provenance date changes,
     // and `setShellUpdatedAt` writes it in place.
@@ -247,6 +249,8 @@ export async function bootstrap(root: HTMLElement, options: BootstrapOptions = {
     const refreshFavourites = renderFavourites(favourites, dataset.places, store, (id) => {
       selectPlace(id, SEARCH_PERIOD);
     });
+    // Bookmarks changed in another tab show here without a reload.
+    stopFavouritesSync = store.subscribe(refreshFavourites);
     const detail = document.createElement('div');
     detail.className = 'detail-slot';
     // Personal bookmarks precede discovery. The ranked list remains before search; the

@@ -6,6 +6,8 @@ export interface Favourites {
   ids(): string[];
   has(id: string): boolean;
   toggle(id: string): boolean;
+  /** Calls back after another tab changed the saved IDs; returns the unsubscribe function. */
+  subscribe(listener: () => void): () => void;
 }
 
 function readIds(storage: Storage): Set<string> {
@@ -33,10 +35,31 @@ export function createFavourites(placeIds: readonly string[]): Favourites {
   } catch {
     // A denied read disables writes to avoid overwriting unseen data.
   }
+  const listeners = new Set<() => void>();
+  // The storage event fires only in the other tabs, so every notification is an external change.
+  // A `null` key means the whole area was cleared.
+  const onStorage = (event: StorageEvent): void => {
+    if (!readable || !storage || event.storageArea !== storage) return;
+    if (event.key !== null && event.key !== FAVOURITES_KEY) return;
+    try {
+      saved = readIds(storage);
+    } catch {
+      return;
+    }
+    for (const listener of [...listeners]) listener();
+  };
   return {
     readable,
     ids: () => [...saved].filter((id) => known.has(id)),
     has: (id) => known.has(id) && saved.has(id),
+    subscribe(listener) {
+      if (!listeners.size) window.addEventListener('storage', onStorage);
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+        if (!listeners.size) window.removeEventListener('storage', onStorage);
+      };
+    },
     toggle(id) {
       if (!readable || !storage || !known.has(id)) return false;
       try {
