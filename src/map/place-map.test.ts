@@ -1298,6 +1298,30 @@ describe('page map dot clusters', () => {
     expect(api.maps[0]?.centers).toHaveLength(centres ?? -1);
   });
 
+  it('keeps the explored cluster view across layout switches from the opening campus', async () => {
+    const api = createFakeNaverApi();
+    let insets: PageMapInsets = SHEET;
+    const map = await renderPageMap(container(), [{ place: ALWAYS }, { place: NEAR }, { place: FAR }], {
+      loadApi: () => Promise.resolve(api),
+      origin: ORIGIN,
+      coveredInsets: () => insets,
+    });
+    const camera = api.maps[0]!;
+    const [cluster] = clusters(api);
+    cluster!.emit('click');
+    expect(camera.fits).toHaveLength(1);
+    const centres = camera.centers.length;
+    const pans = camera.pans.length;
+
+    for (const nextInsets of [{ top: 196, right: 0, bottom: 0, left: 360 }, SHEET]) {
+      insets = nextInsets;
+      map.coverChanged();
+      expect(camera.centers).toHaveLength(centres);
+      expect(camera.pans).toHaveLength(pans);
+      expect(camera.fits).toHaveLength(1);
+    }
+  });
+
   it('stops following the focused place once a cluster is clicked', async () => {
     const api = createFakeNaverApi();
     const map = await clustered(api, [{ place: ALWAYS }, { place: NEAR }, { place: TWIN }, { place: FAR }]);
